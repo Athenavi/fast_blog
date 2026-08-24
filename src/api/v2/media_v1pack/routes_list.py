@@ -236,7 +236,7 @@ async def get_media_statistics(
         db: AsyncSession = Depends(get_async_db)
 ):
     from shared.services.media.media_manager import media_library_service
-    result = await media_library_service.get_media_statistics(db)
+    result = await media_library_service.get_media_statistics(db, user_id=current_user.id)
     if result["success"]:
         return ok(data=result["statistics"])
     return fail(result["error"])
@@ -252,7 +252,7 @@ async def get_categories(
     """获取所有媒体分类及每个分类下的文件数量"""
     query = (
         select(Media.category, func.count(Media.id).label('count'))
-        .where(Media.category != None)
+        .where(Media.category != None, Media.user == current_user.id)
         .group_by(Media.category)
     )
     result = await db.execute(query)
@@ -273,7 +273,7 @@ async def get_all_tags(
         current_user=Depends(jwt_required)
 ):
     """获取所有媒体标签及使用次数"""
-    query = select(Media.tags).where(Media.tags != None)
+    query = select(Media.tags).where(Media.tags != None, Media.user == current_user.id)
     result = await db.execute(query)
     all_tags_str = [row[0] for row in result.all() if row[0]]
 
@@ -322,6 +322,12 @@ async def get_video_thumbnail(
         return JSONResponse(
             content={"success": False, "error": "缩略图不存在"},
             status_code=404
+        )
+
+    if media.user != current_user.id:
+        return JSONResponse(
+            content={"success": False, "error": "无权访问该媒体文件"},
+            status_code=403
         )
 
     from src.utils.storage.s3_storage import s3_storage

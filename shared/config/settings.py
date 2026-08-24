@@ -224,9 +224,15 @@ class BaseConfig:
     JWT_ACCESS_COOKIE_NAME = 'access_token'
     JWT_REFRESH_COOKIE_NAME = 'refresh_token'
     JWT_TOKEN_LOCATION = ['cookies']
-    JWT_COOKIE_SECURE = False
+    # Cookie 安全：非开发环境（生产/其余）默认强制 Secure（仅经 HTTPS 传输），
+    # 开发环境(ENVIRONMENT=development)保持 False 便于本地 http 调试。
+    _cookie_secure = os.environ.get('ENVIRONMENT', '').lower() != 'development'
+    JWT_COOKIE_SECURE = _cookie_secure
+    # 本框架（FastAPI + JWT Bearer，前后端分离）未实现 JWT_COOKIE_CSRF_PROTECT 后端校验，
+    # 且既有侵入式安全头 csrf 端点亦标记废弃（JWT + SameSite=Lax 已天然缓解 CSRF），
+    # 故保持 False；生产 CSRF 缓解依赖上方 JWT_COOKIE_SECURE=True + SameSite=Lax。
     JWT_COOKIE_CSRF_PROTECT = False
-    JWT_COOKIE_SAMESITE = 'Lax'  # 添加SameSite属性以防范CSRF攻击
+    JWT_COOKIE_SAMESITE = 'Lax'  # SameSite 属性以防范 CSRF 攻击
     JWT_SESSION_COOKIE = False
     REMEMBER_COOKIE_DURATION = timedelta(days=30)  # 记住登录状态30天
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)

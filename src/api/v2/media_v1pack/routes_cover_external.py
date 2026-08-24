@@ -2,18 +2,68 @@
 封面图片处理API - 支持外链图片转本地存储
 """
 import hashlib
+import ipaddress
 import logging
+import socket
+from urllib.parse import urlparse, urljoin
 
 import aiohttp
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from shared.services.articles.cover_image_service import CoverImageService
 from src.api.v2._helpers import ok, fail, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["cover-image"])
+
+# 允许的最大重定向次数
+MAX_REDIRECTS = 5
+
+
+def _is_blocked_ip(addr):
+    """判断 IP 是否为受限地址（内网/回环/链路本地/保留/组播/未指定）"""
+    return (
+        addr.is_private or addr.is_loopback or addr.is_link_local
+        or addr.is_reserved or addr.is_multicast or addr.is_unspecified
+    )
+
+
+def _check_ssrf(url: str):
+    """
+    SSRF 防护：校验 URL 主机不会解析到受限（内网/回环/链路本地/保留/组播/未指定）地址。
+    违规时抛 400 异常。
+    """
+    parsed = urlparse(url)
+    host = parsed.hostname
+    if not host:
+        raise HTTPException(status_code=400, detail="无效的URL地址")
+
+    try:
+        # 直接是 IP 地址
+        addr = ipaddress.ip_address(host)
+        if _is_blocked_ip(addr):
+            raise HTTPException(status_code=400, detail="不允许访问内网/受限地址")
+    except ValueError:
+        # 域名：解析 DNS 检查是否指向受限地址
+        try:
+            addrs = socket.getaddrinfo(host, None)
+        except Exception as dns_err:
+            logger.warning(f"DNS 解析失败 {host}: {dns_err}")
+            raise HTTPException(status_code=400, detail=f"无法解析域名 {host}")
+
+        for _family, _socktype, _proto, _canonname, sockaddr in addrs:
+            try:
+                resolved_addr = ipaddress.ip_address(sockaddr[0])
+            except ValueError:
+                continue
+            if _is_blocked_ip(resolved_addr):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"域名 {host} 解析到受限地址 {sockaddr[0]}，不允许访问"
+                )
 
 
 class ExternalImageUrlRequest(BaseModel):
@@ -29,13 +79,16 @@ class ExternalImageUrlResponse(BaseModel):
 
 @router.post("/from-url", summary="从外链URL生成封面")
 @_catch
-async def generate_cover_from_external_url(request_data: ExternalImageUrlRequest):
+async def generate_cover_from_external_url(
+        request_data: ExternalImageUrlRequest,
+        current_user=Depends(jwt_required)
+):
     """
     从外链图片URL下载并生成本地封面
-    
+
     Args:
         request_data: 包含外链图片URL的请求数据
-        
+
     Returns:
         本地封面URL
     """
@@ -48,67 +101,63 @@ async def generate_cover_from_external_url(request_data: ExternalImageUrlRequest
     if not external_url.startswith(('http://', 'https://')):
         raise HTTPException(status_code=400, detail="URL必须以http://或https://开头")
 
-    # SSRF 防护：阻止访问内网/私有地址
-    from urllib.parse import urlparse
-    parsed = urlparse(external_url)
-    import ipaddress
-    try:
-        host = parsed.hostname
-        # 检查是否为 IP 地址
-        addr = ipaddress.ip_address(host)
-        if addr.is_private or addr.is_loopback or addr.is_link_local:
-            raise HTTPException(status_code=400, detail="不允许访问内网地址")
-    except ValueError:
-        # 域名：解析 DNS 检查是否指向内网
-        import socket
-        try:
-            addrs = socket.getaddrinfo(host, None)
-            for family, socktype, proto, canonname, sockaddr in addrs:
-                resolved_ip = sockaddr[0]
-                try:
-                    resolved_addr = ipaddress.ip_address(resolved_ip)
-                    if resolved_addr.is_private or resolved_addr.is_loopback or resolved_addr.is_link_local:
+    # 下载图片（手动跟随重定向，逐跳完成 SSRF 校验，防止重定向绕过）
+    url = external_url
+    max_size = 10 * 1024 * 1024  # 10MB
+
+    async with aiohttp.ClientSession() as session:
+        for _ in range(MAX_REDIRECTS + 1):
+            # 每次请求前校验当前目标地址
+            _check_ssrf(url)
+
+            async with session.get(
+                url,
+                allow_redirects=False,
+                timeout=aiohttp.ClientTimeout(total=30)
+            ) as response:
+                # 是重定向：取出 Location，拼接成绝对地址后继续下一跳校验
+                if response.status in (301, 302, 303, 307, 308):
+                    location = response.headers.get('Location')
+                    if not location:
                         raise HTTPException(
                             status_code=400,
-                            detail=f"域名 {host} 解析到内网地址 {resolved_ip}，不允许访问"
+                            detail="服务器返回了重定向但缺少 Location 头"
                         )
-                except ValueError:
+                    url = urljoin(url, location)
                     continue
-        except HTTPException:
-            raise
-        except Exception as dns_err:
-            logger.warning(f"DNS 解析失败 {host}: {dns_err}")
 
-    # 下载图片
-    async with aiohttp.ClientSession() as session:
-        async with session.get(external_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
-            if response.status != 200:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"无法下载图片，HTTP状态码: {response.status}"
-                )
+                # 读取最终响应前再次校验最终内容来源
+                _check_ssrf(url)
 
-            # 检查Content-Type是否为图片
-            content_type = response.headers.get('Content-Type', '')
-            if not content_type.startswith('image/'):
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"URL不是有效的图片地址，Content-Type: {content_type}"
-                )
+                if response.status != 200:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"无法下载图片，HTTP状态码: {response.status}"
+                    )
 
-            # 读取图片数据
-            image_data = await response.read()
+                # 检查Content-Type是否为图片
+                content_type = response.headers.get('Content-Type', '')
+                if not content_type.startswith('image/'):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"URL不是有效的图片地址，Content-Type: {content_type}"
+                    )
 
-            if not image_data:
-                raise HTTPException(status_code=400, detail="下载的图片数据为空")
+                # 读取图片数据
+                image_data = await response.read()
 
-            # 限制图片大小（最大10MB）
-            max_size = 10 * 1024 * 1024  # 10MB
-            if len(image_data) > max_size:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"图片过大（{len(image_data) / 1024 / 1024:.2f}MB），最大支持10MB"
-                )
+                if not image_data:
+                    raise HTTPException(status_code=400, detail="下载的图片数据为空")
+
+                # 限制图片大小（最大10MB）
+                if len(image_data) > max_size:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"图片过大（{len(image_data) / 1024 / 1024:.2f}MB），最大支持10MB"
+                    )
+                break
+        else:
+            raise HTTPException(status_code=400, detail="重定向次数过多，已拒绝")
 
     # 计算文件哈希
     file_hash = hashlib.sha256(image_data).hexdigest()

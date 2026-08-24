@@ -215,7 +215,7 @@ async def update_plugin_settings(
 async def execute_plugin_action(
         plugin_slug: str,
         request: Request,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     执行插件自定义动作

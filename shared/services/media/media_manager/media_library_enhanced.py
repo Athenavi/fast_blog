@@ -85,25 +85,32 @@ class MediaLibraryService:
         except Exception as e:
             return {"success": False, "error": f"查询失败: {str(e)}"}
     
-    async def get_media_statistics(self, db: AsyncSession) -> Dict[str, Any]:
+    async def get_media_statistics(self, db: AsyncSession, user_id: int = None) -> Dict[str, Any]:
         """获取媒体库统计信息"""
         from shared.models.media import Media
         
         try:
             count_query = select(func.count(Media.id))
+            type_query = select(Media.media_type, func.count(Media.id)).group_by(Media.media_type)
+            size_query = select(func.sum(Media.file_size))
+            month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0)
+            month_query = select(func.count(Media.id)).where(Media.created_at >= month_start)
+
+            if user_id is not None:
+                count_query = count_query.where(Media.user == user_id)
+                type_query = type_query.where(Media.user == user_id)
+                size_query = size_query.where(Media.user == user_id)
+                month_query = month_query.where(Media.user == user_id)
+
             count_result = await db.execute(count_query)
             total_count = count_result.scalar()
             
-            type_query = select(Media.media_type, func.count(Media.id)).group_by(Media.media_type)
             type_result = await db.execute(type_query)
             type_stats = dict(type_result.all())
             
-            size_query = select(func.sum(Media.file_size))
             size_result = await db.execute(size_query)
             total_size = size_result.scalar() or 0
             
-            month_start = datetime.now().replace(day=1, hour=0, minute=0, second=0)
-            month_query = select(func.count(Media.id)).where(Media.created_at >= month_start)
             month_result = await db.execute(month_query)
             month_count = month_result.scalar()
             
@@ -121,7 +128,8 @@ class MediaLibraryService:
     async def batch_delete_media(
         self,
         db: AsyncSession,
-        media_ids: List[int]
+        media_ids: List[int],
+        user_id: int
     ) -> Dict[str, Any]:
         """批量删除媒体文件"""
         from shared.models.media import Media, DownloadTask
@@ -132,7 +140,7 @@ class MediaLibraryService:
             
             for media_id in media_ids:
                 try:
-                    query = select(Media).where(Media.id == media_id)
+                    query = select(Media).where(Media.id == media_id, Media.user == user_id)
                     result = await db.execute(query)
                     media = result.scalar_one_or_none()
                     
@@ -180,7 +188,8 @@ class MediaLibraryService:
     async def batch_update_metadata(
         self,
         db: AsyncSession,
-        updates: List[Dict[str, Any]]
+        updates: List[Dict[str, Any]],
+        user_id: int
     ) -> Dict[str, Any]:
         """批量更新媒体元数据"""
         from shared.models.media import Media
@@ -196,7 +205,7 @@ class MediaLibraryService:
                     continue
                 
                 try:
-                    query = select(Media).where(Media.id == media_id)
+                    query = select(Media).where(Media.id == media_id, Media.user == user_id)
                     result = await db.execute(query)
                     media = result.scalar_one_or_none()
                     

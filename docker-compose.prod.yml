@@ -22,12 +22,12 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-fastblog_secret}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       - DB_NAME=${DB_NAME:-fast_blog}
       # --- Redis 配置 ---
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-fastblog_redis_secret}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
       # --- 应用配置 ---
       # 生产必须显式提供强密钥，缺失时 compose 直接报错（避免每次重启生成随机密钥导致会话失效）
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env (>=32 random chars)}
@@ -116,9 +116,9 @@ services:
     ports:
       - "127.0.0.1:5432:5432"
     environment:
-      # 生产环境建议通过 .env 或系统环境变量覆盖以下默认值
+      # 口令必填（请在 .env 中显式提供 STRONG 口令），缺失/为空时 compose 直接报错失败，避免弱默认口令
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-fastblog_secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       POSTGRES_DB: ${DB_NAME:-fast_blog}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
@@ -153,7 +153,7 @@ services:
         --appendonly yes
         --maxmemory 512mb
         --maxmemory-policy allkeys-lru
-        --requirepass ${REDIS_PASSWORD:-fastblog_redis_secret}
+        --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes:
       - fastblog-redis:/data
     networks:
@@ -164,7 +164,7 @@ services:
           cpus: '0.5'
           memory: 512M
     healthcheck:
-      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-fastblog_redis_secret} ping | grep -q PONG" ]
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env} ping | grep -q PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5

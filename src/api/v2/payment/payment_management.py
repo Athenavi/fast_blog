@@ -411,6 +411,12 @@ async def update_transaction(
 
     data = await request.json()
 
+    # 成功态只能由真实网关回调/对账流程产生，禁止通过管理接口手动直改。
+    SUCCESS_STATUSES = ("succeeded", "completed", "paid")
+    requested_status = data.get("status")
+    if requested_status is not None and str(requested_status).lower() in SUCCESS_STATUSES:
+        return fail(f"不允许手动将交易状态改为 '{requested_status}'；成功态只能由真实网关回调/对账流程产生")
+
     updatable_fields = [
         "status", "transaction_id", "payment_method", "currency",
         "order_id",

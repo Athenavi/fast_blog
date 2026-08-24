@@ -77,7 +77,7 @@ async def batch_delete_media(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    result = await media_library_service.batch_delete_media(db, media_ids)
+    result = await media_library_service.batch_delete_media(db, media_ids, user_id=current_user.id)
     if result["success"]:
         return ok(data=result, msg=f"成功删除 {result['deleted_count']} 个文件")
     return fail(result.get("error"))
@@ -123,7 +123,7 @@ async def batch_update_tags(
     if len(tags) > 5:
         return fail("最多只能设置5个标签")
 
-    query = select(Media).where(Media.id.in_(media_ids))
+    query = select(Media).where(Media.id.in_(media_ids), Media.user == current_user.id)
     result = await db.execute(query)
     media_list = result.scalars().all()
 
@@ -153,11 +153,11 @@ async def get_media_detail(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
-    query = select(Media).where(Media.id == media_id)
+    query = select(Media).where(Media.id == media_id, Media.user == current_user.id)
     result = await db.execute(query)
     media = result.scalar_one_or_none()
     if not media:
-        return fail("媒体文件不存在")
+        return fail("媒体文件不存在或无权访问")
     return ok(data=media.to_dict())
 
 
@@ -169,11 +169,11 @@ async def update_media(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
-    query = select(Media).where(Media.id == media_id)
+    query = select(Media).where(Media.id == media_id, Media.user == current_user.id)
     result = await db.execute(query)
     media = result.scalar_one_or_none()
     if not media:
-        return fail("媒体文件不存在")
+        return fail("媒体文件不存在或无权访问")
     body = await request.json()
     if 'description' in body:
         media.description = body['description']
@@ -204,11 +204,11 @@ async def delete_media(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
-    query = select(Media).where(Media.id == media_id)
+    query = select(Media).where(Media.id == media_id, Media.user == current_user.id)
     result = await db.execute(query)
     media = result.scalar_one_or_none()
     if not media:
-        return fail("媒体文件不存在")
+        return fail("媒体文件不存在或无权访问")
     try:
         if media.file_path and os.path.exists(media.file_path):
             os.remove(media.file_path)
@@ -235,7 +235,7 @@ async def batch_optimize_images(
 ):
     from src.utils.storage.s3_storage import s3_storage
 
-    stmt = select(Media).where(Media.id.in_(media_ids))
+    stmt = select(Media).where(Media.id.in_(media_ids), Media.user == current_user.id)
     result = await db.execute(stmt)
     media_files = result.scalars().all()
     if not media_files:
@@ -283,7 +283,7 @@ async def batch_update_metadata(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    result = await media_library_service.batch_update_metadata(db, updates)
+    result = await media_library_service.batch_update_metadata(db, updates, user_id=current_user.id)
     if result["success"]:
         return ok(data=result, msg=f"成功更新 {result['updated_count']} 个文件")
     return fail(result.get("error"))
@@ -300,15 +300,15 @@ async def get_storage_stats(
     from sqlalchemy import func
     from .dependencies import get_user_storage_limit, get_user_storage_used
 
-    total_count_stmt = select(func.count(Media.id))
+    total_count_stmt = select(func.count(Media.id)).where(Media.user == current_user.id)
     total_count_result = await db.execute(total_count_stmt)
     total_count = total_count_result.scalar() or 0
-    total_size_stmt = select(func.sum(Media.file_size))
+    total_size_stmt = select(func.sum(Media.file_size)).where(Media.user == current_user.id)
     total_size_result = await db.execute(total_size_stmt)
     total_size = total_size_result.scalar() or 0
     type_stats_stmt = select(
         Media.file_type, func.count(Media.id).label('count'), func.sum(Media.file_size).label('total_size')
-    ).group_by(Media.file_type)
+    ).where(Media.user == current_user.id).group_by(Media.file_type)
     type_stats_result = await db.execute(type_stats_stmt)
     type_stats = [{'type': row[0], 'count': row[1], 'total_size': row[2] or 0} for row in type_stats_result.all()]
     storage_limit = await get_user_storage_limit(current_user.id, db)

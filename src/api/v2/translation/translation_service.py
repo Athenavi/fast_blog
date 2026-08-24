@@ -2,6 +2,7 @@
 专业翻译服务API
 集成Google Translate、DeepL等翻译服务商
 """
+import asyncio
 from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
@@ -55,7 +56,9 @@ async def translate_text_api(
     target_code = lang_map.get(target_lang, target_lang)
     source_code = lang_map.get(source_lang, source_lang) if source_lang != 'auto' else 'auto'
     
-    result = translation_service_manager.translate(text, target_code, source_code, provider)
+    result = await asyncio.to_thread(
+        translation_service_manager.translate, text, target_code, source_code, provider
+    )
     
     if result['success']:
         return ok(data={
@@ -95,7 +98,7 @@ async def detect_language_api(
     # 目前只有Google支持语言检测
     if provider == 'google' and 'google' in translation_service_manager.clients:
         client = translation_service_manager.clients['google']
-        result = client.detect_language(text)
+        result = await asyncio.to_thread(client.detect_language, text)
         
         if result['success']:
             return ok(data={

@@ -2,6 +2,7 @@
 图片编辑 API — 裁剪、旋转、滤镜
 """
 
+import asyncio
 import os
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -35,7 +36,7 @@ async def get_image_info(
         if not file_path or not os.path.exists(file_path):
             return fail("图片文件不存在")
 
-        info = editor.get_image_info(file_path)
+        info = await asyncio.to_thread(editor.get_image_info, file_path)
         return ok(data={"media_id": media_id, "filename": media.filename or media.title, "info": info})
     except Exception as e:
         return fail(str(e))
@@ -56,7 +57,7 @@ async def crop_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        editor.process_image(media.file_path, [{"type": "crop", "x": x, "y": y, "width": width, "height": height}])
+        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "crop", "x": x, "y": y, "width": width, "height": height}])
         return ok(data={"message": "裁剪成功"})
     except Exception as e:
         return fail(str(e))
@@ -76,7 +77,7 @@ async def rotate_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        editor.process_image(media.file_path, [{"type": "rotate", "degrees": degrees}])
+        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "rotate", "degrees": degrees}])
         return ok(data={"message": f"旋转 {degrees}° 成功"})
     except Exception as e:
         return fail(str(e))
@@ -96,7 +97,7 @@ async def filter_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        editor.process_image(media.file_path, [{"type": "filter", "filter": filter_type}])
+        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "filter", "filter": filter_type}])
         return ok(data={"message": f"滤镜 {filter_type} 已应用"})
     except Exception as e:
         return fail(str(e))
@@ -115,7 +116,7 @@ async def grayscale_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        editor.process_image(media.file_path, [{"type": "grayscale"}])
+        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "grayscale"}])
         return ok(data={"message": "已转为灰度图"})
     except Exception as e:
         return fail(str(e))

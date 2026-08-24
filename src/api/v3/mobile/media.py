@@ -2,6 +2,7 @@
 移动端媒体API
 提供适合移动端的媒体相关接口，包括图片上传、压缩等功能
 """
+import asyncio
 import os
 import uuid
 
@@ -13,6 +14,28 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["mobile-media"])
+
+
+def _process_mobile_image(content: bytes, content_type: str):
+    """去除 EXIF 并重编码（CPU 密集 Pillow，供线程池调用）"""
+    from PIL import Image
+    import io
+    img = Image.open(io.BytesIO(content))
+    # 去除 EXIF：保存为不含 EXIF 的格式
+    if img.mode == 'RGBA':
+        img = img.convert('RGB')
+    clean_buffer = io.BytesIO()
+    save_format = 'JPEG' if content_type == 'image/jpeg' else 'PNG' if content_type == 'image/png' else 'WEBP' if content_type == 'image/webp' else 'JPEG'
+    img.save(clean_buffer, format=save_format)
+    cleaned = clean_buffer.getvalue()
+    return cleaned, len(cleaned)
+
+
+def _save_upload_file(upload_dir: str, file_path: str, content: bytes):
+    """建目录并写文件（磁盘 IO，供线程池调用）"""
+    os.makedirs(upload_dir, exist_ok=True)
+    with open(file_path, "wb") as f:
+        f.write(content)
 
 
 @router.post("/upload/image")
@@ -61,18 +84,8 @@ async def upload_mobile_image(
             return ApiResponse(success=False, error="文件已存在")
 
         # 去除 EXIF（防止隐私泄露）
-        from PIL import Image
-        import io
         try:
-            img = Image.open(io.BytesIO(content))
-            # 去除 EXIF：保存为不含 EXIF 的格式
-            if img.mode == 'RGBA':
-                img = img.convert('RGB')
-            clean_buffer = io.BytesIO()
-            save_format = 'JPEG' if file.content_type == 'image/jpeg' else 'PNG' if file.content_type == 'image/png' else 'WEBP' if file.content_type == 'image/webp' else 'JPEG'
-            img.save(clean_buffer, format=save_format)
-            content = clean_buffer.getvalue()
-            file_size = len(content)
+            content, file_size = await asyncio.to_thread(_process_mobile_image, content, file.content_type)
         except Exception:
             pass  # 非图片或处理失败则使用原始内容
 
@@ -82,12 +95,10 @@ async def upload_mobile_image(
 
         # 确定存储路径
         upload_dir = os.path.join("static", "uploads", "mobile", str(current_user.id))
-        os.makedirs(upload_dir, exist_ok=True)
 
         # 保存文件
         file_path = os.path.join(upload_dir, unique_filename)
-        with open(file_path, "wb") as f:
-            f.write(content)
+        await asyncio.to_thread(_save_upload_file, upload_dir, file_path, content)
 
         # 构建URL
         base_url = str(request.url).split('/media/upload')[0]

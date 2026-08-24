@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
 
@@ -820,18 +820,65 @@ def create_app(config=None):
     os.makedirs(static_dir, exist_ok=True)
     app.mount("/api/v2/static", StaticFiles(directory=static_dir), name="static")
 
-    # 本地存储 - 使用统一前缀 /api/v2/assets/storage 避免与业务路由冲突
+    # 本地存储 - 受控文件下载（替代原先无鉴权的 StaticFiles 挂载，
+    # 防止私密媒体 is_public=False 被匿名按路径下载；公开媒体仍可匿名访问）
     try:
         from src.setting import app_config
         local_storage = getattr(app_config, 'LOCAL_STORAGE_PATH', 'storage')
     except Exception:
         local_storage = 'storage'
     os.makedirs(local_storage, exist_ok=True)
-    app.mount("/api/v2/assets/storage", StaticFiles(directory=local_storage), name="local-storage")
 
-    objects_dir = os.path.join(local_storage, 'objects')
-    os.makedirs(objects_dir, exist_ok=True)
-    app.mount("/api/v2/assets/storage/objects", StaticFiles(directory=objects_dir), name="storage-objects")
+    import mimetypes
+    import re as _re
+    from pathlib import Path as _Path
+
+    from fastapi.responses import FileResponse as _FileResponse
+    from sqlalchemy import select as _select
+    from src.auth import jwt_optional_dependency as _jwt_optional
+    from src.extensions import get_async_db_session as _get_async_db
+
+    async def _serve_storage_asset(
+        asset_path: str,
+        current_user=Depends(_jwt_optional),
+        db=Depends(_get_async_db),
+    ):
+        """
+        受控文件服务：校验路径防止目录遍历；
+        若目标文件对应数据库中的媒体且为私密(is_public=False)，则必须由登录用户本人
+        访问，否则拒绝；公开媒体(匿名可访问)与其余文件保持原有行为。
+        """
+        storage_root = _Path(local_storage).resolve()
+        target = (storage_root / asset_path).resolve()
+        # 防目录遍历：解析后的路径必须仍位于 storage 根目录内
+        if not str(target).startswith(str(storage_root)):
+            raise HTTPException(status_code=403, detail="非法的文件路径")
+        if not target.is_file():
+            raise HTTPException(status_code=404, detail="文件不存在")
+
+        # storage 内文件为内容寻址(sha256)，路径含文件哈希，据此反查媒体归属/公开状态
+        m = _re.search(r'([0-9a-f]{64})', asset_path)
+        if m:
+            try:
+                from shared.models.media import Media
+                media = (await db.execute(
+                    _select(Media).where(Media.hash == m.group(1))
+                )).scalar_one_or_none()
+                if media is not None and not getattr(media, 'is_public', True):
+                    if current_user is None or getattr(current_user, 'id', None) != getattr(media, 'user', None):
+                        raise HTTPException(status_code=403, detail="无权访问该媒体文件")
+            except HTTPException:
+                raise
+            except Exception:
+                import traceback as _tb
+                _tb.print_exc()
+                raise HTTPException(status_code=500, detail="校验媒体权限失败")
+
+        content_type, _ = mimetypes.guess_type(str(target))
+        return _FileResponse(str(target), media_type=content_type)
+
+    # 注册受控下载路由（保持既有 /api/v2/assets/storage/... URL 前缀不变）
+    app.get("/api/v2/assets/storage/{asset_path:path}", name="local-storage")(_serve_storage_asset)
 
     themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes")
     if os.path.exists(themes_dir):

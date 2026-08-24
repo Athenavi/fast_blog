@@ -27,6 +27,21 @@ from src.utils.image.video_processor import video_processor
 from src.unified_logger import default_logger as logger
 from src.setting import app_config
 
+# 视频后处理并发上限：限制同时进行的 ffmpeg 任务数（subprocess.run 阻塞最长可达 60s）
+_video_process_semaphore = asyncio.Semaphore(3)
+
+
+def _write_bytes(path: str, data: bytes):
+    """写入二进制文件（供线程池调用）"""
+    with open(path, 'wb') as f:
+        f.write(data)
+
+
+def _read_bytes(path: str) -> bytes:
+    """读取二进制文件（供线程池调用）"""
+    with open(path, 'rb') as f:
+        return f.read()
+
 
 class FileProcessor:
     """文件处理器，统一处理文件上传逻辑"""
@@ -458,87 +473,87 @@ class FileProcessor:
             media: 媒体记录
             file_hash: 文件哈希记录
         """
-        try:
-            from datetime import datetime
-            import tempfile
+        async with _video_process_semaphore:
+            try:
+                from datetime import datetime
+                import tempfile
+                from sqlalchemy import update
+                from src.extensions import get_async_db_session
 
-            logger.info(f"开始处理视频文件: {media.filename}")
+                logger.info(f"开始处理视频文件: {media.filename}")
 
-            # 获取文件路径
-            file_path = file_hash.storage_path
+                # 获取文件路径
+                file_path = file_hash.storage_path
 
-            # 创建临时目录用于处理
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # 下载文件到临时目录
-                local_video_path = os.path.join(temp_dir, os.path.basename(media.filename))
-                file_data = s3_storage.read_file(file_path)
+                # 创建临时目录用于处理
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # 下载文件到临时目录（阻塞IO放到线程池）
+                    local_video_path = os.path.join(temp_dir, os.path.basename(media.filename))
+                    file_data = await asyncio.to_thread(s3_storage.read_file, file_path)
 
-                if not file_data:
-                    logger.error(f"无法读取视频文件: {file_path}")
-                    return
+                    if not file_data:
+                        logger.error(f"无法读取视频文件: {file_path}")
+                        return
 
-                # 保存到本地临时文件
-                with open(local_video_path, 'wb') as f:
-                    f.write(file_data)
+                    # 保存到本地临时文件（阻塞IO放到线程池）
+                    await asyncio.to_thread(_write_bytes, local_video_path, file_data)
 
-                # 1. 获取视频信息
-                video_info = video_processor.get_video_info(local_video_path)
-                if video_info:
-                    logger.info(f"视频信息: {video_info}")
+                    # 1. 获取视频信息（subprocess ffprobe 阻塞，放到线程池）
+                    video_info = await asyncio.to_thread(video_processor.get_video_info, local_video_path)
+                    if video_info:
+                        logger.info(f"视频信息: {video_info}")
 
-                    # 更新媒体记录的宽度和高度
-                    from sqlalchemy import update
-                    from src.extensions import get_async_db_session
+                        # 更新媒体记录的宽度和高度
+                        async with get_async_db_session()() as db:
+                            stmt = update(Media).where(
+                                Media.id == media.id
+                            ).values(
+                                width=video_info['width'],
+                                height=video_info['height'],
+                                duration=int(video_info['duration']),
+                                updated_at=datetime.now()
+                            )
+                            await db.execute(stmt)
+                            await db.commit()
 
-                    async with get_async_db_session()() as db:
-                        stmt = update(Media).where(
-                            Media.id == media.id
-                        ).values(
-                            width=video_info['width'],
-                            height=video_info['height'],
-                            duration=int(video_info['duration']),
-                            updated_at=datetime.now()
-                        )
-                        await db.execute(stmt)
-                        await db.commit()
+                    # 2. 生成缩略图（subprocess ffmpeg 阻塞，最长可达60s，放到线程池）
+                    thumbnail_filename = f"{Path(media.filename).stem}_thumb.jpg"
+                    thumbnail_local_path = os.path.join(temp_dir, thumbnail_filename)
 
-                # 2. 生成缩略图
-                thumbnail_filename = f"{Path(media.filename).stem}_thumb.jpg"
-                thumbnail_local_path = os.path.join(temp_dir, thumbnail_filename)
-
-                thumbnail_success = video_processor.create_thumbnail(
-                    video_path=local_video_path,
-                    thumbnail_path=thumbnail_local_path,
-                    time=1.0,  # 从第1秒提取
-                    width=320,
-                    quality=85
-                )
-
-                if thumbnail_success and os.path.exists(thumbnail_local_path):
-                    # 上传缩略图到存储
-                    with open(thumbnail_local_path, 'rb') as f:
-                        thumbnail_data = f.read()
-
-                    thumbnail_hash = hashlib.sha256(thumbnail_data).hexdigest()
-                    thumbnail_storage_path = s3_storage.save_file(
-                        thumbnail_hash,
-                        thumbnail_data,
-                        thumbnail_filename
+                    thumbnail_success = await asyncio.to_thread(
+                        video_processor.create_thumbnail,
+                        video_path=local_video_path,
+                        thumbnail_path=thumbnail_local_path,
+                        time=1.0,  # 从第1秒提取
+                        width=320,
+                        quality=85
                     )
 
-                    # 更新媒体记录的缩略图信息
-                    async with get_async_db_session()() as db:
-                        stmt = update(Media).where(
-                            Media.id == media.id
-                        ).values(
-                            thumbnail_path=thumbnail_storage_path,
-                            thumbnail_url=f"/api/v1/media/thumbnail/{media.id}",
-                            updated_at=datetime.now()
-                        )
-                        await db.execute(stmt)
-                        await db.commit()
+                    if thumbnail_success and os.path.exists(thumbnail_local_path):
+                        # 上传缩略图到存储
+                        thumbnail_data = await asyncio.to_thread(_read_bytes, thumbnail_local_path)
 
-                    logger.info(f"视频缩略图生成成功: {thumbnail_storage_path}")
+                        thumbnail_hash = hashlib.sha256(thumbnail_data).hexdigest()
+                        thumbnail_storage_path = await asyncio.to_thread(
+                            s3_storage.save_file,
+                            thumbnail_hash,
+                            thumbnail_data,
+                            thumbnail_filename
+                        )
+
+                        # 更新媒体记录的缩略图信息
+                        async with get_async_db_session()() as db:
+                            stmt = update(Media).where(
+                                Media.id == media.id
+                            ).values(
+                                thumbnail_path=thumbnail_storage_path,
+                                thumbnail_url=f"/api/v1/media/thumbnail/{media.id}",
+                                updated_at=datetime.now()
+                            )
+                            await db.execute(stmt)
+                            await db.commit()
+
+                        logger.info(f"视频缩略图生成成功: {thumbnail_storage_path}")
 
                 # 3. 生成多种分辨率版本（可选，根据配置）
                 # 这里可以根据系统配置决定是否启用多分辨率转码
@@ -556,10 +571,10 @@ class FileProcessor:
                 #         # 上传每个分辨率版本
                 #         pass
 
-            logger.info(f"视频处理完成: {media.filename}")
+                logger.info(f"视频处理完成: {media.filename}")
 
-        except Exception as e:
-            logger.error(f"视频后处理失败: {str(e)}", exc_info=True)
+            except Exception as e:
+                logger.error(f"视频后处理失败: {str(e)}", exc_info=True)
 
 
 class ChunkedUploadProcessor:

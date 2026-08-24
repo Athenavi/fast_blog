@@ -365,6 +365,13 @@ async def get_my_articles(
     paginated_result = await db.execute(paginated_query)
     articles = paginated_result.scalars().all()
 
+    # 批量加载分类，避免循环内逐条查询（N+1）
+    cat_ids = {a.category for a in articles if a.category}
+    if cat_ids:
+        cats = {c.id: c for c in (await db.execute(select(Category).where(Category.id.in_(cat_ids)))).scalars().all()}
+    else:
+        cats = {}
+
     # 构建响应数据
     articles_data = []
     for article in articles:
@@ -380,12 +387,10 @@ async def get_my_articles(
         # 处理标签（tags_list 已经是 JSON 数组）
         tags_list = article_obj.get('tags_list') or []
 
-        # 获取分类名
+        # 获取分类名（从批量查询的 dict 中获取）
         category_name = None
         if article.category:
-            cat_query = select(Category).where(Category.id == article.category)
-            cat_result = await db.execute(cat_query)
-            category = cat_result.scalar_one_or_none()
+            category = cats.get(article.category)
             if category:
                 category_name = category.name
 
@@ -433,11 +438,13 @@ async def get_vip_management_data(
     )
     monthly_new = monthly_result.scalar() or 0
 
-    # 查询所有订阅（含用户和套餐信息）
+    # 查询订阅（含用户和套餐信息），限制返回条数避免全量加载
     subscriptions_query = (
         select(VIPSubscription, User, VIPPlan)
         .join(User, VIPSubscription.user == User.id, isouter=True)
         .join(VIPPlan, VIPSubscription.plan == VIPPlan.id, isouter=True)
+        .order_by(desc(VIPSubscription.created_at))
+        .limit(200)
     )
     subscriptions_result = await db.execute(subscriptions_query)
     rows = subscriptions_result.all()

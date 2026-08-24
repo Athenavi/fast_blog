@@ -21,7 +21,7 @@ def _build_router():
     from src.api.v2.advanced_features.edge_functions import router as edge_functions_router
     from src.api.v2.advanced_features.expert_certification import router as expert_certification_router
     from src.api.v2.advanced_features.membership import router as membership_router
-    from src.api.v2.advanced_features.nft import router as nft_router
+    # NFT 端点为纯 mock/无认证实现，已生产安全下线（后续由插件系统完整实现后重新挂载）。
     from src.api.v2.advanced_features.personalized_feed import router as personalized_feed_router
     from src.api.v2.advanced_features.points_system import router as points_system_router
     from src.api.v2.advanced_features.recommendations import router as recommendations_router
@@ -33,7 +33,6 @@ def _build_router():
     router.include_router(achievement_badges_router, prefix="/badges")
     router.include_router(ai_recommendations_router, prefix="/ai-recommendations")
     router.include_router(expert_certification_router, prefix="/expert-certification")
-    router.include_router(nft_router, prefix="/nft")
     router.include_router(personalized_feed_router, prefix="/personalized-feed")
     router.include_router(points_system_router, prefix="/points")
     router.include_router(recommendations_router, prefix="/recommendations")

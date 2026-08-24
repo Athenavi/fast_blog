@@ -19,6 +19,7 @@ from shared.models.media import Media
 from shared.models.system import SystemSettings
 from src.mcp.tools import register_all as register_all_tools
 from src.mcp._context import set_user_ctx, get_user_ctx, UserCtx
+from src.mcp.tools._perms import require_superuser
 from src.utils.database.main import get_async_session_context
 
 logger = logging.getLogger('mcp_server')
@@ -56,6 +57,7 @@ class MCPServer:
         self.resources["blog://media"] = self._get_media_resource
         self.resources["blog://settings"] = self._get_settings_resource
 
+    @require_superuser
     async def _get_articles_resource(self, params: Dict) -> List[Dict]:
         limit = params.get("limit", 20)
         async with get_async_session_context() as db:
@@ -71,6 +73,7 @@ class MCPServer:
             )).scalars().all()
             return [{"id": c.id, "name": c.name, "slug": c.slug, "description": c.description} for c in cats]
 
+    @require_superuser
     async def _get_users_resource(self, params: Dict) -> List[Dict]:
         async with get_async_session_context() as db:
             users = (await db.execute(select(User).limit(50))).scalars().all()
@@ -78,6 +81,7 @@ class MCPServer:
                      "role": "admin" if getattr(u, 'is_superuser', False) else "user",
                      "is_active": getattr(u, 'is_active', True)} for u in users]
 
+    @require_superuser
     async def _get_media_resource(self, params: Dict) -> List[Dict]:
         async with get_async_session_context() as db:
             try:
@@ -96,6 +100,7 @@ class MCPServer:
                     for f in list(media_dir.iterdir())[:50] if f.is_file()]
         return []
 
+    @require_superuser
     async def _get_settings_resource(self, params: Dict) -> Dict:
         async with get_async_session_context() as db:
             try:
