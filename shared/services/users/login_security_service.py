@@ -11,7 +11,7 @@ from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.security import LoginAttempt
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class LoginSecurityService:

@@ -11,7 +11,7 @@
 
 import json
 import logging
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, List, Optional
 
 logger = logging.getLogger("mcp.agent.format")
 
@@ -38,7 +38,7 @@ def format_tool_result(
     Returns:
         结构化 Markdown 字符串（blockquote 风格）
     """
-    status_icon = "✅" if success else "❌"
+    status_icon = "" if success else ""
     lines = [f"> {status_icon} **{tool_name}** {'执行成功' if success else '执行失败'}"]
 
     if error_msg:

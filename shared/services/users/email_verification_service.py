@@ -13,7 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional, Dict
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class EmailVerificationService:

@@ -2,10 +2,9 @@
 媒体上传（普通上传、分块上传）
 """
 import hashlib
-
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,25 +17,9 @@ from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor
 router = APIRouter()
 from src.unified_logger import default_logger as logger
 
-from functools import wraps
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, _catch
 
 
-def _catch(func):
-    """统一错误处理装饰器"""
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# ---------- 普通上传 ----------
 @router.post("/upload")
 @_catch
 async def upload_media_file(
@@ -79,9 +62,9 @@ async def upload_media_file(
         'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
         'application/vnd.ms-powerpoint.template.macroEnabled.12',
         'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
-        # ===== 文档 & 文本 =====
-        'text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml',
-        'application/json', 'application/xml',
+        # ===== 文档 & 文本（禁止 text/html / text/xml / application/xml，防止同源 XSS）=====
+        'text/plain', 'text/markdown', 'text/csv',
+        'application/json',
         # ===== 压缩包 & 归档 =====
         'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
         'application/gzip', 'application/x-tar', 'application/x-bzip2',
@@ -191,9 +174,9 @@ async def _process_single_file(user_id, file_data, filename, allowed_size, allow
         'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
         'application/vnd.ms-powerpoint.template.macroEnabled.12',
         'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
-        # ===== 文档 & 文本 =====
-        'text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml',
-        'application/json', 'application/xml',
+        # ===== 文档 & 文本（禁止 text/html / text/xml / application/xml，防止同源 XSS）=====
+        'text/plain', 'text/markdown', 'text/csv',
+        'application/json',
         # ===== 压缩包 & 归档 =====
         'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
         'application/gzip', 'application/x-tar', 'application/x-bzip2',

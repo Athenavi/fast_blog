@@ -375,7 +375,7 @@ class WordPressImportService:
                         slug=slug,
                         excerpt=(article_data.get('excerpt') or '')[:200],
                         status=self._map_status(article_data.get('status', 'draft')),
-                        tags_list=tags_str[:255] if tags_str else '',
+                        tags_list=tags_str.split(',') if tags_str else [],
                         post_type='page' if article_data.get('type') == 'page' else 'article',
                         user=user_id,
                         created_at=article_data.get('created_at') or datetime.now(),

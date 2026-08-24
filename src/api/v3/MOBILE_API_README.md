@@ -1,398 +1,71 @@
 # FastBlog 移动端 API (v3)
 
+移动端专用的 RESTful API，提供优化的数据传输和简化的响应结构。
+
 **适用版本**: FastBlog V0.5.26.0612+
 
-## 概述
-
-FastBlog v3 API 是专门为移动端App设计的RESTful API接口，提供优化的数据传输和简化的响应结构。
-
-## 基础URL
+## 基础信息
 
 ```
-http://your-domain.com/api/v3
+Base URL: /api/v3
+认证: Authorization: Bearer <token>
+分页: page / per_page（默认 20，最大 50）
+时间格式: ISO 8601
+错误格式: {"success": false, "error": "描述"}
 ```
 
-## 认证
+## 模块
 
-大多数API端点需要JWT token认证。在请求头中添加：
+### 认证 (`/api/v3/auth`)
 
-```
-Authorization: Bearer <your_jwt_token>
-```
+| 方法   | 端点               | 说明           |
+|------|------------------|--------------|
+| POST | `/auth/login`    | 登录（支持用户名或邮箱） |
+| POST | `/auth/register` | 注册           |
 
-## API端点
+### 文章 (`/api/v3/articles`)
 
-### 认证模块 (`/api/v3/auth`)
+| 方法  | 端点                 | 说明            |
+|-----|--------------------|---------------|
+| GET | `/articles/list`   | 列表（支持分类/搜索过滤） |
+| GET | `/articles/{id}`   | 详情            |
+| GET | `/articles/search` | 搜索            |
 
-#### 登录
+### 评论 (`/api/v3/comments`)
 
-```
-POST /api/v3/auth/login
-Content-Type: application/json
+| 方法   | 端点                       | 说明      |
+|------|--------------------------|---------|
+| GET  | `/comments/article/{id}` | 文章评论列表  |
+| POST | `/comments/`             | 发表评论    |
+| POST | `/comments/{id}/like`    | 点赞/取消点赞 |
 
-{
-  "username": "user@example.com",  // 用户名或邮箱
-  "password": "your_password"
-}
+### 用户 (`/api/v3/users`)
 
-Response:
-{
-  "success": true,
-  "data": {
-    "user": {
-      "id": 1,
-      "username": "john",
-      "email": "john@example.com",
-      "avatar": "avatar.jpg",
-      "vip_level": 0
-    },
-    "access_token": "eyJ...",
-    "refresh_token": "eyJ...",
-    "message": "登录成功"
-  }
-}
-```
+| 方法  | 端点               | 说明   |
+|-----|------------------|------|
+| GET | `/users/profile` | 获取资料 |
+| PUT | `/users/profile` | 更新资料 |
+| GET | `/users/stats`   | 用户统计 |
 
-#### 注册
+### 媒体 (`/api/v3/media`)
 
-```
-POST /api/v3/auth/register
-Content-Type: application/json
+| 方法   | 端点                            | 说明             |
+|------|-------------------------------|----------------|
+| POST | `/media/upload/image`         | 上传图片（限制 10MB）  |
+| POST | `/media/upload/article-cover` | 上传文章封面（限制 5MB） |
 
-{
-  "username": "newuser",
-  "email": "newuser@example.com",
-  "password": "secure_password"
-}
+### 分类 (`/api/v3/categories`)
 
-Response:
-{
-  "success": true,
-  "data": {
-    "user": {...},
-    "access_token": "eyJ...",
-    "refresh_token": "eyJ...",
-    "message": "注册成功"
-  }
-}
-```
+| 方法  | 端点                 | 说明   |
+|-----|--------------------|------|
+| GET | `/categories/list` | 分类列表 |
 
-### 文章模块 (`/api/v3/articles`)
+## 错误码
 
-#### 获取文章列表
-
-```
-GET /api/v3/articles/list?page=1&per_page=20&category_id=1&search=keyword
-
-Response:
-{
-  "success": true,
-  "data": {
-    "articles": [
-      {
-        "id": 1,
-        "title": "Article Title",
-        "excerpt": "Short excerpt...",
-        "cover_image": "cover.jpg",
-        "author": {
-          "id": 1,
-          "username": "john",
-          "avatar": "avatar.jpg"
-        },
-        "category": {
-          "id": 1,
-          "name": "Technology"
-        },
-        "views": 100,
-        "likes": 10,
-        "created_at": "2024-01-01T00:00:00",
-        "tags": ["tag1", "tag2"]
-      }
-    ],
-    "pagination": {
-      "current_page": 1,
-      "per_page": 20,
-      "total": 100,
-      "total_pages": 5,
-      "has_next": true,
-      "has_prev": false
-    }
-  }
-}
-```
-
-#### 获取文章详情
-
-```
-GET /api/v3/articles/{article_id}
-
-Response:
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "title": "Article Title",
-    "slug": "article-title",
-    "excerpt": "Excerpt...",
-    "content": "<p>Full HTML content...</p>",
-    "cover_image": "cover.jpg",
-    "author": {...},
-    "category": {...},
-    "views": 101,
-    "likes": 10,
-    "created_at": "2024-01-01T00:00:00",
-    "updated_at": "2024-01-02T00:00:00",
-    "tags": ["tag1"],
-    "is_vip_only": false,
-    "required_vip_level": 0
-  }
-}
-```
-
-#### 搜索文章
-
-```
-GET /api/v3/articles/search?keyword=python&page=1&per_page=20
-
-Response:
-{
-  "success": true,
-  "data": {
-    "articles": [...],
-    "keyword": "python",
-    "pagination": {...}
-  }
-}
-```
-
-### 评论模块 (`/api/v3/comments`)
-
-#### 获取文章评论
-
-```
-GET /api/v3/comments/article/{article_id}?page=1&per_page=20
-
-Response:
-{
-  "success": true,
-  "data": {
-    "comments": [
-      {
-        "id": 1,
-        "content": "Great article!",
-        "author": {
-          "id": 2,
-          "username": "jane",
-          "avatar": "avatar.jpg"
-        },
-        "created_at": "2024-01-01T12:00:00",
-        "likes": 5,
-        "parent_id": null
-      }
-    ],
-    "pagination": {...}
-  }
-}
-```
-
-#### 发表评论
-
-```
-POST /api/v3/comments/?article_id=1&content=Great%20article!&parent_id=null
-Authorization: Bearer <token>
-
-Response:
-{
-  "success": true,
-  "data": {
-    "id": 2,
-    "content": "Great article!",
-    "created_at": "2024-01-01T12:00:00",
-    "message": "评论发表成功"
-  }
-}
-```
-
-#### 点赞评论
-
-```
-POST /api/v3/comments/{comment_id}/like
-Authorization: Bearer <token>
-
-Response:
-{
-  "success": true,
-  "data": {
-    "action": "liked",  // or "unliked"
-    "message": "点赞成功"
-  }
-}
-```
-
-### 用户模块 (`/api/v3/users`)
-
-#### 获取用户资料
-
-```
-GET /api/v3/users/profile
-Authorization: Bearer <token>
-
-Response:
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "username": "john",
-    "email": "john@example.com",
-    "avatar": "avatar.jpg",
-    "bio": "User bio",
-    "created_at": "2024-01-01T00:00:00",
-    "is_active": true,
-    "vip_level": 0
-  }
-}
-```
-
-#### 更新用户资料
-
-```
-PUT /api/v3/users/profile
-Authorization: Bearer <token>
-Content-Type: application/json
-
-{
-  "username": "new_username",
-  "email": "new_email@example.com",
-  "bio": "New bio"
-}
-
-Response:
-{
-  "success": true,
-  "data": {
-    "message": "资料更新成功",
-    "user": {...}
-  }
-}
-```
-
-#### 获取用户统计
-
-```
-GET /api/v3/users/stats
-Authorization: Bearer <token>
-
-Response:
-{
-  "success": true,
-  "data": {
-    "articles_count": 10,
-    "comments_count": 50,
-    "likes_received": 100,
-    "views_received": 1000
-  }
-}
-```
-
-### 媒体模块 (`/api/v3/media`)
-
-#### 上传图片
-
-```
-POST /api/v3/media/upload/image
-Authorization: Bearer <token>
-Content-Type: multipart/form-data
-
-file: <image_file>
-
-Response:
-{
-  "success": true,
-  "data": {
-    "url": "http://domain.com/static/uploads/mobile/1/abc123.jpg",
-    "filename": "abc123.jpg",
-    "size": 102400,
-    "content_type": "image/jpeg",
-    "message": "图片上传成功"
-  }
-}
-```
-
-#### 上传文章封面
-
-```
-POST /api/v3/media/upload/article-cover
-Authorization: Bearer <token>
-Content-Type: multipart/form-data
-
-file: <image_file>
-
-Response:
-{
-  "success": true,
-  "data": {
-    "url": "http://domain.com/static/uploads/covers/1/cover_abc123.jpg",
-    "filename": "cover_abc123.jpg",
-    "size": 51200,
-    "message": "封面上传成功"
-  }
-}
-```
-
-### 分类模块 (`/api/v3/categories`)
-
-#### 获取分类列表
-
-```
-GET /api/v3/categories/list
-
-Response:
-{
-  "success": true,
-  "data": {
-    "categories": [
-      {
-        "id": 1,
-        "name": "Technology",
-        "description": "Tech articles",
-        "slug": "technology",
-        "parent_id": null
-      }
-    ]
-  }
-}
-```
-
-## 错误响应
-
-所有错误响应遵循统一格式：
-
-```json
-{
-  "success": false,
-  "error": "错误描述信息"
-}
-```
-
-常见错误码：
-
-- 400: 请求参数错误
-- 401: 未认证或token无效
-- 403: 权限不足
-- 404: 资源不存在
-- 500: 服务器内部错误
-
-## 分页参数
-
-所有列表接口支持分页：
-
-- `page`: 页码（从1开始）
-- `per_page`: 每页数量（默认20，最大50）
-
-## 注意事项
-
-1. 所有时间字段使用ISO 8601格式
-2. 图片URL为完整路径，可直接使用
-3. 评论内容支持纯文本，前端可自行渲染
-4. 文章内容为HTML格式，可直接渲染
-5. 上传文件大小限制：普通图片10MB，封面图片5MB
+| 状态码 | 说明            |
+|-----|---------------|
+| 400 | 请求参数错误        |
+| 401 | 未认证或 token 无效 |
+| 403 | 权限不足          |
+| 404 | 资源不存在         |
+| 500 | 服务器内部错误       |

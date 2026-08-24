@@ -1,6 +1,7 @@
 // User management service for Next.js frontend
 import {apiClient} from './base-client';
 import type {ApiResponse, Pagination, UserRole} from '@/lib/api/base-types';
+import {adminService} from './admin-service';
 
 // User management types
 export interface UserWithRoles {
@@ -77,8 +78,7 @@ export class UserManagementService {
         bio?: string;
         profile_picture?: string;
     }): Promise<ApiResponse<UserWithRoles>> {
-        // 后端可能没有直接创建用户的端点，需要使用其他端点
-        throw new Error('Create user API not implemented yet');
+        return adminService.users.create(userData);
     }
 
     static async updateUser(userId: number, userData: Partial<UserWithRoles>): Promise<ApiResponse<UserWithRoles>> {
@@ -87,8 +87,7 @@ export class UserManagementService {
     }
 
     static async deleteUser(userId: number): Promise<ApiResponse<{ message: string }>> {
-        // 后端可能没有直接删除用户的端点
-        throw new Error('Delete user API not implemented yet');
+        return adminService.users.delete(userId);
     }
 
     static async getUserById(userId: number, page: number = 1, perPage: number = 10): Promise<ApiResponse<never>> {

@@ -52,9 +52,9 @@ async def _load_unique_tags():
         rows = result.scalars().all()
 
     all_tags = []
-    for tag_string in rows:
-        if tag_string:
-            all_tags.extend(f2list(tag_string.strip()))
+    for tags in rows:
+        if tags:
+            all_tags.extend(tags)
 
     unique_tags = sorted(set(all_tags))
     logger.info(f"标签加载完成: {len(unique_tags)} 个唯一标签")

@@ -2,7 +2,6 @@
 图片编辑工具 API（不操作数据库，直接处理上传文件）
 """
 
-from functools import wraps
 from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, UploadFile, File, Body, HTTPException
@@ -10,27 +9,12 @@ from fastapi.responses import Response
 
 from shared.services.media.image_tool import image_processor
 from src.auth import jwt_required_dependency as jwt_required
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["media-edit-tools"])
 from src.unified_logger import default_logger as logger
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/process")
-@_catch
 async def process_image(
         file: UploadFile = File(...),
         operations: Dict[str, Any] = Body(...),

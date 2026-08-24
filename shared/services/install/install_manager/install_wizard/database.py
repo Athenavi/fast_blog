@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Any
 from datetime import datetime
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 def _update_env_file(env_path: Path, updates: Dict[str, str]):

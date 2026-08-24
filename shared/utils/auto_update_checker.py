@@ -6,13 +6,13 @@
 """
 
 
+import asyncio
 from datetime import datetime
 from typing import Optional, Dict
 
 import httpx
-import asyncio
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AutoUpdateChecker:
@@ -32,7 +32,8 @@ class AutoUpdateChecker:
                 'User-Agent': 'FastBlog-Update-Checker'
             }
 
-            response = httpx.get(url, headers=headers, timeout=10)
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers=headers, timeout=10)
             response.raise_for_status()
 
             data = response.json()

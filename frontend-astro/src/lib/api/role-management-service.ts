@@ -41,25 +41,8 @@ export class RoleManagementService {
         return apiClient.get('/security/rbac/permissions');
     }
 
-    static async createPermission(param: {
-        code: string;
-        description: string;
-        name?: string;
-        resource_type?: string;
-        action?: string;
-        is_active?: boolean;
-    }) {
-        // 后端可能没有直接创建权限的端点，需要根据实际情况调整
-        throw new Error('Create permission API not implemented yet');
-    }
-
     static async deleteRole(roleId: number) {
         return apiClient.delete(`/security/rbac/roles/${roleId}`)
-    }
-
-    static async deletePermission(permissionId: number) {
-        // 后端可能没有直接删除权限的端点
-        throw new Error('Delete permission API not implemented yet');
     }
 
     static async updateRole(id: number, param2: { name: string; description: string; permission_ids: number[] }) {
@@ -72,16 +55,4 @@ export class RoleManagementService {
         return apiClient.post('/security/rbac/roles', param);
     }
 
-    // 添加缺失的updatePermission方法
-    static async updatePermission(id: number, param: {
-        code?: string;
-        description?: string;
-        name?: string;
-        resource_type?: string;
-        action?: string;
-        is_active?: boolean;
-    }) {
-        // 后端可能没有直接更新权限的端点
-        throw new Error('Update permission API not implemented yet');
-    }
 }

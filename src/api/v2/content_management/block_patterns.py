@@ -2,32 +2,16 @@
 块模式（Block Patterns）API 端点
 """
 
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.services.content_management.block_pattern_library import block_pattern_library
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["block-patterns"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("")
-@router.get("/list")
-@_catch
 async def list_block_patterns(
     category: str = Query(None, description="分类过滤"),
     current_user=Depends(jwt_required)

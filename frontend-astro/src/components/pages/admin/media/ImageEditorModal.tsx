@@ -41,25 +41,25 @@ export default function ImageEditorModal({mediaId, filename, onClose, onSaved}: 
 
   const cropMut = useMutation({
     mutationFn: () => apiClient.post(`/media/edit/${mediaId}/crop`, {x: Number(cropX), y: Number(cropY), width: Number(cropW), height: Number(cropH)}),
-    onSuccess: (r) => { if (r.success) { toast.success('裁剪成功'); onSaved(); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success('裁剪成功'); onSaved(); } else toast.error(r.error || '操作失败'); },
     onError: () => toast.error('裁剪失败'),
   });
 
   const rotateMut = useMutation({
     mutationFn: () => apiClient.post(`/media/edit/${mediaId}/rotate`, {degrees: Number(degrees)}),
-    onSuccess: (r) => { if (r.success) { toast.success('旋转成功'); onSaved(); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success('旋转成功'); onSaved(); } else toast.error(r.error || '操作失败'); },
     onError: () => toast.error('旋转失败'),
   });
 
   const filterMut = useMutation({
     mutationFn: (ft: string) => apiClient.post(`/media/edit/${mediaId}/filter`, {filter_type: ft}),
-    onSuccess: (r) => { if (r.success) { toast.success('滤镜已应用'); onSaved(); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success('滤镜已应用'); onSaved(); } else toast.error(r.error || '操作失败'); },
     onError: () => toast.error('滤镜应用失败'),
   });
 
   const grayMut = useMutation({
     mutationFn: () => apiClient.post(`/media/edit/${mediaId}/grayscale`),
-    onSuccess: (r) => { if (r.success) { toast.success('已转为灰度图'); onSaved(); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success('已转为灰度图'); onSaved(); } else toast.error(r.error || '操作失败'); },
     onError: () => toast.error('转换失败'),
   });
 

@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 BACKUP_CODE_COUNT = 8

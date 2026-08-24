@@ -21,27 +21,9 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter()
 from src.unified_logger import default_logger as logger
 
-from functools import wraps
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 
-def _catch(func):
-    """统一错误处理装饰器"""
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# ---------- 批量删除（查询参数） ----------
-@router.delete("/")
-@_catch
 async def delete_user_media_api(
         current_user_obj=Depends(jwt_required),
         file_id_list: str = Query(..., alias="file-id-list"),

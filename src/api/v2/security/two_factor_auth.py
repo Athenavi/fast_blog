@@ -2,16 +2,15 @@
 双因素认证(2FA)管理API
 """
 import logging
-from functools import wraps
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.two_factor_auth import two_factor_auth
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.api.v2.auth_v1pack import create_jwt_token
 
 # 2FA 设置密钥临时存储（cache 的后备，避免同步 cache.set 阻塞事件循环）
@@ -28,19 +27,6 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["2fa"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
 
 
 class Enable2FARequest(BaseModel):
@@ -126,7 +112,6 @@ async def enable_2fa(
     """
     from shared.models.user import User
     from sqlalchemy import select
-    from src.extensions import cache
 
     # 获取临时存储的密钥（优先缓存，降级内存）
     from src.extensions import cache
@@ -228,7 +213,7 @@ async def verify_2fa_login(
     """
     from shared.models.user import User
     from sqlalchemy import select
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timezone
 
     # 获取设备信息（在try块开头定义，确保后续可用）
     user_agent = request.headers.get("User-Agent", "Unknown")
@@ -284,7 +269,7 @@ async def verify_2fa_login(
             'browser': request.headers.get('sec-ch-ua', 'Unknown'),
             'platform': request.headers.get('sec-ch-ua-platform', 'Unknown'),
         }
-        session_management_service.create_session(
+        await session_management_service.create_session(
             user_id=user.id,
             device_info=device_info,
             ip_address=ip_address,

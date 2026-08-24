@@ -3,34 +3,17 @@
 提供系统性能、在线用户、访问量等实时数据
 """
 
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.services.analytics.realtime_monitor import realtime_monitor_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter(tags=["monitoring"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/dashboard", summary="获取监控仪表板数据")
-@_catch
 async def get_monitor_dashboard(
         current_user=Depends(admin_required_api)
 ):

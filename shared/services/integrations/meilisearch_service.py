@@ -16,7 +16,7 @@ from typing import List, Dict, Optional, Any
 
 from meilisearch_python_sdk import Client
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class MeilisearchService:

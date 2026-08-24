@@ -168,7 +168,7 @@ function AdminArticlesInner() {
     prevFilters.current = f;
   }, [status, debouncedSearch]);
 
-    const {data, isLoading, refetch} = useQuery({
+    const {data, isLoading, refetch} = useQuery<{articles: any[]; total: number}>({
     queryKey: ['admin-articles', page, status, debouncedSearch],
     queryFn: async () => {
       const params: Record<string, any> = {page, per_page: 15};

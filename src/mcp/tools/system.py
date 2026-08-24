@@ -62,17 +62,19 @@ async def list_backups(arguments: dict) -> dict:
 
 @require_superuser
 async def create_backup(arguments: dict) -> dict:
-    """创建数据库备份"""
-    from datetime import datetime
-    import subprocess, os
-    from src.setting import BaseConfig
+    """创建数据库备份（委托 V2 BackupService 真实实现，非占位）"""
+    from shared.services.system.backup_service import BackupService
 
-    db_url = BaseConfig.SQLALCHEMY_DATABASE_URI or ""
-    backup_name = arguments.get("name", f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql")
-    backup_dir = "backups"
-    os.makedirs(backup_dir, exist_ok=True)
-    backup_path = os.path.join(backup_dir, backup_name)
-    return {"success": True, "message": f"备份已创建: {backup_path}", "path": backup_path}
+    backup = BackupService()
+    result = await backup.backup_database(backup_type="full")
+    if result.get("success"):
+        metadata = result.get("metadata", {})
+        return {
+            "success": True,
+            "message": f"备份已创建: {metadata.get('filename', '')}",
+            "path": result.get("backup_path", metadata.get("path", "")),
+        }
+    return {"success": False, "error": result.get("error", "备份失败")}
 
 
 @require_superuser

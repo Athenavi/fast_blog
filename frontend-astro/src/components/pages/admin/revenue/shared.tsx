@@ -74,7 +74,7 @@ export const StatusBadge: React.FC<{ status: string }> = ({status}) => {
   );
 };
 
-export const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string; color: string }> = ({
+export const StatCard: React.FC<{ icon: React.ComponentType<{className?: string}>; label: string; value: string; color: string }> = ({
                                                                                                         icon: Icon,
                                                                                                         label,
                                                                                                         value,

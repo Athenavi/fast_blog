@@ -4,6 +4,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {apiClient} from '@/lib/api/base-client';
 import {getFullMediaUrl} from '@/lib/utils';
+import DOMPurify from 'dompurify';
 import type {Article} from '@/lib/api/base-types';
 import ArticleComments from './ArticleComments';
 import {
@@ -571,7 +572,7 @@ const ArticleDetail: React.FC<Props> = ({
                     {/* Content (IDs pre-injected by processContentWithToc) */}
                       <div ref={contentRef} className="prose-custom mb-12">
                         <div
-                          dangerouslySetInnerHTML={{__html: processedContent || article.content || '<p>暂无内容</p>'}}/>
+                          dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(processedContent || article.content || '<p>暂无内容</p>')}}/>
                       </div>
 
                       {/* ── Article Footer ── */}

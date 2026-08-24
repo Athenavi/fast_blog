@@ -15,7 +15,7 @@ from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import TeamComment
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class TeamCommentService:

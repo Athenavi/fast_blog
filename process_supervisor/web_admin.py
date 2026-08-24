@@ -7,6 +7,9 @@
 
 from typing import Dict, Optional
 
+import os
+import logging
+
 try:
     from fastapi import FastAPI, HTTPException
     from fastapi.responses import HTMLResponse, JSONResponse
@@ -24,6 +27,26 @@ if HAS_FASTAPI:
         description="提供进程监控、管理和健康检查的 RESTful API",
         version="1.0.0"
     )
+
+    # ---------- 鉴权：进程管理变更类接口必须携带 X-Admin-Token ----------
+    # 未配置 SUPERVISOR_ADMIN_TOKEN 时 fail-closed（拒绝管理操作），避免无鉴权控制进程。
+    from fastapi import Request
+    from fastapi.responses import JSONResponse as _JSONResponse
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    class _AdminAuthMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            path = request.url.path
+            if request.method == "POST" and path.startswith("/api/process/"):
+                expected = os.environ.get("SUPERVISOR_ADMIN_TOKEN", "")
+                if not expected:
+                    return _JSONResponse(status_code=503,
+                                         content={"detail": "Supervisor admin not configured (SUPERVISOR_ADMIN_TOKEN missing)"})
+                if request.headers.get("X-Admin-Token", "") != expected:
+                    return _JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+            return await call_next(request)
+
+    app.add_middleware(_AdminAuthMiddleware)
 else:
     app = None
 

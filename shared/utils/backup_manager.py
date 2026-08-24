@@ -16,7 +16,7 @@ from typing import Dict, List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class BackupManager:

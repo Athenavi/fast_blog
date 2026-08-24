@@ -4,35 +4,19 @@
 提供告警配置、发送和查看功能
 """
 import logging
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.security.security_alert import security_alert_service, EmailAlertChannel, \
     WebhookAlertChannel
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/send", summary="发送告警", description="手动发送安全告警")
-@_catch
 async def send_alert(
         alert_type: str = Body(..., description="告警类型"),
         title: str = Body(..., description="标题"),

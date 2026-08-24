@@ -27,8 +27,8 @@ class RBACService:
         depth = 0
         while current_ids and depth < max_depth:
             result = await db.execute(
-                select(Role.id).where(
-                    Role.parent_id.in_(current_ids),
+                select(Role.parent_id).where(
+                    Role.id.in_(current_ids),
                     Role.parent_id.isnot(None),
                 )
             )
@@ -78,6 +78,7 @@ class RBACService:
             .where(
                 RoleCapability.role_id.in_(role_ids),
                 Capability.code == capability_code,
+                Capability.is_active == True,
             )
         )
         result = await db.execute(query)
@@ -135,9 +136,11 @@ class RBACService:
         if not user:
             return []
 
-        # 超级管理员返回所有 Capabilities
+        # 超级管理员返回所有启用的 Capabilities
         if user.is_superuser:
-            result = await db.execute(select(Capability))
+            result = await db.execute(
+                select(Capability).where(Capability.is_active == True)
+            )
             return list(result.scalars().all())
 
         role_ids_result = await db.execute(
@@ -153,7 +156,10 @@ class RBACService:
         query = (
             select(Capability)
             .join(RoleCapability, RoleCapability.capability_id == Capability.id)
-            .where(RoleCapability.role_id.in_(role_ids))
+            .where(
+                RoleCapability.role_id.in_(role_ids),
+                Capability.is_active == True,
+            )
             .distinct()
         )
         result = await db.execute(query)

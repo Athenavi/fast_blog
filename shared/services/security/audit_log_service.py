@@ -12,7 +12,7 @@ from sqlalchemy.future import select
 from sqlalchemy.sql.functions import func
 
 from shared.models.system.audit_log import AuditLog
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AuditLogAction(Enum):
@@ -110,11 +110,11 @@ class AuditLogService:
                 action=action.value,
                 level=level.value,
                 resource_type=resource_type,
-                resource_id=resource_id,
+                resource_id=int(resource_id) if resource_id is not None and str(resource_id).isdigit() else (resource_id if resource_id else None),
                 ip_address=ip_address,
                 user_agent=user_agent,
                 description=description,
-                details=json.dumps(details, ensure_ascii=False) if details else None,
+                request_data=json.dumps(details, ensure_ascii=False) if details else None,
                 created_at=datetime.now()
             )
 
@@ -215,7 +215,7 @@ class AuditLogService:
                         'ip_address': log.ip_address,
                         'user_agent': log.user_agent,
                         'description': log.description,
-                        'details': json.loads(log.details) if log.details else None,
+                        'details': json.loads(log.request_data) if log.request_data else None,
                         'created_at': log.created_at.isoformat()
                     }
                     for log in logs
@@ -287,7 +287,7 @@ class AuditLogService:
                     'ip_address': log.ip_address,
                     'user_agent': log.user_agent,
                     'description': log.description,
-                    'details': json.loads(log.details) if log.details else None,
+                    'details': json.loads(log.request_data) if log.request_data else None,
                     'created_at': log.created_at.isoformat()
                 }
                 for log in logs
@@ -320,7 +320,7 @@ class AuditLogService:
                     log.ip_address,
                     log.user_agent,
                     log.description,
-                    log.details,
+                    log.request_data,
                     log.created_at.isoformat()
                 ])
 

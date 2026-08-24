@@ -3,11 +3,10 @@
 集成Google Translate、DeepL等翻译服务商
 """
 from typing import Dict, Any
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
 
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from shared.models.user import User
 from shared.utils.translation_api_clients import (
     translation_service_manager,
@@ -19,23 +18,6 @@ from src.auth.auth_deps import admin_required as admin_required_api
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/translate",
-             summary="翻译文本",
-             description="使用配置的翻译服务API翻译文本(仅管理员)",
-             response_description="返回翻译结果")
-@_catch
 async def translate_text_api(
         request: Request,
         data: Dict[str, Any] = Body(...),

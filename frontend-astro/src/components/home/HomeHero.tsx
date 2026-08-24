@@ -1,13 +1,19 @@
 'use client';
 
-import React, {useRef} from 'react';
-import {AnimatePresence, motion, useScroll, useTransform} from 'framer-motion';
-import {ArrowRight, ArrowUpRight, BookOpen, Eye, Heart, Sparkles} from 'lucide-react';
-import {getFullMediaUrl} from '@/lib/utils';
+/**
+ * 首页 Hero - 完全重构版
+ * 设计语言（用户确认）：编辑杂志 × 暗色科技
+ * - 三维线框物件（three.js，懒加载）为主视觉，浮在深色基底上
+ * - 左侧衬线头条标题 + 摘要 + 单 CTA，编辑报头式排版
+ * - 滚动视差：文字层上移淡出，场景层缓移
+ * - 无轮播、无粒子雨、无玻璃 pill、无 `01/05` 分页
+ */
+import React, {lazy, Suspense, useRef} from 'react';
+import {motion, useReducedMotion, useScroll, useTransform} from 'framer-motion';
+import {ArrowRight} from 'lucide-react';
 import {Article} from './_shared';
-import {fadeUp, staggerContainer} from './_shared';
 
-const isVideo = (url: string) => /\.(mp4|webm|ogg|mov|avi|mkv)(\?|$)/i.test(url);
+const WireframeScene = lazy(() => import('./three/WireframeScene'));
 
 interface Props {
   featured: Article[];
@@ -22,101 +28,116 @@ interface Props {
 
 export default function HomeHero({
   featured, heroTitle, heroSubtitle, heroCtaText,
-  heroCtaLink, ctaTarget, heroBg,
+                                   heroCtaLink, ctaTarget,
 }: Props) {
-  const [slide, setSlide] = React.useState(0);
-  const heroRef = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+  const heroRef = useRef<HTMLElement>(null);
   const {scrollYProgress} = useScroll({target: heroRef, offset: ['start start', 'end start']});
-  const parallaxY = useTransform(scrollYProgress, [0, 1], [0, 150]);
-  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
+  const textY = useTransform(scrollYProgress, [0, 1], [0, 140]);
+  const sceneY = useTransform(scrollYProgress, [0, 1], [0, 70]);
+  const fade = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
 
-  const items = featured.slice(0, 5);
-  const current = items[slide] || {};
-  const bgUrl = current.cover_image || heroBg || '';
-  const fullBg = bgUrl ? getFullMediaUrl(bgUrl) : '';
-
-  // Auto-rotate
-  React.useEffect(() => {
-    if (items.length <= 1) return;
-    const t = setInterval(() => setSlide(s => (s + 1) % items.length), 6000);
-    return () => clearInterval(t);
-  }, [items.length]);
+  const head = featured[0] || {};
+  const hasHeadline = !!head.title;
+  const headline = hasHeadline ? head.title : (heroTitle || '');
+  const summary = (head.excerpt || head.summary || heroSubtitle || '').replace(/\s+/g, ' ').trim();
+  const primaryHref = hasHeadline && head.slug ? `/view?slug=${head.slug}` : (heroCtaLink || '/articles');
+  const primaryText = hasHeadline ? '阅读全文' : (heroCtaText || '开始阅读');
 
   return (
-    <section ref={heroRef} className="relative h-[90vh] min-h-[650px] max-h-[1000px] overflow-hidden">
-      {/* Background parallax */}
-      <motion.div style={{y: parallaxY}} className="absolute inset-0 -top-[10%] -bottom-[10%]">
-        {fullBg && isVideo(current.cover_image || '') ? (
-          <video src={fullBg} className="w-full h-full object-cover" autoPlay loop muted playsInline />
-        ) : fullBg ? (
-          <img src={fullBg} alt="" className="w-full h-full object-cover" loading="lazy" />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900" />
-        )}
+    <section ref={heroRef} className="relative min-h-[100dvh] overflow-hidden bg-[#05070f]">
+      {/* 深空基底：品牌蓝径向光晕，克制 */}
+      <div
+        className="absolute inset-0"
+        style={{background: 'radial-gradient(ellipse 70% 60% at 35% 38%, rgba(30, 58, 138, 0.4), transparent 65%), radial-gradient(ellipse 50% 45% at 85% 80%, rgba(15, 23, 42, 0.9), transparent 70%)'}}
+      />
+
+      {/* three.js 线框场景（懒加载，透明 Canvas 浮于基底） */}
+      <motion.div style={{y: reduced ? 0 : sceneY}} className="absolute inset-0" aria-hidden>
+        <Suspense fallback={null}>
+          <WireframeScene reducedMotion={!!reduced}/>
+        </Suspense>
       </motion.div>
 
-      {/* Overlays */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30" />
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-gray-950 to-transparent" />
-
-      {/* Particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
-          <motion.div key={i} className="absolute w-1 h-1 bg-white/20 rounded-full"
-            initial={{x: Math.random() * 1920, y: Math.random() * 1080}}
-            animate={{y: [null, Math.random() * -300], opacity: [0, 0.6, 0]}}
-            transition={{duration: Math.random() * 8 + 6, repeat: Infinity, delay: Math.random() * 5, ease: 'linear'}} />
-        ))}
-      </div>
-
-      {/* Content */}
-      <motion.div style={{opacity}} className="relative h-full flex items-center">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 w-full">
+      {/* 左侧文字区：编辑报头式 */}
+      <motion.div style={reduced ? undefined : {y: textY, opacity: fade}}
+                  className="relative z-10 flex min-h-[100dvh] items-center">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 w-full pt-24 pb-20">
           <div className="max-w-2xl">
-            <motion.div initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} transition={{duration: 0.6, delay: 0.2}}>
-              <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-full text-sm font-medium text-white/90 border border-white/20 mb-8">
-                <Sparkles className="w-4 h-4 text-amber-400" />{current.category || '精选内容'}
-              </span>
+            <motion.p
+              initial={{opacity: 0, y: 24}} animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.6, delay: 0.15}}
+              className="mb-6 text-sm font-medium tracking-[0.2em] text-blue-400/90"
+            >
+              {head.category || '精选内容'}
+            </motion.p>
+
+            <motion.h1
+              initial={{opacity: 0, y: 32}} animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.8, delay: 0.3}}
+              className="font-serif text-4xl sm:text-5xl lg:text-6xl font-semibold text-slate-100 leading-[1.15] tracking-tight text-balance"
+            >
+              {headline || 'FastBlog'}
+            </motion.h1>
+
+            <motion.p
+              initial={{opacity: 0, y: 24}} animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.7, delay: 0.5}}
+              className="mt-6 max-w-xl text-base sm:text-lg leading-relaxed text-slate-400"
+            >
+              {summary || heroSubtitle}
+            </motion.p>
+
+            <motion.div
+              initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}}
+              transition={{duration: 0.6, delay: 0.7}}
+              className="mt-10 flex flex-wrap items-center gap-5"
+            >
+              <a
+                href={primaryHref}
+                target={ctaTarget as React.HTMLAttributeAnchorTarget | undefined}
+                className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full bg-blue-600 text-white text-sm font-semibold
+                  hover:bg-blue-500 transition-colors duration-300 shadow-lg shadow-blue-900/40 active:scale-[0.98]"
+              >
+                {primaryText}
+                <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1"/>
+              </a>
+              <a
+                href="/articles"
+                className="text-sm font-medium text-slate-300 underline decoration-slate-600 underline-offset-4
+                  hover:text-white hover:decoration-blue-500 transition-colors duration-300"
+              >
+                浏览全部文章
+              </a>
             </motion.div>
 
-            <AnimatePresence mode="wait">
-              <motion.h1 key={slide} initial={{opacity: 0, y: 30}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -20}}
-                transition={{duration: 0.7}} className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white tracking-tight leading-[1.05] mb-6">
-                {current.title || heroTitle}
-              </motion.h1>
-            </AnimatePresence>
-
-            <AnimatePresence mode="wait">
-              <motion.p key={`s-${slide}`} initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -10}}
-                transition={{duration: 0.6, delay: 0.1}} className="text-base sm:text-lg lg:text-xl text-white/70 mb-10 leading-relaxed max-w-xl">
-                {current.excerpt || current.summary || heroSubtitle}
-              </motion.p>
-            </AnimatePresence>
-
-            <motion.div initial={{opacity: 0, y: 20}} animate={{opacity: 1, y: 0}} transition={{duration: 0.6, delay: 0.4}} className="flex flex-wrap gap-4">
-              <a href={current.slug ? `/view?slug=${current.slug}` : heroCtaLink}
-                target={ctaTarget as React.HTMLAttributeAnchorTarget}
-                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900 font-bold rounded-xl hover:bg-gray-100 transition-all duration-300 shadow-2xl shadow-black/20 hover:shadow-white/20 hover:-translate-y-0.5">
-                {heroCtaText} <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
-              </a>
-              <a href="/articles" className="inline-flex items-center gap-3 px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-medium rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300 hover:-translate-y-0.5">
-                浏览全部 <ArrowUpRight className="w-5 h-5" />
-              </a>
-            </motion.div>
-
-            {items.length > 1 && (
-              <motion.div initial={{opacity: 0}} animate={{opacity: 1}} transition={{delay: 0.8}} className="flex items-center gap-2 mt-12">
-                {items.map((_, i) => (
-                  <button key={i} onClick={() => setSlide(i)}
-                    className={`h-1 rounded-full transition-all duration-500 ${i === slide ? 'w-10 bg-white' : 'w-3 bg-white/30 hover:bg-white/50'}`} />
-                ))}
-                <span className="text-white/40 text-sm ml-3 font-mono">{String(slide + 1).padStart(2, '0')} / {String(items.length).padStart(2, '0')}</span>
+            {/* 头条元数据：编辑式细线分隔（无图标堆砌） */}
+            {hasHeadline && head.created_at && (
+              <motion.div
+                initial={{opacity: 0}} animate={{opacity: 1}}
+                transition={{duration: 0.6, delay: 0.9}}
+                className="mt-14 flex items-center gap-3 text-xs text-slate-500"
+              >
+                <span>{new Date(head.created_at).toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}</span>
+                {head.views !== undefined && (
+                  <>
+                    <span className="w-px h-3 bg-slate-700"/>
+                    <span>{head.views.toLocaleString()} 次阅读</span>
+                  </>
+                )}
               </motion.div>
             )}
           </div>
         </div>
       </motion.div>
+
+      {/* 底部与下一区块衔接的暗色过渡 */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#05070f] to-transparent pointer-events-none"/>
     </section>
   );
 }

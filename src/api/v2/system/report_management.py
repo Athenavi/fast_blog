@@ -3,34 +3,19 @@
 提供自定义报表生成和查询功能
 """
 
-from functools import wraps
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 
 from shared.services.analytics.scheduled_report_service import create_scheduled_report_service
 from shared.services.system.report_generator import report_generator, ReportGenerator
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["reports"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/content", summary="获取内容表现报表")
-@_catch
 async def get_content_report(
         days: int = Query(30, ge=7, le=90, description="统计天数"),
         group_by: str = Query('day', enum=['day', 'week', 'month'], description="分组方式"),

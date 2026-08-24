@@ -29,10 +29,15 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-fastblog_redis_secret}
       # --- 应用配置 ---
-      - SECRET_KEY=${SECRET_KEY:-}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
+      # 生产必须显式提供强密钥，缺失时 compose 直接报错（避免每次重启生成随机密钥导致会话失效）
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env (>=32 random chars)}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env (>=32 random chars)}
       - ENVIRONMENT=production
       - DEBUG=False
+      # 多 worker 进程数（>1 时启用；依赖 Redis 共享限流/缓存，调度任务由 Redis 分布式锁保证单次执行）
+      - WORKERS=${WORKERS:-2}
+      # 内置插件开关：逗号分隔需要关闭的非核心模块名，如 ecommerce,enterprise
+      - DISABLED_MODULES=${DISABLED_MODULES:-}
     # 不设置 user — entrypoint 默认以 root 运行，初始化后通过 gosu 降权到 appuser
     volumes:
       - fastblog-media:/app/media

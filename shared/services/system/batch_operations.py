@@ -15,7 +15,7 @@ from typing import List, Dict, Optional
 from sqlalchemy import update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class BatchOperationService:
@@ -358,7 +358,7 @@ class BatchOperationService:
                     update(Article)
                     .where(Article.id == article_id)
                     .values(
-                        tags_list=';'.join(current_tags),
+                        tags_list=current_tags,
                         updated_at=datetime.now()
                     )
                 )

@@ -5,33 +5,18 @@
 """
 
 from typing import Optional, List
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.comments.team_comments import team_comment_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/comment", summary="创建评论", description="创建团队评论")
-@_catch
 async def create_comment(
         content_id: int = Body(..., description="内容ID"),
         content_type: str = Body(..., description="内容类型"),

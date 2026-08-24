@@ -12,7 +12,7 @@ from shared.models import DownloadTask
 from shared.services.performance.resource_transfer_service import ResourceTransferService
 from src.utils.database.unified_manager import db_manager
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class DownloadQueueProcessor:

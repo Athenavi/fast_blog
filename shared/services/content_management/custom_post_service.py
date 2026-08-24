@@ -11,7 +11,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.content import CustomPostContent, CustomPostType
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 async def get_post_type_by_slug(db: AsyncSession, slug: str) -> Optional[CustomPostType]:

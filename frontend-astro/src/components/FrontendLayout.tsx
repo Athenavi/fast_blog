@@ -6,20 +6,14 @@
 'use client';
 
 import React from 'react';
-import {useDarkMode} from '@/lib/dark-mode-manager';
 
 interface FrontendLayoutProps {
     children: React.ReactNode;
 }
 
 export const FrontendLayout: React.FC<FrontendLayoutProps> = ({children}) => {
-    const {theme} = useDarkMode();
-
     return (
-        <div className="min-h-screen flex flex-col"
-             style={{
-                 backgroundColor: theme === 'dark' ? '#111827' : '#f9fafb'
-             }}>
+      <div className="min-h-screen flex flex-col theme-bg">
             <main className="flex-grow">
                 {children}
             </main>

@@ -61,7 +61,7 @@ export const adminArticleService = {
     adminApi.delete(`/api/v3/admin/articles/${id}`, `/articles/${id}`),
 
   publish: (id: number) =>
-    adminApi.post(`/api/v3/admin/articles/${id}/publish`, null, {}),  // V2 无单独 publish 端点，不作降级
+    adminApi.post(`/api/v3/admin/articles/${id}/publish`, '', {}),  // V2 无单独 publish 端点，不作降级
 };
 
 // ================================================================
@@ -129,6 +129,9 @@ export const adminDashboardService = {
 
   traffic: () =>
     adminApi.get('/api/v3/admin/dashboard/traffic', '/dashboard/traffic'),
+
+  activities: (page = 1, perPage = 8) =>
+    adminApi.get('/api/v3/admin/dashboard/activities', '/dashboard/activities', {page, per_page: perPage}),
 };
 
 // ================================================================
@@ -230,11 +233,11 @@ export const adminBackupService = {
 
 export const adminPermissionService = {
   check: (permissionCode: string) =>
-    adminApi.post('/api/v3/admin/check-permission', '/security/rbac/check-permission', {
+    adminApi.post('/api/v3/admin/check-permission', '/api/v2/security/rbac/check-permission', {
       permission_code: permissionCode,
     }),
   cacheStats: () =>
-    adminApi.get('/api/v3/admin/cache-stats', null),  // V2 无对应端点，不作降级
+    adminApi.get('/api/v3/admin/cache-stats', ''),  // V2 无对应端点，不作降级
   health: () =>
     adminApi.get('/api/v3/admin/health', '/api/v2/system/health'),
 };

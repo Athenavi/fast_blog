@@ -12,6 +12,7 @@ export interface ApprovalRecord {
   current_level: number;
   max_level: number;
   status: string;
+  admin_notes?: string;
   created_at?: string;
   completed_at?: string;
 }
@@ -72,7 +73,7 @@ export const PriorityBadge: React.FC<{ priority?: string }> = ({priority}) => {
 };
 
 export const StatCard: React.FC<{
-  icon: React.ElementType;
+  icon: React.ComponentType<{className?: string}>;
   label: string;
   value: string | number;
   color: string

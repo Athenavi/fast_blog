@@ -211,18 +211,6 @@ export class CategoryService {
         return apiClient.get(`/categories/${name}`);
     }
 
-    static async subscribeToCategory(categoryId: number): Promise<ApiResponse<{ message: string }>> {
-        // 后端没有直接的subscribe API，可能需要使用其他端点
-        // 暂时注释，需要根据实际需求调整
-        throw new Error('Subscribe API not implemented yet');
-    }
-
-    static async unsubscribeFromCategory(categoryId: number): Promise<ApiResponse<{ message: string }>> {
-        // 后端没有直接的unsubscribe API，可能需要使用其他端点
-        // 暂时注释，需要根据实际需求调整
-        throw new Error('Unsubscribe API not implemented yet');
-    }
-
     static async deleteCategory(deleteCategoryId: number) {
         return apiClient.delete(`/cms/categories/${deleteCategoryId}`)
     }

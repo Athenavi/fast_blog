@@ -78,12 +78,7 @@ class PluginPublicAPI:
                 articles = []
                 for article in articles_data:
                     # 解析标签
-                    tags_list = []
-                    if article.tags_list:
-                        try:
-                            tags_list = [tag.strip() for tag in re.split(r'[,;]', article.tags_list) if tag.strip()]
-                        except:
-                            tags_list = []
+                    tags_list = article.tags_list if isinstance(article.tags_list, list) else []
 
                     articles.append({
                         'id': article.id,
@@ -131,12 +126,7 @@ class PluginPublicAPI:
                 article = result.scalar_one_or_none()
 
                 if article:
-                    tags_list = []
-                    if article.tags_list:
-                        try:
-                            tags_list = [tag.strip() for tag in re.split(r'[,;]', article.tags_list) if tag.strip()]
-                        except:
-                            tags_list = []
+                    tags_list = article.tags_list if isinstance(article.tags_list, list) else []
 
                     return {
                         'id': article.id,

@@ -147,10 +147,51 @@ async def export_wxr(
 ):
     """导出全站内容为 WordPress WXR 格式"""
     try:
-        articles = (await db.execute(select(Article).order_by(Article.id))).scalars().all()
-        categories = (await db.execute(select(Category).order_by(Category.id))).scalars().all()
-        users = (await db.execute(select(User).order_by(User.id))).scalars().all()
-        comments = (await db.execute(select(Comment).order_by(Comment.id))).scalars().all()
+        # 分批加载数据，避免一次性加载全部到内存
+        BATCH_SIZE = 1000
+        articles = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Article).order_by(Article.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            articles.extend(batch)
+            offset += len(batch)
+
+        categories = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Category).order_by(Category.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            categories.extend(batch)
+            offset += len(batch)
+
+        users = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(User).order_by(User.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            users.extend(batch)
+            offset += len(batch)
+
+        comments = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Comment).order_by(Comment.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            comments.extend(batch)
+            offset += len(batch)
 
         wxr = _build_wxr('FastBlog', 'https://fastblog.dev', articles, categories, users, comments)
         from fastapi.responses import Response
@@ -167,10 +208,51 @@ async def export_json(
 ):
     """导出全站内容为 JSON 格式"""
     try:
-        articles = (await db.execute(select(Article).order_by(Article.id))).scalars().all()
-        categories = (await db.execute(select(Category).order_by(Category.id))).scalars().all()
-        users = (await db.execute(select(User).order_by(User.id))).scalars().all()
-        comments = (await db.execute(select(Comment).order_by(Comment.id))).scalars().all()
+        # 分批加载数据，避免一次性加载全部到内存
+        BATCH_SIZE = 1000
+        articles = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Article).order_by(Article.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            articles.extend(batch)
+            offset += len(batch)
+
+        categories = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Category).order_by(Category.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            categories.extend(batch)
+            offset += len(batch)
+
+        users = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(User).order_by(User.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            users.extend(batch)
+            offset += len(batch)
+
+        comments = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Comment).order_by(Comment.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            comments.extend(batch)
+            offset += len(batch)
 
         j = _build_json('FastBlog', 'https://fastblog.dev', articles, categories, users, comments)
         from fastapi.responses import Response

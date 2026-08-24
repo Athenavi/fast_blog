@@ -103,35 +103,33 @@ def sanitize_svg(svg_content: str) -> str:
 def _clean_element(element: ET.Element):
     """
     递归清理 SVG 元素及其子元素
-    
-    Args:
-        element: 要清理的 XML 元素
+
+    注意：标准库 ElementTree 不支持 getparent()，
+    因此采用"父级检查子级"的策略来移除危险标签。
     """
+    # 先处理子元素：在父级层面检查并移除危险标签
+    for child in list(element):
+        child_tag = child.tag.lower()
+        # 移除命名空间前缀
+        if '}' in child_tag:
+            child_tag = child_tag.split('}', 1)[1]
+
+        if child_tag in DANGEROUS_TAGS:
+            # 直接在当前父元素上移除危险子元素
+            element.remove(child)
+        elif child_tag not in ALLOWED_SVG_TAGS and child_tag != 'svg':
+            # 不允许的标签：移除但保留子元素（提升到当前层级）
+            for grandchild in list(child):
+                element.insert(list(element).index(child), grandchild)
+            element.remove(child)
+        else:
+            # 允许的标签：递归清理
+            _clean_element(child)
+
+    # 清理当前元素的属性
     tag = element.tag.lower()
-    
-    # 移除命名空间前缀
     if '}' in tag:
         tag = tag.split('}', 1)[1]
-    
-    # 检查是否是危险标签
-    if tag in DANGEROUS_TAGS:
-        # 直接移除整个元素及其子元素
-        parent = element.getparent() if hasattr(element, 'getparent') else None
-        if parent is not None:
-            parent.remove(element)
-        return
-    
-    # 检查是否是允许的标签
-    if tag not in ALLOWED_SVG_TAGS and tag != 'svg':
-        # 如果不是允许的标签，移除但保留子元素
-        parent = element.getparent() if hasattr(element, 'getparent') else None
-        if parent is not None:
-            for child in list(element):
-                parent.insert(list(parent).index(element), child)
-            parent.remove(element)
-        return
-    
-    # 清理属性
     attrs_to_remove = []
     for attr_name, attr_value in element.attrib.items():
         # 移除命名空间前缀

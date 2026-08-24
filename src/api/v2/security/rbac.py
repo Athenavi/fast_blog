@@ -5,7 +5,6 @@
 import json
 import logging
 from datetime import datetime, timezone
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -15,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import PermissionAuditLog
 from shared.models.rbac import Role, Capability, RoleCapability, UserRole
 from shared.services.security.rbac_service import rbac_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.api.v3._permission import invalidate_permission_cache
@@ -24,23 +23,6 @@ router = APIRouter(tags=["rbac"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== 角色管理 ====================
-
-@router.post("/roles", summary="创建自定义角色")
-@_catch
 async def create_role(
         name: str = Body(..., description="角色名称"),
         slug: str = Body(..., description="角色标识"),
@@ -316,16 +298,17 @@ async def get_user_permissions(
 @router.post("/check-permission", summary="检查权限")
 @_catch
 async def check_permission(
-        user_id: int = Body(..., description="用户ID"),
+        user_id: int = Body(0, description="用户ID (0 表示当前用户)"),
         permission_code: str = Body(..., description="权限代码 (格式: resource.action)"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """检查用户是否有指定权限"""
-    has = await rbac_service.has_capability(db, user_id, permission_code)
+    uid = user_id if user_id > 0 else current_user.id
+    has = await rbac_service.has_capability(db, uid, permission_code)
 
     return ok(data={
-        'user_id': user_id,
+        'user_id': uid,
         'permission_code': permission_code,
         'has_permission': has,
     })

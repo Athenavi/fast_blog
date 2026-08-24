@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import AsyncGenerator, Dict, Any
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class DatabaseMigrationService:

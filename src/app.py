@@ -1,19 +1,18 @@
 """
 FastBlog 应用入口
 """
+import asyncio
 import importlib
 import os
 import time as _time
 import traceback
-import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
 
 
@@ -23,10 +22,10 @@ def safe_run(func_name: str, func, *args, **kwargs):
     print(f"\n{'=' * 60}\n[{func_name}] 开始初始化...")
     try:
         result = func(*args, **kwargs)
-        print(f"[{func_name}] ✅ 完成")
+        print(f"[{func_name}] 完成")
         return result
     except Exception as e:
-        print(f"[{func_name}] ❌ 失败: {e}")
+        print(f"[{func_name}] 失败: {e}")
         traceback.print_exc()
         return None
 
@@ -40,10 +39,10 @@ async def safe_run_async(func_name: str, func, *args, **kwargs):
         # 如果结果是协程，则等待它
         if hasattr(result, '__await__'):
             await result
-        print(f"[{func_name}] ✅ 完成")
+        print(f"[{func_name}] 完成")
         return result
     except Exception as e:
-        print(f"[{func_name}] ❌ 失败: {e}")
+        print(f"[{func_name}] 失败: {e}")
         traceback.print_exc()
         return None
 
@@ -55,8 +54,8 @@ def check_installation() -> bool:
         installed = installation_wizard_service.is_installed()
         if not installed:
             print("\n" + "=" * 60)
-            print("⚠️  系统尚未安装")
-            print("👉 请启动前端进程后访问 http://localhost:4321/install 完成安装向导")
+            print("系统尚未安装")
+            print(" 请启动前端进程后访问 http://localhost:4321/install 完成安装向导")
             print("=" * 60 + "\n")
         return installed
     except Exception as e:
@@ -66,183 +65,6 @@ def check_installation() -> bool:
 
 # ---------- 路由自动发现 ----------
 # 注意：为了更好的兼容性保留 旧的 V1 路由注册表，已废弃，新功能请在V2中开发
-# 当前系统使用 src/api/v2/__init__.py 中的 ROUTE_REGISTRY_V2
-# 此处的配置仅作为历史参考，不应再使用
-# V1 路由注册表（已废弃）- 以下模块已迁移到 V2 聚合路由器
-# 这些模块已被整合到 src.api.v2.* 下的聚合路由器中
-ROUTE_REGISTRY_DEPRECATED = [
-    # 核心模块（必需）- 已迁移到 V2
-    # ("src.api.v1.articles.article_password", "/api/v1", ["article-password"], True),
-    # ("src.api.v1.articles.article_revisions", "/api/v1", ["article-revisions"], True),
-    # ("src.api.v1.users.users", "/api/v1/users", ["users"], True),
-    # ("src.api.v1.__init__", "", [], True),  # api_v1_router 内部自带前缀
-    # ("src.api.v1.content_management.category_management", "/api/v1/categories", ["categories"], True),
-    # ("src.api.v1.dashboard.dashboard", "/api/v1/dashboard", ["dashboard"], True),
-    # ("src.api.v1.core.home", "/api/v1", ["home"], True),
-    # ("src.api.v1.advanced_features.membership", "/api/v1/membership", ["membership"], True),
-    # ("src.api.v1.articles.anomaly_detection", "/api/v1/sys", ["anomaly-detection"], True),
-    # misc 模块已完全清理并删除，功能已迁移到对应模块
-    # ("src.api.v1.core.system", "/api/v1/system", ["system"], True),
-
-    # 功能模块（可选加载）- 已迁移到 V2 聚合路由器
-    # Articles 模块 - 已整合到 src.api.v2.articles
-    # ("src.api.v1.articles.article_analytics", "/api/v1/analytics", ["article-analytics"], False),
-    # ("src.api.v1.articles.article_annotations", "/api/v1/article-annotations", ["article-annotations"], False),
-    # ("src.api.v1.articles.article_search", "/api/v1/search", ["article-search"], False),
-    # ("src.api.v1.articles.article_stats", "/api/v1/views", ["article-stats"], False),
-    # ("src.api.v1.articles.draft_preview", "/api/v1/draft", ["draft-preview"], False),
-    # ("src.api.v1.articles.scheduled_publish", "/api/v1/scheduler", ["scheduled-publish"], False),
-
-    # Chat 模块 - 已整合到 src.api.v2.chat
-    # ("src.api.v1.chat.chat", "/api/v1/chats", ["chat"], False),
-    # ("src.api.v1.chat.chat_groups", "/api/v1/chats/groups", ["chat-groups"], False),
-    # ("src.api.v1.chat.private_messages", "/api/v1/messages/private", ["private-messages"], False),
-
-    # Collaboration 模块 - 已整合到 src.api.v2.collaboration
-    # ("src.api.v1.collaboration.collaboration_invites", "/api/v1/collaboration-invites", ["collaboration-invites"], False),
-    # ("src.api.v1.collaboration.collaboration_save", "/api/v1/collaboration", ["collaboration-save"], False),
-    # ("src.api.v1.collaboration.team_collaboration", "/api/v1/admin/team", ["team-collaboration"], False),
-    # ("src.api.v1.collaboration.team_comments", "/api/v1/team/comments", ["team-comments"], False),
-    # ("src.api.v1.collaboration.yjs_collaboration", "/api/v1", ["yjs-collaboration"], False),
-
-    # Comments 模块 - 已整合到 src.api.v2.comments
-    # ("src.api.v1.comments.comment_config", "/api/v1", ["comment-config"], False),
-    # ("src.api.v1.comments.comment_subscriptions", "/api/v1", ["comment-subscriptions"], False),
-    # ("src.api.v1.comments.comments", "/api/v1/comments", ["comments"], False),
-    # ("src.api.v1.comments.comments_enhanced", "/api/v1/comment-plus", ["comments-enhanced"], False),
-
-    # Content Management 模块 - 已整合到 src.api.v2.content_management
-    # ("src.api.v1.content_management.block_editor", "/api/v1", ["block-editor"], False),
-    # ("src.api.v1.content_management.custom_block_patterns", "/api/v1/pattern", ["custom-block-patterns"], False),
-    # ("src.api.v1.content_management.custom_post_types", "/api/v1", ["custom-post-types"], False),
-    # ("src.api.v1.content_management.feed", "/api/v1", ["feed"], False),
-    # ("src.api.v1.content_management.form_builder", "/api/v1/admin/form", ["form-builder"], False),
-    # ("src.api.v1.content_management.menu_management", "/api/v1/admin/menu", ["menu-management"], False),
-    # ("src.api.v1.content_management.shortcode", "/api/v1", ["shortcode"], False),
-    # ("src.api.v1.content_management.widgets", "/api/v1", ["widgets"], False),
-
-    # Dashboard 模块 - 已整合到 src.api.v2.dashboard
-    # ("src.api.v1.dashboard.analytics", "/api/v1", ["analytics"], False),
-    # ("src.api.v1.dashboard.realtime_monitor", "/api/v1", ["realtime-monitor"], False),
-
-    # Ecommerce - 已迁移到 V2 聚合路由器 src.api.v2.ecommerce
-    # ("src.api.v2.ecommerce", "/api/v2/shop", ["ecommerce"], False),
-
-    # Integrations 模块 - 已整合到 src.api.v2.integrations
-    # ("src.api.v1.integrations.baidu_analytics", "/api/v1/analytics/baidu", ["baidu-analytics"], False),
-    # ("src.api.v1.integrations.ipfs", "/api/v1/ipfs", ["ipfs"], False),
-    # ("src.api.v1.integrations.oauth_login", "/api/v1/oauth", ["oauth-login"], False),
-    # ("src.api.v1.integrations.sso", "/api/v1", ["sso"], False),
-    # ("src.api.v1.integrations.wordpress_import", "/api/v1/wordpress", ["wordpress-import"], False),
-
-    # Marketing 模块 - 已整合到 src.api.v2.marketing
-    # ("src.api.v1.marketing.ad_management", "/api/v1/admin/ad", ["ad-management"], False),
-    # ("src.api.v1.marketing.advertisement_system", "/api/v1/ads", ["advertisement-system"], False),
-
-    # Media 模块 - 已整合到 src.api.v2.media
-    # ("src.api.v1.media", "/api/v1", ["media"], False),
-
-    # Notifications 模块 - 已整合到 src.api.v2.notifications
-    # ("src.api.v1.notifications.email_service", "/api/v1", ["email-service"], False),
-    # ("src.api.v1.notifications.notifications", "/api/v1/notifications", ["notifications"], False),
-    # ("src.api.v1.notifications.push_notifications", "/api/v1", ["push-notifications"], False),
-
-    # Performance 模块 - 已整合到 src.api.v2.performance
-    # ("src.api.v1.performance.cache_management", "/api/v1/admin/caches", ["cache-management"], False),
-    # ("src.api.v1.performance.cdn_management", "/api/v1/admin/cdn", ["cdn-management"], False),
-    # ("src.api.v1.performance.code_splitting_optimization", "/api/v1", ["code-splitting-optimization"], False),
-    # ("src.api.v1.performance.css_optimizer", "/api/v1", ["css-optimizer"], False),
-    # ("src.api.v1.performance.http2_config", "/api/v1", ["http2-config"], False),
-    # ("src.api.v1.performance.image_lazy_load", "/api/v1", ["image-lazy-load"], False),
-    # ("src.api.v1.performance.lazy_load_optimization", "/api/v1", ["lazy-load-optimization"], False),
-    # ("src.api.v1.performance.load_balancer", "/api/v1", ["load-balancer"], False),
-    # ("src.api.v1.performance.localization", "/api/v1", ["localization"], False),
-    # ("src.api.v1.performance.object_cache", "/api/v1", ["object-cache"], False),
-    # ("src.api.v1.performance.performance_monitor", "/api/v1/performance-monitor", ["performance-monitor"], False),
-    # ("src.api.v1.performance.performance_tracking", "/api/v1/performance-tracking", ["performance-tracking"], False),
-    # ("src.api.v1.performance.query_monitor", "/api/v1", ["query-monitor"], False),
-    # ("src.api.v1.performance.query_optimization", "/api/v1", ["query-optimization"], False),
-    # ("src.api.v1.performance.resource_optimization", "/api/v1", ["resource-optimization"], False),
-
-    # Plugins 模块 - 已整合到 src.api.v2.plugins
-    # ("src.api.v1.plugins.article_rating", "/api/v1/plugins/article-rating", ["article-rating"], False),
-    # ("src.api.v1.plugins.plugin_management", "/api/v1/plugins", ["plugins"], False),
-
-    # Search 模块 - 已整合到 src.api.v2.search
-    # ("src.api.v1.search.fulltext_search", "/api/v1", ["fulltext-search"], False),
-
-    # Security 模块 - 已整合到 src.api.v2.security
-    # ("src.api.v1.security.audit_log", "/api/v1", ["audit-log"], False),
-    # ("src.api.v1.security.content_approval", "/api/v1/content-approval", ["content-approval"], False),
-    # ("src.api.v1.security.login_security", "/api/v1", ["login-security"], False),
-    # ("src.api.v1.security.rate_limit", "/api/v1", ["rate-limit"], False),
-    # ("src.api.v1.security.rbac", "/api/v1", ["rbac"], False),
-    # ("src.api.v1.security.security_alert", "/api/v1", ["security-alert"], False),
-    # ("src.api.v1.security.security_report", "/api/v1", ["security-report"], False),
-    # ("src.api.v1.security.sensitive_words", "/api/v1/sensitive-words", ["sensitive-words"], False),
-    # ("src.api.v1.security.session_management", "/api/v1/admin/session", ["session-management"], False),
-    # ("src.api.v1.security.two_factor_auth", "/api/v1/2fa", ["2fa"], False),
-
-    # SEO 模块已统一整合到 seo.py 中
-    # ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
-
-    # Social 模块 - 已整合到 src.api.v2.social
-    # ("src.api.v1.social.share_stats", "/api/v1", ["share-stats"], False),
-
-    # Static Generation 模块 - 已整合到 src.api.v2.static_generation
-    # ("src.api.v1.static_generation.page_cache", "/api/v1", ["page-cache"], False),
-    # ("src.api.v1.static_generation.static_site_generation", "/api/v1", ["static-site-generation"], False),
-
-    # System 模块 - 已整合到 src.api.v2.system
-    # ("src.api.v1.system.admin_settings", "/api/v1/admin-settings", ["admin-settings"], False),
-    # ("src.api.v1.system.backup_management", "/api/v1/admin/backup", ["backup-management"], False),
-    # ("src.api.v1.system.batch_operations", "/api/v1", ["batch-operations"], False),
-    # ("src.api.v1.system.data_export", "/api/v1", ["data-export"], False),
-    # ("src.api.v1.system.database_migration", "/api/v1/admin/db/database-migration", ["database-migration"], False),
-    # ("src.api.v1.system.incremental_backup", "/api/v1/backup-plus", ["incremental-backup"], False),
-    # ("src.api.v1.system.installation", "/api/v1", ["installation"], False),
-    # ("src.api.v1.system.maintenance", "/api/v1", ["maintenance"], False),
-    # ("src.api.v1.system.migrations", "/api/v1", ["migrations"], False),
-    # ("src.api.v1.system.multisite", "/api/v1", ["multisite"], False),
-    # ("src.api.v1.system.report_management", "/api/v1/admin/report", ["report-management"], False),
-    # ("src.api.v1.system.resource_transfer", "/api/v1", ["resource-transfer"], False),
-    # ("src.api.v1.system.screen_options", "/api/v1", ["screen-options"], False),
-    # ("src.api.v1.system.slow_query_log", "/api/v1/admin/slow-query-log", ["slow-query-log"], False),
-    # ("src.api.v1.system.webhook_management", "/api/v1/admin/webhook", ["webhook-management"], False),
-    # ("src.api.v1.system.workflow", "/api/v1", ["workflow"], False),
-
-    # Translation 模块 - 已整合到 src.api.v2.translation
-    # ("src.api.v1.translation.i18n", "/api/v1/i18n", ["i18n"], False),
-    # ("src.api.v1.translation.translation_io", "/api/v1/i18n", ["translation-io"], False),
-    # ("src.api.v1.translation.translation_progress", "/api/v1/i18n", ["translation-progress"], False),
-    # ("src.api.v1.translation.translation_service", "/api/v1/i18n", ["translation-service"], False),
-    # ("src.api.v1.translation.translations", "/api/v1/i18n", ["translations"], False),
-
-    # Users 模块 - 已整合到 src.api.v2.users
-    # ("src.api.v1.user_utils", "/api/v1", ["user-utils"], False),
-    # ("src.api.v1.user_utils.vip", "/api/v1", ["vip"], False),
-    # ("src.api.v1.users.user_blocks", "/api/v1/user-blocks", ["user-blocks"], False),
-    # ("src.api.v1.users.user_management", "/api/v1/admin/user", ["user-management"], False),
-    # ("src.api.v1.users.user_profile", "/api/v1/users", ["user-profile"], False),
-    # ("src.api.v1.users.user_relations", "/api/v1", ["user-relations"], False),
-    # ("src.api.v1.users.user_settings", "/api/v1", ["user-settings"], False),
-
-    # Advanced Features 模块 - 已整合到 src.api.v2.advanced_features
-    # ("src.api.v1.advanced_features.edge_functions", "/api/v1/edge—func", ["edge-functions"], False),
-    # ("src.api.v1.advanced_features.achievement_badges", "/api/v1/ext/badges", ["achievement-badges"], False),
-    # ("src.api.v1.advanced_features.ai_recommendations", "/api/v1/ext/ai-recommendations", ["ai-recommendations"], False),
-    # ("src.api.v1.advanced_features.expert_certification", "/api/v1/ext/expert-certification", ["expert-certification"], False),
-    # ("src.api.v1.advanced_features.nft", "/api/v1/ext/nft", ["nft"], False),
-    # ("src.api.v1.advanced_features.personalized_feed", "/api/v1/ext/personalized-feed", ["personalized-feed"], False),
-    # ("src.api.v1.advanced_features.points_system", "/api/v1/ext/point-system", ["points-system"], False),
-    # ("src.api.v1.advanced_features.recommendations", "/api/v1/ext/recommendations", ["recommendations"], False),
-    # ("src.api.v1.advanced_features.tipping_system", "/api/v1/ext/tipping-system", ["tipping-system"], False),
-    # ("src.api.v1.advanced_features.websocket", "/api/v1/ext/ws", ["websocket"], False),
-
-    # Accessibility 模块 - 已整合到 src.api.v2.accessibility
-    # ("src.api.v1.accessibility.accessibility_audit", "/api/v1/accessibility-audit", ["accessibility-audit"], False),
-    # ("src.api.v1.accessibility.amp", "/api/v1/amp", ["amp"], False),
-]
 
 
 def _load_single_module(module_path: str, required: bool):
@@ -257,7 +79,7 @@ def _load_single_module(module_path: str, required: bool):
 def _load_single_module_safe(module_path: str, required: bool):
     """安全版本：捕获异常并返回错误信息"""
     try:
-        return _load_single_module(module_path, required, )
+        return _load_single_module(module_path, required)
     except Exception as e:
         return module_path, None, 0.0, required, e
 
@@ -270,9 +92,15 @@ def register_all_routes(app: FastAPI, worker_info: str):
     print(f"{worker_info} 开始注册 API v2 路由...")
     routes_start = _time.monotonic()
     try:
-        from src.api.v2 import ROUTE_REGISTRY_V2
+        from src.api.v2 import ROUTE_REGISTRY_V2, is_module_enabled as _plugin_enabled
         loaded_count = 0
         failed_count = 0
+
+        # 应用内置插件开关：过滤被 DISABLED_MODULES 关闭的非核心模块
+        _disabled = [m for (m, _p, _t, _r) in ROUTE_REGISTRY_V2 if not _plugin_enabled(m)]
+        if _disabled:
+            print(f"{worker_info} [Plugin] 已关闭非核心模块: {_disabled}")
+        ROUTE_REGISTRY_V2 = [(m, p, t, r) for (m, p, t, r) in ROUTE_REGISTRY_V2 if _plugin_enabled(m)]
 
         # Phase 0: 预热 shared.models 子包，避免并行导入时 _DeadlockError
         # Python 的 import 系统对包 __init__.py 使用模块锁，
@@ -320,12 +148,23 @@ def register_all_routes(app: FastAPI, worker_info: str):
                 'src.auth.auth_deps',
             ]
             for _pkg in _shared_subpkgs:
+                importlib.import_module(_pkg)
+
+            # 预热最常用的模型文件（不仅仅是包 __init__），避免并行加载时死锁
+            _model_files = [
+                'shared.models.user.user',
+                'shared.models.article.article',
+                'shared.models.category.category',
+                'shared.models.comment.comment',
+                'shared.models.media.media',
+            ]
+            for _mod in _model_files:
                 try:
-                    importlib.import_module(_pkg)
+                    importlib.import_module(_mod)
                 except Exception:
                     pass
             _prewarm_elapsed = _time.monotonic() - _prewarm_start
-            print(f"{worker_info} 🔥 shared.models 预热完成 ({_prewarm_elapsed:.2f}s)")
+            print(f"{worker_info} shared.models 预热完成 ({_prewarm_elapsed:.2f}s)")
         except Exception as _pw_err:
             print(f"{worker_info} [Warning] shared.models 预热失败: {_pw_err}")
 
@@ -352,7 +191,7 @@ def register_all_routes(app: FastAPI, worker_info: str):
                 load_results.append((module_path, prefix, tags, result_by_path.get(module_path)))
 
         load_elapsed = _time.monotonic() - load_start
-        print(f"{worker_info} 📦 模块并行加载完成 (线程池: {max_workers}, 耗时: {load_elapsed:.2f}s)")
+        print(f"{worker_info} 模块并行加载完成 (线程池: {max_workers}, 耗时: {load_elapsed:.2f}s)")
 
         # Phase 2: 顺序注册路由器到 app（FastAPI include_router 非线程安全）
         register_start = _time.monotonic()
@@ -397,7 +236,7 @@ def register_all_routes(app: FastAPI, worker_info: str):
 
         routes_elapsed = _time.monotonic() - routes_start
         register_elapsed = _time.monotonic() - register_start
-        print(f"{worker_info} ✅ API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count}, "
+        print(f"{worker_info} API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count}, "
               f"加载: {load_elapsed:.2f}s, 注册: {register_elapsed:.2f}s, 总耗时: {routes_elapsed:.2f}s)\n")
     except ImportError as e:
         print(f"{worker_info} [ERROR] API v2 模块未找到: {e}\n")
@@ -409,7 +248,7 @@ def register_all_routes(app: FastAPI, worker_info: str):
     try:
         from src.api.v3 import register_v3_routes
         register_v3_routes(app)
-        print(f"{worker_info} ✅ API v3 路由注册完成\n")
+        print(f"{worker_info} API v3 路由注册完成\n")
     except ImportError as e:
         print(f"{worker_info} [Warning] API v3 模块未找到，跳过: {e}\n")
     except Exception as e:
@@ -440,7 +279,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         safe_run("懒加载系统", init_lazy_loading)
         print(f"[lifespan] 懒加载系统耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[懒加载系统] ⚠️ 跳过: {e}")
+        print(f"[懒加载系统] 跳过: {e}")
 
     # 3. 扩展、调度器
     try:
@@ -449,7 +288,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         safe_run("扩展初始化", lambda: init_extensions(app))
         print(f"[lifespan] 扩展初始化耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[扩展初始化] ⚠️ 跳过: {e}")
+        print(f"[扩展初始化] 跳过: {e}")
 
     try:
         from src.scheduler import init_scheduler
@@ -457,12 +296,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         safe_run("调度器初始化", lambda: init_scheduler(app))
         print(f"[lifespan] 调度器初始化耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[调度器初始化] ⚠️ 跳过: {e}")
+        print(f"[调度器初始化] 跳过: {e}")
 
     if is_installed:
-        step_start = _time.monotonic()
-        await safe_run_async("定时发布调度器", _start_scheduled_publisher)
-        print(f"[lifespan] 定时发布调度器耗时: {_time.monotonic() - step_start:.2f}s")
+        # 定时发布由 SessionScheduler（src/scheduler.py，每 5 分钟）统一处理，
+        # 已移除独立的 shared.services.core.scheduler 60s 循环，避免双触发竞态。
+        pass
 
     # 4. 插件系统
     try:
@@ -470,7 +309,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         safe_run("插件系统", _init_plugins)
         print(f"[lifespan] 插件系统耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[插件系统] ⚠️ 跳过: {e}")
+        print(f"[插件系统] 跳过: {e}")
+
+    # 4.5 审计日志订阅者（依赖 EventBus，需在插件之后）
+    try:
+        step_start = _time.monotonic()
+        from shared.services.security.audit_subscriber import register_audit_subscriber
+        register_audit_subscriber()
+        print(f"[lifespan] 审计日志订阅者注册耗时: {_time.monotonic() - step_start:.2f}s")
+    except ImportError as e:
+        print(f"[审计日志订阅者] 跳过: {e}")
 
     # 5. 下载队列处理器
     if is_installed:
@@ -489,7 +337,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     total_elapsed = _time.monotonic() - lifespan_start
     print(f"\n{'=' * 60}")
-    print(f"[lifespan] 🚀 应用启动完成，总耗时: {total_elapsed:.2f}s")
+    print(f"[lifespan] 应用启动完成，总耗时: {total_elapsed:.2f}s")
     print(f"{'=' * 60}\n")
 
     yield
@@ -499,19 +347,12 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     if is_installed:
         await safe_run_async("下载队列停止", _shutdown_download_processor)
-        await safe_run_async("数据库连接关闭", _close_database)
+    await safe_run_async("数据库连接关闭", _close_database)
 
 
 async def _init_database():
     from src.utils.database.unified_manager import db_manager
     db_manager.initialize()
-
-
-async def _start_scheduled_publisher():
-    from src.utils.database.unified_manager import db_manager
-    from shared.services.core.scheduler import start_scheduler, init_scheduler
-    init_scheduler(db_manager.async_session_factory, check_interval=60)
-    await start_scheduler()
 
 
 def _init_plugins():
@@ -555,9 +396,36 @@ async def _warm_permission_cache():
             for uid in superadmin_ids:
                 await _memory_cache.set(uid, all_codes)
 
-            print(f"[lifespan] 权限缓存预热: {len(superadmin_ids)} 个超级管理员, {len(all_codes)} 个权限代码")
+        print(f"[lifespan] 权限缓存预热: {len(superadmin_ids)} 个超级管理员, {len(all_codes)} 个权限代码")
     except Exception as e:
         print(f"[lifespan] 权限缓存预热跳过: {e}")
+
+
+def _enable_redis_caches():
+    """多 worker 场景：将全局缓存后端切换到 Redis（失败静默降级内存）"""
+    try:
+        from src.setting import settings as _st
+        import redis as _redis
+
+        host = getattr(_st, 'REDIS_HOST', 'localhost') or 'localhost'
+        port = int(getattr(_st, 'REDIS_PORT', 6379) or 6379)
+        db = int(getattr(_st, 'REDIS_DB', 0) or 0)
+        password = getattr(_st, 'REDIS_PASSWORD', None) or None
+
+        from shared.services.core.cache_service import cache_service
+        cache_service.use_redis = True
+        cache_service.key_prefix = 'fastblog:'
+        cache_service.redis_client = _redis.Redis(
+            host=host, port=port, db=db, password=password,
+            decode_responses=True, socket_connect_timeout=3, socket_timeout=3,
+        )
+
+        from shared.services.core.multi_level_cache import multi_level_cache
+        multi_level_cache.redis_enabled = True
+
+        print("[CacheService] 已启用 Redis 共享缓存后端（多 worker）")
+    except Exception as e:
+        print(f"[CacheService] 启用 Redis 缓存后端失败，继续使用内存缓存: {e}")
 
 
 async def _start_redis_subscriber():
@@ -571,7 +439,9 @@ async def _start_redis_subscriber():
     # 启动通用缓存失效广播监听
     try:
         from src.services.redis_service import redis_service
+        await redis_service.connect()
         await redis_service.start_cache_invalidation_listener()
+        _enable_redis_caches()
         print(f"[lifespan] Redis cache:invalidate 监听已启动")
     except Exception as e:
         print(f"[lifespan] Redis cache:invalidate 监听启动失败: {e}")
@@ -593,9 +463,9 @@ def _make_lazy_middleware(module_path: str, class_name: str):
     _cache = {}
 
     class _LazyProxy:
+
         def __init__(self, app, **kwargs):
             if 'cls' not in _cache:
-                import importlib
                 mod = importlib.import_module(module_path)
                 _cache['cls'] = getattr(mod, class_name)
             self._impl = _cache['cls'](app=app, **kwargs)
@@ -613,6 +483,7 @@ def register_middleware(app: FastAPI):
     # 获取 worker 信息（用于日志）
     from src.setting import _get_worker_info
     worker_info = _get_worker_info()
+    from starlette.middleware.base import BaseHTTPMiddleware
 
     # CORS（从环境变量或默认值）
     from fastapi.middleware.cors import CORSMiddleware
@@ -629,8 +500,8 @@ def register_middleware(app: FastAPI):
             "http://127.0.0.1:9421",
             "http://localhost"  # Capacitor Android 模拟器
         ]
-    if "*" in allow_origins:
-        allow_origins = [o for o in allow_origins if o != "*"] or ["http://localhost:3000"]
+        if "*" in allow_origins:
+            allow_origins = [o for o in allow_origins if o != "*"] or ["http://localhost:3000"]
 
     print(f"[CORS] 允许源: {allow_origins}")
     app.add_middleware(
@@ -642,41 +513,47 @@ def register_middleware(app: FastAPI):
         expose_headers=["Content-Length", "X-Total-Count"],
     )
 
-    # 统一调试中间件
-    class DebugMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):
-            url = str(request.url)
-            if "/sensitive-words" in url:
-                print(f"\n[DEBUG] 请求: {request.method} {url}")
-                print(f"[DEBUG] Headers: {dict(request.headers)}")
-                if request.method == "POST":
-                    try:
-                        # 先读取 body
-                        body = await request.body()
-                        print(f"[DEBUG] Body: {body.decode('utf-8')}")
+    # 统一调试中间件（仅 DEBUG 环境启用，避免生产环境打印敏感请求头/请求体）
+    from src.setting import app_config as _app_cfg
+    _debug_enabled = bool(getattr(_app_cfg, 'DEBUG', False))
 
-                        # 重要：将 body 重新设置回 request，以便后续 endpoint 可以读取
-                        async def receive():
-                            return {"type": "http.request", "body": body}
+    if _debug_enabled:
+        class DebugMiddleware(BaseHTTPMiddleware):
 
-                        request._receive = receive
-                    except Exception as e:
-                        print(f"[DEBUG] 无法读取 body: {e}")
-            response = await call_next(request)
-            if "/sensitive-words" in url and response.status_code == 422:
-                print(f"[DEBUG] 422 响应: {response.status_code}")
-            return response
+            async def dispatch(self, request, call_next):
+                url = str(request.url)
+                if "/sensitive-words" in url:
+                    print(f"\n[DEBUG] 请求: {request.method} {url}")
+                    print(f"[DEBUG] Headers: {dict(request.headers)}")
+                    if request.method == "POST":
+                        try:
+                            # 先读取 body
+                            body = await request.body()
+                            print(f"[DEBUG] Body: {body.decode('utf-8')}")
 
-    app.add_middleware(DebugMiddleware)
+                            # 重要：将 body 重新设置回 request，以便后续 endpoint 可以读取
+                            async def receive():
+                                return {"type": "http.request", "body": body}
 
-    # WebSocket 调试（简化）
-    class WSDebugMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request, call_next):
-            if request.headers.get("upgrade", "").lower() == "websocket" and "/collaboration/ws/" in str(request.url):
-                print(f"[WS DEBUG] 连接尝试: {request.url}")
-            return await call_next(request)
+                            request._receive = receive
+                        except Exception as e:
+                            print(f"[DEBUG] 无法读取 body: {e}")
+                response = await call_next(request)
+                if "/sensitive-words" in url and response.status_code == 422:
+                    print(f"[DEBUG] 422 响应: {response.status_code}")
+                return response
 
-    app.add_middleware(WSDebugMiddleware)
+        app.add_middleware(DebugMiddleware)
+
+        # WebSocket 调试（简化）
+        class WSDebugMiddleware(BaseHTTPMiddleware):
+
+            async def dispatch(self, request, call_next):
+                if request.headers.get("upgrade", "").lower() == "websocket" and "/collaboration/ws/" in str(request.url):
+                    print(f"[WS DEBUG] 连接尝试: {request.url}")
+                return await call_next(request)
+
+        app.add_middleware(WSDebugMiddleware)
 
     # HTTP 缓存
     try:
@@ -686,7 +563,23 @@ def register_middleware(app: FastAPI):
         print("[HTTP Cache] 已添加")
     except ImportError:
         pass
-    # 速率限制已移除全局中间件，改为在特定路由上使用装饰器
+
+    # 速率限制中间件（基于 shared/services/security/rate_limiter.py）
+    try:
+        from shared.services.security.rate_limiter import rate_limit_middleware as _rate_limit_fn
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        class RateLimitMiddleware(BaseHTTPMiddleware):
+
+            async def dispatch(self, request, call_next):
+                return await _rate_limit_fn(request, call_next)
+
+        app.add_middleware(RateLimitMiddleware)
+        print("[Rate Limit] 已添加")
+    except ImportError as e:
+        print(f"[Rate Limit] 加载失败: {e}")
+    except Exception as e:
+        print(f"[Rate Limit] 注册异常: {e}")
 
     # RBAC 权限中间件
     try:
@@ -700,6 +593,7 @@ def register_middleware(app: FastAPI):
 
     # API 版本响应头
     class APIVersionMiddleware(BaseHTTPMiddleware):
+
         async def dispatch(self, request, call_next):
             response = await call_next(request)
             response.headers["API-Version"] = "v2"
@@ -766,6 +660,12 @@ def register_error_handlers(app: FastAPI):
     async def health_check():
         # 原逻辑简化
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    async def root_sitemap():
+        """站点地图根路径（nginx 已反代 /sitemap.xml 到后端）— 301 到动态 sitemap"""
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap.xml", status_code=301)
 
     @app.get("/api/v2/mobile-login", tags=["qr-login"])
     async def mobile_login_page(request: Request):
@@ -866,7 +766,6 @@ def register_error_handlers(app: FastAPI):
 
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):
-        from src.unified_logger import default_logger as logger
         logger.error(f"General error: {exc}")
         if any(kw in str(exc).lower() for kw in ["not found", "no result", "does not exist"]):
             if _is_api_request(request):
@@ -939,7 +838,7 @@ def create_app(config=None):
         app.mount("/api/v2/assets/themes", StaticFiles(directory=themes_dir), name="themes")
 
     app_elapsed = _time.monotonic() - app_start
-    print(f"{worker_info} [create_app] 🏭 应用工厂完成，总耗时: {app_elapsed:.2f}s")
+    print(f"{worker_info} [create_app] 应用工厂完成，总耗时: {app_elapsed:.2f}s")
 
     return app
 

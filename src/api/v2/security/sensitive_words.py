@@ -4,7 +4,6 @@
 """
 import logging
 from datetime import datetime
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
@@ -13,7 +12,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.security import SensitiveWord
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
@@ -22,20 +21,6 @@ router = APIRouter(tags=["sensitive-words"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# Pydantic 模型定义
 class SensitiveWordCreate(BaseModel):
     word: str
     level: int

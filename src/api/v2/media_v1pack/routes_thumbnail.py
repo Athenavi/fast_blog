@@ -3,7 +3,6 @@
 """
 
 import urllib.parse
-from functools import wraps
 from pathlib import Path
 from typing import Optional
 
@@ -18,29 +17,12 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.utils.image.processing import generate_thumbnail as sync_generate_thumbnail
 from .utils import PREVIEWABLE_TYPES, handle_local_file, handle_s3_streaming
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter()
 from src.unified_logger import default_logger as logger
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-
-
-@router.get("/{media_id}/thumbnail")
-@_catch
 async def get_media_thumbnail(
         media_id: int,
         request: Request,

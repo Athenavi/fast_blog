@@ -128,9 +128,9 @@ class TokenBlacklistManager:
         """将 Token 黑名单记录持久化到 ORM 模型"""
         try:
             from src.utils.database.unified_manager import db_manager
-            from shared.models.token_blacklist import TokenBlacklist
+            from shared.models import TokenBlacklist
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 token_id = self._get_token_identifier(token)
                 token_hash = self._get_token_hash(token)
 
@@ -199,12 +199,12 @@ class TokenBlacklistManager:
         """检查 ORM 持久化层中的黑名单"""
         try:
             from src.utils.database.unified_manager import db_manager
-            from shared.models.token_blacklist import TokenBlacklist
+            from shared.models import TokenBlacklist
             from sqlalchemy import select
 
             token_id = self._get_token_identifier(token)
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 result = await session.execute(
                     select(TokenBlacklist).where(
                         TokenBlacklist.token_identifier == token_id,

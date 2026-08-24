@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from shared.models.analytics import BaiduAnalyticsConfig
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class BaiduAnalyticsService:

@@ -22,7 +22,7 @@ try:
 except ImportError:
     CACHE_TOOLS_AVAILABLE = False
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class MultiLevelCache:

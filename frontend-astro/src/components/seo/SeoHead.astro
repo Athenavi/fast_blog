@@ -1,0 +1,57 @@
+---
+// 文章级 SEO 头部渲染（SEO 插件配套组件）
+// 由文章数据（含 seo_title/seo_description/og_*/canonical_url 等字段）驱动，
+// 在 Astro 页面 head 中输出 keywords / OG / Twitter / canonical / robots / JSON-LD。
+// 注意：title 与 description 由布局层（Layout.astro）负责，本组件不重复输出。
+interface Props {
+  article?: any;
+  siteUrl?: string;
+}
+
+const { article = null, siteUrl = '' } = Astro.props;
+
+const title = article?.seo_title || article?.title || '';
+const description = article?.seo_description || article?.excerpt || '';
+const ogTitle = article?.og_title || title;
+const ogDescription = article?.og_description || description;
+const ogImage = article?.og_image || article?.cover_image || '';
+const slug = article?.slug || '';
+const canonical = article?.canonical_url || (siteUrl && slug ? `${siteUrl.replace(/\/$/, '')}/blog/p/${slug}` : '');
+const robots = article?.robots_meta || 'index,follow';
+const schemaEnabled = article?.schema_org_enabled ?? true;
+const schemaType = article?.schema_org_type || 'BlogPosting';
+const authorName = article?.author?.username || '';
+---
+
+{ article && (
+  <>
+    {article.seo_keywords && <meta name="keywords" content={article.seo_keywords} />}
+    <meta name="robots" content={robots} />
+    {canonical && <link rel="canonical" href={canonical} />}
+
+    <meta property="og:type" content={article.og_type || 'article'} />
+    <meta property="og:title" content={ogTitle} />
+    {ogDescription && <meta property="og:description" content={ogDescription} />}
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    {canonical && <meta property="og:url" content={canonical} />}
+
+    <meta name="twitter:card" content={article.twitter_card || 'summary_large_image'} />
+    <meta name="twitter:title" content={article.twitter_title || ogTitle} />
+    {ogDescription && <meta name="twitter:description" content={article.twitter_description || ogDescription} />}
+    {ogImage && <meta name="twitter:image" content={article.twitter_image || ogImage} />}
+
+    {schemaEnabled && (
+      <script type="application/ld+json" set:html={JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': schemaType,
+        headline: title,
+        description,
+        image: ogImage || undefined,
+        datePublished: article.created_at || undefined,
+        dateModified: article.updated_at || undefined,
+        author: authorName ? { '@type': 'Person', name: authorName } : undefined,
+        mainEntityOfPage: canonical || undefined,
+      })} />
+    )}
+  </>
+)}

@@ -9,7 +9,7 @@ import io
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class DataExportService:

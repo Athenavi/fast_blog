@@ -2,7 +2,7 @@
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {motion, useInView} from 'framer-motion';
-import {ChevronLeft, ChevronRight} from 'lucide-react';
+import {ArrowRight, ChevronLeft, ChevronRight} from 'lucide-react';
 
 /* ─── Types ─── */
 export interface Article {
@@ -76,6 +76,27 @@ export const Section: React.FC<{ children: React.ReactNode; className?: string; 
       variants={staggerContainer} className={className}>
       {children}
     </motion.section>
+  );
+};
+
+/* ─── Editorial Section Header（编辑式区块头部：衬线标题 + 细线 + 文本链接，无渐变眉标） ─── */
+export const SectionHeader: React.FC<{ title: string; href?: string; linkText?: string }> = ({
+                                                                                               title,
+                                                                                               href,
+                                                                                               linkText = '查看全部'
+                                                                                             }) => {
+  if (!title) return null;
+  return (
+    <motion.div variants={fadeUp} className="mb-12 flex items-end justify-between gap-6 border-b border-white/10 pb-6">
+      <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-slate-100 tracking-tight">{title}</h2>
+      {href && (
+        <a href={href}
+           className="group inline-flex shrink-0 items-center gap-1.5 text-sm text-slate-400 hover:text-blue-400 transition-colors">
+          {linkText}
+          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5"/>
+        </a>
+      )}
+    </motion.div>
   );
 };
 

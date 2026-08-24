@@ -10,7 +10,7 @@ from typing import Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class ScheduledReportService:

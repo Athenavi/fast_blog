@@ -1,36 +1,43 @@
 """
 协作文档邀请管理API
 """
+import asyncio
 import uuid
 from datetime import datetime, timedelta
-from functools import wraps
 
 from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
 
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, _catch
 
 router = APIRouter(tags=["collaboration-invites"])
 
+# 注意：当前使用内存存储，仅适用于单进程开发环境。
+# 生产环境应迁移到 Redis 或数据库持久化方案。
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# 简化的邀请存储(生产环境应使用数据库)
-# 结构: {invite_id: invitation_data}
-invitations_db = {}
+invitations_db: dict = {}
 
 # 用户活跃邀请映射: {user_id: invite_id} - 确保用户同一时间只有一个活跃邀请
-user_active_invites = {}
+user_active_invites: dict = {}
+
+# 共享数据锁，保护并发读写
+_invite_lock = asyncio.Lock()
+
+
+def _cleanup_expired_invites() -> int:
+    """清理所有已过期的邀请，返回清理数量。"""
+    now = datetime.now()
+    expired_ids = [
+        invite_id for invite_id, inv in list(invitations_db.items())
+        if now > inv["expires_at"]
+    ]
+    for invite_id in expired_ids:
+        del invitations_db[invite_id]
+        # 同时清理 user_active_invites 中的引用
+        for uid, active_id in list(user_active_invites.items()):
+            if active_id == invite_id:
+                del user_active_invites[uid]
+    return len(expired_ids)
 
 
 async def get_current_user(request: Request) -> dict:
@@ -92,17 +99,20 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
                             current_user: dict = Depends(get_current_user)):
     """
     创建协作文档邀请链接
-    
+
     Args:
         request: 邀请配置
         user_info: 当前用户信息（从认证中间件获取）
-        
+
     Returns:
         邀请信息,包含邀请链接
     """
     # 获取当前用户ID
     creator_id = current_user['user_id']
     print(f"User {creator_id} creating invitation for article: {request.article_id}")
+
+    # 创建前清理过期邀请，防止内存泄漏
+    _cleanup_expired_invites()
 
     # 验证输入参数
     if request.article_id <= 0:
@@ -133,7 +143,7 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
         # Article模型使用'user'字段存储作者ID
         if article.user != creator_id:
             raise HTTPException(
-                status_code=403, 
+                status_code=403,
                 detail="You don't have permission to create collaboration for this article"
             )
 
@@ -145,7 +155,7 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
         if datetime.now() <= existing_invite["expires_at"]:
             print(f"Revoking existing invite {existing_invite_id} for user {creator_id}")
             del invitations_db[existing_invite_id]
-    
+
     # 生成唯一邀请ID
     invite_id = str(uuid.uuid4())
 
@@ -192,13 +202,16 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
 async def get_invitation(invite_id: str):
     """
     获取邀请详情
-    
+
     Args:
         invite_id: 邀请ID
-        
+
     Returns:
         邀请信息
     """
+    # 读取前清理过期邀请
+    _cleanup_expired_invites()
+
     invitation = invitations_db.get(invite_id)
 
     if not invitation:
@@ -224,14 +237,17 @@ async def get_invitation(invite_id: str):
 async def accept_invitation(invite_id: str, user_info: dict = None):
     """
     接受邀请,加入协作文档
-    
+
     Args:
         invite_id: 邀请ID
         user_info: 用户信息(可选)
-        
+
     Returns:
         加入结果
     """
+    # 读取前清理过期邀请
+    _cleanup_expired_invites()
+
     invitation = invitations_db.get(invite_id)
 
     if not invitation:
@@ -269,13 +285,16 @@ async def accept_invitation(invite_id: str, user_info: dict = None):
 async def get_active_invitations(document_id: str):
     """
     获取文档的活跃邀请列表
-    
+
     Args:
         document_id: 文档ID
-        
+
     Returns:
         活跃邀请列表
     """
+    # 读取前清理过期邀请
+    _cleanup_expired_invites()
+
     active_invites = []
 
     for invite_id, invitation in invitations_db.items():
@@ -303,13 +322,16 @@ async def get_active_invitations(document_id: str):
 async def revoke_invitation(invite_id: str):
     """
     撤销邀请
-    
+
     Args:
         invite_id: 邀请ID
-        
+
     Returns:
         操作结果
     """
+    # 清理过期邀请后再执行撤销
+    _cleanup_expired_invites()
+
     if invite_id not in invitations_db:
         raise HTTPException(status_code=404, detail="Invitation not found")
 

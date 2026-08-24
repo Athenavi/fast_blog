@@ -2,7 +2,6 @@
 SSO单点登录 API
 提供OAuth2.0、SAML和LDAP认证功能
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
@@ -10,31 +9,13 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.integrations.sso_service import sso_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["sso"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== OAuth2.0 ====================
-
-@router.get("/oauth/{provider}/authorize", summary="OAuth2授权")
-@_catch
 async def oauth_authorize(
         provider: str,
         redirect_uri: str = Query(..., description="回调URL"),

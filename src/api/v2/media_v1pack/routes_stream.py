@@ -2,7 +2,6 @@
 文件获取、流式传输、范围请求
 """
 import urllib.parse
-from functools import wraps
 from pathlib import Path
 from typing import Optional
 
@@ -17,28 +16,12 @@ from shared.utils.logger import get_logger
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from .utils import PREVIEWABLE_TYPES, handle_local_file, handle_s3_streaming
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 logger = get_logger(__name__)
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# 公开访问的封面缓存路由（无需认证）
-@router.get("/cover/{filename}")
-@_catch
 async def get_cover_image(filename: str):
     """
     获取封面图片（公开访问，无需认证）
@@ -120,7 +103,7 @@ async def get_media_file_by_id(
         current_user_obj=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    logger.info(f"[DEBUG] 请求媒体文件 - ID: {media_id}, User: {current_user_obj.id}")
+    logger.debug(f"[DEBUG] 请求媒体文件 - ID: {media_id}, User: {current_user_obj.id}")
 
     # 查询媒体文件（支持访问自己的文件或公开文件）
     media_query = select(Media).where(Media.id == media_id)
@@ -131,12 +114,12 @@ async def get_media_file_by_id(
         logger.error(f"[ERROR] 媒体文件不存在 - ID: {media_id}")
         raise HTTPException(status_code=404, detail="文件不存在")
 
-    logger.info(
+    logger.debug(
         f"[DEBUG] 找到媒体文件 - ID: {media.id}, Hash: {media.hash}, User: {media.user}, IsPublic: {media.is_public}")
 
     # 检查用户权限（只能访问自己的文件或公开文件）
     if media.user != current_user_obj.id and not media.is_public:
-        logger.warning(f"[WARN] 无权访问 - Media User: {media.user}, Current User: {current_user_obj.id}")
+        logger.debug(f"[WARN] 无权访问 - Media User: {media.user}, Current User: {current_user_obj.id}")
         raise HTTPException(status_code=403, detail="无权访问该媒体文件")
 
     # 查询文件哈希信息

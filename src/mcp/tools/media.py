@@ -1,15 +1,24 @@
 """
 MCP 媒体管理工具处理器
+权限：删除媒体需要本人或管理员
 """
 from sqlalchemy import select
-from pathlib import Path
 
 from shared.models.media import Media
+from src.mcp._context import get_user_ctx
 from src.utils.database.main import get_async_session_context
 
 
+def _require_auth():
+    ctx = get_user_ctx()
+    if not ctx:
+        raise PermissionError("需要登录才能执行此操作")
+    return ctx
+
+
 async def list_media(arguments: dict) -> dict:
-    """获取媒体文件列表"""
+    """获取媒体文件列表（所有用户可读）"""
+    _require_auth()
     limit = min(arguments.get("limit", 20), 50)
     media_type = arguments.get("media_type", "").strip().lower()
 
@@ -30,7 +39,8 @@ async def list_media(arguments: dict) -> dict:
 
 
 async def delete_media(arguments: dict) -> dict:
-    """删除媒体文件"""
+    """删除媒体文件（仅本人或管理员）"""
+    ctx = _require_auth()
     media_id = arguments.get("media_id")
     if not media_id:
         raise ValueError("媒体ID不能为空")
@@ -39,6 +49,8 @@ async def delete_media(arguments: dict) -> dict:
         media = await db.scalar(select(Media).where(Media.id == int(media_id)))
         if not media:
             raise ValueError(f"媒体 #{media_id} 不存在")
+        if media.user != ctx.id and not ctx.is_superuser:
+            raise PermissionError("只能删除自己的媒体文件")
         await db.delete(media)
         await db.commit()
         return {"success": True, "message": f"媒体 #{media_id} 已删除", "media_id": media_id}

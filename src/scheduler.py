@@ -3,8 +3,24 @@ from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
 from shared.services.articles.article_view_stats import article_view_stats
-from shared.services.ops.backup_manager import backup_manager
+from shared.services.system.backup_service import backup_service
 from src.unified_logger import default_logger as logger
+
+
+async def _acquire_job_lock(name: str, ttl: int = 600) -> bool:
+    """
+    多 worker 场景下用 Redis 分布式锁保证定时任务全局只执行一次。
+
+    - Redis 可用：只有持有锁的 worker 执行，其余跳过（锁自然过期，不手动释放）。
+    - Redis 不可用：放行执行（单 worker / 降级场景）。
+    """
+    try:
+        from src.services.redis_service import redis_service
+        if redis_service._redis is None:
+            await redis_service.connect()
+        return bool(await redis_service.redis.set(f"fb:sched_lock:{name}", "1", nx=True, ex=ttl))
+    except Exception:
+        return True
 
 
 class SessionScheduler:
@@ -24,6 +40,8 @@ class SessionScheduler:
         # 同步文章浏览量到数据库，每 5 分钟执行一次
         async def sync_article_views_to_db():
             """使用新的 ArticleViewStatsService 同步文章浏览量"""
+            if not await _acquire_job_lock("sync_article_views", ttl=300):
+                return
             try:
                 from src.utils.database.unified_manager import db_manager
 
@@ -59,12 +77,17 @@ class SessionScheduler:
 
         # 每日备份任务（凌晨 2 点）
         async def daily_backup():
+            if not await _acquire_job_lock("daily_backup", ttl=3600):
+                return
             logger.info("Starting daily database backup...")
-            result = await backup_manager.create_database_backup('daily')
-            if result['success']:
-                logger.info(f"Daily backup completed: {result['filename']}")
-            else:
-                logger.error(f"Daily backup failed: {result.get('error')}")
+            try:
+                result = await backup_service.backup_database(backup_type='full')
+                if result.get('success'):
+                    logger.info(f"Daily backup completed: {result.get('backup_path')}")
+                else:
+                    logger.error(f"Daily backup failed: {result.get('error')}")
+            except Exception as e:
+                logger.error(f"Daily backup failed: {e}")
 
         self.scheduler.add_job(
             daily_backup,
@@ -75,13 +98,18 @@ class SessionScheduler:
 
         # 每周完整备份（周日凌晨 3 点）
         async def weekly_backup():
+            if not await _acquire_job_lock("weekly_backup", ttl=3600):
+                return
             logger.info("Starting weekly full backup...")
-            db_result = await backup_manager.create_database_backup('weekly')
-            files_result = await backup_manager.create_files_backup()
-            if db_result['success'] and files_result['success']:
-                logger.info(f"Weekly backup completed")
-            else:
-                logger.error(f"Weekly backup had issues")
+            try:
+                db_result = await backup_service.backup_database(backup_type='full')
+                files_result = await backup_service.backup_files()
+                if db_result.get('success') and files_result.get('success'):
+                    logger.info(f"Weekly backup completed")
+                else:
+                    logger.error(f"Weekly backup had issues: db={db_result.get('success')}, files={files_result.get('success')}")
+            except Exception as e:
+                logger.error(f"Weekly backup failed: {e}")
 
         self.scheduler.add_job(
             weekly_backup,
@@ -93,6 +121,8 @@ class SessionScheduler:
         # 定时发布到期文章检查（每 5 分钟）
         async def check_due_scheduled_articles():
             """检查并发布到期的定时文章"""
+            if not await _acquire_job_lock("publish_due_articles", ttl=600):
+                return
             try:
                 from src.utils.database.unified_manager import db_manager
                 from shared.services.articles.scheduled_publish import create_scheduled_publish_service
@@ -121,6 +151,8 @@ class SessionScheduler:
         # VIP 订阅过期检查（每 30 分钟）
         async def check_expired_vip_subscriptions():
             """检查并标记过期的 VIP 订阅"""
+            if not await _acquire_job_lock("check_vip_expiry", ttl=600):
+                return
             try:
                 from src.utils.database.unified_manager import db_manager
                 from datetime import datetime

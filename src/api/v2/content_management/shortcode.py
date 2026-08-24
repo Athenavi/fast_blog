@@ -3,13 +3,12 @@ Shortcode短代码API
 提供短代码解析和管理功能
 """
 
-from functools import wraps
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from shared.services.content_management.shortcode_service import shortcode_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["shortcode"])
@@ -20,20 +19,6 @@ class ShortcodeParseRequest(BaseModel):
     content: str
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/parse")
-@_catch
 async def parse_shortcodes(request_data: ShortcodeParseRequest,
     current_user=Depends(jwt_required)):
     """

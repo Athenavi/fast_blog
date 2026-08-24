@@ -3,7 +3,6 @@
 协作编辑时的评论和批注功能
 """
 from datetime import datetime
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Body
@@ -13,19 +12,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article, ArticleAnnotation
 from shared.models.user import User
 from src.api.v2._base import ApiResponse
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required
 from src.utils.database.main import get_async_session
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except Exception as e:
-            return fail(f"{e}")
-    return wrapper
 
 
 def _fmt_ann(ann: ArticleAnnotation, users: dict[int, User]) -> dict:

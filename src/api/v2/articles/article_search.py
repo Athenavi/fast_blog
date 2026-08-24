@@ -2,28 +2,16 @@
 文章搜索 API - V2 优化版
 """
 from datetime import datetime
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.articles.article_search import article_search_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-    return wrapper
 
 
 router = APIRouter(tags=["search"])

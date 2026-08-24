@@ -19,7 +19,7 @@ from sqlalchemy.future import select
 
 from shared.models.notification_integration import NotificationIntegration
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class NotificationIntegrationService:

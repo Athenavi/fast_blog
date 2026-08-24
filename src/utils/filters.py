@@ -92,25 +92,38 @@ async def category_filter(category_id):
 
 def f2list(input_value, delimiter=None):
     """将分隔符分隔的字符串转换为列表，支持逗号和分号"""
-    if delimiter is None:
-        # 自动检测分隔符：优先逗号，如果包含分号则用分号
-        import re
-        delimiter = ';' if isinstance(input_value, str) and ';' in input_value else ','
     try:
         if input_value is None:
             return []
-        if isinstance(input_value, list):
-            if input_value and isinstance(input_value[0], str) and delimiter in input_value[0]:
-                result = []
-                for item in input_value:
-                    if isinstance(item, str):
-                        result.extend([tag.strip() for tag in item.split(delimiter) if tag.strip()])
-                    else:
-                        result.append(str(item).strip())
-                return result
-            return input_value
         if isinstance(input_value, str):
+            # 字符串：自动检测分隔符
+            if delimiter is None:
+                delimiter = ';' if ';' in input_value else ','
             return [tag.strip() for tag in input_value.split(delimiter) if tag.strip()]
+        if isinstance(input_value, list):
+            if not input_value:
+                return []
+            # 列表：自动检测分隔符（扫描所有字符串元素）
+            if delimiter is None:
+                delimiter = ','
+                for item in input_value:
+                    if isinstance(item, str) and ';' in item:
+                        delimiter = ';'
+                        break
+            # 检查是否有字符串元素包含分隔符
+            has_delimited = any(isinstance(item, str) and delimiter in item for item in input_value)
+            if not has_delimited:
+                return input_value  # 无分隔符，原样返回（保持元素类型不变）
+            # 对每个元素拆分（字符串元素含分隔符则展开，否则原样保留）
+            result = []
+            for item in input_value:
+                if isinstance(item, str) and delimiter in item:
+                    result.extend([tag.strip() for tag in item.split(delimiter) if tag.strip()])
+                elif isinstance(item, str):
+                    result.append(item.strip())
+                else:
+                    result.append(item)
+            return result
         return [str(input_value).strip()]
     except (ValueError, TypeError, AttributeError) as e:
         print(f"Error converting to list: {e}, Input: {input_value}")
@@ -172,8 +185,9 @@ def md2html(markdown_text: str, **options: Any) -> str:
     opts = {**default_opts, **options}
 
     # 构建 MarkdownIt 实例，使用通用的 commonmark 预设并启用表格
+    # 安全：html=False 会转义 Markdown 中的原始 HTML，防止存储型 XSS
     md = MarkdownIt("commonmark", {
-        "html": True,
+        "html": False,
         "breaks": opts['enable_nl2br'],
         "linkify": opts['enable_magiclink'],
         "typographer": False,

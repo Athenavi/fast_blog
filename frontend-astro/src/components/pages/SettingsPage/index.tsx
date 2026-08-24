@@ -8,7 +8,7 @@ import SecurityTab from './SecurityTab';
 import AppearanceTab from './AppearanceTab';
 import SessionsTab from './SessionsTab';
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, React.ComponentType<{className?: string}>> = {
   User,
   Shield,
   Palette,

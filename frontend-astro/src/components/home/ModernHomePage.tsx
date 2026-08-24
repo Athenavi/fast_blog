@@ -3,8 +3,8 @@
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
 import {HOME} from '@/lib/api/api-paths';
-import {useHomeConfig} from '@/hooks/useHomeConfig';
 import type {HomeConfig} from '@/hooks/useHomeConfig';
+import {useHomeConfig} from '@/hooks/useHomeConfig';
 import {Article, Category} from './_shared';
 import HomeHero from './HomeHero';
 import HomeFeatured from './HomeFeatured';
@@ -23,17 +23,16 @@ interface Props {
 }
 
 const LoadingScreen = () => (
-  <div className="min-h-screen theme-bg">
-    <div className="relative h-[85vh] min-h-[600px] bg-gray-100 dark:bg-gray-900 animate-pulse">
+  <div className="min-h-screen bg-[#05070f]">
+    <div className="relative h-[85vh] min-h-[600px] bg-slate-900/60 animate-pulse">
       <div className="absolute inset-0 flex items-center">
         <div className="max-w-7xl mx-auto px-6 w-full">
           <div className="max-w-2xl space-y-6">
-            <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded-full" />
-            <div className="h-16 w-96 bg-gray-200 dark:bg-gray-800 rounded-xl" />
-            <div className="h-6 w-80 bg-gray-200 dark:bg-gray-800 rounded-lg" />
+            <div className="h-4 w-32 bg-slate-800 rounded"/>
+            <div className="h-16 w-96 bg-slate-800 rounded-lg"/>
+            <div className="h-6 w-80 bg-slate-800/70 rounded"/>
             <div className="flex gap-4 mt-8">
-              <div className="h-14 w-40 bg-gray-200 dark:bg-gray-800 rounded-xl" />
-              <div className="h-14 w-36 bg-gray-200 dark:bg-gray-800 rounded-xl" />
+              <div className="h-12 w-36 bg-slate-800 rounded-full"/>
             </div>
           </div>
         </div>
@@ -42,15 +41,15 @@ const LoadingScreen = () => (
     <div className="max-w-7xl mx-auto px-6 py-20 space-y-16">
       {[1, 2].map(s => (
         <div key={s}>
-          <div className="h-8 w-48 bg-gray-100 dark:bg-gray-900 rounded-lg mb-8" />
+          <div className="h-8 w-48 bg-slate-800/70 rounded mb-8"/>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-                <div className="aspect-[16/10] bg-gray-100 dark:bg-gray-900" />
+              <div key={i} className="rounded-xl overflow-hidden bg-slate-900/60">
+                <div className="aspect-[16/10] bg-slate-800/70"/>
                 <div className="p-5 space-y-3">
-                  <div className="h-4 w-16 bg-gray-100 dark:bg-gray-900 rounded" />
-                  <div className="h-6 bg-gray-100 dark:bg-gray-900 rounded" />
-                  <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-900 rounded" />
+                  <div className="h-4 w-16 bg-slate-800/70 rounded"/>
+                  <div className="h-6 bg-slate-800 rounded"/>
+                  <div className="h-4 w-3/4 bg-slate-800/70 rounded"/>
                 </div>
               </div>
             ))}
@@ -95,7 +94,7 @@ export default function ModernHomePage({
   if (loading || cfgLoading) return <LoadingScreen />;
 
   return (
-    <div className="theme-bg overflow-hidden">
+    <div className="bg-[#05070f] overflow-hidden">
       <HomeHero featured={featured} heroTitle={hero.title || ''} heroSubtitle={hero.subtitle || ''}
         heroCtaText={hero.ctaText || ''} heroCtaLink={hero.ctaLink || ''} ctaTarget={hero.ctaTarget || ''} heroBg={hero.backgroundImage || ''} />
       <HomeFeatured featured={featured} title={sections.featuredTitle || ''} noSummaryMsg={messages?.noSummary || '暂无摘要'} />

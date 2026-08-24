@@ -3,7 +3,6 @@
 提供菜单和菜单项的完整管理功能
 """
 
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,27 +20,13 @@ from shared.services.content_management.menu_service import (
     get_available_pages_for_menu,
     get_available_categories_for_menu
 )
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["menus"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("")
-@_catch
 async def list_menus(
         db: AsyncSession = Depends(get_async_db)
 ):

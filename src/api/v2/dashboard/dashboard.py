@@ -3,12 +3,11 @@
 """
 
 import re
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from sqlalchemy import desc
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import VIPPlan, VIPFeature
@@ -23,7 +22,7 @@ from shared.models.user import User as UserModel
 from shared.models.vip import VIPSubscription
 # 注意：避免在此处直接导入 article_service，防止循环依赖
 # article_service 的导入已移至使用位置
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
 from src.extensions import get_async_db_session as get_async_db
@@ -31,22 +30,6 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/activities")
-@_catch
 async def get_activities(
     request: Request,
     page: int = Query(1, ge=1),
@@ -169,29 +152,34 @@ async def get_traffic_data(
     """
     from datetime import datetime, timedelta
 
-    # 计算过去7天每天的文章浏览量
+    # 计算过去7天的时间范围（包含今天）
+    end_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = end_date - timedelta(days=6)
+
+    # 一次性查询过去7天每天的文章浏览量
+    daily_views_query = select(
+        func.date(Article.created_at),
+        func.coalesce(func.sum(Article.views), 0)
+    ).where(
+        Article.created_at >= start_date,
+        Article.created_at < end_date + timedelta(days=1)
+    ).group_by(
+        func.date(Article.created_at)
+    )
+    daily_views_result = await db.execute(daily_views_query)
+    daily_views_dict = dict(daily_views_result.all())
+
+    # 按日期填充7天的数据
     traffic_data = []
     for i in range(7):
-        date_start = datetime.now() - timedelta(days=i)
-        date_end = date_start + timedelta(days=1)
-        date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
-        date_end = date_end.replace(hour=0, minute=0, second=0, microsecond=0)
-
-        # 计算当天的文章浏览量总和
-        daily_views_query = select(func.sum(Article.views)).where(
-            Article.created_at >= date_start,
-            Article.created_at < date_end
-        )
-        daily_views_result = await db.execute(daily_views_query)
-        daily_views = daily_views_result.scalar() or 0
+        date_start = end_date - timedelta(days=6-i)
+        date_key = date_start.strftime("%Y-%m-%d")
+        daily_views = daily_views_dict.get(date_key, 0) or 0
 
         traffic_data.append({
             "date": date_start.strftime("%m-%d"),
             "visitors": daily_views
         })
-
-    # 按日期升序排列
-    traffic_data.reverse()
 
     return ok(data=traffic_data)
 
@@ -221,7 +209,12 @@ async def get_blog_management_articles(
         status_lower = status.lower()
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
-            query = query.where(Article.status == status_map[status_lower])
+            if status_lower == 'deleted':
+                # deleted 由 status=-1 或 deleted_at 标记（删除时两者同时写入）；
+                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数据
+                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
+            else:
+                query = query.where(Article.status == status_map[status_lower])
 
     # 根据搜索词过滤
     if search:
@@ -243,8 +236,21 @@ async def get_blog_management_articles(
     articles = articles_result.scalars().all()
 
     articles_data = []
+    # Batch-load users & categories to eliminate N+1
+    user_ids = {a.user for a in articles if a.user}
+    cat_ids = {a.category for a in articles if a.category}
+    from shared.models.user import User
+    from shared.models.category import Category
+    if user_ids:
+        users = {u.id: u for u in (await db.execute(select(User).where(User.id.in_(user_ids)))).scalars().all()}
+    else:
+        users = {}
+    if cat_ids:
+        categories = {c.id: c for c in (await db.execute(select(Category).where(Category.id.in_(cat_ids)))).scalars().all()}
+    else:
+        categories = {}
+
     for article in articles:
-        # 使用模型的 to_dict() 方法获取基础数据
         article_dict = article.to_dict()
 
         # 确定文章状态（转换为字符串）
@@ -253,26 +259,21 @@ async def get_blog_management_articles(
             article_status = 'published'
         elif article.status == 0:
             article_status = 'draft'
-        elif article.status == -1:
+        elif article.status == -1 or article.deleted_at is not None:
             article_status = 'deleted'
 
-        # 获取作者信息（由于 author 关系已注释，需要手动查询）
-        from shared.models.user import User
-        author_query = select(User).where(User.id == article.user)
-        author_result = await db.execute(author_query)
-        author = author_result.scalar_one_or_none()
+        # 作者信息（从 batch 查询的 dict 中获取）
+        author = users.get(article.user)
         author_info = {
             "id": author.id if author else article.user,
             "username": getattr(author, 'username', 'Unknown') if author else 'Unknown',
             "email": getattr(author, 'email', '') if author else ''
         }
 
-        # 获取分类信息
+        # 分类信息（从 batch 查询的 dict 中获取）
         category_info = None
         if article.category:
-            category_query = select(Category).where(Category.id == article.category)
-            category_result = await db.execute(category_query)
-            category = category_result.scalar_one_or_none()
+            category = categories.get(article.category)
             if category:
                 category_info = {
                     "id": category.id,
@@ -280,13 +281,8 @@ async def get_blog_management_articles(
                     "description": category.description
                 }
 
-        # 处理标签（将 tags_list 字符串转换为数组，支持逗号和分号分隔符）
-        tags_list = []
-        if article_dict.get('tags_list'):
-            if isinstance(article_dict['tags_list'], str):
-                tags_list = [tag.strip() for tag in re.split(r'[,;]', article_dict['tags_list']) if tag.strip()]
-            else:
-                tags_list = article_dict['tags_list']
+        # 处理标签（tags_list 已经是 JSON 数组）
+        tags_list = article_dict.get('tags_list') or []
 
         # 构建响应数据，在 to_dict() 基础上添加关联数据
         articles_data.append({
@@ -321,8 +317,6 @@ async def get_my_articles(
     """
     获取我的文章列表
     """
-    from sqlalchemy import or_
-
     # 构建基础查询，预加载关联的作者信息
     query = select(Article).join(User, Article.user == User.id).where(
         Article.user == current_user.id)
@@ -333,7 +327,12 @@ async def get_my_articles(
         status_lower = status.lower()
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
-            query = query.where(Article.status == status_map[status_lower])
+            if status_lower == 'deleted':
+                # deleted 由 status=-1 或 deleted_at 标记（删除时两者同时写入）；
+                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数据
+                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
+            else:
+                query = query.where(Article.status == status_map[status_lower])
 
     # 根据隐藏状态过滤
     if hidden is not None:
@@ -345,7 +344,7 @@ async def get_my_articles(
 
     # 根据标签过滤（在 tags_list 字段中搜索）
     if tag:
-        query = query.where(Article.tags_list.contains(tag))
+        query = query.where(Article.tags_list.any(tag))
 
     # 根据搜索词过滤
     if search:
@@ -375,16 +374,11 @@ async def get_my_articles(
         article_status = 'draft'
         if article.status == 1:
             article_status = 'published'
-        elif article.status == -1:
+        elif article.status == -1 or article.deleted_at is not None:
             article_status = 'deleted'
 
-        # 处理标签
-        tags_list = []
-        if article_obj.get('tags_list'):
-            if isinstance(article_obj['tags_list'], str):
-                tags_list = [tag.strip() for tag in re.split(r'[,;]', article_obj['tags_list']) if tag.strip()]
-            else:
-                tags_list = article_obj['tags_list']
+        # 处理标签（tags_list 已经是 JSON 数组）
+        tags_list = article_obj.get('tags_list') or []
 
         # 获取分类名
         category_name = None

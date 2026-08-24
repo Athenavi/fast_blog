@@ -2,7 +2,7 @@
 数据库迁移管理API
 提供迁移执行、状态查询等功能
 """
-from functools import wraps
+import asyncio
 from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
@@ -10,30 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.migration_manager import migration_manager
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/status",
-            summary="获取迁移状态",
-            description="查看当前数据库版本和待处理迁移(仅管理员)",
-            response_description="返回迁移状态")
-@_catch
 async def migration_status_api(
         request: Request,
         current_user: User = Depends(admin_required_api)
@@ -59,9 +42,28 @@ async def apply_migrations_api(
     """
     执行迁移API
     """
-    result = await migration_manager.apply_all_migrations(db)
+    result = await asyncio.to_thread(migration_manager.apply_all_migrations, db)
 
     if result['success']:
+        # 更新 version.txt 中的迁移版本号
+        try:
+            import configparser
+            from pathlib import Path
+            vf = Path(__file__).parent.parent.parent.parent / 'version.txt'
+            if vf.exists():
+                cp = configparser.ConfigParser()
+                cp.read(str(vf))
+                # 获取当前 revision
+                status = migration_manager.get_migration_status()
+                current_rev = (status or {}).get('current_revision', '')
+                if current_rev:
+                    cp['DATABASE']['migration'] = current_rev
+                    cp['DATABASE']['status'] = 'up_to_date'
+                    with open(str(vf), 'w', encoding='utf-8') as f:
+                        cp.write(f)
+        except Exception as e:
+            pass  # version.txt 更新失败不阻塞主流程
+
         return ok(
             msg=result['message'],
             data={
@@ -99,7 +101,7 @@ async def create_migration_api(
     if not message:
         return fail('缺少迁移描述')
 
-    result = migration_manager.create_migration(message, autogenerate)
+    result = await asyncio.to_thread(migration_manager.create_migration, message, autogenerate)
 
     if result['success']:
         return ok(
@@ -132,7 +134,7 @@ async def rollback_migration_api(
     """
     steps = data.get('steps', 1)
 
-    result = migration_manager.rollback_migration(steps)
+    result = await asyncio.to_thread(migration_manager.rollback_migration, steps)
 
     if result['success']:
         return ok(msg=result['message'])

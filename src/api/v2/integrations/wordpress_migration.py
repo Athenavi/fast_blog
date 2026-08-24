@@ -5,7 +5,6 @@ WordPress 迁移 API - V2 版本
 import json
 import os
 import tempfile
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, Depends, Form, BackgroundTasks, HTTPException
@@ -13,29 +12,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.integrations.wordpress_import import WordPressImportService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(prefix="/wordpress", tags=["WordPress Migration"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/parse", summary="解析 WordPress XML 文件")
-@_catch
 async def parse_wordpress_xml(
         file: UploadFile = File(..., description="WordPress WXR 导出文件"),
         current_user: User = Depends(jwt_required)

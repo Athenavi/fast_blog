@@ -1,66 +1,56 @@
 'use client';
 
+/**
+ * 首页分类 - 编辑式编号网格
+ * - 无横向滚动、无渐变卡片；名称 + 数量 + 描述，细线分隔
+ */
 import React from 'react';
 import {motion} from 'framer-motion';
-import {ArrowRight, ArrowUpRight, BookOpen, Hash, Sparkles, Star, Flame, Zap} from 'lucide-react';
-import {Category} from './_shared';
-import {Section, HorizontalScroll, fadeUp, scaleIn} from './_shared';
-
-const gradients = [
-  'from-blue-600 via-blue-500 to-cyan-400', 'from-purple-600 via-purple-500 to-pink-400',
-  'from-emerald-600 via-emerald-500 to-teal-400', 'from-orange-600 via-orange-500 to-amber-400',
-  'from-indigo-600 via-indigo-500 to-blue-400', 'from-rose-600 via-rose-500 to-pink-400',
-];
-const icons = [Sparkles, Star, Flame, Zap, BookOpen, Hash];
+import {ArrowUpRight} from 'lucide-react';
+import {Category, fadeUp, Section, SectionHeader} from './_shared';
 
 interface Props {
   categories: Category[];
   title: string;
 }
 
+const pad = (n: number) => String(n).padStart(2, '0');
+
 export default function HomeCategories({categories, title}: Props) {
   if (!categories.length) return null;
-  return (
-    <Section id="categories" className="py-20 sm:py-28 theme-bg-muted border-y theme-border">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8">
-        <motion.div variants={fadeUp} className="flex items-end justify-between mb-12">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-full" />
-              <span className="text-sm font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-widest">Explore</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black theme-text tracking-tight">{title}</h2>
-            <p className="theme-text-secondary mt-2">按主题浏览感兴趣的内容</p>
-          </div>
-          <a href="/categories" className="hidden sm:flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors group">
-            查看全部 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </a>
-        </motion.div>
+  const list = categories.slice(0, 9);
 
-        <HorizontalScroll>
-          {categories.map((cat, i) => {
-            const Icon = icons[i % icons.length];
-            return (
-              <motion.a key={cat.id} variants={scaleIn} href={`/category?slug=${cat.slug}`} className="group flex-shrink-0 w-[260px] snap-start">
-                <div className="relative h-52 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900
-                  hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/40 transition-all duration-500 hover:-translate-y-2">
-                  <div className={`absolute inset-0 bg-gradient-to-br ${gradients[i % gradients.length]} opacity-10 group-hover:opacity-20 transition-opacity duration-500`} />
-                  <div className="relative h-full flex flex-col items-center justify-center p-6 text-center">
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradients[i % gradients.length]}
-                      flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-500`}>
-                      <Icon className="w-7 h-7 text-white" />
-                    </div>
-                    <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1.5">{cat.name}</h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{cat.count || 0} 篇文章</p>
-                    <div className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-                      <ArrowUpRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                    </div>
-                  </div>
+  return (
+    <Section id="categories" className="relative bg-[#070a14]">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
+        <SectionHeader title={title} href="/categories"/>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-12">
+          {list.map((cat, i) => (
+            <motion.a key={cat.id} variants={fadeUp} href={`/category?slug=${cat.slug}`}
+                      className="group flex items-start justify-between gap-4 border-b border-white/[0.06] py-5">
+              <div className="flex items-baseline gap-4 min-w-0">
+                <span
+                  className="font-mono text-xs text-slate-600 tabular-nums transition-colors duration-300 group-hover:text-blue-400">
+                  {pad(i + 1)}
+                </span>
+                <div className="min-w-0">
+                  <h3 className="font-medium text-slate-100 transition-colors duration-300 group-hover:text-blue-300">
+                    {cat.name}
+                  </h3>
+                  {cat.description && (
+                    <p className="mt-1 text-sm text-slate-500 line-clamp-1">{cat.description}</p>
+                  )}
                 </div>
-              </motion.a>
-            );
-          })}
-        </HorizontalScroll>
+              </div>
+              <div className="flex shrink-0 items-center gap-2 text-xs text-slate-600">
+                {cat.count !== undefined && <span>{cat.count} 篇</span>}
+                <ArrowUpRight
+                  className="w-3.5 h-3.5 opacity-0 -translate-x-1 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0 text-blue-400"/>
+              </div>
+            </motion.a>
+          ))}
+        </div>
       </div>
     </Section>
   );

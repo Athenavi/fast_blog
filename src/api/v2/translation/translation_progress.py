@@ -5,31 +5,16 @@
 """
 
 from typing import Optional
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.translation.translation_progress import translation_tracker
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/progress/{language_code}", summary="获取语言翻译进度", description="获取指定语言的翻译进度")
-@_catch
 async def get_language_progress(
         language_code: str,
         current_user=Depends(jwt_required),

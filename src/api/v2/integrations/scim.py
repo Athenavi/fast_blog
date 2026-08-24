@@ -3,13 +3,12 @@ SCIM 用户同步 API
 模拟 SCIM (System for Cross-domain Identity Management) 标准，
 提供外部用户同步、已同步用户列表和分组聚合功能
 """
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
@@ -18,18 +17,6 @@ router = APIRouter(tags=["scim"])
 # 用于跟踪已同步的外部用户 ID 映射（内存存储，生产环境应持久化）
 # external_id -> user_id
 _synced_users = {}
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 async def _require_superuser(current_user):

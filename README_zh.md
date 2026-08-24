@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/assets/fastblog-logo.svg" alt="FastBlog Logo" width="120" height="120" onerror="this.style.display='none'">
-
 # FastBlog
 
 ### ⚡ 面向开发者的现代化高性能博客平台
@@ -40,34 +38,18 @@
 
 ## 🚀 快速开始
 
-### Docker 部署（推荐）
-
 ```bash
+# Docker 部署（推荐）
 git clone https://github.com/Athenavi/fast_blog.git
 cd fast_blog
-cp .env_example .env
-# 编辑 .env 中的数据库配置
-docker-compose up -d
+cp .env.example .env
+# 编辑 .env：设置 SECRET_KEY / JWT_SECRET_KEY（>=32 位随机）与数据库密码
+docker compose up -d
 ```
 
-访问前端 `http://localhost:4321`，API 文档 `http://localhost:9421/docs`。
+> 生产部署请使用 `docker compose -f docker-compose.prod.yml up -d`（强制要求显式密钥，自动启用多 worker + Redis）。
 
-### 手动部署
-
-```bash
-# 后端
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env_example .env       # 编辑 .env 配置
-alembic upgrade head
-python main.py
-
-# 前端（新终端）
-cd frontend-astro
-npm install
-npm run dev
-```
+详细的手动部署指南请参阅[快速开始文档](docs/getting-started.md)。
 
 ---
 
@@ -75,28 +57,18 @@ npm run dev
 
 | 文档 | 说明 |
 |------|------|
-| [快速开始](docs/QUICK_START.md) | 安装和部署指南 |
-| [技术架构](docs/TECHNICAL.md) | 系统架构和技术栈详解 |
-| [API 参考](docs/API_REFERENCE.md) | RESTful API v2 完整文档 |
-| [插件开发指南](docs/PLUGIN_DEVELOPMENT_GUIDE.md) | 插件系统开发和扩展教程 |
-| [主题开发指南](docs/THEME_DEVELOPMENT_GUIDE.md) | 主题定制和开发指南 |
-| [部署指南](docs/DEPLOYMENT_GUIDE.md) | 生产环境部署方案 |
-| [故障排查 FAQ](docs/TROUBLESHOOTING_FAQ.md) | 常见问题解答和解决方案 |
-| [AI 交互指南](docs/AI_INTERACTION_GUIDE.md) | MCP Server AI 集成指南 |
+| [快速开始](docs/getting-started.md) | 安装和部署指南 |
+| [部署指南](docs/deployment.md) | 生产部署、Nginx 安全、SSL |
+| [开发指南](docs/development.md) | 系统架构、插件、主题、API |
+| [运维手册](docs/operations.md) | 故障排查、AI/MCP、移动端 |
+
+> 完整 API 参考由运行中的服务自动生成：`http://localhost:9421/api/v2/docs`（Swagger UI）
 
 ---
 
 ## 🤝 参与贡献
 
-欢迎各种形式的贡献！在提交 PR 前请阅读[贡献指南](CONTRIBUTING.md)。
-
-```bash
-git clone https://github.com/YOUR_USERNAME/fast_blog.git
-cd fast_blog
-git checkout -b feature/amazing-feature
-git commit -m "feat: 添加新功能"
-git push origin feature/amazing-feature
-```
+欢迎各种形式的贡献！在提交 PR 前请阅读[贡献指南](docs/development.md#二贡献规范)。
 
 ---
 

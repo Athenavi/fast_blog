@@ -8,7 +8,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class WorkflowStatus(Enum):

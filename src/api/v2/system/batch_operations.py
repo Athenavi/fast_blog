@@ -2,7 +2,6 @@
 批量操作 API
 提供文章、评论、商品等资源的批量操作功能
 """
-from functools import wraps
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,23 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.batch_operations import create_batch_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["batch"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 class BatchDeleteRequest(BaseModel):

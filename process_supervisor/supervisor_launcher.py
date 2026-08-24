@@ -5,7 +5,7 @@ FastBlog 进程监督器启动器
 统一管理所有子进程的生命周期
 """
 
-
+import logging
 import signal
 import sys
 import time
@@ -64,7 +64,7 @@ class SupervisedLauncher:
 
             # 初始化 Web 管理界面
             self._initialize_web_admin()
-    
+
             logger.info("进程监督器初始化完成")
             return True
         except Exception as e:
@@ -114,7 +114,7 @@ class SupervisedLauncher:
         if "frontend_dev" in self.supervisor.processes:
             frontend_process = self.supervisor.processes["frontend_dev"]
             frontend_process.config.command = ["npm", "run", "dev"]
-            frontend_process.config.working_dir = str(self.base_dir / "frontend-next")
+            frontend_process.config.working_dir = str(self.base_dir / "frontend-astro")
             logger.info("已自定义 frontend_dev 进程配置")
 
     def _initialize_web_admin(self):
@@ -175,7 +175,7 @@ class SupervisedLauncher:
 
         # 显示所有进程配置
         self._print_process_configurations()
-        
+
         # 启动所有进程
         logger.info("开始启动所有子进程...")
         if not self.supervisor.start_all_processes():
@@ -297,7 +297,7 @@ class SupervisedLauncher:
                             if status['status'] == 'running' and status.get('health_check_failures', 0) == 0)
 
         logger.info(f"\n系统状态概览：{healthy_count}/{running_count}/{len(statuses)} (健康/运行/总计)")
-    
+
         for name, status in statuses.items():
             if status['status'] == 'running':
                 uptime_str = f" (运行 {status['uptime_formatted']})" if status['uptime'] > 0 else ""

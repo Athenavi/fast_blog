@@ -63,7 +63,7 @@
     },
     "frontend_dev": {
       "command": ["npm", "run", "dev"],
-      "working_dir": "frontend-next",
+      "working_dir": "frontend-astro",
       "autostart": false,
       "autorestart": true,
       "restart_limit": 3,

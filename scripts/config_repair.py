@@ -748,7 +748,7 @@ class ConfigRepairTool:
         """保存 models.yaml"""
         # 保存到 models.yaml（如果有修改）
         if self.extra_models_data:
-            with open(self.models_config_file, 'w', encoding='utf-8') as f:
+            with open(models_file, 'w', encoding='utf-8') as f:
                 yaml.dump(self.extra_models_data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
             print("✓ 已保存到 models.yaml")
 

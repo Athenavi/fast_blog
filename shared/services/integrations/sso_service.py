@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 # SSO 会话持久化文件路径
 _SSO_DATA_DIR = Path(os.environ.get('FASTBLOG_DATA_DIR', 'data'))

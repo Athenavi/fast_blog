@@ -2,15 +2,13 @@
 安装向导 — 服务入口
 将各步骤子模块组合为 InstallationWizardService 类
 """
-import os
 from pathlib import Path
 from typing import Dict, Any, List
 
-from src.unified_logger import default_logger as logger
-
-from .prerequisites import check_prerequisites, check_database_connection, test_postgresql_connection
-from .database import configure_database, confirm_database_and_migrate
+from shared.logging import default_logger as logger
 from .admin_user import create_admin_user
+from .database import configure_database, confirm_database_and_migrate
+from .prerequisites import check_prerequisites, check_database_connection, test_postgresql_connection
 from .site_settings import configure_site_settings
 
 
@@ -93,8 +91,15 @@ class InstallationWizardService:
         return confirm_database_and_migrate(self.project_root)
 
     def complete_installation(self, install_info: Dict[str, Any]) -> Dict[str, Any]:
-        """完成安装：写入锁定文件"""
+        """完成安装：种子 RBAC 角色权限 + 写入锁定文件"""
         try:
+            # 种子 RBAC 数据（角色/权限表为空时才写入）
+            from shared.services.install.install_manager.install_wizard.admin_user import seed_rbac_if_empty
+            import asyncio
+            result = asyncio.run(seed_rbac_if_empty())
+            if not result.get("success"):
+                logger.warning(f"RBAC 种子数据写入失败: {result.get('message')}")
+
             self.install_flag_file.parent.mkdir(parents=True, exist_ok=True)
             self.install_flag_file.write_text("", encoding="utf-8")
             return {"success": True, "message": "安装完成"}
@@ -120,10 +125,6 @@ class InstallationWizardService:
             {"key": "complete", "label": "完成安装", "description": "锁定安装状态"},
         ]
 
-    def import_sample_data(self) -> Dict[str, Any]:
-        """导入示例数据"""
-        from .sample_data import import_sample_data as _import
-        return _import(self.project_root)
 
 
 # 全局实例

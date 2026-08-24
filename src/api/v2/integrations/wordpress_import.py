@@ -4,7 +4,6 @@ WordPress 导入 API 端点
 
 import os
 import tempfile
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, Depends, Form, HTTPException
@@ -15,33 +14,11 @@ from shared.models import User
 from shared.services.integrations.wordpress_import import WordPressImportService
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+from src.api.v2._helpers import _catch
 
 router = APIRouter(tags=["wordpress-import"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            print(f"Error: {str(e)}")
-            print(traceback.format_exc())
-            return JSONResponse(
-                status_code=500,
-                content={
-                    'success': False,
-                    'error': str(e)
-                }
-            )
-    return wrapper
-
-
-@router.post("/parse")
-@_catch
 async def parse_wordpress_xml(
         file: UploadFile = File(...),
         current_user: User = Depends(jwt_required)

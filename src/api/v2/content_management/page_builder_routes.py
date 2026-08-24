@@ -3,7 +3,6 @@
 提供页面的创建、保存、加载、发布和删除功能
 """
 from datetime import datetime
-from functools import wraps
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -16,7 +15,7 @@ from shared.models.page.pages import Pages as PagesModel
 from shared.models.user import User
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 
 def _is_admin_user(user: User) -> bool:
@@ -68,23 +67,6 @@ def _validate_blocks_data(blocks_data: list) -> None:
             raise HTTPException(status_code=422, detail=f"blocks_data[{i}] is missing a valid 'type' field")
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f"[_catch ERROR] {type(e).__name__}: {e}")
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/pages")
-@_catch
 async def create_page(
         req: PageCreateRequest,
         current_user: User = Depends(jwt_required)

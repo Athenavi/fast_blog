@@ -3,35 +3,19 @@
 用于Next.js前端访问评论配置功能
 """
 from datetime import datetime
-from functools import wraps
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import SystemSettings
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("")
-@_catch
 async def get_comment_config(
         request: Request,
         current_user=Depends(jwt_required),
@@ -52,9 +36,9 @@ async def get_comment_config(
         )
 
     # 获取所有评论相关的系统设置
-    comment_settings = db.query(SystemSettings).filter(
-        SystemSettings.key.like('giscus_%')
-    ).all()
+    stmt = select(SystemSettings).where(SystemSettings.key.like('giscus_%'))
+    result = await db.execute(stmt)
+    comment_settings = result.scalars().all()
 
     # 转换为字典格式
     config = {setting.key: setting.value for setting in comment_settings}

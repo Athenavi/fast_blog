@@ -4,7 +4,7 @@ SQLAlchemy 模型定义 - Article
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index, JSON
 from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
@@ -25,7 +25,7 @@ class Article(Base):
         Index('idx_articles_status_created', 'status', 'created_at'),
         Index('idx_articles_is_sticky', 'is_sticky'),
         Index('idx_articles_sticky_until', 'sticky_until'),
-        Index('idx_articles_published_at', 'created_at'),
+        Index('idx_articles_published_at', 'published_at'),
         Index('idx_articles_status_featured', 'status', 'is_featured'),
         Index('idx_articles_status_views', 'status', 'views'),
         Index('idx_articles_slug', 'slug', unique=True),
@@ -48,7 +48,7 @@ class Article(Base):
     category = Column(BigInteger, ForeignKey('categories.id'), nullable=True, doc='分类')
 
 
-    tags_list = Column(String(255), nullable=True, doc='标签列表')
+    tags_list = Column(JSON, nullable=True, doc='标签列表')
 
     views = Column(BigInteger, default=0, doc='浏览量')
 
@@ -86,6 +86,8 @@ class Article(Base):
 
 
     sticky_until = Column(DateTime, nullable=True, doc='置顶过期时间（可选，过期后自动取消置顶）')
+
+    deleted_at = Column(DateTime, nullable=True, doc='软删除时间')
 
     sort_order = Column(BigInteger, index=True, default=0, doc='排序顺序（用于拖拽排序）')
 
@@ -126,6 +128,7 @@ class Article(Base):
             'post_type': self.post_type,
             'is_sticky': self.is_sticky,
             'sticky_until': self.sticky_until.isoformat() if self.sticky_until else None,
+            'deleted_at': self.deleted_at.isoformat() if self.deleted_at else None,
             'sort_order': self.sort_order,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

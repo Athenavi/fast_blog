@@ -3,7 +3,6 @@
 提供一对一私信功能、消息列表、未读提醒等
 """
 from datetime import datetime
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -12,30 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.chat import PrivateMessage
 from shared.models.user import User, UserBlock
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["private-messages"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            print(f"Error: {str(e)}")
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/send")
-@_catch
 async def send_private_message(
         recipient_id: int = Query(..., description="接收者ID"),
         content: str = Query(..., description="消息内容"),

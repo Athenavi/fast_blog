@@ -20,7 +20,7 @@ except ImportError:
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 from src.utils.database.main import get_async_session
 
 

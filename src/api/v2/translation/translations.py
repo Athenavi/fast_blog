@@ -2,30 +2,15 @@
 翻译管理 API
 """
 from typing import Optional
-from functools import wraps
 
 from fastapi import APIRouter, HTTPException, Query
 
 from shared.services.translation.translation import translation_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["translations"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/items/{locale}/{key}")
-@_catch
 async def get_translation(
         locale: str,
         key: str,

@@ -16,7 +16,7 @@ from shared.models.enterprise.support_ticket import SupportTicket
 from shared.models.enterprise.support_ticket_reply import SupportTicketReply
 from shared.models.monitoring.monitoring_alert import MonitoringAlert
 from shared.models.monitoring.monitoring_metric import MonitoringMetric
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class EnterpriseService:

@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.collaboration import ApprovalStep, ApprovalRecord
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class ApprovalStatus(Enum):

@@ -12,7 +12,7 @@ from sqlalchemy import select, func
 from shared.models.security.sensitive_word import SensitiveWord
 from src.utils.database.unified_manager import db_manager
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class SensitiveWordService:

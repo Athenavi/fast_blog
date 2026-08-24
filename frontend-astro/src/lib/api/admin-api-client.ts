@@ -203,6 +203,11 @@ async function requestWithFallback<T = any>(
     return parseResponse<T>(resV3);
   }
 
+  // 未提供 V2 回退路径：不降级，直接返回 V3 结果
+  if (!v2FallbackPath) {
+    return parseResponse<T>(resV3);
+  }
+
   // ── 阶段 2: 降级到 V2 ──
   const v2Url = buildFullUrl(v2FallbackPath, method === 'GET' ? params : undefined);
   const resV2 = await retryRequest(method, v2Url, RETRIES_V2, body, contentType);

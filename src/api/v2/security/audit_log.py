@@ -4,7 +4,6 @@
 """
 import logging
 from datetime import datetime, timedelta
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -12,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.system import AuditLog as AuditLogModel
 from shared.services.security.audit_log_service import AuditLogAction, AuditLogLevel, audit_log_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
@@ -20,21 +19,6 @@ router = APIRouter(tags=["audit-log"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/logs", summary="查询审计日志")
-@_catch
 async def get_audit_logs(
         user_id: Optional[int] = Query(None, description="用户ID过滤"),
         action: Optional[str] = Query(None, description="操作类型过滤"),

@@ -15,6 +15,14 @@ export default defineConfig({
   output: 'static',
   adapter: node({ mode: 'standalone' }),
 
+  // 开发代理：/api/* 请求转发到后端 9421
+  // 生产环境由 Nginx 代理
+  server: {
+    proxy: {
+      '/api': 'http://localhost:9421',
+    },
+  },
+
   integrations: [
     react(),
     sitemap({
@@ -43,11 +51,13 @@ export default defineConfig({
             src: '/icons/icon-192x192.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any maskable',
           },
           {
             src: '/icons/icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
+            purpose: 'any maskable',
           },
         ],
       },
@@ -84,6 +94,11 @@ export default defineConfig({
                           '@radix-ui/react-popover',
                           '@radix-ui/react-switch',
                           '@radix-ui/react-checkbox',
+                      ],
+                      'vendor-three': [
+                          'three',
+                          '@react-three/fiber',
+                          '@react-three/drei',
                       ],
                       'vendor-editor': [
                           '@tiptap/react',

@@ -3,7 +3,6 @@ Webhook管理API端点
 
 提供Webhook配置管理和事件触发的REST API接口
 """
-from functools import wraps
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
@@ -12,27 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.webhook import Webhook
 from shared.services.notifications.webhook_service import WebhookService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import admin_required
 from src.utils.database.unified_manager import db_manager
 
 router = APIRouter(tags=["Webhooks"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/", summary="获取Webhook列表")
-@_catch
 async def list_webhooks(
         is_active: Optional[bool] = Query(None, description="是否激活"),
         limit: int = Query(50, ge=1, le=200, description="返回数量限制"),

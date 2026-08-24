@@ -36,6 +36,56 @@
       "buttonStyle": "default"
     }
   },
+  "settings_schema": {
+    "colors": {
+      "type": "group",
+      "label": "颜色",
+      "fields": {
+        "primary": {"type": "color", "label": "主色"},
+        "secondary": {"type": "color", "label": "次要色"},
+        "accent": {"type": "color", "label": "强调色"},
+        "background": {"type": "color", "label": "背景"},
+        "foreground": {"type": "color", "label": "前景"},
+        "muted": {"type": "color", "label": "弱化背景"},
+        "border": {"type": "color", "label": "边框"}
+      }
+    },
+    "layout": {
+      "type": "group",
+      "label": "布局",
+      "fields": {
+        "sidebarPosition": {"type": "select", "label": "侧边栏位置", "options": ["left", "right", "none"]},
+        "contentWidth": {"type": "select", "label": "内容宽度", "options": ["max-w-3xl", "max-w-4xl", "max-w-5xl", "max-w-6xl"]},
+        "showSidebar": {"type": "boolean", "label": "显示侧边栏"},
+        "showHeader": {"type": "boolean", "label": "显示页头"},
+        "showFooter": {"type": "boolean", "label": "显示页脚"}
+      }
+    },
+    "typography": {
+      "type": "group",
+      "label": "排版",
+      "fields": {
+        "fontFamily": {"type": "text", "label": "字体栈"},
+        "fontSize": {"type": "text", "label": "正文字号"},
+        "lineHeight": {"type": "number", "label": "行高"},
+        "headingFontWeight": {"type": "number", "label": "标题字重"}
+      }
+    },
+    "components": {
+      "type": "group",
+      "label": "组件",
+      "fields": {
+        "borderRadius": {"type": "text", "label": "圆角"},
+        "shadowStyle": {"type": "select", "label": "阴影", "options": ["none", "small", "medium", "large"]},
+        "buttonStyle": {"type": "select", "label": "按钮风格", "options": ["default", "rounded", "pill"]}
+      }
+    }
+  },
+  "componentSlots": {
+    "header": "floating",
+    "articleCard": "default",
+    "footer": "default"
+  },
   "supports": [
     "custom-logo",
     "custom-header",

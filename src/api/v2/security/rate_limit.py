@@ -3,33 +3,17 @@ API限流管理 API
 提供限流配置、监控和管理功能
 """
 import logging
-from functools import wraps
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.security.rate_limiter import rate_limiter
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 
 router = APIRouter(tags=["rate-limit"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/status", summary="获取限流状态")
-@_catch
 async def get_rate_limit_status(
         user_id: Optional[int] = Query(None, description="用户ID"),
         ip_address: Optional[str] = Query(None, description="IP地址"),

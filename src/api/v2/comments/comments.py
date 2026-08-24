@@ -3,7 +3,6 @@
 """
 import html
 from datetime import datetime
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -16,7 +15,7 @@ from shared.services.notifications.webhook_service import webhook_service
 from shared.services.plugins.event_bus import event_bus
 from shared.services.security.spam_filter_manager import spam_filter
 from shared.services.users.user_manager import gravatar_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.auth.auth_deps import jwt_optional_dependency
 from src.extensions import get_async_db_session as get_async_db
@@ -40,20 +39,6 @@ async def _process_comment_content(comment_dict: dict) -> dict:
     return comment_dict
 
 router = APIRouter(tags=["comments"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
 
 
 class CreateCommentRequest(BaseModel):

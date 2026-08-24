@@ -181,7 +181,7 @@ async def get_tags_sitemap(
     unique_tags = set()
     for article in articles:
         if article.tags_list:
-            tags = [tag.strip() for tag in re.split(r'[,;]', article.tags_list) if tag.strip()]
+            tags = [tag.strip() for tag in article.tags_list if tag.strip()]
             unique_tags.update(tags)
 
     generator = SitemapGenerator()

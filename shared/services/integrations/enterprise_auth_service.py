@@ -16,7 +16,7 @@ from shared.models.ldap_config import LDAPConfig
 from shared.models.saml_config import SAMLConfig
 from shared.models.sso_provider import SSOProvider
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class EnterpriseAuthService:

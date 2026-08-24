@@ -69,12 +69,14 @@ class FastBlogUpdater:
             
             # 尝试从更新服务器下载
             update_server_url = os.getenv('UPDATE_SERVER_URL', 'http://localhost:8001')
-            download_url = f"{update_server_url}/api/v1/releases/download/{self.target_version}"
-            
+            update_token = os.getenv('UPDATE_SERVER_TOKEN', '')
+            headers = {'X-Update-Token': update_token} if update_token else {}
+            download_url = f"{update_server_url}/api/v1/update/download?version={self.target_version}"
+
             logger.info(f"尝试从更新服务器下载: {download_url}")
-            
+
             import requests
-            response = requests.get(download_url, timeout=60)
+            response = requests.get(download_url, headers=headers, timeout=60)
             
             if response.status_code == 200:
                 # 保存到releases目录

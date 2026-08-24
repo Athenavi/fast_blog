@@ -98,9 +98,7 @@ async def moderate_content(
 @_catch
 async def smart_continue(request: TextRequest, current_user=Depends(jwt_required)):
     """智能续写"""
-    continuation = await asyncio.get_event_loop().run_in_executor(
-        None, ai_writing_assistant.smart_continue, request.text, request.max_length
-    )
+    continuation = await ai_writing_assistant.smart_continue(request.text, request.max_length)
     return ok(data={'continuation': continuation, 'length': len(continuation)})
 
 
@@ -108,9 +106,7 @@ async def smart_continue(request: TextRequest, current_user=Depends(jwt_required
 @_catch
 async def transform_style(request: TextRequest, current_user=Depends(jwt_required)):
     """风格转换"""
-    transformed = await asyncio.get_event_loop().run_in_executor(
-        None, ai_writing_assistant.transform_style, request.text, request.target_style
-    )
+    transformed = await ai_writing_assistant.transform_style(request.text, request.target_style)
     return ok(data={'original': request.text, 'transformed': transformed, 'style': request.target_style})
 
 
@@ -118,9 +114,7 @@ async def transform_style(request: TextRequest, current_user=Depends(jwt_require
 @_catch
 async def check_grammar(request: TextGrammarRequest, current_user=Depends(jwt_required)):
     """语法检查"""
-    issues = await asyncio.get_event_loop().run_in_executor(
-        None, ai_writing_assistant.check_grammar, request.text
-    )
+    issues = await ai_writing_assistant.check_grammar(request.text)
     return ok(data={'issues': issues, 'count': len(issues)})
 
 
@@ -128,9 +122,7 @@ async def check_grammar(request: TextGrammarRequest, current_user=Depends(jwt_re
 @_catch
 async def polish_text(request: TextPolishRequest, current_user=Depends(jwt_required)):
     """文本润色"""
-    result = await asyncio.get_event_loop().run_in_executor(
-        None, ai_writing_assistant.polish_text, request.text
-    )
+    result = await ai_writing_assistant.polish_text(request.text)
     return ok(data=result)
 
 
@@ -142,7 +134,5 @@ async def generate_titles(current_user=Depends(jwt_required),
         style: str = Body('normal', enum=['normal', 'question', 'list', 'howto'], description="标题风格")
 ):
     """生成标题建议"""
-    titles = await asyncio.get_event_loop().run_in_executor(
-        None, ai_writing_assistant.generate_titles, content, count, style
-    )
+    titles = await ai_writing_assistant.generate_titles(content, count, style)
     return ok(data={'titles': titles, 'count': len(titles), 'style': style})

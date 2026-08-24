@@ -3,42 +3,26 @@
 提供会话查看、远程注销、设备管理等功能
 """
 import logging
-from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from fastapi import APIRouter, Depends, Body, Request
 
 from shared.models.user import User as UserModel
 from shared.services.users.session_management_service import session_management_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
 router = APIRouter(tags=["sessions"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/my-sessions", summary="获取我的活跃会话")
-@_catch
 async def get_my_sessions(
         request: Request,
         current_user: UserModel = Depends(get_current_active_user)
 ):
     """
     获取当前用户的所有活跃会话(设备列表)
-    
+
     Returns:
         会话列表
     """
@@ -69,14 +53,14 @@ async def revoke_session(
 ):
     """
     远程注销指定的设备/会话
-    
+
     Args:
         session_id: 要注销的会话ID
-        
+
     Returns:
         操作结果
     """
-    success = session_management_service.revoke_session(
+    success = await session_management_service.revoke_session(
         current_user.id,
         session_id
     )
@@ -100,14 +84,14 @@ async def revoke_all_sessions(
 ):
     """
     注销所有其他设备(保留当前设备)
-    
+
     Args:
         current_session_id: 当前会话ID(可选，用于排除)
-        
+
     Returns:
         操作结果
     """
-    revoked_count = session_management_service.revoke_all_sessions(
+    revoked_count = await session_management_service.revoke_all_sessions(
         current_user.id,
         exclude_session_id=current_session_id
     )
@@ -128,7 +112,7 @@ async def get_security_alerts(
 ):
     """
     检测并获取安全告警(异地登录、新设备等)
-    
+
     Returns:
         安全告警列表
     """
@@ -165,7 +149,7 @@ async def get_session_stats(
 ):
     """
     获取用户的会话统计信息
-    
+
     Returns:
         统计数据
     """
@@ -195,10 +179,10 @@ async def admin_get_user_sessions(
 ):
     """
     管理员查看指定用户的会话列表
-    
+
     Args:
         user_id: 目标用户ID
-        
+
     Returns:
         会话列表
     """

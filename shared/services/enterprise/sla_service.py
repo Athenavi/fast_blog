@@ -11,7 +11,7 @@ from sqlalchemy import func, and_
 
 from shared.models.monitoring.sla_report import SLAReport
 from shared.models.enterprise_license import EnterpriseLicense
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class SLAService:

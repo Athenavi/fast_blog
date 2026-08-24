@@ -45,13 +45,13 @@ function EmailTemplatesInner() {
       setSaving(false);
       return r;
     },
-    onSuccess: (r) => { if (r.success) { toast.success('模板已保存'); qc.invalidateQueries({queryKey: ['email-templates']}); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success('模板已保存'); qc.invalidateQueries({queryKey: ['email-templates']}); } else toast.error(r.error || '操作失败'); },
     onError: () => { setSaving(false); toast.error('保存失败'); },
   });
 
   const resetMut = useMutation({
     mutationFn: () => apiClient.delete(`/notifications/email/templates/${activeTemplate}/reset`),
-    onSuccess: (r) => { if (r.success) { toast.success('已重置为默认'); qc.invalidateQueries({queryKey: ['email-templates']}); setEditedHtml(''); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success('已重置为默认'); qc.invalidateQueries({queryKey: ['email-templates']}); setEditedHtml(''); } else toast.error(r.error || '操作失败'); },
   });
 
   const variables = activeTpl?.html?.match(/\{\{\s*\w+\s*\}\}/g) || [];

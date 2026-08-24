@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from shared.models.media.media_folder import MediaFolder
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 # 文件夹名称验证配置
 MAX_FOLDER_NAME_LENGTH = 255

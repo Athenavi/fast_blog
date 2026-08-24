@@ -3,21 +3,24 @@
 
 优化: 统一 @_catch 装饰器消除 33 处重复 try/except
 """
-import asyncio
 import logging
 import re
 import secrets
+import time as _time
 from datetime import datetime, timedelta
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Body
 
 logger = logging.getLogger(__name__)
-from sqlalchemy import func, select
+
+# 首页文章接口 TTL 缓存（进程内，短 TTL）
+_HOME_ARTICLES_CACHE = {}
+_HOME_ARTICLES_TTL = 60
+from sqlalchemy import func, select, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article, ArticleContent
+from shared.models.article import Article, ArticleContent, ArticleSEO
 from shared.models.category import Category
 from shared.models.user import User
 from shared.services.articles.article_manager import article_query_service, password_protection_service, save_article_revision
@@ -28,26 +31,11 @@ from shared.services.security.rbac_service import rbac_service
 from shared.services.static_generation.isr_service import isr_service
 from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload, ArticleUpdatedPayload, ArticleDeletedPayload
 from src.api.v2._base import ApiResponse
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
-from src.setting import app_config
 from src.utils.database.main import get_async_session
 from src.utils.field_filter import filter_fields
 from src.utils.filters import markdown_to_html
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
 
 
 def _is_admin(user) -> bool:
@@ -98,11 +86,18 @@ def _paginate(total: int, page: int, per_page: int) -> dict:
             "total_pages": total_pages, "has_next": page < total_pages, "has_prev": page > 1}
 
 
+async def _invalidate_public_caches(article_id: Optional[int] = None):
+    """文章变更后使公开缓存失效：Redis（首页聚合 + 文章列表）+ 进程内首页文章缓存"""
+    from shared.services.core.article_cache_service import article_cache_service
+    _HOME_ARTICLES_CACHE.clear()
+    await article_cache_service.invalidate_public_caches(article_id=article_id)
+
+
 def _fmt_article_brief(article, users: dict, cats: dict) -> dict:
     return {
         "id": article.id, "title": article.title, "slug": article.slug,
         "excerpt": article.excerpt, "cover_image": article.cover_image,
-        "tags": _split_tags(article.tags_list),
+        "tags": article.tags_list or [],
         "author": {"id": article.user, "username": users[article.user].username if article.user in users else "Unknown"},
         "category_id": article.category,
         "category_name": cats[article.category].name if article.category in cats else None,
@@ -120,7 +115,7 @@ async def _get_article_author(db: AsyncSession, user_id: int) -> dict:
 
 async def _get_article_detail(request: Request, db: AsyncSession, article: Article, current_user=None) -> Optional[dict]:
     """统一获取文章详情（含权限/密码检查、Markdown 渲染）"""
-    if article.status == -1:
+    if article.status == -1 or article.deleted_at is not None:
         return None
 
     if article.hidden:
@@ -177,14 +172,16 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
         pass
 
     author_info = await _get_article_author(db, article.user)
-    seo = article.seo_data.to_dict() if article.seo_data else {}
+    # SEO 元数据：显式 async 查询（避免 async 上下文懒加载 MissingGreenlet）
+    seo_obj = await db.scalar(select(ArticleSEO).where(ArticleSEO.article_id == article.id))
+    seo = seo_obj.to_dict() if seo_obj else {}
     i18n_rows = (await db.execute(
         select(ArticleContent).where(ArticleContent.article == article.id))).scalars().all()
 
     data = {
         "id": article.id, "title": article.title, "slug": article.slug,
         "excerpt": article.excerpt, "content": html, "cover_image": article.cover_image,
-        "tags": _split_tags(article.tags_list), "views": article.views or 0, "likes": article.likes or 0,
+        "tags": article.tags_list or [], "views": article.views or 0, "likes": article.likes or 0,
         "status": article.status, "hidden": article.hidden, "is_vip_only": article.is_vip_only,
         "required_vip_level": article.required_vip_level, "article_ad": article.article_ad,
         "created_at": article.created_at.isoformat() if article.created_at else None,
@@ -211,9 +208,19 @@ async def get_articles_api(request: Request, page: int = Query(1, ge=1), per_pag
                             search: str = Query(""), category_id: Optional[int] = Query(None),
                             user_id: Optional[int] = Query(None), status: Optional[str] = Query(None),
                             fields: Optional[str] = Query(None), embed: Optional[str] = Query(None),
+                            current_user=Depends(jwt_optional_dependency),
                             db: AsyncSession = Depends(get_async_session)):
     """获取文章列表（分页/搜索/分类/用户过滤）"""
-    is_admin = _is_admin(request.scope.get('user'))
+    is_admin = _is_admin(current_user)
+    # 公开请求（未登录、无字段裁剪/嵌入）走 Redis 缓存；登录/个性化请求直查
+    public_request = current_user is None and not fields and not embed
+    if public_request:
+        from shared.services.core.article_cache_service import article_cache_service
+        cached = await article_cache_service.get_article_list(
+            page, per_page, search, category_id, user_id, status)
+        if cached is not None:
+            return ApiResponse(success=True, data=cached["data"], pagination=cached["pagination"])
+
     articles, total = await article_query_service.get_articles_list(
         db=db, page=page, per_page=per_page, search=search or None,
         category_id=category_id, user_id=user_id, status=status, include_sticky=True, is_admin=is_admin)
@@ -229,14 +236,28 @@ async def get_articles_api(request: Request, page: int = Query(1, ge=1), per_pag
             APIEmbedService.parse_embed_param(embed), ['author', 'category']))
     if fields:
         data = filter_fields(data, fields)
-    return ApiResponse(success=True, data=data, pagination=_paginate(total, page, per_page))
+
+    response = ApiResponse(success=True, data=data, pagination=_paginate(total, page, per_page))
+    if public_request:
+        from shared.services.core.article_cache_service import article_cache_service
+        await article_cache_service.set_article_list(
+            page, per_page,
+            {"data": data, "pagination": _paginate(total, page, per_page)},
+            search, category_id, user_id, status, ttl=60)
+    return response
 
 
 @router.get("/home/articles")
 @_catch
 async def get_home_articles_api(request: Request, page: int = Query(1, ge=1), per_page: int = Query(9, ge=1, le=50),
                                  db: AsyncSession = Depends(get_async_session)):
-    """首页文章列表（公开）"""
+    """首页文章列表（公开，带短期 TTL 缓存，避免高频打库）"""
+    cache_key = (page, per_page)
+    now = _time.monotonic()
+    cached = _HOME_ARTICLES_CACHE.get(cache_key)
+    if cached and now - cached[0] < _HOME_ARTICLES_TTL:
+        return cached[1]
+
     offset = (page - 1) * per_page
     q = select(Article).where(Article.hidden == False, Article.status == 1, Article.is_vip_only == False).order_by(Article.id.desc())
     articles = (await db.execute(q.offset(offset).limit(per_page))).scalars().all()
@@ -247,8 +268,12 @@ async def get_home_articles_api(request: Request, page: int = Query(1, ge=1), pe
     users = {u.id: u for u in (await db.execute(select(User).where(User.id.in_(uids)))).scalars().all()} if uids else {}
     cats = {c.id: c for c in (await db.execute(select(Category).where(Category.id.in_(cids)))).scalars().all()} if cids else {}
 
-    return ApiResponse(success=True, data={"data": [_fmt_article_brief(a, users, cats) for a in articles],
-                                            "pagination": _paginate(total or 0, page, per_page)})
+    response = ApiResponse(success=True, data={"data": [_fmt_article_brief(a, users, cats) for a in articles],
+                                               "pagination": _paginate(total or 0, page, per_page)})
+    if len(_HOME_ARTICLES_CACHE) >= 200:
+        _HOME_ARTICLES_CACHE.clear()
+    _HOME_ARTICLES_CACHE[cache_key] = (now, response)
+    return response
 
 
 @router.get("/user/{user_id}")
@@ -360,7 +385,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
     article = Article(
         title=data.get('title', ''), slug=data.get('slug', ''),
         excerpt=data.get('excerpt', ''), user=current_user.id,
-        category=cat_id, tags_list=data.get('tags', ''),
+        category=cat_id, tags_list=data.get('tags', '').split(',') if data.get('tags') else [],
         cover_image=data.get('cover_image', ''), hidden=data.get('hidden', False),
         is_vip_only=data.get('is_vip_only', False), article_ad=data.get('article_ad', ''),
         status=data.get('status', 0), is_featured=data.get('is_featured', False),
@@ -379,21 +404,25 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
                           created_at=datetime.now(), updated_at=datetime.now()))
     await db.flush()
     await db.refresh(article)
+    await db.commit()  # 持久化到数据库（get_async_session 使用 no_auto_commit）
 
     await save_article_revision(db=db, article_id=article.id, author_id=current_user.id, change_summary="创建文章")
     try:
-        await isr_service.invalidate(article.slug)
+        await isr_service.on_article_update(article.slug)
         await webhook_service.trigger_event('article.created', {'article_id': article.id})
         # 仅在发布状态时发送 published 事件
         if article.status == 1:
             await event_bus.emit('article.published', ArticlePublishedPayload(
                 article_id=article.id, slug=article.slug, title=article.title,
                 author_id=current_user.id, excerpt=article.excerpt or '',
-                tags=[t.strip() for t in article.tags_list.split(',') if t.strip()] if article.tags_list else [],
+                tags=article.tags_list or [],
                 category_id=article.category,
             ))
     except Exception:
         logger.warning(f"文章创建后处理失败 (article_id={article.id})", exc_info=True)
+
+    # 文章变更：使公开缓存失效（首页聚合 + 文章列表）
+    await _invalidate_public_caches(article.id)
 
     return ApiResponse(success=True, data={"id": article.id, "slug": article.slug}, message="文章创建成功")
 
@@ -410,10 +439,15 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权修改此文章")
 
-    for field in ('title', 'slug', 'excerpt', 'cover_image', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status', 'post_type'):
+    for field in ('title', 'slug', 'excerpt', 'cover_image', 'hidden', 'is_vip_only', 'is_featured', 'status',
+                  'post_type'):
         if field in data:
             setattr(article, field, data[field])
-    # category_id 映射到模型字段 category，0 转为 None
+    # 兼容前端传的 'tags'（字符串）→ 存入 tags_list（JSON 列表）
+    if 'tags' in data:
+        tags_val = data['tags']
+        article.tags_list = [t.strip() for t in tags_val.split(',') if t.strip()] if tags_val else []
+    # category_id 映射到模型字段 category
     if 'category_id' in data:
         cat_val = data['category_id']
         cat_val_final = None if cat_val is None or cat_val == 0 or cat_val == '0' else cat_val
@@ -451,7 +485,7 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
                                 change_summary=data.get('change_summary', '更新文章'))
 
     try:
-        await isr_service.invalidate(article.slug)
+        await isr_service.on_article_update(article.slug)
         await webhook_service.trigger_event('article.updated', {'article_id': article_id})
         await event_bus.emit('article.updated', ArticleUpdatedPayload(
             article_id=article.id, slug=article.slug, title=article.title,
@@ -459,6 +493,9 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
         ))
     except Exception:
         logger.warning(f"文章更新后处理失败 (article_id={article.id})", exc_info=True)
+
+    # 文章变更：使公开缓存失效（首页聚合 + 文章列表）
+    await _invalidate_public_caches(article.id)
 
     return ApiResponse(success=True, data={"id": article.id, "slug": article.slug}, message="文章更新成功")
 
@@ -474,6 +511,7 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权删除此文章")
     article.status = -1
+    article.deleted_at = datetime.utcnow()
     await db.commit()
 
     try:
@@ -483,6 +521,9 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
         ))
     except Exception:
         logger.warning(f"文章删除后处理失败 (article_id={article_id})", exc_info=True)
+
+    # 文章变更：使公开缓存失效（首页聚合 + 文章列表）
+    await _invalidate_public_caches(article_id)
     return ApiResponse(success=True, message="文章已删除")
 
 
@@ -493,11 +534,11 @@ async def get_articles_by_tag_api(tag_name: str, page: int = Query(1, ge=1), per
     """按标签获取文章"""
     offset = (page - 1) * per_page
     q = select(Article).where(
-        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
+        Article.tags_list.cast(String).op('~*')(f'"{re.escape(tag_name)}"'),
         Article.status == 1
     ).order_by(Article.id.desc())
     total = await db.scalar(select(func.count()).select_from(Article).where(
-        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
+        Article.tags_list.cast(String).op('~*')(f'"{re.escape(tag_name)}"'),
         Article.status == 1
     )) or 0
     articles = (await db.execute(q.offset(offset).limit(per_page))).scalars().all()
@@ -609,11 +650,17 @@ async def reorder_articles_api(data: list[dict] = Body(...), current_user=Depend
     """文章排序（需要 article:edit 权限）"""
     if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
         return fail("权限不足：需要 article:edit 权限")
-    for item in data:
-        article = await db.scalar(select(Article).where(Article.id == item.get('id')))
-        if article and 'sort_order' in item:
-            article.sort_order = item['sort_order']
+    ids = [item.get('id') for item in data if item.get('id') is not None]
+    if ids:
+        result = await db.execute(select(Article).where(Article.id.in_(ids)))
+        articles_map = {a.id: a for a in result.scalars().all()}
+        for item in data:
+            article = articles_map.get(item.get('id'))
+            if article and 'sort_order' in item:
+                article.sort_order = item['sort_order']
     await db.commit()
+    # 排序变更影响列表顺序：使公开缓存失效
+    await _invalidate_public_caches()
     return ok(msg="排序已更新")
 
 
@@ -636,6 +683,7 @@ async def batch_article_operation_api(data: dict = Body(...), current_user=Depen
     if action == 'delete':
         for a in (await db.execute(query)).scalars().all():
             a.status = -1
+            a.deleted_at = datetime.utcnow()
     elif action == 'publish':
         for a in (await db.execute(query)).scalars().all():
             a.status = 1
@@ -648,4 +696,6 @@ async def batch_article_operation_api(data: dict = Body(...), current_user=Depen
     else:
         return fail(f"未知操作: {action}")
     await db.commit()
+    # 批量操作涉及状态/推荐变更：使公开缓存失效
+    await _invalidate_public_caches()
     return ok(data={"affected": len(ids)}, msg=f"批量{action}完成")

@@ -25,7 +25,7 @@ function EditorInner() {
       fd.append('title', title || 'New Article');
       fd.append('content', content);
       if (coverImage) fd.append('cover_image', coverImage);
-      return apiClient.request('/articles', {method: 'POST', body: fd});
+      return apiClient.request('/articles/', {method: 'POST', body: fd});
     },
     onSuccess: (res) => {
       if (res.success) {

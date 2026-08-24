@@ -1,4 +1,4 @@
-"""
+﻿"""
 用户模块 - V2 优化版
 整合所有用户相关功能：资料管理、关注、屏蔽等
 
@@ -24,12 +24,14 @@ from src.api.v2.user_utils.user_entities import check_user_conflict_async, chang
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
 from src.extensions import cache
+from shared.services.plugins.event_bus import event_bus
 from src.utils.database.main import get_async_session as get_async_db
 from src.setting import app_config
 from src.utils.security.forms import ChangePasswordForm
 from src.utils.security.ip_utils import get_client_ip
 from src.utils.security.safe import is_valid_iso_language_code
 from src.utils.send_email import request_email_change
+from shared.services.security.rate_limiter import rate_limiter
 
 # ---------------------------------------------------------------------------
 # 内存关注/屏蔽数据库（保持与旧代码行为一致，后续应迁移到数据库表）
@@ -197,6 +199,7 @@ async def update_current_user_profile_api(
     if any(k in data for k in ('locale', 'profile_private')):
         await db.commit()
 
+    await event_bus.emit("user.profile_updated", {"user_id": current_user.id, "username": current_user.username})
     return ok({"user_id": current_user.id}, "资料更新成功")
 
 
@@ -260,6 +263,59 @@ async def update_user_settings_api(request: Request, db: AsyncSession = Depends(
     return ok(msg="设置更新成功")
 
 
+@router.get("/me/quota")
+@_with_db
+async def get_current_user_quota_api(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """获取当前用户配额信息（存储、文章数、API 限流等）"""
+    from shared.models.article import Article
+
+    # 文章统计
+    total_result = await db.execute(
+        select(func.count(Article.id)).where(Article.user == current_user.id)
+    )
+    total_articles = total_result.scalar() or 0
+
+    published_result = await db.execute(
+        select(func.count(Article.id)).where(
+            Article.user == current_user.id,
+            Article.status == 1
+        )
+    )
+    published_articles = published_result.scalar() or 0
+
+    draft_result = await db.execute(
+        select(func.count(Article.id)).where(
+            Article.user == current_user.id,
+            Article.status == 0
+        )
+    )
+    draft_articles = draft_result.scalar() or 0
+
+    # API 限流配额
+    quota_info = await rate_limiter.get_quota_info(current_user.id)
+
+    return ok({
+        "articles": {
+            "total": total_articles,
+            "published": published_articles,
+            "draft": draft_articles,
+        },
+        "rate_limit": {
+            "current_usage": quota_info["current_usage"],
+            "quota_limit": quota_info["quota_limit"],
+            "remaining": quota_info["remaining"],
+            "window": quota_info["window"],
+            "reset_time": quota_info["reset_time"].isoformat(),
+        },
+        "vip_level": current_user.vip_level,
+        "vip_expires_at": current_user.vip_expires_at.isoformat()
+            if current_user.vip_expires_at else None,
+    })
+
+
 # ==================== 关注/屏蔽（内存存储）====================
 
 @router.get("/me/followers")
@@ -308,6 +364,7 @@ async def block_user(user_id: int, db: AsyncSession = Depends(get_async_db),
         return fail("用户已被屏蔽")
     db.add(UserBlock(user_id=current_user.id, blocked_user_id=user_id, created_at=datetime.now()))
     await db.commit()
+    await event_bus.emit("user.blocked", {"user_id": current_user.id, "blocked_user_id": user_id})
     return ok(msg="屏蔽成功")
 
 
@@ -322,6 +379,7 @@ async def unblock_user(user_id: int, db: AsyncSession = Depends(get_async_db),
         return fail("未屏蔽该用户")
     await db.delete(row)
     await db.commit()
+    await event_bus.emit("user.unblocked", {"user_id": current_user.id, "unblocked_user_id": user_id})
     return ok(msg="已取消屏蔽")
 
 
@@ -370,10 +428,16 @@ async def get_user_followers(user_id: int, db: AsyncSession = Depends(get_async_
     """指定用户的粉丝"""
     fans = followers_db.get(user_id, {})
     users = {}
+    fan_ids = set()
     for fid in fans:
-        u = await db.scalar(select(User).where(User.id == int(fid)))
-        if u:
-            users[fid] = _format_user_brief(u)
+        try:
+            fan_ids.add(int(fid))
+        except (ValueError, TypeError):
+            pass
+    if fan_ids:
+        result = await db.execute(select(User).where(User.id.in_(list(fan_ids))))
+        for u in result.scalars().all():
+            users[str(u.id)] = _format_user_brief(u)
     return ok({"fans_list": [{"user": users.get(fid), "created_at": datetime.fromtimestamp(ts).isoformat()}
                               for fid, ts in sorted(fans.items(), key=lambda x: x[1], reverse=True)],
                "fans_count": len(fans)})
@@ -385,10 +449,16 @@ async def get_user_following(user_id: int, db: AsyncSession = Depends(get_async_
     """指定用户关注的人"""
     following = follows_db.get(user_id, {})
     users = {}
+    following_ids = set()
     for uid in following:
-        u = await db.scalar(select(User).where(User.id == int(uid)))
-        if u:
-            users[uid] = _format_user_brief(u)
+        try:
+            following_ids.add(int(uid))
+        except (ValueError, TypeError):
+            pass
+    if following_ids:
+        result = await db.execute(select(User).where(User.id.in_(list(following_ids))))
+        for u in result.scalars().all():
+            users[str(u.id)] = _format_user_brief(u)
     return ok({"following_list": [{"user": users.get(uid), "created_at": datetime.fromtimestamp(ts).isoformat()}
                                    for uid, ts in sorted(following.items(), key=lambda x: x[1], reverse=True)],
                "following_count": len(following)})

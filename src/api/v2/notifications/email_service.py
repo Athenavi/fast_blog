@@ -3,14 +3,13 @@
 
 提供邮件服务配置管理和邮件发送功能
 """
-from functools import wraps
 from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.notifications.email_service_integration import email_service_integration
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.api.v2.system.multisite import check_admin_permission
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -18,22 +17,6 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter(tags=["email-service"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/config/{provider}", summary="获取邮件服务配置")
-@_catch
 async def get_email_config(
         provider: str,
         site_id: Optional[int] = Query(None, description="站点 ID"),

@@ -4,7 +4,7 @@
 from pathlib import Path
 from typing import Dict, Any
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 def configure_site_settings(project_root: Path, settings: Dict[str, str]) -> Dict[str, Any]:

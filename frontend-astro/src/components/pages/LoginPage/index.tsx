@@ -20,6 +20,24 @@ const LoginPage: React.FC = () => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [backup, setBackup] = useState(false);
 
+  // Redirect to target page if already logged in
+  useEffect(() => {
+    (async () => {
+      try {
+        const {getAccessTokenFromCookie} = await import('@/lib/auth-utils');
+        const token = getAccessTokenFromCookie();
+        if (!token) return;
+        const {apiClient} = await import('@/lib/api/base-client');
+        const {USERS} = await import('@/lib/api/api-paths');
+        const res = await apiClient.get(USERS.ME);
+        if (res.success && res.data) {
+          const next = new URLSearchParams(window.location.search).get('next') || '/profile';
+          window.location.replace(next);
+        }
+      } catch { /* ignore */ }
+    })();
+  }, []);
+
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema) as any,
     defaultValues: {username: '', password: '', remember: false},
@@ -45,14 +63,11 @@ const LoginPage: React.FC = () => {
     window.location.reload();
   };
 
-  // Redirect on successful login
+  // Redirect on successful login (immediate, no delay)
   useEffect(() => {
     if (state.step === 'loggedin') {
-      const timer = setTimeout(() => {
-        const next = new URLSearchParams(window.location.search).get('next') || '/profile';
-        window.location.href = next;
-      }, 1500);
-      return () => clearTimeout(timer);
+      const next = new URLSearchParams(window.location.search).get('next') || '/profile';
+      window.location.replace(next);
     }
   }, [state.step]);
 

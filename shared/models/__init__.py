@@ -14,6 +14,7 @@ Base = declarative_base()
 # ==================== 懒加载映射表 ====================
 # 模型名 -> 相对模块路径（不含 shared.models 前缀）
 _LAZY_IMPORTS = {
+    'AIConfig': '.ai.ai_config',
     'AIWorkflow': '.ai.ai_workflow',
     'Ad': '.ad.ad',
     'AdClick': '.ad.ad_click',
@@ -29,6 +30,7 @@ _LAZY_IMPORTS = {
     'ArticleRevisionNote': '.article.article_revision_note',
     'ArticleSEO': '.article.article_seo',
     'AuditLog': '.system.audit_log',
+    'AdminSettings': '.system.admin_settings',
     'BaiduAnalyticsConfig': '.analytics.baidu_analytics_config',
     'BlockPattern': '.widget.block_pattern',
     'Capability': '.rbac.capability',
@@ -158,6 +160,7 @@ def __getattr__(name):
 
 __all__ = [
     'Base',
+    'AIConfig',
     'AIWorkflow',
     'Ad',
     'AdClick',
@@ -173,6 +176,7 @@ __all__ = [
     'ArticleRevisionNote',
     'ArticleSEO',
     'AuditLog',
+    'AdminSettings',
     'BaiduAnalyticsConfig',
     'BlockPattern',
     'Capability',

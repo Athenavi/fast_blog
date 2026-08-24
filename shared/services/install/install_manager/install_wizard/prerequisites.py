@@ -5,7 +5,7 @@ import os, sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 def check_python_version() -> Dict[str, Any]:

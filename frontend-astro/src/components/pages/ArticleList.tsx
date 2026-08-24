@@ -3,23 +3,20 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {ArticleService} from '@/lib/api';
-import {getFullMediaUrl} from '@/lib/utils';
 import type {Article} from '@/lib/api/base-types';
 import {
   BookOpen,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Eye,
   Filter,
   Grid,
   Hash,
-  Heart,
   List,
   Search,
   SlidersHorizontal,
   X
 } from 'lucide-react';
+import ThemeArticleCard from '@/components/theme/ThemeArticleCard';
 
 type ViewMode = 'grid' | 'list';
 type SortBy = 'newest' | 'oldest' | 'popular' | 'views';
@@ -290,119 +287,14 @@ const ArticleList: React.FC<{
               /* ── Grid View ── */
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {articles.map((article, i) => (
-                      <motion.a
-                          key={article.id}
-                          initial={{opacity: 0, y: 20}}
-                          animate={{opacity: 1, y: 0}}
-                          transition={{delay: i * 0.05, duration: 0.4}}
-                          href={`/view?slug=${article.slug}`}
-                          className="group theme-bg rounded-2xl border theme-border overflow-hidden card-hover"
-                      >
-                          {/* Cover */}
-                          <div className="aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden relative">
-                              {article.cover_image ? (
-                                  <img
-                                    src={getFullMediaUrl(article.cover_image)}
-                                      alt={article.title}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                      loading="lazy"
-                                  />
-                              ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                      <BookOpen className="w-8 h-8 text-gray-200 dark:text-gray-700"/>
-                                  </div>
-                              )}
-                              {article.category && (
-                                  <div className="absolute top-3 left-3">
-                    <span
-                        className="badge bg-white/90 dark:bg-gray-900/90 text-gray-700 dark:text-gray-300 backdrop-blur-sm text-[10px]">
-                      {article.category?.name || ''}
-                    </span>
-                                  </div>
-                              )}
-                          </div>
-                          {/* Content */}
-                          <div className="p-5">
-                              <div className="flex items-center gap-2 text-xs text-gray-400 mb-2.5">
-                                  {article.tags?.[0] && (
-                                      <span
-                                          className="text-blue-600 dark:text-blue-400 font-medium flex items-center gap-0.5">
-                      <Hash className="w-3 h-3"/>{article.tags[0]}
-                    </span>
-                                  )}
-                                  <span>·</span>
-                                  <span className="flex items-center gap-1">
-                    <Clock className="w-3 h-3"/>
-                                      {article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : ''}
-                  </span>
-                              </div>
-                              <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-relaxed mb-2">
-                                  {article.title}
-                              </h3>
-                              <p className="text-xs text-gray-400 line-clamp-2 mb-3">{article.excerpt || article.summary || ''}</p>
-                              <div className="flex items-center justify-between text-xs text-gray-400">
-                                  <div className="flex items-center gap-3">
-                                      <span className="flex items-center gap-1"><Eye
-                                          className="w-3 h-3"/>{article.views || 0}</span>
-                                      <span className="flex items-center gap-1"><Heart
-                                          className="w-3 h-3"/>{article.likes || 0}</span>
-                                  </div>
-                              </div>
-                          </div>
-                      </motion.a>
+                      <ThemeArticleCard key={article.id} article={article} layout="grid" index={i} />
                   ))}
               </div>
           ) : (
               /* ── List View ── */
               <div className="space-y-4">
                   {articles.map((article, i) => (
-                      <motion.a
-                          key={article.id}
-                          initial={{opacity: 0, x: -20}}
-                          animate={{opacity: 1, x: 0}}
-                          transition={{delay: i * 0.03, duration: 0.4}}
-                          href={`/view?slug=${article.slug}`}
-                          className="group flex gap-5 p-5 theme-bg rounded-2xl border theme-border card-hover"
-                      >
-                          {/* Cover */}
-                          <div
-                              className="w-40 h-28 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 flex-shrink-0 hidden sm:block">
-                              {article.cover_image ? (
-                                  <img
-                                    src={getFullMediaUrl(article.cover_image)}
-                                      alt=""
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                      loading="lazy"
-                                  />
-                              ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                      <BookOpen className="w-6 h-6 text-gray-200 dark:text-gray-700"/>
-                                  </div>
-                              )}
-                          </div>
-                          {/* Content */}
-                          <div className="flex-1 min-w-0 flex flex-col justify-center">
-                              <div className="flex items-center gap-2 text-xs text-gray-400 mb-1.5">
-                                  {article.tags?.[0] && (
-                                      <span
-                                          className="text-blue-600 dark:text-blue-400 font-medium">{article.tags[0]}</span>
-                                  )}
-                                  <span>·</span>
-                                  <span>{article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : ''}</span>
-                              </div>
-                              <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-1">
-                                  {article.title}
-                              </h3>
-                            <p
-                              className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{article.excerpt || article.summary || ''}</p>
-                              <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
-                                  <span className="flex items-center gap-1"><Eye
-                                      className="w-3 h-3"/>{article.views || 0}</span>
-                                  <span className="flex items-center gap-1"><Heart
-                                      className="w-3 h-3"/>{article.likes || 0}</span>
-                              </div>
-                          </div>
-                      </motion.a>
+                      <ThemeArticleCard key={article.id} article={article} layout="list" index={i} />
                   ))}
               </div>
           )}

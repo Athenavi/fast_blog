@@ -480,28 +480,6 @@ models:
         type: string
         nullable: true
         description: 语言设置
-  PasswordChange:
-    type: schema
-    description: 密码修改请求模型
-    properties:
-      old_password:
-        type: string
-        writeOnly: true
-        description: 当前密码
-      new_password:
-        type: string
-        minLength: 6
-        writeOnly: true
-        description: 新密码
-      new_password_confirm:
-        type: string
-        minLength: 6
-        writeOnly: true
-        description: 确认新密码
-    required:
-      - old_password
-      - new_password
-      - new_password_confirm
   Article:
     description: 文章模型
     status: active
@@ -607,6 +585,11 @@ models:
         default: 0
         description: 排序顺序（用于拖拽排序）
         index: true
+      deleted_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 软删除时间
       created_at:
         type: string
         format: date-time
@@ -646,7 +629,7 @@ models:
           - sticky_until
       - name: idx_articles_published_at
         columns:
-          - created_at
+          - published_at
         order: DESC
         comment: 文章发布时间索引（用于最新文章查询）
       - name: idx_articles_status_featured
@@ -696,156 +679,6 @@ models:
         back_populates: article
         primaryjoin: Article.id == ArticleSEO.article_id
         uselist: false
-  ArticleList:
-    type: schema
-    description: 文章列表模型
-    properties:
-      id:
-        type: bigint
-        description: 文章 ID
-      title:
-        type: string
-        maxLength: 255
-        description: 标题
-      slug:
-        type: string
-        maxLength: 255
-        description: 文章 slug
-      excerpt:
-        type: string
-        nullable: true
-        description: 摘要
-      cover_image:
-        type: string
-        nullable: true
-        description: 封面图 URL
-      category_id:
-        type: bigint
-        nullable: true
-        description: 分类 ID
-      tags_list:
-        type: array
-        items:
-          type: string
-        description: 标签列表
-      views:
-        type: bigint
-        default: 0
-        description: 浏览量
-      likes:
-        type: bigint
-        default: 0
-        description: 点赞数
-      status:
-        type: integer
-        description: 状态
-      is_featured:
-        type: boolean
-        default: false
-        description: 是否推荐
-      is_vip_only:
-        type: boolean
-        default: false
-        description: 是否仅 VIP 可见
-      required_vip_level:
-        type: integer
-        default: 0
-        description: 所需 VIP 等级
-      is_sticky:
-        type: boolean
-        default: false
-        description: 是否置顶
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-      updated_at:
-        type: string
-        format: date-time
-        description: 更新时间
-  AuthorSimple:
-    type: schema
-    description: 作者简化信息
-    properties:
-      id:
-        type: bigint
-        description: 用户 ID
-      username:
-        type: string
-        description: 用户名
-  ArticleCreateUpdate:
-    type: schema
-    description: 文章创建/更新请求模型
-    properties:
-      title:
-        type: string
-        minLength: 1
-        maxLength: 255
-        description: 标题
-      slug:
-        type: string
-        maxLength: 255
-        description: 文章 slug
-      excerpt:
-        type: string
-        nullable: true
-        description: 摘要
-      cover_image:
-        type: string
-        nullable: true
-        description: 封面图 URL
-      category_id:
-        type: bigint
-        nullable: true
-        description: 分类 ID
-      tags:
-        type: string
-        nullable: true
-        description: 标签 (逗号分隔)
-      status:
-        type: bigint
-        enum:
-          - -1
-          - 0
-          - 1
-        default: 1
-        description: 状态
-      hidden:
-        type: boolean
-        default: false
-        description: 是否隐藏
-      is_featured:
-        type: boolean
-        default: false
-        description: 是否推荐
-      is_vip_only:
-        type: boolean
-        default: false
-        description: 是否仅 VIP 可见
-      required_vip_level:
-        type: bigint
-        default: 0
-        description: 所需 VIP 等级
-      article_ad:
-        type: string
-        nullable: true
-        description: 广告内容
-      scheduled_publish_at:
-        type: string
-        format: date-time
-        nullable: true
-        description: 定时发布时间
-      is_sticky:
-        type: boolean
-        default: false
-        description: 是否置顶
-      sticky_until:
-        type: string
-        format: date-time
-        nullable: true
-        description: 置顶过期时间
-    required:
-      - title
   Category:
     description: 分类模型
     status: active
@@ -920,45 +753,6 @@ models:
         columns:
           - is_visible
         comment: 可见性索引
-  CategoryCreateUpdate:
-    type: schema
-    description: 分类创建/更新请求模型
-    properties:
-      name:
-        type: string
-        minLength: 1
-        maxLength: 100
-        description: 分类名
-      slug:
-        type: string
-        nullable: true
-        description: 分类 slug
-      description:
-        type: string
-        nullable: true
-        description: 分类描述
-      parent_id:
-        type: bigint
-        nullable: true
-        description: 父分类 ID
-      sort_order:
-        type: bigint
-        default: 0
-        description: 排序
-      icon:
-        type: string
-        nullable: true
-        description: 图标
-      color:
-        type: string
-        nullable: true
-        description: 颜色
-      is_visible:
-        type: boolean
-        default: true
-        description: 是否可见
-    required:
-      - name
   CategorySubscription:
     description: 分类订阅模型
     status: active
@@ -1321,6 +1115,9 @@ models:
     description: 管理员设置模型
     status: active
     frontend_page: /admin/settings
+    orm: true
+    module: system
+    table: admin_settings
     properties:
       id:
         type: bigint
@@ -2362,10 +2159,12 @@ models:
         type: bigint
         description: 用户
         foreignKey: User
+        index: true
       plan:
         type: integer
         description: 套餐
         foreignKey: VIPPlan
+        index: true
       starts_at:
         type: string
         format: date-time
@@ -2374,10 +2173,12 @@ models:
         type: string
         format: date-time
         description: 过期时间
+        index: true
       status:
         type: bigint
         default: 0
         description: 状态
+        index: true
       payment_amount:
         type: number
         nullable: true
@@ -7192,6 +6993,49 @@ models:
           - created_at
         order: DESC
         comment: 创建时间索引
+  DataRetentionPolicy:
+    description: 数据保留策略模型
+    status: active
+    module: enterprise
+    orm: true
+    table: data_retention_policies
+    properties:
+      id:
+        type: bigint
+        description: 策略 ID
+      data_category:
+        type: string
+        maxLength: 50
+        description: '数据类别 (如: audit_log, notification, analytics)'
+      retention_days:
+        type: integer
+        description: 保留天数
+      action:
+        type: string
+        maxLength: 50
+        default: delete
+        description: 到期动作 (delete/archive)
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    indexes:
+      - name: idx_drp_data_category
+        columns:
+          - data_category
+        comment: 数据类别索引
+      - name: idx_drp_is_active
+        columns:
+          - is_active
+        comment: 激活状态索引
   MonitoringAlert:
     description: 监控告警模型
     status: planned
@@ -7333,6 +7177,63 @@ models:
         columns:
           - site_id
         comment: 站点索引
+  SLAReport:
+    description: SLA 报告模型
+    status: active
+    module: monitoring
+    orm: true
+    table: sla_reports
+    properties:
+      id:
+        type: bigint
+        description: 报告 ID
+      license_id:
+        type: bigint
+        description: 企业许可证 ID
+      period_start:
+        type: string
+        format: date-time
+        description: 报告周期开始时间
+      period_end:
+        type: string
+        format: date-time
+        description: 报告周期结束时间
+      uptime_percentage:
+        type: number
+        description: 在线率百分比
+      target_percentage:
+        type: number
+        description: 目标 SLA 百分比
+      is_compliant:
+        type: boolean
+        default: false
+        description: 是否达标
+      downtime_minutes:
+        type: integer
+        default: 0
+        description: 宕机分钟数
+      total_minutes:
+        type: integer
+        description: 周期总分钟数
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      checked_at:
+        type: string
+        format: date-time
+        description: 检查时间
+    indexes:
+      - name: idx_sla_license_period
+        columns:
+          - license_id
+          - period_start
+          - period_end
+        comment: 许可证和时间段复合索引
+      - name: idx_sla_compliant
+        columns:
+          - is_compliant
+        comment: 是否达标索引
   MigrationTask:
     description: 迁移任务模型
     status: active
@@ -7798,3 +7699,70 @@ models:
           - consent_type
         unique: true
         comment: "用户+类型唯一索引"
+
+  AIConfig:
+    description: "User AI configuration - encrypted API key storage"
+    status: active
+    frontend_page: /ai-chat
+    properties:
+      id:
+        type: bigint
+        description: "Config ID"
+      user_id:
+        type: bigint
+        foreignKey: User
+        index: true
+        description: "Owner user ID"
+      name:
+        type: string
+        maxLength: 100
+        description: "Config name"
+      api_url:
+        type: string
+        maxLength: 500
+        description: "API endpoint URL"
+      api_key_encrypted:
+        type: text
+        description: "Encrypted API Key (AES-256-GCM)"
+      model:
+        type: string
+        maxLength: 100
+        description: "Model name"
+      provider:
+        type: string
+        maxLength: 50
+        default: openai
+        description: "Provider (openai, deepseek, anthropic, custom)"
+      is_active:
+        type: boolean
+        default: false
+        description: "Whether this is the active config"
+      sort_order:
+        type: integer
+        default: 0
+        description: "Sort order"
+      created_at:
+        type: string
+        format: date-time
+        description: "Creation time"
+      updated_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "Update time"
+    module: ai
+    orm: true
+    table: ai_configs
+    indexes:
+      - name: idx_ai_configs_user_id
+        columns:
+          - user_id
+      - name: idx_ai_configs_user_active
+        columns:
+          - user_id
+          - is_active
+    constraints:
+      - type: unique
+        columns:
+          - user_id
+          - name

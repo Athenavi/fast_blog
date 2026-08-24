@@ -1,40 +1,19 @@
 """
 评论订阅API
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.comments.comment_manager import comment_subscription_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, jwt_optional_dependency
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            print(f"Error: {str(e)}")
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/subscribe",
-             summary="订阅文章评论",
-             description="订阅指定文章的评论通知，支持用户和访客",
-             response_description="返回订阅结果")
-@_catch
 async def subscribe_to_article_api(
         article_id: int = Body(..., embed=True, description="文章ID"),
         email: str = Body(..., embed=True, description="订阅邮箱"),

@@ -2,7 +2,6 @@
 文章定时发布 API - V2 优化版
 """
 from datetime import datetime
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
@@ -11,22 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article
 from shared.services.articles.scheduled_publish import create_scheduled_publish_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.utils.database.main import get_async_session
 from src.auth import jwt_required_dependency as jwt_required
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-
-    return wrapper
 
 
 router = APIRouter(tags=["scheduled-publish"])

@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional, List
 from sqlalchemy import delete as sqlalchemy_delete
 
 from shared.models.multisite import Site, SiteUser, ContentMapping
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class MultiSiteService:

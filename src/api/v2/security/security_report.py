@@ -4,7 +4,6 @@
 提供安全报告的生成和查看功能
 """
 import logging
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -13,28 +12,13 @@ from shared.services.articles.anomaly_detector import anomaly_detector
 from shared.services.security.security_alert import security_alert_service
 from shared.services.security.security_report import report_generator
 from shared.services.security.audit_service import audit_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/daily", summary="生成日报", description="生成今日安全日报")
-@_catch
 async def generate_daily_report(
         current_user=Depends(jwt_required),
 ):

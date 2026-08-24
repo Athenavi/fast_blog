@@ -2,7 +2,6 @@
 AMP (Accelerated Mobile Pages) API
 提供AMP版本的文章页面
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy import select
@@ -11,29 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article, ArticleContent
 from shared.models.user import User
 from shared.services.advanced_features.amp_service import amp_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.utils.database.main import get_async_session
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(f"操作失败: {e}")
-    return wrapper
-
-
-@router.get("/{article_id}",
-            summary="获取文章AMP版本",
-            description="返回文章的AMP HTML页面,用于移动设备快速加载",
-            response_description="返回AMP HTML或重定向")
-@_catch
 async def get_article_amp_api(
         request: Request,
         article_id: int,

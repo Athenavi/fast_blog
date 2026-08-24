@@ -1,0 +1,16 @@
+{
+  "name": "SEO Auto",
+  "slug": "seo",
+  "version": "1.0.0",
+  "description": "Article-level SEO metadata: auto-generate meta on publish, provide meta builder for pages.",
+  "author": "FastBlog Team",
+  "category": "seo",
+  "tags": ["seo", "meta", "og", "schema"],
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
+  "icon": "🔍",
+  "price": "free",
+  "capabilities": [
+    "read:seo",
+    "write:seo"
+  ]
+}

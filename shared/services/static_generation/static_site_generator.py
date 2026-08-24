@@ -23,7 +23,7 @@ from shared.models.category import Category
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class StaticSiteGenerator:

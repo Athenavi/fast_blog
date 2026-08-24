@@ -2,25 +2,14 @@
 文章分析 API - V2 优化版
 提供文章阅读量趋势、来源渠道、读者分布等分析功能
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Query
 
 from shared.models.user import User as UserModel
 from shared.services.articles.article_analytics_service import article_analytics_service
 from src.api.v2._base import ApiResponse
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import get_current_active_user
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except Exception as e:
-            return fail(f"操作失败: {e}")
-    return wrapper
 
 
 router = APIRouter(tags=["article-analytics"])

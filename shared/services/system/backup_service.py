@@ -14,7 +14,7 @@ from pathlib import Path
 import asyncio
 from sqlalchemy import text
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class BackupService:

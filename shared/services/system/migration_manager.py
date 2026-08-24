@@ -22,7 +22,7 @@ class MigrationManager:
         cfg = Config(str(self.alembic_ini))
         # 从 app_config 同步数据库 URL
         try:
-            from src.setting import app_config
+            from shared.config.settings import app_config
             if app_config.database_url:
                 cfg.set_main_option("sqlalchemy.url", app_config.database_url)
         except Exception:
@@ -164,7 +164,7 @@ class MigrationManager:
                 'error': str(e),
             }
     
-    async def apply_all_migrations(self, db_session=None) -> Dict[str, Any]:
+    def apply_all_migrations(self, db_session=None) -> Dict[str, Any]:
         """
         执行所有待处理的迁移
         
@@ -271,9 +271,21 @@ class MigrationManager:
         current = self.get_current_revision()
         history = self.get_pending_migrations()
         
+        # 获取 head revision
+        head_rev = None
+        try:
+            from alembic.script import ScriptDirectory
+            cfg = self._get_alembic_cfg()
+            script = ScriptDirectory.from_config(cfg)
+            heads = script.get_heads()
+            head_rev = heads[0] if heads else None
+        except Exception:
+            pass
+        
         return {
             'success': current['success'] and history['success'],
             'current_revision': current.get('current_revision'),
+            'head_revision': head_rev,
             'has_pending': history.get('pending_count', 0) > 0,
             'pending_count': history.get('pending_count', 0),
             'pending_migrations': history.get('migrations', []),

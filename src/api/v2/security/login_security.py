@@ -3,14 +3,13 @@
 提供异常检测、频繁失败锁定、设备指纹识别等功能
 """
 import logging
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
 from shared.services.users.login_security_service import login_security_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
@@ -18,29 +17,6 @@ router = APIRouter(tags=["security"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# 注意：以下旧API端点已弃用，因为登录安全服务已重构为基于数据库的异步实现
-# 新的实现在登录流程中自动记录，无需单独调用
-
-# @router.post("/check-lock", summary="检查账户锁定状态")
-# async def check_account_lock(...):
-#     ...
-
-
-@router.get("/my-history", summary="获取我的登录历史")
-@_catch
 async def get_my_login_history(
         limit: int = Query(50, ge=1, le=200, description="返回数量"),
         current_user: UserModel = Depends(get_current_active_user),

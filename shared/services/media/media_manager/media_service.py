@@ -12,7 +12,7 @@ from sqlalchemy import select, func, delete as sa_delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 # 默认缩略图尺寸配置
 DEFAULT_THUMBNAIL_SIZES = [

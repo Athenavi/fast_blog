@@ -10,7 +10,7 @@ from typing import Dict, Any, Tuple
 
 from PIL import Image, ImageOps, ExifTags, ImageFilter
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 # MIME 类型映射
 MIME_TYPES = {

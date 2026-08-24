@@ -2,72 +2,31 @@
 
 **适用版本**: FastBlog V0.5.26.0612+
 
-This directory contains the test suite for FastBlog.
-
 ## Quick Start
 
 ```bash
-# Run all tests
-python -m pytest tests/
-
-# Run with coverage
-python -m pytest tests/ --cov=src --cov-report=html
-
-# Run specific test category
-python -m pytest tests/ -m unit          # Unit tests only
-python -m pytest tests/ -m integration   # Integration tests only
-
-# Run specific test file
-python -m pytest tests/test_api.py -v
+python -m pytest tests/                          # 运行全部测试
+python -m pytest tests/ --cov=src --cov-report=html  # 覆盖率报告
+python -m pytest tests/ -m unit                  # 仅单元测试
+python -m pytest tests/test_api.py -v            # 指定文件
 ```
 
-## Test Structure
+## Structure
 
 ```
 tests/
-├── conftest.py        # Shared fixtures and configuration
-├── test_health.py     # Health check endpoint tests
-├── test_models.py     # Data model unit tests
-├── test_api.py        # API endpoint tests
-└── README.md          # This file
+├── conftest.py           # 共享 fixtures
+├── test_health.py        # 健康检查
+├── test_models.py        # 模型单元测试
+├── test_api.py           # API 端点测试
+└── README.md             # 本文件
 ```
 
-## Writing Tests
+## Conventions
 
-### Test Naming Convention
+- 文件: `test_<module>.py`
+- 类: `Test<Feature>`
+- 函数: `test_<behavior>`
+- 标记: `@pytest.mark.unit` / `@pytest.mark.integration` / `@pytest.mark.slow`
 
-- Test files: `test_<module>.py`
-- Test classes: `Test<Feature>`
-- Test functions: `test_<behavior>`
-
-### Using Markers
-
-```python
-import pytest
-
-
-@pytest.mark.unit
-def test_fast_unit_test():
-    assert True
-
-
-@pytest.mark.integration
-def test_database_integration():
-    # Requires running database
-    pass
-
-
-@pytest.mark.slow
-def test_long_running_operation():
-    # Takes a long time to run
-    pass
-```
-
-### Fixtures
-
-Common fixtures are defined in `conftest.py`. Add project-wide fixtures there.
-
-## CI/CD
-
-Tests are automatically run on every push and pull request via GitHub Actions.
-See `.github/workflows/ci.yml` for the CI configuration.
+测试在每次 push 和 PR 时通过 GitHub Actions 自动运行。

@@ -5,8 +5,6 @@ from contextlib import contextmanager
 from typing import Generator, AsyncGenerator
 
 import redis
-from slowapi import _rate_limit_exceeded_handler, Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.ext.declarative import declarative_base
 
 from src.unified_logger import default_logger as logger
@@ -57,49 +55,6 @@ try:
     logger.info(f"Redis 客户端已创建（惰性连接）: {_redis_host}:{_redis_port}/{_redis_db}")
 
 
-    # 为 Redis 对象添加兼容的装饰器方法
-    def _redis_memoize(timeout=300):
-        """Redis memoize 装饰器"""
-        import functools
-        import json
-
-        def decorator(func):
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                # 创建缓存键
-                cache_key = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-
-                # 尝试从 Redis 获取
-                try:
-                    result = _redis_client.get(cache_key)
-                    if result is not None:
-                        # 尝试反序列化 JSON
-                        try:
-                            return json.loads(result)
-                        except (json.JSONDecodeError, TypeError):
-                            return result
-                except Exception:
-                    pass
-
-                # 执行函数
-                result = func(*args, **kwargs)
-
-                # 存储到 Redis
-                try:
-                    if isinstance(result, (dict, list)):
-                        _redis_client.setex(cache_key, timeout, json.dumps(result, ensure_ascii=False))
-                    else:
-                        _redis_client.setex(cache_key, timeout, str(result))
-                except Exception:
-                    pass
-
-                return result
-
-            return wrapper
-
-        return decorator
-
-
     def _redis_cached(timeout=300, key_prefix=''):
         """Redis cached 装饰器"""
         import functools
@@ -147,7 +102,6 @@ try:
 
         def __init__(self, redis_client):
             self._client = redis_client
-            self.memoize = _redis_memoize
             self.cached = _redis_cached
 
         def __getattr__(self, name):
@@ -617,13 +571,6 @@ def init_extensions(app):
     except Exception as e:
         print(f"Warning: Could not attach query monitoring: {e}")
 
-    # 限流中间件
-    try:
-        app.state.limiter = Limiter(key_func=get_remote_address)
-        app.add_exception_handler(429, _rate_limit_exceeded_handler)
-    except Exception as e:
-        print(f"Failed to initialize rate limiter: {e}")
-
     # 【移除】不再在这里创建表，由 Alembic 迁移管理
     # Base.metadata.create_all(bind=engine)  # 已删除
 
@@ -631,11 +578,23 @@ def init_extensions(app):
 # 便捷函数：获取数据库会话
 @contextmanager
 def get_db() -> Generator:
-    """获取数据库会话的便捷函数"""
-    if SessionLocal is None:
-        raise RuntimeError("Extensions not initialized. Call init_extensions first.")
+    """获取数据库会话的便捷函数（向后兼容）"""
+    from sqlalchemy.orm import sessionmaker
 
-    db_session = SessionLocal()
+    if SessionLocal is not None:
+        db_session = SessionLocal()
+    else:
+        # SessionLocal 已废弃为 None，从统一管理器获取同步引擎
+        try:
+            sync_engine = db_manager.async_engine.sync_engine
+            sync_session_factory = sessionmaker(bind=sync_engine)
+            db_session = sync_session_factory()
+        except Exception:
+            raise RuntimeError(
+                "Database not initialized. Ensure the application has started "
+                "properly with a configured database."
+            )
+
     try:
         yield db_session
     finally:

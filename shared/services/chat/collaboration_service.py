@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Dict, Any, List
 
 from shared.models.collaboration import Workspace, WorkspaceMember, Task
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class TeamRole(Enum):

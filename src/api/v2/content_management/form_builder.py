@@ -4,7 +4,6 @@
 """
 
 import json
-from functools import wraps
 from typing import List, Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks, HTTPException
@@ -13,23 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.form import Form, FormField, FormSubmission
 from shared.services.content_management.form_builder import form_builder
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["form-builder"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 async def send_form_notification_email(

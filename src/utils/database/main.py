@@ -1,5 +1,4 @@
 import importlib
-
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -11,10 +10,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, configure_mappers
 from sqlalchemy.pool import QueuePool
 
+from src.unified_logger import default_logger as logger
 # 导入统一管理器
 from src.utils.database.unified_manager import db_manager as unified_db_manager
 
-from src.unified_logger import default_logger as logger
 Base = declarative_base()
 _models_imported = False  # 防止重复导入模型
 
@@ -154,9 +153,9 @@ class DatabaseManager:
         pool_size = getattr(settings, 'database_pool_size', 50)
         max_overflow = getattr(settings, 'database_pool_overflow', 100)
         pool_timeout = getattr(settings, 'database_pool_timeout', 60)
-    
+
         logger.info(f"初始化同步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}")
-    
+
         self._sync_engine = create_engine(
             self.database_url,
             poolclass=QueuePool,
@@ -233,8 +232,8 @@ db = unified_db_manager
 def get_session():
     """
     同步会话上下文管理器（已废弃）
-    
-    ⚠️ 警告：这个方法已被弃用，请使用异步会话
+
+     警告：这个方法已被弃用，请使用异步会话
     推荐使用：from src.utils.database.unified_manager import db_manager
     """
     logger.warning(
@@ -253,10 +252,10 @@ from contextlib import asynccontextmanager
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """
     异步会话生成器（用于 FastAPI 依赖注入）
-    
+
     这是一个异步生成器，专门用于 FastAPI 的 Depends() 依赖注入。
     如果需要在代码中直接使用 async with，请使用 get_async_session_context()。
-    
+
     推荐使用：from src.utils.database.unified_manager import get_db_session
     """
     # 使用 async with 调用统一管理器的异步上下文管理器
@@ -268,10 +267,10 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
 async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
     """
     异步会话上下文管理器（用于直接调用）
-    
+
     这是一个异步上下文管理器，用于在代码中直接使用 async with 语法。
     不应用于 FastAPI 的 Depends() 依赖注入。
-    
+
     使用示例：
         async with get_async_session_context() as session:
             result = await session.execute(query)
@@ -291,7 +290,7 @@ def get_db():
 async def get_async_db():
     """
     异步数据库依赖（已迁移到统一管理器）
-    
+
     推荐使用：from src.utils.database.unified_manager import get_db_session
     """
     # 委托给统一管理器 - 使用 async with 而不是 async for

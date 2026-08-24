@@ -2,7 +2,6 @@
 封面图片API路由
 提供封面图片的生成和管理功能
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -12,7 +11,7 @@ from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
 from shared.services.articles.cover_image_service import cover_image_service
 from shared.utils.logger import get_logger
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -20,21 +19,6 @@ logger = get_logger(__name__)
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/generate-cover/{media_id}")
-@_catch
 async def generate_cover_url(
         media_id: int,
         current_user_obj=Depends(jwt_required),

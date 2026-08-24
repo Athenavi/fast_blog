@@ -9,7 +9,7 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AIAgentRecommendations:
@@ -291,12 +291,12 @@ class AIAgentRecommendations:
             scored_articles = []
             current_tags = set()
             if current_article.tags_list:
-                current_tags = set(t.strip() for t in current_article.tags_list.split(',') if t.strip())
+                current_tags = set(t.strip() for t in current_article.tags_list if t.strip())
 
             for article in candidates:
                 article_tags = set()
                 if article.tags_list:
-                    article_tags = set(t.strip() for t in article.tags_list.split(',') if t.strip())
+                    article_tags = set(t.strip() for t in article.tags_list if t.strip())
                 common_tags = current_tags.intersection(article_tags)
 
                 if common_tags:

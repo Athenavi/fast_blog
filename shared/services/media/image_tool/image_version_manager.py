@@ -16,7 +16,7 @@ from PIL import Image
 # updater/ 被 .dockerignore 排除，改为本地计算项目根目录
 base_dir = Path(__file__).resolve().parents[4]  # shared/services/media/image_tool/ → 项目根
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 # 预定义的尺寸配置
 SIZE_PRESETS = {

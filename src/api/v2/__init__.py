@@ -8,27 +8,10 @@ v2 版本采用以下原则：
 4. 合并重复模块功能
 5. 统一领域前缀
 
-领域映射表：
-- users: 用户认证与资料
-- articles: 文章核心功能
-- categories: 分类管理
-- search: 搜索功能
-- cms: CMS 内容管理
-- shop: 电商功能
-- monitoring: 性能监控
-- backup: 备份管理
-- cache: 缓存管理
-- translations: 国际化与翻译
-- ads: 广告管理
-- integrations: 第三方集成
-- seo: SEO 优化
-- gdpr: GDPR 合规
-- analytics: 统计分析
-- notifications: 通知消息
-- security: 安全管理
-- themes: 主题管理
-- ext: 扩展功能
+内置插件化：非核心功能模块（电商/企业/NFT/广告等）作为内置插件管理，
+默认启用，可通过环境变量 DISABLED_MODULES 关闭（逗号分隔模块名或短名），不删除代码。
 """
+import os
 
 # v2 路由注册表：(模块路径, v2前缀, 标签列表, 是否必需)
 ROUTE_REGISTRY_V2 = [
@@ -107,9 +90,6 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v2.performance", "/api/v2/performance", ["performance-v2"], True),
     # V1 performance 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
-    # ==================== 备份管理（V2 完整版）====================
-    ("src.api.v2.system.backup_management", "/api/v2/system", ["backup-v2"], True),
-
     # ==================== 系统管理（V2 聚合路由器）====================
     # V2 System 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.system", "/api/v2/system", ["system-v2"], True),
@@ -176,6 +156,8 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 高级扩展功能（V2 聚合路由器）====================
     # V2 Advanced Features 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.advanced_features", "/api/v2/ext", ["advanced-features-v2"], True),
+    # AI 配置管理
+    ("src.api.v2.ai", "/api/v2", ["ai-config"], False),
     # V1 advanced_features 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
     # ==================== 其他系统模块（V2 聚合路由器）====================
@@ -201,6 +183,49 @@ ROUTE_REGISTRY_V2 = [
     # 提供 MCP 代理 API，供 AI Chat 前端调用
     ("src.api.v2.mcp", "/api/v2", ["mcp-proxy-v2"], False),
 ]
+
+
+# ==================== 内置插件开关 ====================
+# 非核心功能模块（博客平台之外的扩展能力）规划为内置插件：
+# - 默认启用（不破坏现有功能）
+# - 可通过环境变量 DISABLED_MODULES 关闭，如 DISABLED_MODULES=ecommerce,enterprise
+# - 不删除代码，按需开/关
+OPTIONAL_PLUGIN_MODULES = {
+    'src.api.v2.ecommerce',          # 电商（产品/购物车/订单/支付管理/分账）
+    'src.api.v2.enterprise',         # 企业套件（许可证/工单/部署脚本/监控告警）
+    'src.api.v2.advanced_features',  # 高级扩展（NFT/WebSocket 等）
+    'src.api.v2.marketing',          # 广告管理
+    'src.api.v2.accessibility',      # 可访问性（AMP 等）
+    'src.api.v2.social',             # 社交（分享统计）
+    'src.api.v2.notifications',      # 通知（可独立关闭）
+    'src.api.v2.ai',                 # AI 配置
+}
+
+
+def _match_module(module_path: str, names: set) -> bool:
+    """模块名或短名匹配"""
+    short = module_path.split('.')[-1]
+    return module_path in names or short in names
+
+
+def is_module_enabled(module_path: str) -> bool:
+    """
+    判断模块是否注册（内置插件开关）。
+
+    规则：
+    1. examples_tools（示例/文档端点）仅在 DEBUG 环境暴露。
+    2. 核心模块（不在 OPTIONAL_PLUGIN_MODULES）始终启用。
+    3. DISABLED_MODULES 中列出的可选模块被关闭。
+    4. 可选模块默认启用。
+    """
+    if module_path == 'src.api.v2.examples_tools':
+        return os.environ.get('DEBUG', '').lower() in ('1', 'true', 'yes')
+    if module_path not in OPTIONAL_PLUGIN_MODULES:
+        return True
+    disabled = {x.strip() for x in os.environ.get('DISABLED_MODULES', '').split(',') if x.strip()}
+    if disabled and _match_module(module_path, disabled):
+        return False
+    return True
 
 # v1 到 v2 的路径映射表（用于自动重定向）
 V1_TO_V2_REDIRECT_MAP = {

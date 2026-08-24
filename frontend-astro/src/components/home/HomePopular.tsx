@@ -1,60 +1,57 @@
 'use client';
 
+/**
+ * 首页热门 - 大数字排名列表
+ * - 超大衬线排名数字（前 3 名蓝色 tint），标题 + 摘要 + 浏览量
+ * - 细线分隔，无卡片无火焰图标
+ */
 import React from 'react';
 import {motion} from 'framer-motion';
-import {Eye, Flame, TrendingUp} from 'lucide-react';
-import {getFullMediaUrl} from '@/lib/utils';
-import {Article} from './_shared';
-import {Section, fadeUp} from './_shared';
+import {Article, fadeUp, Section, SectionHeader} from './_shared';
 
 interface Props {
   articles: Article[];
 }
 
-const rankBgs = ['bg-amber-500 text-white shadow-lg shadow-amber-500/30', 'bg-gray-400 text-white', 'bg-orange-600 text-white'];
-
 export default function HomePopular({articles}: Props) {
   if (!articles.length) return null;
-  return (
-    <Section id="trending" className="py-20 sm:py-28 theme-bg-muted border-y theme-border">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8">
-        <motion.div variants={fadeUp} className="flex items-end justify-between mb-12">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full" />
-              <span className="text-sm font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-widest">Trending</span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black theme-text tracking-tight flex items-center gap-3">
-              <Flame className="w-8 h-8 text-orange-500" /> 热门趋势
-            </h2>
-            <p className="theme-text-secondary mt-2">最受欢迎的内容</p>
-          </div>
-        </motion.div>
+  const list = articles.slice(0, 8);
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {articles.map((article, i) => (
-            <motion.a key={article.id} variants={fadeUp} href={`/view?slug=${article.slug}`}
-              className="group relative flex flex-col theme-bg rounded-2xl border theme-border overflow-hidden
-                hover:theme-border transition-all duration-500 hover:-translate-y-1">
-              <div className="absolute top-3 left-3 z-10">
-                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-black ${rankBgs[i] || 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'}`}>{i + 1}</span>
-              </div>
-              <div className="relative aspect-[16/10] theme-bg-muted overflow-hidden">
-                {article.cover_image ? (
-                  <img src={getFullMediaUrl(article.cover_image)} alt={article.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center"><TrendingUp className="w-10 h-10 text-gray-200 dark:text-gray-700" /></div>
-                )}
-              </div>
-              <div className="p-4 flex-1">
-                <h3 className="font-bold theme-text text-sm line-clamp-2 group-hover:theme-text-primary transition-colors leading-relaxed mb-3">{article.title}</h3>
-                <div className="flex items-center gap-3 text-xs text-gray-400">
-                  <span><Eye className="w-3 h-3 inline" /> {article.views || 0}</span>
-                  <span><Eye className="w-3 h-3 inline" /> {article.likes || 0}</span>
-                </div>
-              </div>
-            </motion.a>
+  return (
+    <Section id="trending" className="relative bg-[#05070f]">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
+        <SectionHeader title="热门趋势" href="/articles"/>
+
+        <div className="grid lg:grid-cols-2 gap-x-16">
+          {[list.slice(0, 4), list.slice(4, 8)].map((column, colIdx) => (
+            <div key={colIdx} className="divide-y divide-white/[0.06]">
+              {column.map((article, i) => {
+                const rank = colIdx * 4 + i + 1;
+                return (
+                  <motion.a key={article.id} variants={fadeUp} href={`/view?slug=${article.slug}`}
+                            className="group flex items-start gap-6 py-6">
+                    <span className={`font-serif text-4xl sm:text-5xl font-semibold leading-none tabular-nums
+                      ${rank <= 3 ? 'text-blue-500/90' : 'text-slate-700'} transition-colors duration-300 group-hover:text-blue-400`}>
+                      {rank}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3
+                        className="font-medium text-slate-100 leading-snug transition-colors duration-300 group-hover:text-blue-300 line-clamp-2">
+                        {article.title}
+                      </h3>
+                      <p
+                        className="mt-2 text-sm text-slate-500 line-clamp-2">{article.excerpt || article.summary || ''}</p>
+                      <p className="mt-2.5 text-xs text-slate-600">
+                        {article.views !== undefined ? `${article.views.toLocaleString()} 次阅读` : ''}
+                        {article.likes !== undefined && article.views !== undefined &&
+                          <span className="mx-1.5 text-slate-700">·</span>}
+                        {article.likes !== undefined && `${article.likes.toLocaleString()} 次点赞`}
+                      </p>
+                    </div>
+                  </motion.a>
+                );
+              })}
+            </div>
           ))}
         </div>
       </div>

@@ -2,7 +2,6 @@
 文章修订注释 API
 """
 from datetime import datetime, timezone
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Body
@@ -11,19 +10,9 @@ from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import ArticleRevisionNote
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 router = APIRouter(tags=["revision-notes"])

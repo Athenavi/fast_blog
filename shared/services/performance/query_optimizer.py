@@ -11,7 +11,7 @@ from typing import Dict, List, Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class QueryOptimizer:

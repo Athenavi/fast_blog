@@ -49,5 +49,5 @@ assignees: ''
 ## ✅ 检查清单
 
 - [ ] 我已经搜索了现有的 Issues，确认没有重复
-- [ ] 我已经阅读了[故障排查文档](../docs/TROUBLESHOOTING_FAQ.md)
+- [ ] 我已经阅读了[故障排查文档](../docs/operations.md)
 - [ ] 我提供了足够的信息来复现这个问题

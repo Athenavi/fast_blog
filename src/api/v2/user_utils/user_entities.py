@@ -16,7 +16,8 @@ def auth_by_uid(article_id: int, user_id: int, db: Session) -> bool:
         article_query = select(Article).where(
             Article.id == article_id,
             Article.user == user_id,
-            Article.status != -1  # 排除已删除的文章
+            Article.status != -1,  # 排除已删除的文章
+            Article.deleted_at.is_(None)
         )
         article_result = db.execute(article_query)
         article = article_result.scalar_one_or_none()

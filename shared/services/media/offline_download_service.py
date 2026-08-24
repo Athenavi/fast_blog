@@ -12,7 +12,7 @@ from shared.models import User
 from shared.models.media import DownloadTask
 from shared.services.performance.resource_transfer_service import ResourceTransferService
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 # ─── VIP 等级限制配置 ───────────────────────────────────────
@@ -196,9 +196,11 @@ class OfflineDownloadService:
         if not allowed:
             return None, error
 
-        # URL 验证
-        if not source_url or not source_url.startswith(('http://', 'https://')):
-            return None, "URL 必须以 http:// 或 https:// 开头"
+        # URL 验证（含 SSRF 防护：拒绝非公网地址）
+        from src.utils.security.safe import validate_public_url
+        valid, url_err = validate_public_url(source_url)
+        if not valid:
+            return None, url_err
 
         # 检查待处理任务总大小限制（防止队列堆积过大）
         MAX_PENDING_SIZE = 1 * 1024 * 1024 * 1024  # 1 GB

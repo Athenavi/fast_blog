@@ -2,6 +2,7 @@
 
 import React, {useState} from 'react';
 import {ChevronDown} from 'lucide-react';
+import ToolResultVisualizer from './ToolResultVisualizer';
 
 // ─── Tool Call Card ────────────────────────────
 
@@ -50,12 +51,7 @@ export default function ToolCallCard({toolCall, result, done}: ToolCallCardProps
           {done && result && (
             <div>
               <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">结果</div>
-              <pre className="text-[11px] bg-white/60 dark:bg-black/20 rounded-lg p-2.5 overflow-x-auto text-gray-600 dark:text-gray-400 font-mono leading-relaxed max-h-40 overflow-y-auto border border-black/5 dark:border-white/5">
-                {(() => {
-                  try { return JSON.stringify(JSON.parse(result), null, 2); }
-                  catch { return result; }
-                })()}
-              </pre>
+              <ToolResultVisualizer name={toolCall.name} result={result} />
             </div>
           )}
         </div>

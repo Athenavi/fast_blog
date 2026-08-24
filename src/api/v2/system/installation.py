@@ -3,36 +3,18 @@
 """
 import asyncio
 import json
-from functools import wraps
 
-from fastapi import APIRouter, Body, HTTPException
+from fastapi import APIRouter, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from shared.services.install.install_manager.installation_wizard import installation_wizard_service
 from shared.services.install.install_manager.migration_service import migration_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/prerequisites",
-            summary="检查安装前置条件",
-            description="检查系统环境是否满足安装要求",
-            response_description="返回前置条件检查结果")
-@_catch
 async def check_prerequisites_api():
     """检查安装前置条件"""
     result = installation_wizard_service.check_prerequisites()
@@ -179,7 +161,7 @@ async def _import_sample_data_helper(import_articles: bool, import_categories: b
                         {
                             'title': '欢迎使用 FastBlog',
                             'slug': 'welcome-to-fastblog',
-                            'content': '# 欢迎使用 FastBlog\n\n这是一个基于 FastAPI 和 Next.js构建的现代化博客系统。\n\n## 特性\n\n- 🚀 高性能：基于 FastAPI 异步框架\n- 🎨 美观：现代化的 UI 设计\n- 🔌 可扩展：强大的插件系统\n- 📱 响应式：完美支持移动端\n\n开始你的博客之旅吧！',
+                            'content': '# 欢迎使用 FastBlog\n\n这是一个基于 FastAPI 和 Next.js构建的现代化博客系统。\n\n## 特性\n\n-  高性能：基于 FastAPI 异步框架\n- 🎨 美观：现代化的 UI 设计\n- 🔌 可扩展：强大的插件系统\n- 📱 响应式：完美支持移动端\n\n开始你的博客之旅吧！',
                             'excerpt': '欢迎使用 FastBlog 博客系统',
                             'status': 1,
                         },
@@ -309,7 +291,6 @@ async def create_admin_user_api(
         return fail("System already installed")
 
     # 直接调用内部异步函数
-    from shared.services.install.install_manager.installation_wizard import installation_wizard_service as wizard
 
     # 验证密码强度（与注册页面规则一致）
     from src.utils.security.password_validator import validate_password_strength
@@ -341,13 +322,14 @@ async def create_admin_user_api(
 
             # 重新加载 .env 文件
             load_dotenv(override=True)
-            print("  ✓ .env 文件已重新加载")
+            print("   .env 文件已重新加载")
 
             # 重新导入并初始化设置
             import src.setting
             importlib.reload(src.setting)
             from src.setting import settings as new_settings
-            print(f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
+            print(
+                f"   配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
 
             # 重置并重新初始化数据库管理器
             unified_db_manager._async_engine = None
@@ -355,7 +337,7 @@ async def create_admin_user_api(
             unified_db_manager.initialize()
 
             if unified_db_manager._async_session_factory is not None:
-                print("✓ 数据库连接池初始化成功")
+                print(" 数据库连接池初始化成功")
             else:
                 return fail('数据库连接池初始化失败。请确认已完成"确认数据库配置并执行迁移"步骤。')
         except Exception as init_err:
@@ -468,7 +450,7 @@ async def complete_installation_api(
         json.dump(install_info, f, ensure_ascii=False, indent=2)
 
     print("\n" + "=" * 60)
-    print("✓ 安装完成！")
+    print(" 安装完成！")
     print("=" * 60)
 
     # 如果选择导入示例数据，调用辅助函数
@@ -482,12 +464,12 @@ async def complete_installation_api(
             )
 
             if result.success:
-                print(f"✓ {result.data.get('message', '示例数据导入成功')}")
+                print(f" {result.data.get('message', '示例数据导入成功')}")
                 sample_data_imported = True
             else:
-                print(f"✗ 示例数据导入失败: {result.error}")
+                print(f" 示例数据导入失败: {result.error}")
         except Exception as e:
-            print(f"✗ 示例数据导入失败: {str(e)}")
+            print(f" 示例数据导入失败: {str(e)}")
 
     return ok(data={
         "success": True,
@@ -559,7 +541,7 @@ async def stream_migration_logs():
 
             if status.get('is_up_to_date'):
                 yield f"data: {json.dumps({'type': 'info', 'message': '数据库已是最新版本，无需迁移'}, ensure_ascii=False)}\n\n"
-                yield f"data: {json.dumps({'type': 'success', 'message': '✓ 数据库已就绪'}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'success', 'message': ' 数据库已就绪'}, ensure_ascii=False)}\n\n"
                 return
 
             # 执行迁移并实时推送日志

@@ -3,7 +3,7 @@
 提供统一的日志记录功能
 """
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 def get_logger(name=None, **kwargs):

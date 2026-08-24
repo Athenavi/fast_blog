@@ -3,13 +3,12 @@
 提供CSV、Excel等格式的数据导出功能
 """
 
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Response, HTTPException
 
 from shared.services.system.data_export_service import data_export_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 from shared.models.user import User as UserModel
 from src.auth.auth_deps import admin_required as admin_required_api
@@ -17,20 +16,6 @@ from src.auth.auth_deps import admin_required as admin_required_api
 router = APIRouter(tags=["export"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/users", summary="导出用户列表")
-@_catch
 async def export_users(
         format: str = Query('csv', enum=['csv', 'excel'], description="导出格式"),
         limit: int = Query(1000, ge=1, le=10000, description="导出数量"),

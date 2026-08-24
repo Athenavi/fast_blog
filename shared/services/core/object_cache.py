@@ -9,7 +9,7 @@ from functools import wraps
 from typing import Any, Dict, List, Optional, Callable
 
 from shared.services.core.multi_level_cache import MultiLevelCache, multi_level_cache
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 
@@ -187,7 +187,7 @@ class ObjectCacheService:
         # 清除标签索引
         await self.cache.delete(index_key)
 
-        from src.unified_logger import default_logger as logger
+        from shared.logging import default_logger as logger
         logger.info(f"[ObjectCache] Invalidated {deleted_count} objects with tag: {tag}")
         return deleted_count
 

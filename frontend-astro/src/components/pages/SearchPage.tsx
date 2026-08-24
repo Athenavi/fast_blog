@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/base-client';
 import { QueryProvider } from '@/components/QueryProvider';
+import DOMPurify from 'dompurify';
 import { Search, Loader2, FileText, Calendar, User, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SearchResult {
@@ -101,8 +102,9 @@ function SearchPageInner() {
 
   const highlight = (text?: string) => {
     if (!text) return '';
-    // The API already returns <mark> tags from Meilisearch
-    return text;
+    // 后端已对标题/摘要做 HTML 转义并插入 <mark>；此处二次兜底消毒，
+    // 仅放行 <mark> 标签，防止任何残留 HTML 被 dangerouslySetInnerHTML 执行
+    return DOMPurify.sanitize(text, {ALLOWED_TAGS: ['mark'], ALLOWED_ATTR: []});
   };
 
   const formatDate = (ts?: number) => {

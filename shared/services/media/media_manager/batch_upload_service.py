@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from shared.services.media.image_tool import image_processor
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 # 默认配置
 DEFAULT_MAX_CONCURRENT = 5

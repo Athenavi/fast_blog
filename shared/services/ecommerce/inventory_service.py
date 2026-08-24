@@ -12,7 +12,7 @@ from sqlalchemy import select, update, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.ecommerce import Product
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class InventoryService:

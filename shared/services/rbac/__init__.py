@@ -8,7 +8,7 @@ from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.rbac import Role, Capability, RoleCapability, UserRole
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 async def get_user_capabilities(
