@@ -19,17 +19,17 @@ class VIPSubscription(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
-    user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
+    user = Column(BigInteger, ForeignKey('users.id'), index=True, doc='用户')
 
 
-    plan = Column(Integer, ForeignKey('vip_plans.id'), doc='套餐')
+    plan = Column(Integer, ForeignKey('vip_plans.id'), index=True, doc='套餐')
 
 
     starts_at = Column(DateTime, doc='开始时间')
 
-    expires_at = Column(DateTime, doc='过期时间')
+    expires_at = Column(DateTime, index=True, doc='过期时间')
 
-    status = Column(BigInteger, default=0, doc='状态')
+    status = Column(BigInteger, default=0, index=True, doc='状态')
 
 
     payment_amount = Column(Numeric(10, 2), nullable=True, doc='实际支付金额')

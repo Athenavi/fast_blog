@@ -95,11 +95,6 @@ RUN find /usr/local/lib/python3.14/site-packages -name '__pycache__' -type d -ex
 COPY --from=builder /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
 COPY --from=builder /usr/local/bin/ffprobe /usr/local/bin/ffprobe
 
-# Fix secure-python-utils broken __init__.py (PasswordService import error)
-RUN python -c "from pathlib import Path; \
-    p = Path('/usr/local/lib/python3.14/site-packages/secure_python_utils/__init__.py'); \
-    p.write_text('# Patched: removed broken PasswordService import to fix startup error\n') if p.exists() else None"
-
 # Create necessary directories BEFORE copying app code (better layer caching)
 # IMPORTANT: chown writable directories in the same RUN layer to avoid a separate chown layer
 # Create ALL runtime directories that may be excluded by .dockerignore

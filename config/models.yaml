@@ -2159,10 +2159,12 @@ models:
         type: bigint
         description: 用户
         foreignKey: User
+        index: true
       plan:
         type: integer
         description: 套餐
         foreignKey: VIPPlan
+        index: true
       starts_at:
         type: string
         format: date-time
@@ -2171,10 +2173,12 @@ models:
         type: string
         format: date-time
         description: 过期时间
+        index: true
       status:
         type: bigint
         default: 0
         description: 状态
+        index: true
       payment_amount:
         type: number
         nullable: true

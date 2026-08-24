@@ -49,7 +49,7 @@ async def delete_media(arguments: dict) -> dict:
         media = await db.scalar(select(Media).where(Media.id == int(media_id)))
         if not media:
             raise ValueError(f"媒体 #{media_id} 不存在")
-        if media.user_id != ctx.id and not ctx.is_superuser:
+        if media.user != ctx.id and not ctx.is_superuser:
             raise PermissionError("只能删除自己的媒体文件")
         await db.delete(media)
         await db.commit()

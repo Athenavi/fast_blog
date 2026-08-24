@@ -143,6 +143,12 @@ class ResourceTransferService:
             resume_position: int = 0
     ) -> Optional[Media]:
         """带断点续传的下载"""
+        # SSRF 防护：目标地址必须为公网，拒绝内网/回环/云元数据
+        from src.utils.security.safe import validate_public_url
+        valid, url_err = validate_public_url(task.source_url)
+        if not valid:
+            raise Exception(f"目标 URL 校验失败（SSRF 防护）: {url_err}")
+
         headers = {}
         if resume_position > 0:
             headers['Range'] = f'bytes={resume_position}-'

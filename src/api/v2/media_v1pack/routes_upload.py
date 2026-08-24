@@ -62,9 +62,9 @@ async def upload_media_file(
         'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
         'application/vnd.ms-powerpoint.template.macroEnabled.12',
         'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
-        # ===== 文档 & 文本 =====
-        'text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml',
-        'application/json', 'application/xml',
+        # ===== 文档 & 文本（禁止 text/html / text/xml / application/xml，防止同源 XSS）=====
+        'text/plain', 'text/markdown', 'text/csv',
+        'application/json',
         # ===== 压缩包 & 归档 =====
         'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
         'application/gzip', 'application/x-tar', 'application/x-bzip2',
@@ -174,9 +174,9 @@ async def _process_single_file(user_id, file_data, filename, allowed_size, allow
         'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
         'application/vnd.ms-powerpoint.template.macroEnabled.12',
         'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
-        # ===== 文档 & 文本 =====
-        'text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml',
-        'application/json', 'application/xml',
+        # ===== 文档 & 文本（禁止 text/html / text/xml / application/xml，防止同源 XSS）=====
+        'text/plain', 'text/markdown', 'text/csv',
+        'application/json',
         # ===== 压缩包 & 归档 =====
         'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
         'application/gzip', 'application/x-tar', 'application/x-bzip2',

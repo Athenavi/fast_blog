@@ -407,3 +407,66 @@ def is_valid_hash(length, f_hash):
             c in '0123456789abcdef' for c in f_hash.lower()):
         return False
     return True
+
+
+def validate_public_url(url: str):
+    """
+    校验 URL 是否为可安全访问的公网地址，用于防 SSRF。
+
+    拒绝条件：
+    - 非 http/https 协议
+    - 主机为回环/私网/链路本地/保留地址（含 169.254.169.254 云元数据）
+    - 域名解析结果中存在任一非公网 IP（防止指向内网）
+
+    注意：仍有极小概率的 DNS 重绑定窗口，生产网关建议配合网络层白名单。
+    Returns:
+        (is_valid: bool, error_message: str)
+    """
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    if not url:
+        return False, "URL 不能为空"
+    try:
+        parsed = urlparse(url)
+    except Exception:
+        return False, "URL 格式无效"
+
+    if parsed.scheme not in ('http', 'https'):
+        return False, "仅支持 http/https 协议"
+    host = parsed.hostname
+    if not host:
+        return False, "URL 缺少主机名"
+
+    def _check_ip(ip_str):
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            return True, ""
+        # is_global 为 False 覆盖：私网/回环/链路本地/保留/组播
+        if not ip.is_global:
+            return False, f"目标地址 {ip_str} 为非公网地址，已阻止访问"
+        return True, ""
+
+    # 主机本身是 IP
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        pass
+    else:
+        return _check_ip(host)
+
+    # 域名：解析全部 A/AAAA，任一指向内网即拒绝
+    try:
+        infos = socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)
+    except socket.gaierror:
+        return False, "无法解析主机名"
+    ips = {info[4][0] for info in infos}
+    if not ips:
+        return False, "无法解析主机名"
+    for ip_str in ips:
+        ok_, msg = _check_ip(ip_str)
+        if not ok_:
+            return False, msg
+    return True, ""

@@ -8,9 +8,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.articles.analytics import create_analytics_service
+from src.auth import admin_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(tags=["analytics"])
+# 平台级统计分析仅管理员可访问（含用户数/浏览量/趋势等内部数据）
+router = APIRouter(tags=["analytics"], dependencies=[Depends(admin_required)])
 
 
 def _catch(func):
@@ -21,9 +23,11 @@ def _catch(func):
         except HTTPException:
             raise
         except Exception as e:
-            import traceback
-            traceback.print_exc()
-            raise HTTPException(status_code=500, detail=str(e))
+            import logging
+            logging.getLogger("fastblog.api").exception(
+                "Unhandled error in %s", getattr(func, '__name__', func)
+            )
+            raise HTTPException(status_code=500, detail="服务器内部错误")
     return wrapper
 
 

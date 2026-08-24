@@ -6,6 +6,7 @@ import {AI_RECOMMENDATIONS, MEDIA} from '@/lib/api/api-paths';
 import {Image as ImageIcon2, ImageIcon, Loader, Sparkles, Upload, X, Eye, EyeOff} from 'lucide-react';
 import {apiClient} from '@/lib/api/base-client';
 import {markdownToHtml} from '@/lib/markdown-converter';
+import DOMPurify from 'dompurify';
 
 interface MarkdownEditorProps {
   value: string;
@@ -79,7 +80,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
   // Preview: scroll sync
   useEffect(() => {
     if (!showPreview || !previewRef.current) return;
-    previewRef.current.innerHTML = markdownToHtml(value);
+    // 预览渲染同样经过 DOMPurify 消毒，与 ArticleDetail 保持一致（自 XSS 纵深防御）
+    previewRef.current.innerHTML = DOMPurify.sanitize(markdownToHtml(value));
   }, [value, showPreview]);
 
   // Paste-upload

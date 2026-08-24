@@ -3,9 +3,13 @@
 export const prerender = false;
 import Layout from '@/layouts/Layout.astro';
 import ArticleDetail from '@/components/pages/ArticleDetail';
+import SeoHead from '@/components/seo/SeoHead.astro';
 import {apiClient} from '@/lib/api/base-client';
 
 const slug = Astro.url.searchParams.get('slug') || '';
+
+// 站点根地址（用于 canonical/og:url，取自 astro.config 的 site）
+const siteUrl = Astro.site?.origin ?? '';
 
 // SSR：服务端预取文章数据
 let initialArticle: any = null;
@@ -46,16 +50,21 @@ if (slug) {
   }
 }
 import '@/styles/globals.css';
+
+// 文章级 SEO 标题/描述（优先 SEO 字段，其次文章字段）
+const seoTitle = initialArticle?.seo_title || initialArticle?.title || '文章详情';
+const seoDescription = initialArticle?.seo_description || initialArticle?.excerpt || 'FastBlog 文章';
 ---
 
-<Layout title={initialArticle?.title ? `${initialArticle.title} - FastBlog` : '文章详情 - FastBlog'}>
+<Layout title={`${seoTitle} - FastBlog`} description={seoDescription}>
+  <SeoHead slot="head" article={initialArticle} siteUrl={siteUrl} />
   <main class="max-w-full py-8 pt-20">
     <ArticleDetail
       slug={slug}
       initialArticle={initialArticle}
       initialRelated={initialRelated}
       initialLoadError={initialLoadError}
-      client:load
+      client:idle
     />
   </main>
 </Layout>

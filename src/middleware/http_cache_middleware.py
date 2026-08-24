@@ -132,6 +132,9 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
             auth_header = request.headers.get('authorization')
             if auth_header:
                 return True
+            # Cookie 鉴权同样视为非公开请求（避免缓存用户个性化数据并串发给他人）
+            if request.cookies.get('access_token') or request.cookies.get('access_token_cookie'):
+                return True
 
         # 检查查询参数中的 no-cache
         if 'no-cache' in request.query_params:

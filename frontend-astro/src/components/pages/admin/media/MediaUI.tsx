@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import DOMPurify from 'dompurify';
 import {
   AlertTriangle, ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight,
   Clock, Download, Eye, FileText, FolderOpen, Grid, Image, List, Music,
@@ -243,7 +244,7 @@ export const DeleteConfirm: React.FC<{
             <p className="text-sm text-gray-500 dark:text-gray-400">此操作不可撤销</p>
           </div>
         </div>
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6" dangerouslySetInnerHTML={{__html: message}}/>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6" dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(message)}}/>
         <div className="flex justify-end gap-3">
           <button onClick={onCancel}
                   className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">

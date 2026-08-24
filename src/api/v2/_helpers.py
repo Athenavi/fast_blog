@@ -36,9 +36,14 @@ def _catch(func):
                 content={"success": False, "error": e.detail},
             )
         except Exception as e:
+            # 服务端记录详细异常；客户端只返回通用信息，避免泄露内部细节
+            import logging
+            logging.getLogger("fastblog.api").exception(
+                "Unhandled error in %s", getattr(func, '__name__', func)
+            )
             return JSONResponse(
                 status_code=500,
-                content={"success": False, "error": f"服务器内部错误: {str(e)}"},
+                content={"success": False, "error": "服务器内部错误"},
             )
     return wrapper
 
@@ -64,4 +69,8 @@ async def call(
         data = extract(result) if extract else result
         return ok(data=data, msg=f'{error_prefix}成功')
     except Exception as e:
-        return fail(f'{error_prefix}失败: {e}')
+        import logging
+        logging.getLogger("fastblog.api").exception(
+            "Service call failed: %s", error_prefix
+        )
+        return fail(f'{error_prefix}失败')

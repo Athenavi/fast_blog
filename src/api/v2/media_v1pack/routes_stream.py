@@ -103,7 +103,7 @@ async def get_media_file_by_id(
         current_user_obj=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    logger.info(f"[DEBUG] 请求媒体文件 - ID: {media_id}, User: {current_user_obj.id}")
+    logger.debug(f"[DEBUG] 请求媒体文件 - ID: {media_id}, User: {current_user_obj.id}")
 
     # 查询媒体文件（支持访问自己的文件或公开文件）
     media_query = select(Media).where(Media.id == media_id)
@@ -114,12 +114,12 @@ async def get_media_file_by_id(
         logger.error(f"[ERROR] 媒体文件不存在 - ID: {media_id}")
         raise HTTPException(status_code=404, detail="文件不存在")
 
-    logger.info(
+    logger.debug(
         f"[DEBUG] 找到媒体文件 - ID: {media.id}, Hash: {media.hash}, User: {media.user}, IsPublic: {media.is_public}")
 
     # 检查用户权限（只能访问自己的文件或公开文件）
     if media.user != current_user_obj.id and not media.is_public:
-        logger.warning(f"[WARN] 无权访问 - Media User: {media.user}, Current User: {current_user_obj.id}")
+        logger.debug(f"[WARN] 无权访问 - Media User: {media.user}, Current User: {current_user_obj.id}")
         raise HTTPException(status_code=403, detail="无权访问该媒体文件")
 
     # 查询文件哈希信息

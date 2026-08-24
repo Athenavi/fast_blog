@@ -3,7 +3,8 @@
 import '@/styles/globals.css';
 import '@/styles/rtl.css';
 import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import ThemeHeader from '@/components/theme/ThemeHeader';
+import ThemeFooter from '@/components/theme/ThemeFooter';
 import {GlobalShortcuts} from '@/components/GlobalShortcuts';
 import MobileGestures from '@/components/MobileGestures';
 
@@ -59,14 +60,14 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
       })();
     </script>
 
-    <!-- Active theme CSS: injected after page load -->
+    <!-- Active theme CSS + 契约应用：注入激活主题样式，并把设置落地为 CSS 变量与布局属性 -->
     <script is:inline>
       (function() {
-        var cssUrl = '/api/v2/themes/active/css';
-        var existing = document.getElementById('active-theme-css');
-        if (!existing) {
-          fetch(cssUrl).then(function(r) { return r.json(); }).then(function(data) {
-            if (data && data.data && data.data.css) {
+        var root = document.documentElement;
+        // 1) 注入激活主题 CSS
+        if (!document.getElementById('active-theme-css')) {
+          fetch('/api/v2/themes/active/css').then(function(r) { return r.json(); }).then(function(data) {
+            if (data && data.data && data.data.css && !document.getElementById('active-theme-css')) {
               var style = document.createElement('style');
               style.id = 'active-theme-css';
               style.textContent = data.data.css;
@@ -74,6 +75,41 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
             }
           }).catch(function() {});
         }
+        // 2) 应用主题契约（颜色/排版/圆角 → CSS 变量，布局 → data-* 属性）
+        fetch('/api/v2/themes/active/config').then(function(r) { return r.json(); }).then(function(data) {
+          var d = data && data.data;
+          if (!d) return;
+          function setVar(n, v) { if (v !== undefined && v !== null && v !== '') { root.style.setProperty(n, String(v)); } }
+          var s = (d.contract && d.contract.settings) || d.config || {};
+          if (s.colors) {
+            setVar('--color-primary', s.colors.primary);
+            setVar('--color-primary-hover', s.colors.primary);
+            setVar('--color-accent', s.colors.accent);
+            setVar('--color-surface', s.colors.background);
+            setVar('--color-surface-elevated', s.colors.muted);
+            setVar('--color-text', s.colors.foreground);
+            setVar('--color-text-secondary', s.colors.secondary);
+            setVar('--color-text-muted', s.colors.muted);
+            setVar('--color-muted', s.colors.muted);
+            setVar('--color-border', s.colors.border);
+          }
+          if (s.typography && s.typography.fontFamily) { setVar('--font-sans', s.typography.fontFamily); }
+          if (s.components && s.components.borderRadius) {
+            ['--radius-sm','--radius-md','--radius-lg','--radius-xl','--radius-2xl'].forEach(function(n){ setVar(n, s.components.borderRadius); });
+          }
+          var layout = (d.contract && d.contract.layout) || {};
+          if (layout.sidebarPosition) { root.dataset.sidebar = layout.sidebarPosition; }
+          if (layout.contentWidth) { root.dataset.contentWidth = layout.contentWidth; }
+          if (typeof layout.showHeader === 'boolean') { root.dataset.showHeader = String(layout.showHeader); }
+          if (typeof layout.showFooter === 'boolean') { root.dataset.showFooter = String(layout.showFooter); }
+          // 组件槽位：header / articleCard / footer
+          var slots = (d.contract && d.contract.componentSlots) || {};
+          if (slots.header) { root.dataset.themeHeader = slots.header; }
+          if (slots.articleCard) { root.dataset.themeCard = slots.articleCard; }
+          if (slots.footer) { root.dataset.themeFooter = slots.footer; }
+          // 通知前端组件重新读取槽位
+          try { window.dispatchEvent(new CustomEvent('theme:applied')); } catch (e) {}
+        }).catch(function() {});
       })();
     </script>
 
@@ -84,7 +120,7 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
             onload="document.addEventListener('astro:after-swap', function(){try{renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});}catch(e){}});renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});"></script>
   </head>
   <body class="antialiased theme-bg theme-text" suppressHydrationWarning>
-    <Navbar client:load />
+    <ThemeHeader client:load />
     <GlobalShortcuts client:load />
     <MobileGestures client:load />
 
@@ -92,7 +128,7 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
       <slot />
     </main>
 
-    <Footer client:load />
+    <ThemeFooter client:load />
 
     <slot name="scripts" />
   </body>

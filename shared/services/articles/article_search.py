@@ -18,6 +18,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article, ArticleContent
 from shared.models.search import SearchHistory
 
+# 状态字符串 -> Article.status 整数值
+STATUS_MAP = {"published": 1, "draft": 0, "deleted": -1}
+
 
 class ArticleSearchService:
     """
@@ -57,11 +60,11 @@ class ArticleSearchService:
         Returns:
             搜索结果和分页信息
         """
-        # 构建基础查询
+        # 构建基础查询（ArticleContent.article 为外键列名；status 为 Integer）
         stmt = (
             select(Article)
-            .join(ArticleContent, Article.id == ArticleContent.article_id, isouter=True)
-            .where(Article.status == status)
+            .join(ArticleContent, Article.id == ArticleContent.article, isouter=True)
+            .where(Article.status == STATUS_MAP.get(status, 1))
         )
 
         # 全文搜索条件
@@ -80,11 +83,11 @@ class ArticleSearchService:
 
         # 分类过滤
         if category_id:
-            stmt = stmt.where(Article.category_id == category_id)
+            stmt = stmt.where(Article.category == category_id)
 
         # 作者过滤
         if author_id:
-            stmt = stmt.where(Article.author_id == author_id)
+            stmt = stmt.where(Article.user == author_id)
 
         # 日期范围过滤
         if date_from:
@@ -146,44 +149,39 @@ class ArticleSearchService:
 
     def _highlight_text(self, text: str, query: str, max_length: int = 200) -> str:
         """
-        高亮文本中的搜索关键词
+        高亮文本中的搜索关键词（返回已 HTML 转义的安全片段）
 
-        Args:
-            text: 原始文本
-            query: 搜索关键词
-            max_length: 最大长度
-
-        Returns:
-            高亮后的文本
+        先对原文与关键词做 HTML 转义再插入 <mark> 高亮，防止标题/摘要
+        中的恶意 HTML 被前端 dangerouslySetInnerHTML 直接执行（反射型 XSS）。
         """
-        if not query or not text:
-            return text
+        from html import escape
 
-        # 查找关键词位置
-        query_lower = query.lower()
-        text_lower = text.lower()
+        if not text:
+            return ""
+        safe_text = escape(str(text))
+        if not query:
+            return safe_text[:max_length] + ("..." if len(safe_text) > max_length else "")
 
-        # 找到第一个匹配位置
-        pos = text_lower.find(query_lower)
+        safe_query = escape(query)
+        pos = safe_text.lower().find(safe_query.lower())
         if pos == -1:
-            return text[:max_length] + "..." if len(text) > max_length else text
+            return safe_text[:max_length] + ("..." if len(safe_text) > max_length else "")
 
         # 截取上下文
         start = max(0, pos - 50)
-        end = min(len(text), pos + len(query) + 150)
-
-        snippet = text[start:end]
+        end = min(len(safe_text), pos + len(safe_query) + 150)
+        snippet = safe_text[start:end]
 
         # 添加省略号
         if start > 0:
             snippet = "..." + snippet
-        if end < len(text):
+        if end < len(safe_text):
             snippet = snippet + "..."
 
-        # 高亮关键词（使用 HTML 标签）
+        # 高亮关键词（使用 HTML 标签，关键词本身已转义）
         highlighted = snippet.replace(
-            query,
-            f"<mark>{query}</mark>",
+            safe_query,
+            f"<mark>{safe_query}</mark>",
             1  # 只替换第一个
         )
 
@@ -210,7 +208,7 @@ class ArticleSearchService:
         stmt = (
             select(Article.title)
             .where(
-                Article.status == "published",
+                Article.status == 1,
                 Article.title.ilike(f"{query}%")
             )
             .order_by(desc(Article.views))
@@ -240,28 +238,26 @@ class ArticleSearchService:
         one_hour_ago = datetime.now() - timedelta(hours=1)
 
         stmt = select(SearchHistory).where(
-            SearchHistory.query == query,
+            SearchHistory.keyword == query,
             SearchHistory.created_at >= one_hour_ago
         )
 
         if user_id:
-            stmt = stmt.where(SearchHistory.user_id == user_id)
+            stmt = stmt.where(SearchHistory.user == user_id)
 
         result = await db.execute(stmt)
         existing = result.scalar_one_or_none()
 
         if existing:
             # 更新计数
-            existing.count += 1
-            existing.updated_at = datetime.now()
+            existing.results_count = (existing.results_count or 0) + 1
         else:
             # 创建新记录
             history = SearchHistory(
-                query=query,
-                user_id=user_id,
-                count=1,
-                created_at=datetime.now(),
-                updated_at=datetime.now()
+                keyword=query,
+                user=user_id,
+                results_count=1,
+                created_at=datetime.now()
             )
             db.add(history)
 
@@ -288,11 +284,11 @@ class ArticleSearchService:
 
         stmt = (
             select(
-                SearchHistory.query,
-                func.sum(SearchHistory.count).label('total_count')
+                SearchHistory.keyword,
+                func.sum(SearchHistory.results_count).label('total_count')
             )
             .where(SearchHistory.created_at >= since)
-            .group_by(SearchHistory.query)
+            .group_by(SearchHistory.keyword)
             .order_by(desc('total_count'))
             .limit(limit)
         )
@@ -301,7 +297,7 @@ class ArticleSearchService:
         rows = result.all()
 
         return [
-            {'query': row.query, 'count': row.total_count}
+            {'query': row.keyword, 'count': row.total_count}
             for row in rows
         ]
 

@@ -313,6 +313,11 @@ const Navbar: React.FC = () => {
       );
     });
 
+  // 主题布局契约：data-show-header="false" 时隐藏导航
+  if (typeof document !== 'undefined' && document.documentElement.dataset.showHeader === 'false') {
+    return null;
+  }
+
   return (
     <>
       {/* ─── 左浮动：品牌 logo 胶囊 ─── */}

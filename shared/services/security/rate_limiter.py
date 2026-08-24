@@ -34,6 +34,7 @@ class RateLimiter:
         """
         self.redis_url = redis_url
         self.redis_client = None
+        self._redis_attempted = False
         self.memory_store: Dict[str, list] = defaultdict(list)
 
         # 默认限流配置
@@ -58,13 +59,35 @@ class RateLimiter:
                 logger.warning(f"Failed to connect to Redis, using memory store: {e}")
                 self.redis_client = None
 
+    async def ensure_redis(self):
+        """惰性连接 Redis（生产环境优先使用 Redis，避免跨实例/多 worker 限流失效）"""
+        if self.redis_client is not None or self._redis_attempted:
+            return
+        self._redis_attempted = True
+        try:
+            from src.setting import settings
+            host = getattr(settings, 'REDIS_HOST', 'localhost') or 'localhost'
+            port = int(getattr(settings, 'REDIS_PORT', 6379) or 6379)
+            db = int(getattr(settings, 'REDIS_DB', 0) or 0)
+            password = getattr(settings, 'REDIS_PASSWORD', None)
+            url = (f"redis://:{password}@{host}:{port}/{db}" if password
+                   else f"redis://{host}:{port}/{db}")
+            self.redis_url = url
+            await self.initialize()
+        except Exception as e:
+            logger.warning(f"Rate limiter Redis init failed, using memory store: {e}")
+            self.redis_client = None
+
     def _get_key(self, prefix: str, identifier: str) -> str:
         """生成限流键"""
         return f"rate_limit:{prefix}:{identifier}"
 
     async def _add_request_memory(self, key: str, timestamp: float):
-        """在内存中添加请求记录"""
-        self.memory_store[key].append(timestamp)
+        """在内存中添加请求记录（限制单键长度，防止无界增长）"""
+        lst = self.memory_store[key]
+        lst.append(timestamp)
+        if len(lst) > 2000:
+            self.memory_store[key] = lst[-2000:]
 
     async def _get_request_count_memory(self, key: str, window: int) -> int:
         """从内存中获取窗口内的请求数"""
@@ -101,19 +124,19 @@ class RateLimiter:
             endpoint: str = None
     ) -> Tuple[bool, Dict[str, Any]]:
         """
-        检查速率限制（优化版：单次检查 + 避免重复 IP 查询）
+        检查速率限制（优化版：单次检查 + 避免重复计数）
 
-        Args:
-            user_id: 用户ID
-            ip_address: IP地址
-            endpoint: API端点
+        注意：每个检查（IP/用户）只调用一次 is_rate_limited，
+        避免旧实现对同一维度检查两次导致计数翻倍。
 
         Returns:
             (是否允许, 限流信息)
         """
-        # 先检查IP限流
+        limit_info = {}
+
+        # 检查 IP 限流（单次）
         if ip_address:
-            limited, ip_info = await self.check_ip_limit(ip_address, endpoint)
+            limited, ip_info = await self.is_rate_limited(ip_address, 'ip', endpoint)
             if limited:
                 return False, {
                     'retry_after': ip_info['window'],
@@ -125,10 +148,15 @@ class RateLimiter:
                         }
                     }
                 }
+            limit_info['ip'] = {
+                'limit': ip_info['max_requests'],
+                'remaining': ip_info.get('remaining', ip_info['max_requests']),
+                'reset': time.time() + ip_info['window']
+            }
 
-        # 再检查用户限流
+        # 检查用户限流（单次）
         if user_id:
-            limited, user_info = await self.check_user_limit(user_id, endpoint)
+            limited, user_info = await self.is_rate_limited(str(user_id), 'user', endpoint)
             if limited:
                 return False, {
                     'retry_after': user_info['window'],
@@ -140,17 +168,6 @@ class RateLimiter:
                         }
                     }
                 }
-
-        # 构建限流信息（避免重复 IP 查询）
-        limit_info = {}
-        if ip_address:
-            _, ip_info = await self.check_ip_limit(ip_address, endpoint)
-            limit_info['ip'] = {
-                'limit': ip_info['max_requests'],
-                'remaining': ip_info.get('remaining', ip_info['max_requests']),
-                'reset': time.time() + ip_info['window']
-            }
-        if user_id:
             quota = await self.get_quota_info(user_id)
             limit_info['user'] = {
                 'limit': quota['quota_limit'],
@@ -320,6 +337,19 @@ class RateLimiter:
 rate_limiter = RateLimiter()
 
 
+def _resolve_client_ip(request: Request) -> str:
+    """解析客户端真实 IP（优先信任反向代理设置的 X-Forwarded-For / X-Real-IP）"""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        first = forwarded.split(",")[0].strip()
+        if first and first.lower() not in ("unknown", ""):
+            return first
+    real = request.headers.get("X-Real-IP")
+    if real and real.strip():
+        return real.strip()
+    return request.client.host if request.client else "unknown"
+
+
 async def rate_limit_middleware(request: Request, call_next):
     """
     限流中间件
@@ -328,8 +358,11 @@ async def rate_limit_middleware(request: Request, call_next):
     """
     from fastapi.responses import JSONResponse
 
-    # 获取客户端IP
-    client_ip = request.client.host if request.client else "unknown"
+    # 使用真实客户端 IP（反向代理场景下避免全站共享一个 IP 桶）
+    client_ip = _resolve_client_ip(request)
+
+    # 生产环境优先使用 Redis 存储（多 worker/多实例共享限流计数）
+    await rate_limiter.ensure_redis()
 
     # 获取API端点
     endpoint = request.url.path

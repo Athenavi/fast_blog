@@ -18,6 +18,18 @@
 }
 
 /* ═══════════════════════════════════════════
+   Theme Layout Contract — 由激活主题契约驱动
+   ═══════════════════════════════════════════ */
+:root { --content-max-width: 72rem; }
+[data-content-width="max-w-3xl"] { --content-max-width: 48rem; }
+[data-content-width="max-w-4xl"] { --content-max-width: 56rem; }
+[data-content-width="max-w-5xl"] { --content-max-width: 64rem; }
+[data-content-width="max-w-6xl"] { --content-max-width: 72rem; }
+.theme-container { width: 100%; max-width: var(--content-max-width); margin-inline: auto; }
+[data-show-header="false"] header { display: none !important; }
+[data-show-footer="false"] footer { display: none !important; }
+
+/* ═══════════════════════════════════════════
    FastBlog Design System - Global Styles
    ═══════════════════════════════════════════ */
 

@@ -10,6 +10,7 @@ export interface ActiveThemeInfo {
 
 export interface ActiveThemeConfig {
     config: Record<string, any>;
+    contract?: any;
     theme: ActiveThemeInfo | null;
 }
 

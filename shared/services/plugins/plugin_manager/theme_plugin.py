@@ -129,11 +129,57 @@ class ThemePlugin(BasePlugin):
     def get_settings_schema(self) -> dict:
         """
         获取设置架构（用于前端动态渲染配置表单）
-        来自 metadata.json 中的 settings_schema
+        优先读取 theme.json 中的 settings_schema，其次 metadata.json
         """
-        if self.metadata:
-            return self.metadata.get("settings_schema", {})
-        return {}
+        config = self.get_theme_config()
+        schema = config.get("settings_schema", {})
+        if not schema and self.metadata:
+            schema = self.metadata.get("settings_schema", {})
+        return schema
+
+    def get_component_slots(self) -> dict:
+        """
+        获取组件槽位选择（componentSlots）：
+        已保存的覆盖（settings._componentSlots）优先，其次 theme.json 默认。
+        """
+        defaults = self.get_theme_config().get("componentSlots", {})
+        overrides = (self.settings or {}).get("_componentSlots", {})
+        if not isinstance(overrides, dict):
+            overrides = {}
+        merged = dict(defaults)
+        merged.update({k: v for k, v in overrides.items() if v})
+        return merged
+
+    def get_theme_contract(self) -> dict:
+        """
+        返回主题契约（标准结构，供后端下发 / 前端动态应用）
+
+        契约包含：metadata、默认设置、设置表单 schema、布局契约、
+        组件契约、能力列表、截图、CSS/配置地址。
+        前端据此动态渲染配置面板、应用布局/组件/样式。
+        """
+        config = self.get_theme_config()
+        meta = config.get("metadata", {}) or {}
+        settings = self.get_theme_settings()
+        return {
+            "version": config.get("version", "1.0"),
+            "metadata": {
+                "name": getattr(self, "name", "") or meta.get("name", ""),
+                "slug": getattr(self, "slug", ""),
+                "version": getattr(self, "version", ""),
+                "description": getattr(self, "description", "") or meta.get("description", ""),
+                "author": getattr(self, "author", "") or meta.get("author", ""),
+            },
+            "settings": settings,
+            "settings_schema": self.get_settings_schema(),
+            "layout": settings.get("layout", config.get("layout", {})),
+            "components": settings.get("components", config.get("components", {})),
+            "componentSlots": self.get_component_slots(),
+            "supports": config.get("supports", []),
+            "screenshot": self.get_screenshot_path(),
+            "css_url": "/api/v2/themes/active/css",
+            "config_url": "/api/v2/themes/active/config",
+        }
 
     # ─── 生命周期 ──────────────────────────
 

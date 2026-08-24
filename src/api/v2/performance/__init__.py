@@ -27,7 +27,12 @@ def _build_router():
     from src.api.v2.performance.query_monitor import router as query_monitor_router
     from src.api.v2.performance.query_optimization import router as query_optimization_router
     from src.api.v2.performance.resource_optimization import router as resource_optimization_router
-    from src.api.v2.performance.cdn_optimization import router as cdn_optimization_router
+
+    # CDN 集成为模拟实现（不发送真实请求），仅 DEBUG 环境暴露
+    import os
+    if os.environ.get('DEBUG', '').lower() in ('1', 'true', 'yes'):
+        from src.api.v2.performance.cdn_optimization import router as cdn_optimization_router
+        router.include_router(cdn_optimization_router, prefix="/cdn")
 
     router.include_router(cache_management_router, prefix="/admin/caches")
     router.include_router(performance_monitor_router, prefix="/performance-monitor")
@@ -40,7 +45,6 @@ def _build_router():
     router.include_router(query_monitor_router, prefix="/query-monitor")
     router.include_router(query_optimization_router, prefix="/query-optimization")
     router.include_router(resource_optimization_router, prefix="/resource-optimization")
-    router.include_router(cdn_optimization_router, prefix="/cdn")
 
     _router = router
     return _router

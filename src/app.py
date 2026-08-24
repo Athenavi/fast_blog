@@ -92,9 +92,15 @@ def register_all_routes(app: FastAPI, worker_info: str):
     print(f"{worker_info} 开始注册 API v2 路由...")
     routes_start = _time.monotonic()
     try:
-        from src.api.v2 import ROUTE_REGISTRY_V2
+        from src.api.v2 import ROUTE_REGISTRY_V2, is_module_enabled as _plugin_enabled
         loaded_count = 0
         failed_count = 0
+
+        # 应用内置插件开关：过滤被 DISABLED_MODULES 关闭的非核心模块
+        _disabled = [m for (m, _p, _t, _r) in ROUTE_REGISTRY_V2 if not _plugin_enabled(m)]
+        if _disabled:
+            print(f"{worker_info} [Plugin] 已关闭非核心模块: {_disabled}")
+        ROUTE_REGISTRY_V2 = [(m, p, t, r) for (m, p, t, r) in ROUTE_REGISTRY_V2 if _plugin_enabled(m)]
 
         # Phase 0: 预热 shared.models 子包，避免并行导入时 _DeadlockError
         # Python 的 import 系统对包 __init__.py 使用模块锁，
@@ -293,9 +299,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         print(f"[调度器初始化] 跳过: {e}")
 
     if is_installed:
-        step_start = _time.monotonic()
-        await safe_run_async("定时发布调度器", _start_scheduled_publisher)
-        print(f"[lifespan] 定时发布调度器耗时: {_time.monotonic() - step_start:.2f}s")
+        # 定时发布由 SessionScheduler（src/scheduler.py，每 5 分钟）统一处理，
+        # 已移除独立的 shared.services.core.scheduler 60s 循环，避免双触发竞态。
+        pass
 
     # 4. 插件系统
     try:
@@ -349,13 +355,6 @@ async def _init_database():
     db_manager.initialize()
 
 
-async def _start_scheduled_publisher():
-    from src.utils.database.unified_manager import db_manager
-    from shared.services.core.scheduler import start_scheduler, init_scheduler
-    init_scheduler(db_manager.async_session_factory, check_interval=60)
-    await start_scheduler()
-
-
 def _init_plugins():
     try:
         from shared.services.plugins.plugin_manager.init import initialize_plugins
@@ -402,6 +401,33 @@ async def _warm_permission_cache():
         print(f"[lifespan] 权限缓存预热跳过: {e}")
 
 
+def _enable_redis_caches():
+    """多 worker 场景：将全局缓存后端切换到 Redis（失败静默降级内存）"""
+    try:
+        from src.setting import settings as _st
+        import redis as _redis
+
+        host = getattr(_st, 'REDIS_HOST', 'localhost') or 'localhost'
+        port = int(getattr(_st, 'REDIS_PORT', 6379) or 6379)
+        db = int(getattr(_st, 'REDIS_DB', 0) or 0)
+        password = getattr(_st, 'REDIS_PASSWORD', None) or None
+
+        from shared.services.core.cache_service import cache_service
+        cache_service.use_redis = True
+        cache_service.key_prefix = 'fastblog:'
+        cache_service.redis_client = _redis.Redis(
+            host=host, port=port, db=db, password=password,
+            decode_responses=True, socket_connect_timeout=3, socket_timeout=3,
+        )
+
+        from shared.services.core.multi_level_cache import multi_level_cache
+        multi_level_cache.redis_enabled = True
+
+        print("[CacheService] 已启用 Redis 共享缓存后端（多 worker）")
+    except Exception as e:
+        print(f"[CacheService] 启用 Redis 缓存后端失败，继续使用内存缓存: {e}")
+
+
 async def _start_redis_subscriber():
     """启动 Redis 缓存广播订阅（后台任务，失败不阻塞）"""
     try:
@@ -415,6 +441,7 @@ async def _start_redis_subscriber():
         from src.services.redis_service import redis_service
         await redis_service.connect()
         await redis_service.start_cache_invalidation_listener()
+        _enable_redis_caches()
         print(f"[lifespan] Redis cache:invalidate 监听已启动")
     except Exception as e:
         print(f"[lifespan] Redis cache:invalidate 监听启动失败: {e}")
@@ -486,43 +513,47 @@ def register_middleware(app: FastAPI):
         expose_headers=["Content-Length", "X-Total-Count"],
     )
 
-    # 统一调试中间件
-    class DebugMiddleware(BaseHTTPMiddleware):
+    # 统一调试中间件（仅 DEBUG 环境启用，避免生产环境打印敏感请求头/请求体）
+    from src.setting import app_config as _app_cfg
+    _debug_enabled = bool(getattr(_app_cfg, 'DEBUG', False))
 
-        async def dispatch(self, request, call_next):
-            url = str(request.url)
-            if "/sensitive-words" in url:
-                print(f"\n[DEBUG] 请求: {request.method} {url}")
-                print(f"[DEBUG] Headers: {dict(request.headers)}")
-                if request.method == "POST":
-                    try:
-                        # 先读取 body
-                        body = await request.body()
-                        print(f"[DEBUG] Body: {body.decode('utf-8')}")
+    if _debug_enabled:
+        class DebugMiddleware(BaseHTTPMiddleware):
 
-                        # 重要：将 body 重新设置回 request，以便后续 endpoint 可以读取
-                        async def receive():
-                            return {"type": "http.request", "body": body}
+            async def dispatch(self, request, call_next):
+                url = str(request.url)
+                if "/sensitive-words" in url:
+                    print(f"\n[DEBUG] 请求: {request.method} {url}")
+                    print(f"[DEBUG] Headers: {dict(request.headers)}")
+                    if request.method == "POST":
+                        try:
+                            # 先读取 body
+                            body = await request.body()
+                            print(f"[DEBUG] Body: {body.decode('utf-8')}")
 
-                        request._receive = receive
-                    except Exception as e:
-                        print(f"[DEBUG] 无法读取 body: {e}")
-            response = await call_next(request)
-            if "/sensitive-words" in url and response.status_code == 422:
-                print(f"[DEBUG] 422 响应: {response.status_code}")
-            return response
+                            # 重要：将 body 重新设置回 request，以便后续 endpoint 可以读取
+                            async def receive():
+                                return {"type": "http.request", "body": body}
 
-    app.add_middleware(DebugMiddleware)
+                            request._receive = receive
+                        except Exception as e:
+                            print(f"[DEBUG] 无法读取 body: {e}")
+                response = await call_next(request)
+                if "/sensitive-words" in url and response.status_code == 422:
+                    print(f"[DEBUG] 422 响应: {response.status_code}")
+                return response
 
-    # WebSocket 调试（简化）
-    class WSDebugMiddleware(BaseHTTPMiddleware):
+        app.add_middleware(DebugMiddleware)
 
-        async def dispatch(self, request, call_next):
-            if request.headers.get("upgrade", "").lower() == "websocket" and "/collaboration/ws/" in str(request.url):
-                print(f"[WS DEBUG] 连接尝试: {request.url}")
-            return await call_next(request)
+        # WebSocket 调试（简化）
+        class WSDebugMiddleware(BaseHTTPMiddleware):
 
-    app.add_middleware(WSDebugMiddleware)
+            async def dispatch(self, request, call_next):
+                if request.headers.get("upgrade", "").lower() == "websocket" and "/collaboration/ws/" in str(request.url):
+                    print(f"[WS DEBUG] 连接尝试: {request.url}")
+                return await call_next(request)
+
+        app.add_middleware(WSDebugMiddleware)
 
     # HTTP 缓存
     try:
@@ -629,6 +660,12 @@ def register_error_handlers(app: FastAPI):
     async def health_check():
         # 原逻辑简化
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+    @app.get("/sitemap.xml", include_in_schema=False)
+    async def root_sitemap():
+        """站点地图根路径（nginx 已反代 /sitemap.xml 到后端）— 301 到动态 sitemap"""
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap.xml", status_code=301)
 
     @app.get("/api/v2/mobile-login", tags=["qr-login"])
     async def mobile_login_page(request: Request):

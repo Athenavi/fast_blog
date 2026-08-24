@@ -111,6 +111,37 @@ class ArticleCacheService:
         except Exception as e:
             logger.error(f"使文章缓存失效失败: {e}")
 
+    async def invalidate_public_caches(self, article_id: int = None):
+        """文章/分类变更后使全部公开缓存失效（首页聚合 + 文章列表 + 首页文章）
+
+        覆盖：home:data:*（首页聚合）、article:list:*（文章列表）、
+        文章详情/计数，并向其他实例广播失效消息（多 worker 场景）。
+        """
+        try:
+            # 1) 文章列表 + 详情 + 计数
+            if article_id:
+                await self.invalidate_article(article_id)
+            else:
+                keys = await self._find_keys_by_pattern(f"{self.ARTICLE_LIST_PREFIX}:*")
+                if keys:
+                    await redis_service.delete(*keys)
+                await redis_service.delete(f"{self.ARTICLE_COUNT_PREFIX}:all")
+
+            # 2) 首页聚合数据（home:data:*）
+            home_keys = await self._find_keys_by_pattern("home:data:*")
+            if home_keys:
+                await redis_service.delete(*home_keys)
+
+            # 3) 广播缓存失效（多实例共享）
+            try:
+                await redis_service.publish_cache_invalidation(["article:list", "home:data"])
+            except Exception as e:
+                logger.debug(f"缓存失效广播失败: {e}")
+
+            logger.info("公开缓存已失效（首页聚合 + 文章列表）")
+        except Exception as e:
+            logger.error(f"使公开缓存失效失败: {e}")
+
     async def invalidate_category_articles(self, category_id: int):
         """使分类下的文章列表缓存失效"""
         try:

@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, {useState, useMemo} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -6,19 +6,13 @@ import {apiClient} from '@/lib/api/base-client';
 import {ARTICLES} from '@/lib/api/api-paths';
 import {ChevronRight, Clock, FileText, GitCompare, History, RotateCcw, Trash2, User, X} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import DOMPurify from 'dompurify';
 
 interface Revision {id:number;revision_number:number;title:string;excerpt:string;content:string;change_summary:string|null;created_at:string;author?:{username:string};}
 interface Props {articleId:number|string;open:boolean;onClose:()=>void;onCollapse?:()=>void;onRestore:(c:string,t:string,e:string)=>void;}
 
-// 基于 DOM 的 HTML 净化（移除 script/on* 等 XSS 载体）
-const sanitizeHtml = (html: string): string => {
-  if (typeof document === 'undefined') return html.replace(/<script\b[^<]*(?:<\/script>)/gi, '');
-  const el = document.createElement('div');
-  el.innerHTML = html;
-  const scripts = el.querySelectorAll('script, iframe, object, embed, [onerror], [onload], [onclick], [onmouseover], [onfocus], [onblur]');
-  scripts.forEach(s => s.remove());
-  return el.innerHTML;
-};
+// 使用 DOMPurify 净化 HTML（与评论渲染一致），替代易绕过的自定义黑名单实现
+const sanitizeHtml = (html: string): string => DOMPurify.sanitize(html);
 
 const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,onRestore}) => {
   const qc = useQueryClient();

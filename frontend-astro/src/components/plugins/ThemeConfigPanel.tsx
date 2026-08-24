@@ -3,7 +3,7 @@
 import React, {useState, useEffect} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
-import {Palette, Save, RotateCcw, CheckCircle, AlertCircle} from 'lucide-react';
+import {Palette, Save, RotateCcw, CheckCircle, AlertCircle, Layers} from 'lucide-react';
 
 interface Props {
     pluginSlug: string;
@@ -11,9 +11,38 @@ interface Props {
     themeDescription?: string;
 }
 
+// 组件槽位定义：可供主题覆盖的组件与其可用变体
+const SLOT_DEFS: { key: string; label: string; options: { value: string; label: string }[] }[] = [
+    {
+        key: 'header',
+        label: '顶部导航',
+        options: [
+            {value: 'floating', label: '浮动胶囊（默认）'},
+            {value: 'classic', label: '经典顶栏'},
+        ],
+    },
+    {
+        key: 'articleCard',
+        label: '文章卡片',
+        options: [
+            {value: 'default', label: '标准卡片（默认）'},
+            {value: 'compact', label: '紧凑卡片'},
+        ],
+    },
+    {
+        key: 'footer',
+        label: '页脚',
+        options: [
+            {value: 'default', label: '标准（默认）'},
+            {value: 'minimal', label: '极简'},
+        ],
+    },
+];
+
 export default function ThemeConfigPanel({pluginSlug, themeName, themeDescription}: Props) {
     const qc = useQueryClient();
     const [settings, setSettings] = useState<any>({});
+    const [componentSlots, setComponentSlots] = useState<Record<string, string>>({});
     const [notification, setNotification] = useState<{type: 'success' | 'error'; message: string} | null>(null);
 
     // 自动清除通知
@@ -40,12 +69,15 @@ export default function ThemeConfigPanel({pluginSlug, themeName, themeDescriptio
         if (configData?.settings) {
             setSettings(configData.settings);
         }
+        if (configData?.contract?.componentSlots) {
+            setComponentSlots({...configData.contract.componentSlots});
+        }
     }, [configData]);
 
     // 保存主题配置
     const saveMut = useMutation({
-        mutationFn: (newSettings: any) =>
-            apiClient.put(`/themes/${pluginSlug}/config`, {settings: newSettings}),
+        mutationFn: (payload: {settings: any; component_slots: Record<string, string>}) =>
+            apiClient.put(`/themes/${pluginSlug}/config`, payload),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['theme-config', pluginSlug]});
             qc.invalidateQueries({queryKey: ['themes-installed']});
@@ -56,9 +88,10 @@ export default function ThemeConfigPanel({pluginSlug, themeName, themeDescriptio
         },
     });
 
-    const handleSave = () => saveMut.mutate(settings);
+    const handleSave = () => saveMut.mutate({settings, component_slots: componentSlots});
     const handleReset = () => {
         if (configData?.settings) setSettings({...configData.settings});
+        if (configData?.contract?.componentSlots) setComponentSlots({...configData.contract.componentSlots});
     };
 
     if (isLoading) {
@@ -115,6 +148,33 @@ export default function ThemeConfigPanel({pluginSlug, themeName, themeDescriptio
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* 组件槽位 */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl border p-6 space-y-6">
+                <div className="flex items-center gap-3">
+                    <Layers className="w-5 h-5 text-blue-600"/>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">组件</h3>
+                    <span className="text-xs text-gray-400">选择该主题下各组件使用的变体</span>
+                </div>
+                <div className="space-y-4 pl-2">
+                    {SLOT_DEFS.map((slot) => (
+                        <div key={slot.key}>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                {slot.label}
+                            </label>
+                            <select
+                                value={componentSlots[slot.key] || slot.options[0]?.value || ''}
+                                onChange={(e) => setComponentSlots((prev) => ({...prev, [slot.key]: e.target.value}))}
+                                className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                {slot.options.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* 操作按钮 */}

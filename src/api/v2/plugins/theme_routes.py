@@ -57,6 +57,7 @@ async def list_marketplace_themes(
     result = []
     for theme in themes:
         info = theme.get_info()
+        contract = theme.get_theme_contract() if hasattr(theme, 'get_theme_contract') else {}
         result.append({
             "name": info.get("name", ""),
             "slug": info.get("slug", ""),
@@ -71,6 +72,7 @@ async def list_marketplace_themes(
             "is_installed": info.get("is_installed", False),
             "is_active": info.get("is_active", False),
             "settings_schema": info.get("settings_schema", {}),
+            "contract": contract,
         })
 
     if category != "all":
@@ -109,6 +111,7 @@ async def list_installed_themes(
         if not theme.installed:
             continue
         info = theme.get_info()
+        contract = theme.get_theme_contract() if hasattr(theme, 'get_theme_contract') else {}
         result.append({
             "name": info.get("name", ""),
             "slug": info.get("slug", ""),
@@ -123,6 +126,7 @@ async def list_installed_themes(
             "is_active": info.get("is_active", False),
             "is_installed": info.get("is_installed", False),
             "settings_schema": info.get("settings_schema", {}),
+            "contract": contract,
         })
     return ok(data=result)
 
@@ -204,12 +208,14 @@ async def get_theme_config(
     config = plugin.get_theme_config() if hasattr(plugin, 'get_theme_config') else {}
     settings = plugin.settings or config.get("settings", {})
     settings_schema = plugin.metadata.get("settings_schema", {})
+    contract = plugin.get_theme_contract() if hasattr(plugin, 'get_theme_contract') else {}
 
     return ok(data={
         "slug": slug,
         "settings": settings,
         "settings_schema": settings_schema,
         "supports": config.get("supports", []),
+        "contract": contract,
     })
 
 
@@ -224,6 +230,7 @@ async def update_theme_config(
     plugin = _get_theme_plugin(slug)
     body = await request.json()
     new_settings = body.get("settings", body)  # 兼容 {settings: {...}} 和直接传 {...}
+    component_slots = body.get("component_slots") or body.get("componentSlots")
 
     if hasattr(plugin, 'update_theme_settings'):
         success = plugin.update_theme_settings(new_settings)
@@ -232,12 +239,18 @@ async def update_theme_config(
         plugin.save_settings()
         success = True
 
+    # 组件槽位覆盖（持久化到 settings._componentSlots）
+    if component_slots and isinstance(component_slots, dict):
+        plugin.settings["_componentSlots"] = component_slots
+        plugin.save_settings()
+
     if not success:
         return fail("主题配置保存失败")
 
     return ok(data={
         "slug": slug,
         "settings": plugin.settings,
+        "componentSlots": plugin.get_component_slots() if hasattr(plugin, 'get_component_slots') else component_slots,
     })
 
 
@@ -261,18 +274,21 @@ async def get_active_theme_css():
 
 @router.get("/themes/active/config")
 async def get_active_theme_config():
-    """返回激活主题的配置（无认证，公开端点）"""
+    """返回激活主题的契约与配置（无认证，公开端点，前端据此应用主题）"""
     active_theme = plugin_manager.get_active_theme_plugin()
     if not active_theme:
-        return ok(data={"config": {}, "theme": None})
+        return ok(data={"config": {}, "contract": None, "theme": None})
 
     if hasattr(active_theme, 'get_theme_settings'):
         settings = active_theme.get_theme_settings()
     else:
         settings = active_theme.settings or {}
 
+    contract = active_theme.get_theme_contract() if hasattr(active_theme, 'get_theme_contract') else {}
+
     return ok(data={
         "config": settings,
+        "contract": contract,
         "theme": {
             "slug": active_theme.slug,
             "name": active_theme.name,

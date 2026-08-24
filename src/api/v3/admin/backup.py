@@ -4,7 +4,11 @@ V3 备份管理 API
 权限要求:
   POST   /backup              → backup:create
   POST   /backup/restore      → backup:restore
-  DELETE /backup/{id}         → backup:delete
+  DELETE /backup/{backup_id}  → backup:delete
+
+实现说明: 统一委托给 V2 BackupService（真实实现，含备份/恢复/删除），
+避免与 V2 重复维护两套备份逻辑，同时修复原先引用不存在的
+DatabaseBackup.create_backup/restore_backup 方法导致的 500 与假删除。
 """
 import logging
 
@@ -14,9 +18,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db, get_current_user
 from src.api.v3._permission import Permission
+from shared.services.system.backup_service import BackupService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-backup"])
+
+backup_service = BackupService()
 
 
 @router.post("/backup", summary="创建备份")
@@ -25,13 +32,12 @@ async def create_backup(
     _=Depends(Permission("backup:create")),
 ):
     try:
-        from src.utils.database.backup import DatabaseBackup
-        from src.utils.database.main import engine
-
-        backup = DatabaseBackup(engine)
-        filename = backup.create_backup()
-        return ApiResponse(success=True, data={"filename": filename}, message="备份创建成功")
+        result = await backup_service.backup_database(backup_type="full")
+        if result.get("success"):
+            return ApiResponse(success=True, data=result.get("metadata", {}), message="备份创建成功")
+        return ApiResponse(success=False, error=result.get("error", "备份失败"))
     except Exception as e:
+        logger.exception("V3 backup create failed")
         return ApiResponse(success=False, error=f"备份失败: {e}")
 
 
@@ -42,13 +48,12 @@ async def restore_backup(
     _=Depends(Permission("backup:restore")),
 ):
     try:
-        from src.utils.database.backup import DatabaseBackup
-        from src.utils.database.main import engine
-
-        backup = DatabaseBackup(engine)
-        backup.restore_backup(filename)
-        return ApiResponse(success=True, message="备份恢复成功")
+        result = await backup_service.restore_database(filename)
+        if result.get("success"):
+            return ApiResponse(success=True, message="备份恢复成功")
+        return ApiResponse(success=False, error=result.get("error", "恢复失败"))
     except Exception as e:
+        logger.exception("V3 backup restore failed")
         return ApiResponse(success=False, error=f"恢复失败: {e}")
 
 
@@ -58,4 +63,11 @@ async def delete_backup(
     db: AsyncSession = Depends(get_db),
     _=Depends(Permission("backup:delete")),
 ):
-    return ApiResponse(success=True, message="备份已删除")
+    try:
+        result = backup_service.delete_backup(backup_id)
+        if result:
+            return ApiResponse(success=True, message="备份已删除")
+        return ApiResponse(success=False, error="备份删除失败")
+    except Exception as e:
+        logger.exception("V3 backup delete failed")
+        return ApiResponse(success=False, error=f"删除失败: {e}")

@@ -38,8 +38,9 @@ except Exception as e:
     logging.warning(f"自动更新检查器导入失败：{e}")
     AUTO_CHECKER_AVAILABLE = False
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.unified_logger import default_logger as logger
 
@@ -48,6 +49,33 @@ app = FastAPI(
     description="独立的更新检查服务",
     version="1.0.0"
 )
+
+
+# ---------- 鉴权：所有管理/变更类接口必须携带 X-Update-Token ----------
+# 未配置 UPDATE_SERVER_TOKEN 时 fail-closed（拒绝一切管理操作），避免无鉴权暴露。
+class UpdateAuthMiddleware(BaseHTTPMiddleware):
+    # 保持只读公开的路径（健康检查/版本信息）
+    READONLY_PATHS = {
+        "/", "/docs", "/redoc", "/openapi.json",
+        "/api/v1/health", "/api/v1/version", "/api/v1/version/full",
+        "/api/v1/version/frontend", "/api/v1/version/backend",
+        "/api/v1/update/status", "/api/v1/update/auto-check/status",
+    }
+
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path in self.READONLY_PATHS:
+            return await call_next(request)
+        expected = os.environ.get('UPDATE_SERVER_TOKEN', '')
+        if not expected:
+            return JSONResponse(status_code=503,
+                                content={"detail": "Update server not configured (UPDATE_SERVER_TOKEN missing)"})
+        if request.headers.get('X-Update-Token', '') != expected:
+            return JSONResponse(status_code=401,
+                                content={"detail": "Unauthorized: invalid or missing update token"})
+        return await call_next(request)
+
+
+app.add_middleware(UpdateAuthMiddleware)
 
 
 class UpdateChecker:

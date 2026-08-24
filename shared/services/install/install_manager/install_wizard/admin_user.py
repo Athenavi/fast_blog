@@ -12,8 +12,8 @@ async def create_admin_user(project_root: Path, username: str, email: str, passw
     """创建管理员用户"""
     if not username or not email or not password:
         return {"success": False, "message": "用户名、邮箱和密码不能为空"}
-    if len(password) < 6:
-        return {"success": False, "message": "密码长度不能少于6位"}
+    if len(password) < 8:
+        return {"success": False, "message": "密码长度不能少于8位"}
 
     try:
         from src.utils.database.main import get_async_session_context

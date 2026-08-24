@@ -2,6 +2,7 @@
 
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import DOMPurify from 'dompurify';
 import {Loader2, FileQuestion} from 'lucide-react';
 
 interface BlockData {
@@ -260,7 +261,7 @@ function BlockRenderer({block}: {block: BlockData}) {
       return (
         <div className="prose prose-lg dark:prose-invert max-w-none mx-auto px-4 py-8">
           {block.data?.content && (
-            <div dangerouslySetInnerHTML={{__html: block.data.content}} className="leading-relaxed"/>
+            <div dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(block.data.content)}} className="leading-relaxed"/>
           )}
         </div>
       );
@@ -274,7 +275,7 @@ function BlockRenderer({block}: {block: BlockData}) {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">{article.title}</h1>
           {article.excerpt && <p className="text-gray-500 mb-6">{article.excerpt}</p>}
           {article.content && (
-            <div dangerouslySetInnerHTML={{__html: article.content}} className="leading-relaxed"/>
+            <div dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(article.content)}} className="leading-relaxed"/>
           )}
         </div>
       );

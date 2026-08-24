@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import ApprovalRecord
 from shared.services.security.content_approval_service import content_approval_service
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
+from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user, admin_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["approval"])
@@ -64,7 +64,7 @@ async def create_approval_request(
 async def approve_step(
         record_id: int,
         comment: Optional[str] = Body(None, description="审批意见"),
-        current_user=Depends(get_current_user),
+        current_user=Depends(admin_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -97,7 +97,7 @@ async def approve_step(
 async def reject_step(
         record_id: int,
         comment: Optional[str] = Body(None, description="拒绝意见"),
-        current_user=Depends(get_current_user),
+        current_user=Depends(admin_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """

@@ -28,12 +28,13 @@ def _build_router():
     from src.api.v2.articles.revision_notes import router as revision_notes_router
     from src.api.v2.articles.scheduled_publish import router as scheduled_publish_router
 
+    # 先注册 search 子路由，避免被 CRUD 的 /{article_id} 通配遮蔽（否则 /articles/search 会 422）
+    router.include_router(article_search_router, prefix="/search")
     router.include_router(articles_crud_router, prefix="")
     router.include_router(article_password_router, prefix="")
     router.include_router(article_revisions_router, prefix="")
     router.include_router(article_analytics_router, prefix="/analytics")
     router.include_router(article_annotations_router, prefix="/annotations")
-    router.include_router(article_search_router, prefix="/search")
     router.include_router(article_stats_router, prefix="/views")
     router.include_router(preview_view_router, prefix="")
     router.include_router(draft_preview_router, prefix="/draft")

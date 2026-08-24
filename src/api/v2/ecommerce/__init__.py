@@ -21,7 +21,8 @@ def _build_router():
     from src.api.v2.ecommerce.ecommerce_orders import router as ecommerce_orders_router
     from src.api.v2.ecommerce.inventory_management import router as inventory_management_router
     from src.api.v2.ecommerce.revenue_sharing import router as revenue_sharing_router
-    from src.api.v2.utils.payment import router as payment_router
+    # 注意：src.api.v2.utils.payment（模拟支付宝/微信支付 + 无鉴权 notify）已从路由注册中移除，
+    # 在接入真实支付网关并完成签名校验前不得重新启用。
     from src.api.v2.payment.payment_management import router as payment_management_router
 
     router.include_router(ecommerce_router, prefix="/products")
@@ -29,7 +30,6 @@ def _build_router():
     router.include_router(ecommerce_orders_router, prefix="/orders")
     router.include_router(inventory_management_router, prefix="/inventory")
     router.include_router(revenue_sharing_router, prefix="/revenue")
-    router.include_router(payment_router, prefix="/payment")
     router.include_router(payment_management_router, prefix="/admin")
 
     _router = router

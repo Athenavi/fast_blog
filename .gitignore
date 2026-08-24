@@ -168,3 +168,6 @@ frontend-astro/config.json
 
 # Plugin runtime settings
 plugins/*/settings.json
+
+# Local performance-test tooling (k6 binaries — download on demand)
+.k6-tool/

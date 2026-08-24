@@ -24,11 +24,11 @@ class WebPushService:
         # 用户订阅存储 {user_id: [subscription_info, ...]}
         self._subscriptions = {}
 
-        # VAPID密钥配置(生产环境应从环境变量读取)
+        # VAPID 密钥从环境变量读取（生产必须配置，否则推送不可用）
         self.vapid_config = {
-            'public_key': '',
-            'private_key': '',
-            'subject': 'mailto:admin@fastblog.com',
+            'public_key': os.environ.get('WEB_PUSH_VAPID_PUBLIC_KEY', ''),
+            'private_key': os.environ.get('WEB_PUSH_VAPID_PRIVATE_KEY', ''),
+            'subject': os.environ.get('WEB_PUSH_VAPID_SUBJECT', 'mailto:admin@localhost'),
         }
 
         # 推送消息队列
@@ -223,9 +223,12 @@ class WebPushService:
                             return False
                     return False
             else:
-                # pywebpush 未安装或未配置 VAPID 密钥，模拟发送
-                logger.warning("pywebpush not available or VAPID keys not configured, simulating push")
-                return True
+                # pywebpush 未安装或未配置 VAPID 密钥 → 推送不可用，诚实失败（不模拟成功）
+                logger.error(
+                    "Web push not configured: pywebpush missing or VAPID keys not set. "
+                    "Set WEB_PUSH_VAPID_PRIVATE_KEY / WEB_PUSH_VAPID_PUBLIC_KEY to enable real push."
+                )
+                return False
 
         except Exception as e:
             logger.error(f"Push send failed: {str(e)}")

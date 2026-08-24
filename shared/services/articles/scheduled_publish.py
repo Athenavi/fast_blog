@@ -162,6 +162,14 @@ class ScheduledPublishService:
         if published_count > 0 or failed_articles:
             await self.db.commit()
 
+        # 有文章发布成功 → 使公开缓存失效（首页聚合 + 文章列表）
+        if published_count > 0:
+            try:
+                from shared.services.core.article_cache_service import article_cache_service
+                await article_cache_service.invalidate_public_caches()
+            except Exception:
+                pass
+
         return {
             'success': True,
             'published_count': published_count,

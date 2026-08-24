@@ -1,7 +1,5 @@
 <div align="center">
 
-<img src="docs/assets/fastblog-logo.svg" alt="FastBlog Logo" width="120" height="120" onerror="this.style.display='none'">
-
 # FastBlog
 
 ### ⚡ The Modern, High-Performance Blog Platform Built for Developers
@@ -19,6 +17,14 @@
 [🚀 Quick Start](#-quick-start) · [📖 Documentation](#-documentation) · [🎯 Features](#-features) · [🤝 Contributing](#-contributing)
 
 </div>
+
+---
+
+## 🖼️ Screenshots
+
+| Articles | Article View | Media Library |
+|----------|--------------|---------------|
+| ![Articles](docs/assets/ArtclesPage.png) | ![Article View](docs/assets/ArticleViewPage.png) | ![Media](docs/assets/media.png) |
 
 ---
 
@@ -44,11 +50,14 @@
 # Docker (recommended)
 git clone https://github.com/Athenavi/fast_blog.git
 cd fast_blog
-cp .env_example .env
-docker-compose up -d
+cp .env.example .env
+# 编辑 .env：设置 SECRET_KEY / JWT_SECRET_KEY（>=32 位随机）与数据库密码
+docker compose up -d
 ```
 
-See [Quick Start Guide](docs/QUICK_START.md) for manual installation and detailed setup.
+> 生产部署请使用 `docker compose -f docker-compose.prod.yml up -d`（强制要求显式密钥，自动启用多 worker + Redis）。
+
+See [Quick Start Guide](docs/getting-started.md) for manual installation and detailed setup.
 
 ---
 
@@ -56,20 +65,18 @@ See [Quick Start Guide](docs/QUICK_START.md) for manual installation and detaile
 
 | Document | Description |
 |----------|-------------|
-| [Quick Start](docs/QUICK_START.md) | Installation & setup guide |
-| [Technical Architecture](docs/TECHNICAL.md) | System design & decisions |
-| [API Reference](docs/API_REFERENCE.md) | Complete REST API docs |
-| [Plugin Development](docs/PLUGIN_DEVELOPMENT_GUIDE.md) | Build custom plugins |
-| [Theme Development](docs/THEME_DEVELOPMENT_GUIDE.md) | Create custom themes |
-| [Deployment Guide](docs/DEPLOYMENT_GUIDE.md) | Production deployment |
-| [Troubleshooting](docs/TROUBLESHOOTING_FAQ.md) | Common issues & solutions |
-| [AI Interaction](docs/AI_INTERACTION_GUIDE.md) | MCP Server integration |
+| [Quick Start](docs/getting-started.md) | Installation & setup |
+| [Deployment](docs/deployment.md) | Production deployment, Nginx security, SSL |
+| [Development](docs/development.md) | Architecture, plugins, themes, API |
+| [Operations](docs/operations.md) | Troubleshooting, AI/MCP, mobile app |
+
+> Full API reference is auto-generated at `http://localhost:9421/api/v2/docs` (Swagger UI).
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please read our [Contributing Guide](docs/CONTRIBUTING.md) before submitting PRs.
+We welcome contributions! Please read our [Contributing Guide](docs/development.md#二贡献规范) before submitting PRs.
 
 ---
 

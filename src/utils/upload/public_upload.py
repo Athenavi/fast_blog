@@ -104,9 +104,10 @@ class FileProcessor:
                                   '.xls', '.xlsx', '.xlsm', '.xlsb', '.xlt', '.xltm',
                                   '.ods', '.fods', '.numbers',
                                   '.ppt', '.pptx', '.pptm', '.potx', '.potm', '.ppsx', '.ppsm',
-                                  '.txt', '.md', '.csv', '.html', '.htm', '.xml',
-                                  '.json', '.js', '.mjs', '.cjs', '.css', '.java', '.py',
-                                  '.ts', '.tsx', '.jsx', '.log', '.yaml', '.yml', '.ini',
+                                  '.txt', '.md', '.csv',
+                                  '.json',
+                                  '.java', '.py',
+                                  '.ts', '.tsx', '.log', '.yaml', '.yml', '.ini',
                                   '.sh', '.bash', '.sql', '.go', '.rs', '.php', '.c', '.cpp',
                                   '.cc', '.h', '.hpp', '.cs', '.diff',
                                   '.zip', '.rar', '.7z', '.gz', '.tar', '.bz2',
@@ -128,7 +129,7 @@ class FileProcessor:
                                   '.olb', '.dra',
                                   '.ar', '.xar',
                                   '.oga', '.weba',
-                                  '.vue',}
+                                  }
 
             if ext_lower not in allowed_extensions:
                 logger.warning(f"[WARN] 扩展名 {ext} 不在允许列表中，拒绝")
@@ -1021,20 +1022,31 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
         mime_type = validation_result['mime_type']
         file_size = validation_result['file_size']
 
-        # SVG 安全消毒：移除 <script> 标签和 on* 事件处理程序
+        # SVG 安全消毒：移除可执行/可外联元素与事件处理程序、伪协议
         if mime_type == 'image/svg+xml':
             try:
                 content = file_data.decode('utf-8', errors='replace')
                 import re as svg_re
-                # 移除 <script>...</script> 块
-                content = svg_re.sub(r'<script[^>]*>.*?</script>', '', content, flags=svg_re.DOTALL | svg_re.IGNORECASE)
-                # 移除 <script .../>
-                content = svg_re.sub(r'<script[^>]*/>', '', content, flags=svg_re.IGNORECASE)
-                # 移除 on* 事件处理程序属性
-                content = svg_re.sub(r'\bon\w+\s*=\s*["\'][^"\']*["\']', '', content, flags=svg_re.IGNORECASE)
-                content = svg_re.sub(r'\bon\w+\s*=\s*\S+', '', content, flags=svg_re.IGNORECASE)
-                # 移除 javascript: 伪协议
-                content = svg_re.sub(r'javascript\s*:', 'disabled:', content, flags=svg_re.IGNORECASE)
+                # 移除可执行/危险元素（含自闭合与开标签）
+                for _tag in ('script', 'foreignobject', 'iframe', 'object', 'embed',
+                             'link', 'style', 'animate', 'set', 'handler'):
+                    content = svg_re.sub(
+                        rf'<\s*{_tag}[^>]*>.*?<\s*/\s*{_tag}\s*>', '', content,
+                        flags=svg_re.DOTALL | svg_re.IGNORECASE)
+                    content = svg_re.sub(rf'<\s*{_tag}[^>]*/>', '', content, flags=svg_re.IGNORECASE)
+                    content = svg_re.sub(rf'<\s*{_tag}[^>]*>', '', content, flags=svg_re.IGNORECASE)
+                # 移除 on* 事件处理程序属性（含混合大小写、空格混淆）
+                content = svg_re.sub(r'\s+on\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)', '', content,
+                                     flags=svg_re.IGNORECASE)
+                # 移除 javascript:/data: 伪协议属性（href/xlink:href/src/style）
+                def _strip_proto(m):
+                    attr, val = m.group(1), m.group(2)
+                    if svg_re.search(r'(javascript|data)\s*:', val, flags=svg_re.IGNORECASE):
+                        return f'{attr}=""'
+                    return m.group(0)
+                content = svg_re.sub(
+                    r'(href|xlink:href|src|style)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)',
+                    _strip_proto, content, flags=svg_re.IGNORECASE)
                 file_data = content.encode('utf-8')
                 logger.info(f"[OK] SVG 消毒完成: {filename}")
             except Exception as svg_err:

@@ -5,11 +5,15 @@
 
 
 import hashlib
+import asyncio
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from shared.logging import default_logger as logger
+
+# 每 IP 地理位置缓存（24h），避免每次登录都同步请求外部 API
+_LOCATION_CACHE: Dict[str, str] = {}
 
 
 class SessionManagementService:
@@ -62,6 +66,8 @@ class SessionManagementService:
 
         # 创建会话记录
         now = datetime.now()
+        # 地理位置查询走线程执行（外部 API 最坏可达数秒），避免阻塞事件循环
+        location = await asyncio.to_thread(self._estimate_location, ip_address)
         session = {
             'session_id': session_id,
             'user_id': user_id,
@@ -73,7 +79,7 @@ class SessionManagementService:
             'last_active': now,
             'expires_at': now + timedelta(hours=self.session_timeout_hours),
             'is_active': True,
-            'location': self._estimate_location(ip_address),
+            'location': location,
         }
 
         # 存储会话
@@ -403,7 +409,13 @@ class SessionManagementService:
         elif ip_address.startswith('127.'):
             return 'localhost'
 
+        # 每 IP 结果缓存（24h），避免登录高峰反复请求外部地理位置 API
+        cached = _LOCATION_CACHE.get(ip_address)
+        if cached:
+            return cached
+
         # 集成IP地理位置服务
+        result = f'IP: {ip_address}'
         try:
             location_info = self._get_location_from_ip(ip_address)
             if location_info:
@@ -412,16 +424,15 @@ class SessionManagementService:
                 country = location_info.get('country', '')
 
                 if city and country:
-                    return f"{city}, {region}, {country}" if region else f"{city}, {country}"
+                    result = f"{city}, {region}, {country}" if region else f"{city}, {country}"
                 elif country:
-                    return country
-                else:
-                    return f'IP: {ip_address}'
+                    result = country
         except Exception as e:
             logger.debug(f"Failed to get location from IP: {e}")
 
-        # 降级方案：返回IP地址
-        return f'IP: {ip_address}'
+        # 缓存结果并返回（IP 归属地变化极低，24h 内不重复请求外部 API）
+        _LOCATION_CACHE[ip_address] = result
+        return result
 
     def _get_location_from_ip(self, ip_address: str) -> Dict[str, str]:
         """

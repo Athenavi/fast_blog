@@ -18,6 +18,10 @@ from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["home"])
 
+# 首页配置缓存（进程内短 TTL；配置变更频率极低，避免每次首页加载 23 次逐条 DB 查询）
+_HOME_CONFIG_CACHE = {}
+_HOME_CONFIG_TTL = 60
+
 
 async def send_subscription_confirmation_email(email: str):
     """
@@ -87,7 +91,17 @@ async def get_home_data(
     """
     获取首页数据（不含配置）
     使用简化查询避免 greenlet 错误
+    公开接口，60s Redis 缓存（Redis 不可用时自动降级直查，不影响可用性）
     """
+    from src.services.redis_service import redis_service
+
+    cache_key = f"home:data:{limit_featured}:{limit_popular}:{limit_recent}:{limit_categories}"
+
+    # 命中缓存直接返回（redis_service.get 内部已捕获异常，Redis 挂掉返回 None）
+    cached = await redis_service.get(cache_key)
+    if cached is not None:
+        return ok(data=cached)
+
     featured_articles = await _get_featured_articles(db, limit_featured)
     recent_articles = await _get_recent_articles_simple(db, limit_recent)
     popular_articles = await _get_popular_articles(db, limit_popular)
@@ -102,6 +116,9 @@ async def get_home_data(
         "stats": stats
     }
 
+    # 写入缓存（60s；set 内部已捕获异常，失败不影响响应）
+    await redis_service.set(cache_key, data, expire=60)
+
     return ok(data=data)
 
 
@@ -112,6 +129,12 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
     获取首页配置信息
     使用 home_ 前缀键名与 AdminSettings 保持一致
     """
+    import time as _time
+
+    cached = _HOME_CONFIG_CACHE.get("v1")
+    if cached and _time.time() - cached["ts"] < _HOME_CONFIG_TTL:
+        return ok(data=cached["config"])
+
     # 定义需要的配置键（使用 home_ 前缀，与 AdminSettings 一致）
     config_keys = [
         'site_name',
@@ -129,19 +152,16 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
         'home_no_summary_msg',
     ]
 
-    # 简化查询 - 逐个获取配置项避免复杂批量查询
+    # 批量查询（单次 IN 查询替代逐 key 查询，消除 23 次串行 DB 往返）
     config_dict = {}
-    for key in config_keys:
-        try:
-            query = select(SystemSettings).where(SystemSettings.setting_key == key)
-            result = await db.execute(query)
-            item = result.scalar_one_or_none()
-            if item:
-                config_dict[key] = item.setting_value
-        except Exception as key_error:
-            from src.unified_logger import default_logger as logger
-            logger.warning(f"获取配置项 {key} 失败：{str(key_error)}")
-            continue
+    try:
+        rows = (await db.execute(
+            select(SystemSettings).where(SystemSettings.setting_key.in_(config_keys))
+        )).scalars().all()
+        config_dict = {row.setting_key: row.setting_value for row in rows}
+    except Exception as e:
+        from src.unified_logger import default_logger as logger
+        logger.warning(f"批量获取首页配置失败：{str(e)}")
 
     # 获取站点名称
     site_name = config_dict.get('site_name')
@@ -174,6 +194,7 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
         }
     }
 
+    _HOME_CONFIG_CACHE["v1"] = {"ts": _time.time(), "config": config}
     return ok(data=config)
 
 
@@ -407,7 +428,7 @@ async def search_home_articles(
     articles = articles_result.scalars().all()
 
     # 批量加载分类信息（避免 N+1）
-    category_ids = [art.category_id for art in articles if art.category_id]
+    category_ids = [art.category for art in articles if art.category]
     categories_dict = {}
     if category_ids:
         cat_query = select(Category).where(Category.id.in_(category_ids))
@@ -463,7 +484,7 @@ async def _get_featured_articles(db: AsyncSession, limit: int) -> list:
         articles = result.scalars().unique().all()
 
         # 批量加载分类信息（避免 N+1）
-        category_ids = [art.category_id for art in articles if art.category_id]
+        category_ids = [art.category for art in articles if art.category]
         categories_dict = {}
         if category_ids:
             cat_query = select(Category).where(Category.id.in_(category_ids))
@@ -475,7 +496,7 @@ async def _get_featured_articles(db: AsyncSession, limit: int) -> list:
     except Exception as e:
 
         from src.unified_logger import default_logger as logger
-        logger.warning(f"获取特色文章失败：{str(e)}")
+        logger.error(f"获取特色文章失败（数据库异常，首页降级为空）: {str(e)}")
         return []
 
 
@@ -493,7 +514,7 @@ async def _get_recent_articles_simple(db: AsyncSession, limit: int) -> list:
         articles = result.scalars().unique().all()
 
         # 批量加载分类信息（避免 N+1）
-        category_ids = [art.category_id for art in articles if art.category_id]
+        category_ids = [art.category for art in articles if art.category]
         categories_dict = {}
         if category_ids:
             cat_query = select(Category).where(Category.id.in_(category_ids))
@@ -505,7 +526,7 @@ async def _get_recent_articles_simple(db: AsyncSession, limit: int) -> list:
     except Exception as e:
 
         from src.unified_logger import default_logger as logger
-        logger.warning(f"获取最新文章失败：{str(e)}")
+        logger.error(f"获取最新文章失败（数据库异常，首页降级为空）: {str(e)}")
         return []
 
 
@@ -523,7 +544,7 @@ async def _get_popular_articles(db: AsyncSession, limit: int) -> list:
         articles = result.scalars().unique().all()
 
         # 批量加载分类信息（避免 N+1）
-        category_ids = [art.category_id for art in articles if art.category_id]
+        category_ids = [art.category for art in articles if art.category]
         categories_dict = {}
         if category_ids:
             cat_query = select(Category).where(Category.id.in_(category_ids))
@@ -535,7 +556,7 @@ async def _get_popular_articles(db: AsyncSession, limit: int) -> list:
     except Exception as e:
 
         from src.unified_logger import default_logger as logger
-        logger.warning(f"获取热门文章失败：{str(e)}")
+        logger.error(f"获取热门文章失败（数据库异常，首页降级为空）: {str(e)}")
         return []
 
 
@@ -564,7 +585,7 @@ async def _get_categories(db: AsyncSession, limit: int) -> list:
     except Exception as e:
 
         from src.unified_logger import default_logger as logger
-        logger.warning(f"获取分类失败：{str(e)}")
+        logger.error(f"获取分类失败（数据库异常，首页降级为空）: {str(e)}")
         return []
 
 
@@ -594,7 +615,7 @@ async def _get_site_stats(db: AsyncSession) -> Dict[str, Any]:
     except Exception as e:
 
         from src.unified_logger import default_logger as logger
-        logger.warning(f"获取网站统计失败: {str(e)}")
+        logger.error(f"获取网站统计失败（数据库异常，首页降级为空）: {str(e)}")
         return {
             "totalArticles": 0,
             "totalUsers": 0,

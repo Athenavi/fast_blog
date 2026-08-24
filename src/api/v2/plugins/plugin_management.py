@@ -12,14 +12,14 @@ from shared.models import User
 from shared.services.plugins.plugin_manager.core import plugin_manager
 from shared.services.plugins.plugin_audit import plugin_audit_logger
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth import jwt_required_dependency as jwt_required
+from src.auth import admin_required, jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["plugins"])
 
 
 async def list_marketplace_plugins(
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     获取插件市场列表（扫描 plugins/ 目录发现所有可安装的插件）
@@ -40,7 +40,7 @@ async def list_marketplace_plugins(
 @router.get("/")
 @_catch
 async def list_plugins(
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     获取所有已安装的插件列表
@@ -58,7 +58,7 @@ async def list_plugins(
 @router.post("/load")
 @_catch
 async def load_all_plugins(
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     加载所有插件
@@ -78,7 +78,7 @@ async def load_all_plugins(
 @_catch
 async def activate_plugin(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     激活插件
@@ -106,7 +106,7 @@ async def activate_plugin(
 @_catch
 async def deactivate_plugin(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     停用插件
@@ -131,7 +131,7 @@ async def deactivate_plugin(
 @_catch
 async def get_plugin_info(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     获取插件详细信息
@@ -154,7 +154,7 @@ async def get_plugin_info(
 @_catch
 async def get_plugin_settings(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     获取插件设置
@@ -183,7 +183,7 @@ async def get_plugin_settings(
 async def update_plugin_settings(
         plugin_slug: str,
         request: Request,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     更新插件设置
@@ -284,7 +284,7 @@ async def execute_plugin_action(
 @router.get("/active")
 @_catch
 async def get_active_plugins(
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     获取所有激活的插件
@@ -301,7 +301,7 @@ async def get_active_plugins(
 @_catch
 async def uninstall_plugin(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required),
+        current_user: User = Depends(admin_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -326,7 +326,7 @@ async def uninstall_plugin(
 @router.post("/sync-config")
 @_catch
 async def sync_plugin_config(
-        current_user: User = Depends(jwt_required),
+        current_user: User = Depends(admin_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -470,7 +470,7 @@ async def sync_plugin_config(
 @_catch
 async def hot_reload_plugin(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     热重载插件（无需重启应用）
@@ -501,7 +501,7 @@ async def hot_reload_plugin(
 @_catch
 async def hot_load_plugin(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     热加载新插件（运行时动态加载，无需重启）
@@ -526,7 +526,7 @@ async def hot_load_plugin(
 @_catch
 async def hot_unload_plugin(
         plugin_slug: str,
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     热卸载插件（运行时动态卸载，无需重启）
@@ -550,7 +550,7 @@ async def hot_unload_plugin(
 @router.get("/scan-new")
 @_catch
 async def scan_new_plugins(
-        current_user: User = Depends(jwt_required)
+        current_user: User = Depends(admin_required)
 ):
     """
     扫描新插件（发现plugins目录中未加载的插件）

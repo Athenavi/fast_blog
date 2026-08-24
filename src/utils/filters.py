@@ -185,8 +185,9 @@ def md2html(markdown_text: str, **options: Any) -> str:
     opts = {**default_opts, **options}
 
     # 构建 MarkdownIt 实例，使用通用的 commonmark 预设并启用表格
+    # 安全：html=False 会转义 Markdown 中的原始 HTML，防止存储型 XSS
     md = MarkdownIt("commonmark", {
-        "html": True,
+        "html": False,
         "breaks": opts['enable_nl2br'],
         "linkify": opts['enable_magiclink'],
         "typographer": False,

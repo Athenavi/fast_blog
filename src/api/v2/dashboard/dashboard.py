@@ -7,7 +7,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
 from sqlalchemy import desc
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import VIPPlan, VIPFeature
@@ -209,8 +209,12 @@ async def get_blog_management_articles(
         status_lower = status.lower()
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
-            query = query.where(Article.status == status_map[status_lower])
-        # TODO: 迁移完成后，'deleted' 过滤应改为 Article.deleted_at.isnot(None)
+            if status_lower == 'deleted':
+                # deleted 由 status=-1 或 deleted_at 标记（删除时两者同时写入）；
+                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数据
+                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
+            else:
+                query = query.where(Article.status == status_map[status_lower])
 
     # 根据搜索词过滤
     if search:
@@ -313,8 +317,6 @@ async def get_my_articles(
     """
     获取我的文章列表
     """
-    from sqlalchemy import or_
-
     # 构建基础查询，预加载关联的作者信息
     query = select(Article).join(User, Article.user == User.id).where(
         Article.user == current_user.id)
@@ -325,8 +327,12 @@ async def get_my_articles(
         status_lower = status.lower()
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
-            query = query.where(Article.status == status_map[status_lower])
-        # TODO: 迁移完成后，'deleted' 过滤应改为 Article.deleted_at.isnot(None)
+            if status_lower == 'deleted':
+                # deleted 由 status=-1 或 deleted_at 标记（删除时两者同时写入）；
+                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数据
+                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
+            else:
+                query = query.where(Article.status == status_map[status_lower])
 
     # 根据隐藏状态过滤
     if hidden is not None:

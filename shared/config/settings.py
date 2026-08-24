@@ -157,8 +157,10 @@ class BaseConfig:
         'application/vnd.ms-powerpoint.template.macroEnabled.12',
         'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
         # ===== 文档 & 文本 =====
-        'text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml',
-        'application/json', 'application/xml',
+        # 注意：禁止 text/html / text/xml / application/xml 等可内联执行或嵌套恶意内容类型，
+        # 防止同源存储型 XSS（上传 HTML/XML 经静态挂载内联渲染）。
+        'text/plain', 'text/markdown', 'text/csv',
+        'application/json',
         # ===== 压缩包 & 归档 =====
         'application/zip', 'application/x-zip-compressed',
         'application/x-rar-compressed', 'application/x-7z-compressed',
@@ -206,7 +208,16 @@ class BaseConfig:
     BABEL_SUPPORTED_LOCALES = ['zh_CN', "en"]
     BABEL_TRANSLATION_DIRECTORIES = 'translations'
     # jwt
-    JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or SECRET_KEY
+    _jwt_secret = os.environ.get('JWT_SECRET_KEY') or SECRET_KEY
+    if (not _jwt_secret
+            or _jwt_secret.startswith('change-this-jwt')
+            or _jwt_secret.startswith('change-this-to')
+            or _jwt_secret.lower() in ('your-secret-key-here', 'changeme', 'change-this-jwt-secret-key')):
+        raise RuntimeError(
+            "JWT_SECRET_KEY 仍为占位值或未设置！请在环境变量中设置一个真实的密钥。\n"
+            "生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        )
+    JWT_SECRET_KEY = _jwt_secret
     JWT_ALGORITHM = "HS256"  # JWT 算法
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(seconds=JWT_EXPIRATION_DELTA)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(seconds=REFRESH_TOKEN_EXPIRATION_DELTA)
