@@ -6,6 +6,8 @@
 
 import hashlib
 import asyncio
+import json
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -16,24 +18,137 @@ from shared.logging import default_logger as logger
 _LOCATION_CACHE: Dict[str, str] = {}
 
 
+def _get_redis():
+    """获取 Redis 客户端（惰性连接，失败时返回 None）"""
+    try:
+        import redis as redis_lib
+        return redis_lib.Redis(
+            host=os.environ.get('REDIS_HOST', 'localhost'),
+            port=int(os.environ.get('REDIS_PORT', 6379)),
+            db=int(os.environ.get('REDIS_DB', 0)),
+            password=os.environ.get('REDIS_PASSWORD') or None,
+            decode_responses=True,
+        )
+    except Exception:
+        return None
+
+
 class SessionManagementService:
     """会话管理服务"""
 
     def __init__(self):
-        # 用户会话存储 {user_id: [session_info, ...]}
+        # 用户会话存储 {user_id: [session_info, ...]}（本地读缓存，非主存储）
         self._user_sessions = defaultdict(list)
 
-        # 会话索引 {session_id: user_id}
+        # 会话索引 {session_id: user_id}（本地读缓存）
         self._session_index = {}
+
+        # Redis 客户端（惰性连接）
+        self._redis = None
 
         # 默认配置
         self.session_timeout_hours = 24 * 30  # 30天
         self.max_sessions_per_user = 10  # 每个用户最多10个活跃会话
 
-        logger.warning(
-            "SessionManagementService 使用内存存储，重启后会话数据将丢失。"
-            "生产环境应使用 UserSession 模型或 Redis 实现持久化。"
+        logger.info(
+            "SessionManagementService 已启用 Redis 共享存储（多 worker 一致），"
+            "内存仅作本地读缓存。"
         )
+
+    def _redis_client(self):
+        """惰性获取 Redis 客户端"""
+        if self._redis is None:
+            self._redis = _get_redis()
+        return self._redis
+
+    def _session_key(self, session_id: str) -> str:
+        return f"session:{session_id}"
+
+    def _user_sessions_key(self, user_id: int) -> str:
+        return f"user_sessions:{user_id}"
+
+    def _serialize_session(self, session: dict) -> str:
+        """将会话 dict 序列化为 JSON（datetime 转 ISO）"""
+        s = dict(session)
+        for k in ('created_at', 'last_active', 'expires_at'):
+            if k in s and isinstance(s[k], datetime):
+                s[k] = s[k].isoformat()
+        return json.dumps(s, ensure_ascii=False)
+
+    def _deserialize_session(self, data: str) -> dict:
+        """从 JSON 反序列化会话"""
+        s = json.loads(data)
+        for k in ('created_at', 'last_active', 'expires_at'):
+            if k in s and isinstance(s[k], str):
+                s[k] = datetime.fromisoformat(s[k])
+        return s
+
+    def _store_session_redis(self, session: dict):
+        """存储会话到 Redis（含用户会话集合）"""
+        r = self._redis_client()
+        if not r:
+            return
+        try:
+            sid = session['session_id']
+            uid = session['user_id']
+            ttl = int(self.session_timeout_hours * 3600)
+            r.setex(self._session_key(sid), ttl, self._serialize_session(session))
+            r.sadd(self._user_sessions_key(uid), sid)
+            r.expire(self._user_sessions_key(uid), ttl)
+        except Exception as e:
+            logger.debug(f"Redis store session failed: {e}")
+
+    def _remove_session_redis(self, user_id: int, session_id: str):
+        """从 Redis 删除会话"""
+        r = self._redis_client()
+        if not r:
+            return
+        try:
+            r.delete(self._session_key(session_id))
+            r.srem(self._user_sessions_key(user_id), session_id)
+        except Exception as e:
+            logger.debug(f"Redis remove session failed: {e}")
+
+    def _get_session_redis(self, session_id: str) -> Optional[dict]:
+        """从 Redis 读取单个会话"""
+        r = self._redis_client()
+        if not r:
+            return None
+        try:
+            data = r.get(self._session_key(session_id))
+            if data:
+                return self._deserialize_session(data)
+        except Exception as e:
+            logger.debug(f"Redis get session failed: {e}")
+        return None
+
+    def _get_user_session_ids_redis(self, user_id: int) -> List[str]:
+        """从 Redis 获取用户所有会话 ID"""
+        r = self._redis_client()
+        if not r:
+            return []
+        try:
+            return list(r.smembers(self._user_sessions_key(user_id)))
+        except Exception as e:
+            logger.debug(f"Redis get user session ids failed: {e}")
+            return []
+
+    def _update_session_redis(self, session_id: str, updates: dict):
+        """更新 Redis 中的会话字段"""
+        r = self._redis_client()
+        if not r:
+            return
+        try:
+            session = self._get_session_redis(session_id)
+            if session:
+                session.update(updates)
+                if isinstance(session.get('last_active'), datetime):
+                    pass  # 已是 datetime
+                ttl = r.ttl(self._session_key(session_id))
+                if ttl > 0:
+                    r.setex(self._session_key(session_id), ttl, self._serialize_session(session))
+        except Exception as e:
+            logger.debug(f"Redis update session failed: {e}")
 
     async def create_session(self, user_id: int, device_info: Dict,
                        ip_address: str = None, user_agent: str = None) -> str:
@@ -86,6 +201,9 @@ class SessionManagementService:
         self._user_sessions[user_id].append(session)
         self._session_index[session_id] = user_id
 
+        # 存储到 Redis（跨 worker 共享）
+        self._store_session_redis(session)
+
         # 持久化到数据库
         await self._persist_session_to_db(user_id, session)
 
@@ -104,6 +222,7 @@ class SessionManagementService:
         """
         sessions = []
 
+        # 优先从内存读取
         for session in self._user_sessions.get(user_id, []):
             if session['is_active'] and session['expires_at'] > datetime.now():
                 sessions.append({
@@ -118,6 +237,24 @@ class SessionManagementService:
                     'location': session.get('location', 'Unknown'),
                     'is_current': False,  # 需要调用方判断
                 })
+
+        # 内存为空时从 Redis 回退读取（跨 worker / 重启后）
+        if not sessions:
+            for sid in self._get_user_session_ids_redis(user_id):
+                session = self._get_session_redis(sid)
+                if session and session.get('is_active') and session.get('expires_at', datetime.min) > datetime.now():
+                    sessions.append({
+                        'session_id': session['session_id'],
+                        'device_info': session['device_info'],
+                        'ip_address': session.get('ip_address'),
+                        'user_agent': session.get('user_agent'),
+                        'device_fingerprint': session.get('device_fingerprint'),
+                        'created_at': session['created_at'].isoformat(),
+                        'last_active': session['last_active'].isoformat(),
+                        'expires_at': session['expires_at'].isoformat(),
+                        'location': session.get('location', 'Unknown'),
+                        'is_current': False,
+                    })
 
         # 按最后活动时间排序
         sessions.sort(key=lambda s: s['last_active'], reverse=True)
@@ -141,6 +278,9 @@ class SessionManagementService:
                 session['last_active'] = datetime.now()
                 break
 
+        # 同步到 Redis
+        self._update_session_redis(session_id, {'last_active': datetime.now()})
+
     async def revoke_session(self, user_id: int, session_id: str) -> bool:
         """
         撤销指定会话(远程注销)
@@ -154,6 +294,7 @@ class SessionManagementService:
         """
         result = self._remove_session(user_id, session_id)
         if result:
+            self._remove_session_redis(user_id, session_id)
             await self._remove_session_from_db(user_id, session_id)
         return result
 
@@ -177,6 +318,7 @@ class SessionManagementService:
 
         for session_id in sessions_to_remove:
             if self._remove_session(user_id, session_id):
+                self._remove_session_redis(user_id, session_id)
                 revoked_count += 1
 
         # 持久化层同步撤销
@@ -196,6 +338,10 @@ class SessionManagementService:
             是否有效
         """
         if session_id not in self._session_index:
+            # 内存未命中，查 Redis（跨 worker / 重启后）
+            session = self._get_session_redis(session_id)
+            if session:
+                return session.get('is_active', False) and session.get('expires_at', datetime.min) > datetime.now()
             return False
 
         user_id = self._session_index[session_id]
@@ -222,6 +368,22 @@ class SessionManagementService:
             会话详情
         """
         if session_id not in self._session_index:
+            # 内存未命中，查 Redis
+            session = self._get_session_redis(session_id)
+            if session:
+                return {
+                    'session_id': session['session_id'],
+                    'user_id': session['user_id'],
+                    'device_info': session.get('device_info'),
+                    'ip_address': session.get('ip_address'),
+                    'user_agent': session.get('user_agent'),
+                    'device_fingerprint': session.get('device_fingerprint'),
+                    'created_at': session['created_at'].isoformat() if isinstance(session.get('created_at'), datetime) else session.get('created_at'),
+                    'last_active': session['last_active'].isoformat() if isinstance(session.get('last_active'), datetime) else session.get('last_active'),
+                    'expires_at': session['expires_at'].isoformat() if isinstance(session.get('expires_at'), datetime) else session.get('expires_at'),
+                    'is_active': session.get('is_active'),
+                    'location': session.get('location', 'Unknown'),
+                }
             return None
 
         user_id = self._session_index[session_id]

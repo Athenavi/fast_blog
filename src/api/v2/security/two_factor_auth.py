@@ -113,10 +113,10 @@ async def enable_2fa(
     from shared.models.user import User
     from sqlalchemy import select
 
-    # 获取临时存储的密钥（优先缓存，降级内存）
+    # 获取临时存储的密钥（Redis 优先，内存后备；多 worker 下 Redis 是唯一共享存储）
     from src.extensions import cache
     cache_key = f"2fa_setup:{current_user.id}"
-    secret = _setup_secrets.get(current_user.id) or cache.get(cache_key)
+    secret = cache.get(cache_key) or _setup_secrets.get(current_user.id)
 
     if not secret:
         return fail("设置已过期,请重新开始")
