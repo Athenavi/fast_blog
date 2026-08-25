@@ -102,7 +102,20 @@ async def get_gateway(
     if not gateway:
         return fail("支付网关不存在")
 
-    return ok(data=gateway.to_dict(exclude_sensitive=False))
+    # 始终脱敏 config_data，避免泄露支付密钥
+    result_dict = gateway.to_dict(exclude_sensitive=True)
+    if result_dict.get("config_data"):
+        try:
+            cfg = json.loads(result_dict["config_data"])
+            if isinstance(cfg, dict):
+                # 脱敏所有敏感字段
+                for key in cfg:
+                    if any(s in key.lower() for s in ("key", "secret", "password", "token", "private", "sign")):
+                        cfg[key] = "***masked***"
+                result_dict["config_data"] = json.dumps(cfg, ensure_ascii=False)
+        except (json.JSONDecodeError, TypeError):
+            result_dict["config_data"] = "***masked***"
+    return ok(data=result_dict)
 
 
 @router.post("/gateways")
@@ -473,6 +486,105 @@ async def delete_transaction(
         raise
 
     return ok(msg="交易记录删除成功")
+
+
+# ==================== 支付网关委派（插件系统） ====================
+
+def _get_payment_plugin():
+    """查找激活的支付网关插件"""
+    try:
+        from shared.services.plugins.plugin_manager.core import plugin_manager
+        for plugin in plugin_manager.get_active_plugins():
+            if plugin.has_capability("execute:custom:payment") and hasattr(plugin, "create_payment"):
+                return plugin
+    except Exception as e:
+        logger.warning(f"Payment plugin lookup failed: {e}")
+    return None
+
+
+@router.post("/create")
+@_catch
+async def create_payment(
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required),
+):
+    """通过支付网关插件发起支付"""
+    data = await request.json()
+    order_id = data.get("order_id")
+    amount = data.get("amount")
+    subject = data.get("subject", "")
+
+    if not order_id or amount is None:
+        return fail("缺少 order_id 或 amount")
+
+    plugin = _get_payment_plugin()
+    if not plugin:
+        return fail("未激活支付网关插件，请联系管理员在插件管理中激活 Payment Gateway 插件")
+
+    result = plugin.create_payment(
+        order_id=order_id,
+        amount=int(amount),
+        subject=subject,
+        user_id=current_user.id,
+        return_url=data.get("return_url", ""),
+        cancel_url=data.get("cancel_url", ""),
+        notify_url=data.get("notify_url", ""),
+    )
+
+    if not result.get("success"):
+        return fail(result.get("error", "支付发起失败"))
+
+    return ok(data=result, msg="支付已发起")
+
+
+@router.post("/callback/{provider}")
+async def payment_callback(provider: str, request: Request, db: AsyncSession = Depends(get_async_db)):
+    """支付网关回调（无需认证，由签名验证保障安全）"""
+    plugin = _get_payment_plugin()
+    if not plugin:
+        return {"code": "FAIL", "message": "Payment plugin not active"}
+
+    body = await request.body()
+    headers = dict(request.headers)
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+        try:
+            payload = dict(request.query_params)
+        except Exception:
+            payload = {"raw": body.decode("utf-8", errors="replace")}
+
+    result = plugin.verify_callback(provider, payload, headers)
+    if not result.get("verified"):
+        logger.warning(f"Payment callback verification failed: {result.get('error')}")
+        return {"code": "FAIL", "message": result.get("error", "Verification failed")}
+
+    # 验签通过：更新交易状态为成功（这是唯一允许设置 succeeded 的路径）
+    from sqlalchemy import update as sa_update
+    from datetime import datetime
+    if result.get("order_id"):
+        stmt = (
+            sa_update(PaymentTransaction)
+            .where(PaymentTransaction.order_id == result["order_id"])
+            .values(
+                status=result.get("status", "succeeded"),
+                transaction_id=result.get("transaction_id"),
+                updated_at=datetime.utcnow(),
+            )
+        )
+        await db.execute(stmt)
+        await db.commit()
+        logger.info(f"Payment callback verified: order={result['order_id']}, status={result.get('status')}")
+
+    # 各平台要求的回调响应
+    if provider == "alipay":
+        return "success"
+    elif provider == "wechat":
+        return {"code": "SUCCESS", "message": "OK"}
+    else:
+        return {"received": True}
 
 
 # ==================== 税务配置管理 ====================

@@ -272,9 +272,9 @@ class AppConfig(BaseConfig):
     db_port_env = os.environ.get('DB_PORT') or os.getenv('DATABASE_PORT')
     db_port = int(db_port_env) if db_port_env is not None else 5432
     db_pool_size_env = os.environ.get('DB_POOL_SIZE') or os.getenv('DATABASE_POOL_SIZE')
-    db_pool_size = int(db_pool_size_env) if db_pool_size_env is not None else 50
+    db_pool_size = int(db_pool_size_env) if db_pool_size_env is not None else 20
     db_pool_overflow_env = os.environ.get('DB_POOL_OVERFLOW') or os.getenv('DATABASE_POOL_OVERFLOW')
-    db_pool_overflow = int(db_pool_overflow_env) if db_pool_overflow_env is not None else 100
+    db_pool_overflow = int(db_pool_overflow_env) if db_pool_overflow_env is not None else 30
     db_pool_timeout_env = os.environ.get('DB_POOL_TIMEOUT') or os.getenv('DATABASE_POOL_TIMEOUT')
     db_pool_timeout = int(db_pool_timeout_env) if db_pool_timeout_env is not None else 60
     db_table_prefix = os.environ.get('DB_TABLE_PREFIX') or os.getenv('DB_TABLE_PREFIX', '')

@@ -1,0 +1,103 @@
+{
+  "name": "Payment Gateway",
+  "slug": "payment-gateway",
+  "version": "1.0.0",
+  "description": "支付网关插件 — 支持支付宝/微信支付/Stripe，提供真实支付发起、回调验签与对账能力。核心支付管理服务委派至此插件。",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "category": "integration",
+  "icon": "💳",
+  "license": "MIT",
+  "tags": [
+    "payment",
+    "alipay",
+    "wechat",
+    "stripe"
+  ],
+  "requires": {
+    "fastblog": ">=1.0.0",
+    "python": ">=3.8"
+  },
+  "capabilities": [
+    "execute:custom:payment"
+  ],
+  "settings_schema": {
+    "provider": {
+      "type": "select",
+      "label": "支付服务商",
+      "options": [
+        {
+          "value": "alipay",
+          "label": "支付宝"
+        },
+        {
+          "value": "wechat",
+          "label": "微信支付"
+        },
+        {
+          "value": "stripe",
+          "label": "Stripe"
+        }
+      ],
+      "default": "stripe",
+      "required": true
+    },
+    "alipay_app_id": {
+      "type": "text",
+      "label": "支付宝应用ID",
+      "required": false
+    },
+    "alipay_private_key": {
+      "type": "textarea",
+      "label": "支付宝应用私钥",
+      "required": false
+    },
+    "alipay_public_key": {
+      "type": "textarea",
+      "label": "支付宝公钥",
+      "required": false
+    },
+    "alipay_sandbox": {
+      "type": "boolean",
+      "label": "使用沙箱环境",
+      "default": true
+    },
+    "wechat_app_id": {
+      "type": "text",
+      "label": "微信应用ID",
+      "required": false
+    },
+    "wechat_mch_id": {
+      "type": "text",
+      "label": "微信商户号",
+      "required": false
+    },
+    "wechat_api_key": {
+      "type": "text",
+      "label": "微信API密钥",
+      "required": false
+    },
+    "wechat_notify_url": {
+      "type": "text",
+      "label": "微信回调通知URL",
+      "required": false
+    },
+    "stripe_secret_key": {
+      "type": "text",
+      "label": "Stripe Secret Key",
+      "required": false
+    },
+    "stripe_webhook_secret": {
+      "type": "text",
+      "label": "Stripe Webhook Secret",
+      "required": false,
+      "help": "用于验签回调签名"
+    },
+    "currency": {
+      "type": "text",
+      "label": "货币单位",
+      "default": "cny",
+      "required": false
+    }
+  }
+}

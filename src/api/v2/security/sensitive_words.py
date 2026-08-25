@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
+from fastapi import APIRouter, Depends, Query, Body, Request
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.security import SensitiveWord
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["sensitive-words"])
@@ -51,15 +50,7 @@ async def create_sensitive_word(
     Args:
         data: 敏感词数据
     """
-    # 打印原始请求体
-    try:
-        body = await request.json()
-        print(f"[DEBUG] Raw request body: {body}")
-    except:
-        print(f"[DEBUG] Could not read request body")
-
-    print(f"[DEBUG] Received data: {data}")
-    print(f"[DEBUG] Current user ID: {current_user.id}")
+    logger.debug("Creating sensitive word: word=%s, level=%d, action=%s", data.word, data.level, data.action)
 
     # 验证action参数
     if data.action not in ['block', 'replace', 'warn']:

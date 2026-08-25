@@ -267,9 +267,8 @@ class DependencyScanner:
 
     def __init__(self):
         self.known_vulnerabilities = {
-            # 示例：已知漏洞的包
-            'requests': {'2.20.0': 'CVE-2023-XXXXX'},
-            'flask': {'1.0': 'CVE-2023-YYYYY'},
+            # 示例：已知漏洞的包（实际应使用 pip-audit/safety 等工具获取真实 CVE 数据）
+            'requests': {'2.20.0': 'CVE-2018-18074'},  # 示例：真实的 requests CVE
         }
 
     def scan_dependencies(self, requirements_file: str = None) -> List[SecurityIssue]:

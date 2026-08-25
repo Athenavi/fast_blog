@@ -8,7 +8,7 @@
 import random
 import string
 from datetime import datetime, timedelta
-from typing import Optional, Dict
+from typing import Optional
 
 from shared.logging import default_logger as logger
 
@@ -26,7 +26,8 @@ class SMSVerificationService:
     PHONE_PATTERN = r'^1[3-9]\d{9}$'
 
     def __init__(self):
-        # 使用内存存储验证码(生产环境应使用Redis)
+        # 使用内存存储验证码（生产环境必须配置 Redis，多 worker 部署下验证码不共享）
+        # 如需 Redis 存储，请使用 src/api/v2/security/two_factor_auth.py 中的 Redis 模式
         self._verification_codes = {}
 
         # SMS服务商配置
@@ -47,10 +48,10 @@ class SMSVerificationService:
     def validate_phone_format(self, phone: str) -> bool:
         """
         验证手机号格式
-        
+
         Args:
             phone: 手机号
-            
+
         Returns:
             是否为有效手机号格式
         """
@@ -64,10 +65,10 @@ class SMSVerificationService:
     def _check_rate_limit(self, phone: str) -> Optional[str]:
         """
         检查发送频率限制
-        
+
         Args:
             phone: 手机号
-            
+
         Returns:
             如果受限返回错误消息,否则返回None
         """
@@ -129,207 +130,46 @@ class SMSVerificationService:
         print(f"{'=' * 60}\n")
         return True
 
-    def _send_sms_aliyun(self, phone: str, code: str) -> bool:
-        """
-        使用阿里云SMS发送验证码
-        
-        Args:
-            phone: 手机号
-            code: 验证码
-            
-        Returns:
-            是否发送成功
-        """
-        try:
-            import json
-            from alibabacloud_dysmsapi20170525.client import Client as DysmsapiClient
-            from alibabacloud_tea_openapi import models as open_api_models
-            from alibabacloud_dysmsapi20170525 import models as dysmsapi_models
-            from alibabacloud_tea_util import models as util_models
-
-            access_key_id = self.sms_config.get('aliyun_access_key_id', '')
-            access_key_secret = self.sms_config.get('aliyun_access_key_secret', '')
-            sign_name = self.sms_config.get('aliyun_sign_name', '')
-            template_code = self.sms_config.get('aliyun_template_code', '')
-
-            if not all([access_key_id, access_key_secret, sign_name, template_code]):
-                logger.warning("Aliyun SMS config incomplete")
-                # 未配置真实服务商时不静默 mock 成功；仅非生产环境下允许 mock
-                return self._send_sms_mock(phone, code) if self._mock_allowed() else False
-
-            config = open_api_models.Config(
-                access_key_id=access_key_id,
-                access_key_secret=access_key_secret
-            )
-            config.endpoint = 'dysmsapi.aliyuncs.com'
-            client = DysmsapiClient(config)
-
-            send_sms_request = dysmsapi_models.SendSmsRequest(
-                phone_numbers=phone,
-                sign_name=sign_name,
-                template_code=template_code,
-                template_param=json.dumps({'code': code})
-            )
-
-            runtime = util_models.RuntimeOptions()
-            response = client.send_sms_with_options(send_sms_request, runtime)
-
-            if response.body.code == 'OK':
-                logger.info(f"SMS sent successfully via Aliyun to {phone}")
-                return True
-            else:
-                logger.error(f"Aliyun SMS failed: {response.body.message}")
-                return False
-
-        except ImportError:
-            logger.warning("Aliyun SDK not installed")
-            # 生产环境不静默 mock 成功，显式失败
-            return self._send_sms_mock(phone, code) if self._mock_allowed() else False
-        except Exception as e:
-            logger.error(f"Failed to send SMS via Aliyun: {str(e)}")
-            return False
-
-    def _send_sms_tencent(self, phone: str, code: str) -> bool:
-        """
-        使用腾讯云SMS发送验证码
-        
-        Args:
-            phone: 手机号
-            code: 验证码
-            
-        Returns:
-            是否发送成功
-        """
-        try:
-            from tencentcloud.common import credential
-            from tencentcloud.common.profile.client_profile import ClientProfile
-            from tencentcloud.common.profile.http_profile import HttpProfile
-            from tencentcloud.sms.v20210111 import sms_client, models
-
-            secret_id = self.sms_config.get('tencent_secret_id', '')
-            secret_key = self.sms_config.get('tencent_secret_key', '')
-            sdk_app_id = self.sms_config.get('tencent_sdk_app_id', '')
-            sign_name = self.sms_config.get('tencent_sign_name', '')
-            template_id = self.sms_config.get('tencent_template_id', '')
-
-            if not all([secret_id, secret_key, sdk_app_id, sign_name, template_id]):
-                logger.warning("Tencent SMS config incomplete")
-                # 未配置真实服务商时不静默 mock 成功；仅非生产环境下允许 mock
-                return self._send_sms_mock(phone, code) if self._mock_allowed() else False
-
-            cred = credential.Credential(secret_id, secret_key)
-            http_profile = HttpProfile()
-            http_profile.endpoint = "sms.tencentcloudapi.com"
-
-            client_profile = ClientProfile()
-            client_profile.httpProfile = http_profile
-            client = sms_client.SmsClient(cred, "ap-guangzhou", client_profile)
-
-            req = models.SendSmsRequest()
-            req.SmsSdkAppId = sdk_app_id
-            req.SignName = sign_name
-            req.TemplateId = template_id
-            req.TemplateParamSet = [code]
-            req.PhoneNumberSet = [phone]
-
-            resp = client.SendSms(req)
-
-            if resp.SendStatusSet and resp.SendStatusSet[0].Code == 'Ok':
-                logger.info(f"SMS sent successfully via Tencent to {phone}")
-                return True
-            else:
-                error_msg = resp.SendStatusSet[0].Message if resp.SendStatusSet else 'Unknown error'
-                logger.error(f"Tencent SMS failed: {error_msg}")
-                return False
-
-        except ImportError:
-            logger.warning("Tencent SDK not installed")
-            # 生产环境不静默 mock 成功，显式失败
-            return self._send_sms_mock(phone, code) if self._mock_allowed() else False
-        except Exception as e:
-            logger.error(f"Failed to send SMS via Tencent: {str(e)}")
-            return False
-
-    def _send_sms_twilio(self, phone: str, code: str) -> bool:
-        """
-        使用Twilio发送验证码(国际短信)
-        
-        Args:
-            phone: 手机号(需带国家代码,如+86)
-            code: 验证码
-            
-        Returns:
-            是否发送成功
-        """
-        try:
-            from twilio.rest import Client
-
-            account_sid = self.sms_config.get('twilio_account_sid', '')
-            auth_token = self.sms_config.get('twilio_auth_token', '')
-            from_number = self.sms_config.get('twilio_from_number', '')
-
-            if not all([account_sid, auth_token, from_number]):
-                logger.warning("Twilio SMS config incomplete")
-                # 未配置真实服务商时不静默 mock 成功；仅非生产环境下允许 mock
-                return self._send_sms_mock(phone, code) if self._mock_allowed() else False
-
-            client = Client(account_sid, auth_token)
-
-            message = client.messages.create(
-                body=f'Your verification code is: {code}',
-                from_=from_number,
-                to=phone
-            )
-
-            if message.sid:
-                logger.info(f"SMS sent successfully via Twilio to {phone}, SID: {message.sid}")
-                return True
-            else:
-                logger.error("Twilio SMS failed: No message SID returned")
-                return False
-
-        except ImportError:
-            logger.warning("Twilio SDK not installed")
-            # 生产环境不静默 mock 成功，显式失败
-            return self._send_sms_mock(phone, code) if self._mock_allowed() else False
-        except Exception as e:
-            logger.error(f"Failed to send SMS via Twilio: {str(e)}")
-            return False
-
     def _send_sms(self, phone: str, code: str) -> bool:
         """
-        根据配置选择SMS服务商发送短信
-        
+        委派给插件系统发送短信
+
+        查找具备 "send:custom:sms" 能力的激活插件并调用其 send_sms 方法。
+        若无激活的 SMS 插件，回退到 mock（仅非生产环境）或显式失败。
+
         Args:
             phone: 手机号
             code: 验证码
-            
+
         Returns:
             是否发送成功
         """
-        provider = self.sms_config.get('provider', '')
+        # 优先委派给插件系统
+        try:
+            from shared.services.plugins.plugin_manager.core import plugin_manager
+            for plugin in plugin_manager.get_active_plugins():
+                if plugin.has_capability("send:custom:sms") and hasattr(plugin, "send_sms"):
+                    logger.info(f"Delegating SMS to plugin: {plugin.name}")
+                    return plugin.send_sms(phone, code)
+        except Exception as e:
+            logger.warning(f"Plugin SMS delegation failed: {e}")
 
-        if provider == 'aliyun':
-            return self._send_sms_aliyun(phone, code)
-        elif provider == 'tencent':
-            return self._send_sms_tencent(phone, code)
-        elif provider == 'twilio':
-            return self._send_sms_twilio(phone, code)
-        elif provider == 'mock':
-            # mock 仅能在非生产环境显式指定；守卫由 _send_sms_mock 内部执行
+        # 回退到 mock（仅非生产环境显式指定）
+        provider = self.sms_config.get('provider', '')
+        if provider == 'mock':
             return self._send_sms_mock(phone, code)
-        else:
-            # 未显式配置真实短信服务商：明确失败，绝不静默 mock 成功
-            logger.warning("No real SMS provider configured; send FAILED")
-            return False
+
+        # 无插件、非 mock：明确失败，绝不静默成功
+        logger.warning("No SMS provider plugin active and no mock configured; send FAILED")
+        return False
 
     def send_verification_code(self, phone: str) -> dict:
         """
         发送手机验证码
-        
+
         Args:
             phone: 手机号
-            
+
         Returns:
             包含成功状态和消息的字典
         """
@@ -380,11 +220,11 @@ class SMSVerificationService:
     def verify_code(self, phone: str, code: str) -> dict:
         """
         验证手机验证码
-        
+
         Args:
             phone: 手机号
             code: 验证码
-            
+
         Returns:
             包含验证结果的字典
         """
@@ -445,10 +285,10 @@ class SMSVerificationService:
     def is_verified(self, phone: str) -> bool:
         """
         检查手机号是否已验证
-        
+
         Args:
             phone: 手机号
-            
+
         Returns:
             是否已验证
         """
@@ -460,7 +300,7 @@ class SMSVerificationService:
     def cleanup_expired_codes(self) -> int:
         """
         清理过期的验证码
-        
+
         Returns:
             清理的数量
         """
@@ -483,7 +323,7 @@ class SMSVerificationService:
                                template_code: str = ''):
         """
         配置SMS服务商
-        
+
         Args:
             provider: 服务商名称 (mock, aliyun, tencent, twilio)
             access_key: Access Key
