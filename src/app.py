@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import AsyncGenerator
 
 from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
 
 from src.unified_logger import logger
