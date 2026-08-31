@@ -1,17 +1,21 @@
 
 
+import html
+
 from fastapi.responses import HTMLResponse
 
 from src.unified_logger import default_logger as logger
 
 
 def error(status_code, message):
+    safe_message = html.escape(str(message))
+    safe_status_code = html.escape(str(status_code))
     if status_code == 404:
         simple_error_html = f"""
             <!DOCTYPE html>
             <html>
             <head>
-                <title>页面未找到 - {status_code}</title>
+                <title>页面未找到 - {safe_status_code}</title>
                 <meta charset="utf-8">
                 <style>
                     body {{
@@ -72,7 +76,7 @@ def error(status_code, message):
                 <div class="error-container">
                     <h1>404</h1>
                     <h2>页面未找到</h2>
-                    <p>{message}</p>
+                    <p>{safe_message}</p>
                     <a href="/" class="home-link">返回首页</a>
                 </div>
             </body>
@@ -83,7 +87,7 @@ def error(status_code, message):
             <!DOCTYPE html>
             <html>
             <head>
-                <title>错误 - {status_code}</title>
+                <title>错误 - {safe_status_code}</title>
                 <meta charset="utf-8">
                 <style>
                     body {{
@@ -142,9 +146,9 @@ def error(status_code, message):
             </head>
             <body>
                 <div class="error-container">
-                    <h1>{status_code}</h1>
+                    <h1>{safe_status_code}</h1>
                     <h2>发生错误</h2>
-                    <p>{message}</p>
+                    <p>{safe_message}</p>
                     <a href="/" class="home-link">返回首页</a>
                 </div>
             </body>

@@ -3,6 +3,9 @@ RSS/Atom Feed生成服务
 提供标准的RSS 2.0和Atom 1.0格式输出
 """
 
+from shared.logging import default_logger as logger
+
+
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from xml.dom.minidom import parseString
@@ -122,9 +125,7 @@ async def generate_rss_feed(
         return pretty_xml.decode('utf-8')
 
     except Exception as e:
-        print(f"生成RSS失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"生成RSS失败: {e}")
         return ""
 
 
@@ -251,9 +252,7 @@ async def generate_atom_feed(
         return pretty_xml.decode('utf-8')
 
     except Exception as e:
-        print(f"生成Atom失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"生成Atom失败: {e}")
         return ""
 
 
@@ -293,7 +292,7 @@ async def get_feed_metadata(db: AsyncSession) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"获取Feed元数据失败: {e}")
+        logger.error(f"获取Feed元数据失败: {e}")
         return {
             "total_articles": 0,
             "latest_update": None,

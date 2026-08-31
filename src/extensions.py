@@ -150,9 +150,10 @@ try:
 except (redis.ConnectionError, redis.TimeoutError, redis.RedisError, OSError, ImportError):
     # 如果 Redis 不可用（连接拒绝、超时、其他错误），使用简单内存缓存
     class SimpleCache:
-        def __init__(self):
+        def __init__(self, max_size=10000):
             self._cache = {}
             self._expiry = {}  # 存储过期时间
+            self._max_size = max_size  # 最大缓存条目数
             self._stats = {  # 缓存统计信息
                 'hits': 0,
                 'misses': 0,
@@ -160,6 +161,28 @@ except (redis.ConnectionError, redis.TimeoutError, redis.RedisError, OSError, Im
                 'deletes': 0
             }
             self._fallback_mode = False  # 降级模式标志
+
+        def _evict_if_needed(self):
+            """当缓存达到最大大小时，驱逐过期条目或最旧的条目"""
+            if len(self._cache) < self._max_size:
+                return
+
+            import time
+            now = time.time()
+
+            # 先尝试驱逐已过期的条目
+            expired_keys = [k for k, exp in self._expiry.items() if now > exp]
+            for k in expired_keys:
+                self._cache.pop(k, None)
+                self._expiry.pop(k, None)
+
+            # 如果仍然超过最大大小，驱逐最旧的 20% 条目
+            if len(self._cache) >= self._max_size:
+                sorted_by_expiry = sorted(self._expiry.items(), key=lambda x: x[1])
+                keys_to_remove = [k for k, _ in sorted_by_expiry[:max(1, len(self._cache) // 5)]]
+                for k in keys_to_remove:
+                    self._cache.pop(k, None)
+                    self._expiry.pop(k, None)
 
         def get(self, key):
             """获取缓存值，如果已过期则返回 None"""
@@ -187,6 +210,9 @@ except (redis.ConnectionError, redis.TimeoutError, redis.RedisError, OSError, Im
             # 在降级模式下不写入新缓存
             if self._fallback_mode:
                 return
+
+            # 写入前检查缓存大小，必要时驱逐旧条目
+            self._evict_if_needed()
 
             self._cache[key] = value
             self._stats['sets'] += 1
@@ -535,8 +561,8 @@ def init_extensions(app):
 
     # 如果数据库URL为 None（安装向导模式），跳过数据库初始化
     if not database_url:
-        print("Database URL is not configured. Skipping database initialization.")
-        print("This is normal during installation wizard.")
+        logger.warning("Database URL is not configured. Skipping database initialization.")
+        logger.warning("This is normal during installation wizard.")
         return
 
     # 【重要】不再创建独立的引擎和会话工厂
@@ -545,7 +571,7 @@ def init_extensions(app):
     engine = db_manager.async_engine.sync_engine if hasattr(db_manager.async_engine, 'sync_engine') else None
     SessionLocal = None  # 同步会话工厂已完全废弃
 
-    print("Using unified database manager (created in lifespan event)")
+    logger.info("Using unified database manager (created in lifespan event)")
 
     # ── 查询监控：通过 SQLAlchemy 事件自动记录所有查询 ──────────────────
     try:
@@ -555,7 +581,7 @@ def init_extensions(app):
 
         # 使用全局实例并开始录制
         query_monitor_service.start_recording()
-        print("QueryMonitorService started recording")
+        logger.info("QueryMonitorService started recording")
 
         @event.listens_for(engine, "before_cursor_execute")
         def _receive_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
@@ -567,9 +593,9 @@ def init_extensions(app):
             duration = time.time() - start if start else 0
             query_monitor_service.record_query(statement, duration)
 
-        print("Query monitoring event listeners attached to engine")
+        logger.info("Query monitoring event listeners attached to engine")
     except Exception as e:
-        print(f"Warning: Could not attach query monitoring: {e}")
+        logger.warning(f"Could not attach query monitoring: {e}")
 
     # 【移除】不再在这里创建表，由 Alembic 迁移管理
     # Base.metadata.create_all(bind=engine)  # 已删除

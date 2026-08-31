@@ -1,7 +1,11 @@
 """
 应用配置 — src 入口（兼容层）
+
 从 shared.config.settings 导入，保持旧路径兼容性。
 新代码应直接从 shared.config.settings 导入。
+
+ 已废弃：此模块仅作为向后兼容的 re-export 层。
+请迁移到: from shared.config.settings import settings
 """
 from shared.config.settings import (  # noqa: F401
     settings, SECRET_KEY, JWT_SECRET_KEY, DB_ENGINE, DB_HOST, DB_PORT,

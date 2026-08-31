@@ -4,6 +4,7 @@ Modern Minimal Theme
 """
 
 from shared.services.plugins.plugin_manager.theme_plugin import ThemePlugin
+from shared.logging import default_logger as logger
 
 
 class ModernMinimalTheme(ThemePlugin):
@@ -26,7 +27,7 @@ class ModernMinimalTheme(ThemePlugin):
         ]
 
     def on_theme_activated(self, payload: dict):
-        print(f"[ModernMinimalTheme] 简约主题已激活: {payload}")
+        logger.info(f"[ModernMinimalTheme] 简约主题已激活: {payload}")
 
 
 plugin_instance = ModernMinimalTheme()

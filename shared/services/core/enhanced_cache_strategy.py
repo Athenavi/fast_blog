@@ -5,7 +5,7 @@
 
 import asyncio
 import hashlib
-from functools import wraps
+from shared.logging import default_logger as logger
 from typing import Any, Callable, Dict, List, Optional, Union
 
 try:
@@ -157,7 +157,7 @@ class EnhancedCacheStrategy:
             if data is not None:
                 self.set_with_stats(key, data, ttl, tags)
         except Exception as e:
-            print(f"[CacheWarmup] Failed to warmup {key}: {e}")
+            logger.error(f"[CacheWarmup] Failed to warmup {key}: {e}")
 
     def cached(self, key_template: str, ttl: int = None, tags: List[str] = None):
         """

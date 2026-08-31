@@ -123,9 +123,10 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
 
         # 记录失败的登录尝试（同时记录到用户级别）
         if response.status_code in (401, 403):
-            # 从请求体提取用户名
+            # 从请求体提取用户名（使用备用副本避免消费请求体）
             try:
-                body = await request.json()
+                body_bytes = await request.body()
+                body = json.loads(body_bytes) if body_bytes else {}
                 username = body.get("username", "") or body.get("email", "")
                 if username:
                     user_key = self._cache_key_user(username)

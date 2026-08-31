@@ -14,6 +14,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 
 from shared.services.plugins.plugin_manager.core import BasePlugin
 from shared.services.plugins.event_bus import event_bus
+from shared.logging import default_logger as logger
 
 # ── 插件本地 ORM 模型（SQLite，独立于主库）──
 SnippetBase = declarative_base()
@@ -93,14 +94,14 @@ class CodeSnippetsPlugin(BasePlugin):
     def activate(self):
         super().activate()
         self.init_db(SnippetBase)
-        print("[CodeSnippets] Plugin activated")
+        logger.info("[CodeSnippets] Plugin activated")
 
     def deactivate(self):
         super().deactivate()
         if self._session_factory:
             self._session_factory.close_all_sessions()
             self._session_factory = None
-        print("[CodeSnippets] Plugin deactivated")
+        logger.info("[CodeSnippets] Plugin deactivated")
 
     # ── CRUD ──
     def create_snippet(self, snippet_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -132,7 +133,7 @@ class CodeSnippetsPlugin(BasePlugin):
             session.add(model)
             session.commit()
             result = self._model_to_dict(model)
-            print(f"[CodeSnippets] Created snippet: {result['id']}")
+            logger.info(f"[CodeSnippets] Created snippet: {result['id']}")
             return result
         except Exception as e:
             session.rollback()
@@ -182,7 +183,7 @@ class CodeSnippetsPlugin(BasePlugin):
                 raise PermissionError("无权删除此代码片段")
             session.delete(model)
             session.commit()
-            print(f"[CodeSnippets] Deleted snippet: {snippet_id}")
+            logger.info(f"[CodeSnippets] Deleted snippet: {snippet_id}")
             return True
         except Exception as e:
             session.rollback()

@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from shared.logging import default_logger as logger
+
 
 class ResourceOptimizer:
     """
@@ -46,7 +48,7 @@ class ResourceOptimizer:
                 with open(self.version_map_file, 'r', encoding='utf-8') as f:
                     self.version_map = json.load(f)
             except Exception as e:
-                print(f"[ResourceOptimizer] Failed to load version map: {e}")
+                logger.error(f"[ResourceOptimizer] Failed to load version map: {e}")
                 self.version_map = {}
 
     def _save_version_map(self):
@@ -57,7 +59,7 @@ class ResourceOptimizer:
             with open(self.version_map_file, 'w', encoding='utf-8') as f:
                 json.dump(self.version_map, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"[ResourceOptimizer] Failed to save version map: {e}")
+            logger.error(f"[ResourceOptimizer] Failed to save version map: {e}")
 
     def generate_version_hash(self, file_path: Path) -> str:
         """
@@ -207,14 +209,14 @@ class ResourceOptimizer:
             # 保存优化后的图片
             img.save(output_path, optimize=True, quality=quality)
 
-            print(f"[ResourceOptimizer] Optimized image: {image_path} -> {output_path}")
+            logger.info(f"[ResourceOptimizer] Optimized image: {image_path} -> {output_path}")
             return output_path
 
         except ImportError:
-            print("[ResourceOptimizer] PIL not installed, skipping image optimization")
+            logger.warning("[ResourceOptimizer] PIL not installed, skipping image optimization")
             return image_path
         except Exception as e:
-            print(f"[ResourceOptimizer] Failed to optimize image {image_path}: {e}")
+            logger.error(f"[ResourceOptimizer] Failed to optimize image {image_path}: {e}")
             return image_path
 
     def process_css_file(self, css_file: Path, minify: bool = True) -> Path:
@@ -249,7 +251,7 @@ class ResourceOptimizer:
         self.version_map[str(relative_path)] = version
         self._save_version_map()
 
-        print(f"[ResourceOptimizer] Processed CSS: {css_file} -> {output_path}")
+        logger.info(f"[ResourceOptimizer] Processed CSS: {css_file} -> {output_path}")
         return output_path
 
     def process_js_file(self, js_file: Path, minify: bool = True) -> Path:
@@ -284,7 +286,7 @@ class ResourceOptimizer:
         self.version_map[str(relative_path)] = version
         self._save_version_map()
 
-        print(f"[ResourceOptimizer] Processed JS: {js_file} -> {output_path}")
+        logger.info(f"[ResourceOptimizer] Processed JS: {js_file} -> {output_path}")
         return output_path
 
     def batch_optimize(self, file_types: List[str] = ['css', 'js', 'png', 'jpg', 'jpeg', 'gif'],
@@ -327,9 +329,9 @@ class ResourceOptimizer:
                     stats['total'] += 1
 
                 except Exception as e:
-                    print(f"[ResourceOptimizer] Failed to process {file_path}: {e}")
+                    logger.error(f"[ResourceOptimizer] Failed to process {file_path}: {e}")
 
-        print(f"[ResourceOptimizer] Batch optimization complete: {stats}")
+        logger.info(f"[ResourceOptimizer] Batch optimization complete: {stats}")
         return stats
 
     def generate_resource_manifest(self) -> Dict:
@@ -374,7 +376,7 @@ class ResourceOptimizer:
             self.output_dir.mkdir(parents=True, exist_ok=True)
 
         self.version_map = {}
-        print("[ResourceOptimizer] Cache cleared")
+        logger.info("[ResourceOptimizer] Cache cleared")
 
 
 # 全局实例

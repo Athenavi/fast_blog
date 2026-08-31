@@ -9,6 +9,7 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.logging import default_logger as logger
 from shared.models.menu import Menus, MenuItems
 
 
@@ -30,7 +31,7 @@ async def get_menus_list(db: AsyncSession) -> List[Dict[str, Any]]:
         return [menu.to_dict() for menu in menus]
 
     except Exception as e:
-        print(f"获取菜单列表失败: {e}")
+        logger.error(f"获取菜单列表失败: {e}")
         return []
 
 

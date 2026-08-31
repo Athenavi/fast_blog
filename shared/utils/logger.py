@@ -17,6 +17,4 @@ def get_logger(name=None, **kwargs):
     Returns:
         日志记录器实例
     """
-    if name:
-        print(f"Logger requested for: {name}")
     return logger

@@ -72,10 +72,10 @@ class AuditLogger:
             storage_backend: 存储后端类型 (file, database)
             log_dir: 日志文件目录（当使用 file 后端时）
         """
-        print(f"[AuditLogger] Initialized with {storage_backend} backend")
+        self.logger = logging.getLogger(f"audit_logger_{storage_backend}")
         self.storage_backend = storage_backend
         self.log_dir = Path(log_dir) if log_dir else None
-        self.logger = logging.getLogger(f"audit_logger_{storage_backend}")
+        self.logger.info(f"[AuditLogger] Initialized with {storage_backend} backend")
 
     def log(
             self,
@@ -113,9 +113,9 @@ class AuditLogger:
         log_method = getattr(self.logger, severity, self.logger.info)
         log_method(json.dumps(log_entry, ensure_ascii=False))
 
-        # 如果是 denied 或 failure，额外输出到控制台
+        # 如果是 denied 或 failure，额外输出告警日志
         if status in [AuditStatus.DENIED, AuditStatus.FAILURE]:
-            print(f"[AUDIT ALERT] {plugin_slug}: {action_type} on {resource} - {status}")
+            self.logger.warning(f"[AUDIT ALERT] {plugin_slug}: {action_type} on {resource} - {status}")
 
         return log_entry
 
@@ -235,7 +235,7 @@ class AuditLogger:
                         except json.JSONDecodeError:
                             continue
             except Exception as e:
-                print(f"[AuditLogger] Error reading {log_file}: {e}")
+                self.logger.error(f"Error reading audit log file {log_file}: {e}")
 
         return logs
 

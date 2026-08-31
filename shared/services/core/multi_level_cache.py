@@ -95,7 +95,7 @@ class MultiLevelCache:
 
         if file_cache_enabled:
             self.file_cache_dir.mkdir(parents=True, exist_ok=True)
-            print(f"[MultiLevelCache] L3 文件缓存已启用: {self.file_cache_dir}")
+            logger.info(f"[MultiLevelCache] L3 文件缓存已启用: {self.file_cache_dir}")
 
         self.file_cache_stats = {
             'hits': 0,
@@ -395,7 +395,7 @@ class MultiLevelCache:
                 return content
 
         except Exception as e:
-            print(f"[MultiLevelCache] 文件缓存读取失败: {e}")
+            logger.error(f"[MultiLevelCache] 文件缓存读取失败: {e}")
             self.file_cache_stats['errors'] += 1
             return None
 
@@ -428,7 +428,7 @@ class MultiLevelCache:
                 json.dump(meta, f, ensure_ascii=False)
 
         except Exception as e:
-            print(f"[MultiLevelCache] 文件缓存设置失败: {e}")
+            logger.error(f"[MultiLevelCache] 文件缓存设置失败: {e}")
             self.file_cache_stats['errors'] += 1
 
     def _delete_from_file(self, key: str):
@@ -440,7 +440,7 @@ class MultiLevelCache:
             file_path.unlink(missing_ok=True)
             meta_path.unlink(missing_ok=True)
         except Exception as e:
-            print(f"[MultiLevelCache] 文件缓存删除失败: {e}")
+            logger.error(f"[MultiLevelCache] 文件缓存删除失败: {e}")
 
 
 # 全局实例

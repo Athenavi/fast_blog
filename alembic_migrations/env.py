@@ -2,11 +2,15 @@
 Alembic 环境配置
 支持从环境变量动态读取数据库URL
 """
+import logging
 import os
 from logging.config import fileConfig
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+# Alembic logging
+_alembic_logger = logging.getLogger("alembic.env")
 
 # 加载 .env 文件 - 支持多个位置
 project_root = Path(__file__).parent.parent
@@ -20,14 +24,14 @@ env_loaded = False
 for env_file in env_candidates:
     if env_file.exists():
         load_dotenv(env_file, override=True)
-        print(f"[Alembic] Loaded .env from {env_file}")
+        _alembic_logger.info("Loaded .env from %s", env_file)
         env_loaded = True
         break
 
 if not env_loaded:
-    print(f"[Alembic] Warning: .env file not found. Searched:")
+    _alembic_logger.warning(".env file not found. Searched:")
     for p in env_candidates:
-        print(f"  - {p}")
+        _alembic_logger.warning("  - %s", p)
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -87,7 +91,7 @@ if '@' in db_url:
     if ':' in prefix.split('://', 1)[-1]:
         user_part = prefix.split('://', 1)[0] + '://' + prefix.split('://', 1)[-1].split(':')[0]
         safe_url = f"{user_part}:***@{suffix}"
-print(f"[Alembic] Database URL: {safe_url}")
+_alembic_logger.info("Database URL: %s", safe_url)
 config.set_main_option("sqlalchemy.url", db_url)
 
 # add your model's MetaData object here
@@ -128,9 +132,9 @@ try:
             _loaded_count += 1
         except Exception as e:
             _failed_count += 1
-            print(f"[Alembic] Warning: Could not load {_model_name} from {_module_path}: {e}")
+            _alembic_logger.warning("Could not load %s from %s: %s", _model_name, _module_path, e)
 except ImportError:
-    print("[Alembic] Warning: _LAZY_IMPORTS not found, falling back to directory scan")
+    _alembic_logger.warning("_LAZY_IMPORTS not found, falling back to directory scan")
 
 # 策略 2: 扫描 shared/models/ 目录中的手动模型文件（未在 _LAZY_IMPORTS 中注册的）
 _shared_models_dir = project_root / "shared" / "models"
@@ -160,10 +164,10 @@ for _py_file in sorted(_shared_models_dir.rglob("*.py")):
         _loaded_count += 1
     except Exception as e:
         _failed_count += 1
-        print(f"[Alembic] Warning: Could not load {_full_module}: {e}")
+        _alembic_logger.warning("Could not load %s: %s", _full_module, e)
 
-print(f"[Alembic] Loaded {_loaded_count} model modules ({_failed_count} failed)")
-print(f"[Alembic] Registered {len(target_metadata.tables)} tables in metadata")
+_alembic_logger.info("Loaded %d model modules (%d failed)", _loaded_count, _failed_count)
+_alembic_logger.info("Registered %d tables in metadata", len(target_metadata.tables))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

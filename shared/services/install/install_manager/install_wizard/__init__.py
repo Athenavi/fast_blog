@@ -47,10 +47,11 @@ class InstallationWizardService:
         try:
             from src.utils.database.main import get_async_session_context
             from shared.models.system import SystemSettings
+            from sqlalchemy import select
             import asyncio
             async def _check():
                 async with get_async_session_context() as db:
-                    q = __import__("sqlalchemy").select(SystemSettings)
+                    q = select(SystemSettings)
                     r = await db.execute(q)
                     return len(r.scalars().all()) > 0
             try:
