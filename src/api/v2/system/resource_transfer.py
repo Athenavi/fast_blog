@@ -2,7 +2,9 @@
 外部资源转存API
 提供下载任务管理、进度查询等功能
 """
+import re
 from typing import Optional, List
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, desc
@@ -16,6 +18,41 @@ from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["resource-transfer"])
 
+# 禁止下载的内部 IP 地址段
+_BLOCKED_HOSTS = [
+    "127.0.0.1", "localhost", "0.0.0.0",
+    "10.", "172.16.", "172.17.", "172.18.", "172.19.",
+    "172.20.", "172.21.", "172.22.", "172.23.",
+    "172.24.", "172.25.", "172.26.", "172.27.",
+    "172.28.", "172.29.", "172.30.", "172.31.",
+    "192.168.", "169.254.",
+]
+
+_BLOCKED_HOST_RE = re.compile(
+    r"^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|0\.0\.0\.0)",
+    re.IGNORECASE,
+)
+
+
+def _validate_url(url: str) -> None:
+    """验证 URL 是否可安全下载（防止 SSRF）"""
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="仅支持 http/https 协议的 URL")
+    try:
+        parsed = urlparse(url)
+        hostname = parsed.hostname.lower()
+        # 检查内部地址
+        if hostname in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):
+            raise HTTPException(status_code=400, detail="不允许下载内部地址的资源")
+        if _BLOCKED_HOST_RE.match(hostname):
+            raise HTTPException(status_code=400, detail="不允许下载内部地址的资源")
+        if hostname.endswith(".local"):
+            raise HTTPException(status_code=400, detail="不允许下载本地网络资源")
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=400, detail="URL 格式无效")
+
 
 async def create_download_task(
         url: str = Query(..., description="资源URL"),
@@ -27,6 +64,7 @@ async def create_download_task(
     """
     创建外部资源下载任务
     """
+    _validate_url(url)
     service = ResourceTransferService(db)
     task = await service.create_download_task(
         user_id=current_user.id,
@@ -55,6 +93,7 @@ async def create_batch_download_tasks(
     tasks = []
 
     for url in urls:
+        _validate_url(url)
         task = await service.create_download_task(
             user_id=current_user.id,
             source_url=url,

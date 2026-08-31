@@ -278,11 +278,24 @@ async def download_backup(
     if not current_user.is_superuser:
         return fail("需要管理员权限")
 
+    # 防止路径遍历攻击
+    import ntpath
+    sanitized = ntpath.normpath(ntpath.basename(filename))
+    if sanitized != filename and sanitized != ntpath.basename(filename):
+        return fail("无效的文件名")
+    if ".." in filename or filename.startswith("/") or filename.startswith("\\"):
+        return fail("无效的文件名")
+
     # 在所有备份目录中查找文件
     for base_dir in [backup_service.database_backup_dir,
                      backup_service.files_backup_dir,
                      backup_service.full_backup_dir]:
         filepath = os.path.join(base_dir, filename)
+        # 确保解析后的路径仍在 base_dir 内
+        real_path = os.path.realpath(filepath)
+        real_base = os.path.realpath(base_dir)
+        if not real_path.startswith(real_base + os.sep) and real_path != real_base:
+            continue
         if os.path.isfile(filepath):
             return FileResponse(filepath, filename=filename)
         # 完整备份是目录，尝试查找内部的 meta / db / files

@@ -4,6 +4,7 @@
 
 优化: 统一错误处理装饰器消除 22 处重复 try/except, 提取分页逻辑
 """
+import logging
 import os
 from datetime import datetime
 from functools import wraps
@@ -33,6 +34,8 @@ from src.utils.security.safe import is_valid_iso_language_code
 from src.utils.send_email import request_email_change
 from shared.services.security.rate_limiter import rate_limiter
 
+logger = logging.getLogger(__name__)
+
 # ---------------------------------------------------------------------------
 # 内存关注/屏蔽数据库（保持与旧代码行为一致，后续应迁移到数据库表）
 # ---------------------------------------------------------------------------
@@ -50,9 +53,7 @@ def _with_db(func: Callable) -> Callable:
         try:
             return await func(*args, **kwargs)
         except Exception as e:
-            import traceback
-            print(f"[{func.__name__}] {e}")
-            traceback.print_exc()
+            logger.error(f"[{func.__name__}] {e}")
             return fail(str(e))
     return wrapper
 

@@ -5,6 +5,7 @@ Yjs 实时协作编辑 WebSocket API
 支持二进制协议，性能更优
 """
 import json
+import logging
 import uuid as uuid_lib
 from typing import Optional
 
@@ -16,6 +17,8 @@ from shared.services.chat.yjs_collaboration import yjs_collaboration_service
 from src.api.v2._helpers import ok, _catch
 from src.setting import settings
 from src.utils.database.main import get_async_session as get_async_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["collaboration-yjs"])
 
@@ -70,7 +73,7 @@ async def yjs_websocket_endpoint(
     if not client_id:
         client_id = f"user_{user_id or 'anon'}_{uuid_lib.uuid4().hex[:8]}"
 
-    print(f"[Yjs WS] Client {client_id} (user={user_id}) connecting to document {document_id}")
+    logger.info(f"[Yjs WS] Client {client_id} (user={user_id}) connecting to document {document_id}")
 
     # 获取或创建 Yjs 文档
     doc = yjs_collaboration_service.get_or_create_document(document_id, article_id)
@@ -152,7 +155,7 @@ async def yjs_websocket_endpoint(
                                             "html": html,
                                         })
                                     except Exception as e:
-                                        print(f"[Yjs WS] broadcast html error to {cid}: {e}")
+                                        logger.warning(f"[Yjs WS] broadcast html error to {cid}: {e}")
 
                     elif msg_type == "save":
                         try:
@@ -166,7 +169,7 @@ async def yjs_websocket_endpoint(
                                 "message": "保存成功" if success else "保存失败",
                             })
                         except Exception as save_err:
-                            print(f"[Yjs] Save error: {save_err}")
+                            logger.error(f"[Yjs] Save error: {save_err}")
                             await websocket.send_json({
                                 "type": "save_result", "success": False, "error": str(save_err),
                             })
@@ -180,13 +183,13 @@ async def yjs_websocket_endpoint(
                                         document_id, save_db, user_id or 0, "自动保存"
                                     )
                             except Exception:
-                                print(f"[Yjs WS] Auto-save failed for document {document_id}")
+                                logger.warning(f"[Yjs WS] Auto-save failed for document {document_id}")
 
                 except json.JSONDecodeError as e:
-                    print(f"[Yjs WS] JSON parse error: {e}")
+                    logger.warning(f"[Yjs WS] JSON parse error: {e}")
 
     except WebSocketDisconnect:
-        print(f"[Yjs WS] Client {client_id} disconnected")
+        logger.info(f"[Yjs WS] Client {client_id} disconnected")
         doc.remove_client(client_id)
         await doc.broadcast_awareness({
             "type": "user_left",
@@ -202,14 +205,12 @@ async def yjs_websocket_endpoint(
                         document_id, save_db, user_id or 0, "协作编辑自动保存（断开）"
                     )
             except Exception as save_err:
-                print(f"[Yjs] Final save error: {save_err}")
+                logger.error(f"[Yjs] Final save error: {save_err}")
         if len(doc.clients) == 0:
             yjs_collaboration_service.remove_document(document_id)
 
     except Exception as e:
-        print(f"[Yjs WS] Error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"[Yjs WS] Error: {e}")
         doc.remove_client(client_id)
         await doc.broadcast_awareness({
             "type": "user_left", "client_id": client_id,
