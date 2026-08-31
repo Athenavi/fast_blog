@@ -3,6 +3,7 @@
 """
 import asyncio
 import json
+import logging
 
 from fastapi import APIRouter, Body
 from fastapi.responses import StreamingResponse
@@ -12,11 +13,21 @@ from shared.services.install.install_manager.installation_wizard import installa
 from shared.services.install.install_manager.migration_service import migration_service
 from src.api.v2._helpers import ok, fail, _catch
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
+
+
+def _require_not_installed():
+    """检查系统是否已安装，已安装则抛出异常"""
+    if installation_wizard_service.is_installed():
+        import httpx
+        raise httpx.HTTPStatusError("System already installed", request=None, response=None)
 
 
 async def check_prerequisites_api():
     """检查安装前置条件"""
+    _require_not_installed()
     result = installation_wizard_service.check_prerequisites()
 
     return ok(data=result)
@@ -73,9 +84,7 @@ async def configure_database_api(
         request: DatabaseConfigFullRequest
 ):
     """配置数据库（仅安装阶段可调用）"""
-    # 检查是否已安装
-    if installation_wizard_service.is_installed():
-        return fail("System already installed")
+    _require_not_installed()
 
     config = {
         'db_type': request.db_type,
@@ -404,9 +413,7 @@ async def configure_site_settings_api(
         request: SiteSettingsRequest
 ):
     """配置站点设置"""
-    # 检查是否已安装
-    if installation_wizard_service.is_installed():
-        return fail("System already installed")
+    _require_not_installed()
 
     config = {
         'site_name': request.site_name,
@@ -436,9 +443,7 @@ async def complete_installation_api(
         install_info: dict = Body(default={}, description="安装信息")
 ):
     """完成安装"""
-    # 检查是否已安装
-    if installation_wizard_service.is_installed():
-        return fail("System already installed")
+    _require_not_installed()
 
     # 标记安装完成
     from datetime import datetime
@@ -449,14 +454,12 @@ async def complete_installation_api(
     with open(installation_wizard_service.install_flag_file, 'w', encoding='utf-8') as f:
         json.dump(install_info, f, ensure_ascii=False, indent=2)
 
-    print("\n" + "=" * 60)
-    print(" 安装完成！")
-    print("=" * 60)
+    logger.info("安装完成！")
 
     # 如果选择导入示例数据，调用辅助函数
     sample_data_imported = False
     if install_info.get('import_sample_data', False):
-        print("\n正在导入示例数据...")
+        logger.info("正在导入示例数据...")
         try:
             result = await _import_sample_data_helper(
                 import_articles=install_info.get('import_articles', True),
@@ -464,12 +467,12 @@ async def complete_installation_api(
             )
 
             if result.success:
-                print(f" {result.data.get('message', '示例数据导入成功')}")
+                logger.info("示例数据导入成功: %s", result.data.get('message', ''))
                 sample_data_imported = True
             else:
-                print(f" 示例数据导入失败: {result.error}")
+                logger.error("示例数据导入失败: %s", result.error)
         except Exception as e:
-            print(f" 示例数据导入失败: {str(e)}")
+            logger.error("示例数据导入失败: %s", e, exc_info=True)
 
     return ok(data={
         "success": True,
@@ -485,9 +488,7 @@ async def complete_installation_api(
 @_catch
 async def confirm_database_and_migrate_api():
     """确认数据库配置并执行迁移"""
-    # 检查是否已安装
-    if installation_wizard_service.is_installed():
-        return fail("System already installed")
+    _require_not_installed()
 
     result = installation_wizard_service.confirm_database_and_migrate()
 
@@ -520,19 +521,18 @@ async def stream_migration_logs():
     async def event_generator():
         """生成 SSE 事件"""
         try:
-            import sys
-            print(f"\n[SSE] 开始迁移日志流", file=sys.stderr)
+            logger.info("[SSE] 开始迁移日志流")
 
             # 检查 Alembic 是否可用
             if not migration_service.check_alembic_available():
                 error_msg = {'type': 'error', 'message': 'Alembic 未安装或不可用'}
-                print(f"[SSE] {error_msg}", file=sys.stderr)
+                logger.error("[SSE] %s", error_msg)
                 yield f"data: {json.dumps(error_msg, ensure_ascii=False)}\n\n"
                 return
 
             # 获取迁移状态
             status = migration_service.get_migration_status()
-            print(f"[SSE] 当前版本: {status['current']}, 目标版本: {status['head']}", file=sys.stderr)
+            logger.info("[SSE] 当前版本: %s, 目标版本: %s", status['current'], status['head'])
 
             current_ver = status["current"]
             head_ver = status["head"]
@@ -545,24 +545,22 @@ async def stream_migration_logs():
                 return
 
             # 执行迁移并实时推送日志
-            print(f"[SSE] 开始执行迁移...", file=sys.stderr)
+            logger.info("[SSE] 开始执行迁移...")
             async for log_entry in migration_service.run_migration():
                 yield f"data: {json.dumps(log_entry, ensure_ascii=False)}\n\n"
                 # 给前端一点时间处理
                 await asyncio.sleep(0.05)
 
-            print(f"[SSE] 迁移完成", file=sys.stderr)
+            logger.info("[SSE] 迁移完成")
 
         except Exception as e:
             import traceback
-            import sys
             error_msg = {
                 'type': 'error',
                 'message': f'SSE 端点出错: {str(e)}',
                 'traceback': traceback.format_exc()
             }
-            print(f"[SSE ERROR] {error_msg}", file=sys.stderr)
-            print(traceback.format_exc(), file=sys.stderr)
+            logger.error("[SSE ERROR] %s", error_msg, exc_info=True)
             yield f"data: {json.dumps(error_msg, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(

@@ -232,9 +232,20 @@ class BaseConfig:
     # 开发环境(ENVIRONMENT=development)保持 False 便于本地 http 调试。
     _cookie_secure = os.environ.get('ENVIRONMENT', '').lower() != 'development'
     JWT_COOKIE_SECURE = _cookie_secure
+    # CSRF 防护策略：
     # 本框架（FastAPI + JWT Bearer，前后端分离）未实现 JWT_COOKIE_CSRF_PROTECT 后端校验，
     # 且既有侵入式安全头 csrf 端点亦标记废弃（JWT + SameSite=Lax 已天然缓解 CSRF），
-    # 故保持 False；生产 CSRF 缓解依赖上方 JWT_COOKIE_SECURE=True + SameSite=Lax。
+    # 故保持 False。
+    #
+    # 生产环境 CSRF 缓解依赖以下多层防护：
+    # 1. JWT_COOKIE_SECURE=True（仅 HTTPS 传输 Cookie）
+    # 2. JWT_COOKIE_SAMESITE='Lax'（同站策略，阻止跨站 POST/PUT/DELETE 携带 Cookie）
+    # 3. 所有状态变更端点（POST/PUT/DELETE）依赖 JWT Bearer Token（Authorization 头）
+    #    而非仅 Cookie 认证，因此即使 Cookie 被跨站携带，缺少 Bearer Token 仍无法操作
+    # 4. OAuth 流程使用 state 参数（服务端存储和验证）防止 CSRF 授权码劫持
+    #
+    # 注意：JWT_COOKIE_SAMESITE='Lax' 仅阻止跨站顶级 POST 请求携带 Cookie，
+    # 但不阻止 GET 请求。所有敏感操作应使用 POST/PUT/DELETE 方法。
     JWT_COOKIE_CSRF_PROTECT = False
     JWT_COOKIE_SAMESITE = 'Lax'  # SameSite 属性以防范 CSRF 攻击
     JWT_SESSION_COOKIE = False
