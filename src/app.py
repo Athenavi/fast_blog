@@ -821,14 +821,17 @@ def create_app(config=None):
     worker_info = _get_worker_info()
 
     # OpenAPI 元数据（精简但保留核心内容）
+    # 生产环境（ENVIRONMENT=production）禁用 API 文档界面，避免泄露 API 结构信息
+    _env = os.environ.get('ENVIRONMENT', 'development').lower()
+    _is_production = (_env == 'production')
     app = FastAPI(
         title="FastBlog API",
         version="1.0.0",
         lifespan=lifespan,
-        docs_url="/api/v2/docs",
-        redoc_url="/api/v2/redoc",
-        openapi_url="/api/v2/openapi.json",
-        swagger_ui_oauth2_redirect_url="/api/v2/docs/oauth2-redirect",
+        docs_url=None if _is_production else "/api/v2/docs",
+        redoc_url=None if _is_production else "/api/v2/redoc",
+        openapi_url=None if _is_production else "/api/v2/openapi.json",
+        swagger_ui_oauth2_redirect_url=None if _is_production else "/api/v2/docs/oauth2-redirect",
     )
 
     # 注册中间件

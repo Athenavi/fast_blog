@@ -43,8 +43,8 @@ class RateLimiter:
             'ip': {'requests': 300, 'window': 60},  # IP：300次/分钟（约5次/秒，为媒体库页面多请求场景预留）
             'user': {'requests': 500, 'window': 3600},  # 用户：500次/小时
             'endpoint': {  # 端点特定限制
-                '/api/v1/auth/login': {'requests': 10, 'window': 60},  # 登录：10次/分钟
-                '/api/v1/articles': {'requests': 200, 'window': 3600},  # 文章：200次/小时
+                '/api/v2/auth/login': {'requests': 5, 'window': 60},  # 登录：5次/分钟
+                '/api/v2/articles': {'requests': 200, 'window': 3600},  # 文章：200次/小时
             }
         }
 

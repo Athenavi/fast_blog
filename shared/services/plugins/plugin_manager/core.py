@@ -6,6 +6,7 @@
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
@@ -18,6 +19,7 @@ try:
 except ImportError:
     audit_logger = None
 
+logger = logging.getLogger(__name__)
 
 from shared.services.plugins.event_bus import event_bus
 
@@ -78,7 +80,7 @@ class BasePlugin:
             try:
                 self._init_plugin_database()
             except Exception as e:
-                print(f"[Plugin] Warning: Failed to initialize database for {self.name}: {e}")
+                logger.warning(f"[Plugin] Failed to initialize database for {self.name}: {e}")
 
         self.active = True
         self.register_hooks()
@@ -87,7 +89,7 @@ class BasePlugin:
         if subs:
             event_bus.register(subs)
             self._subscriptions = subs
-        print(f"[Plugin] Activated: {self.name} v{self.version}")
+        logger.info(f"[Plugin] Activated: {self.name} v{self.version}")
 
     def deactivate(self):
         """停用插件"""
@@ -100,7 +102,7 @@ class BasePlugin:
             event_bus.unregister(self._subscriptions)
             self._subscriptions = []
         self.active = False
-        print(f"[Plugin] Deactivated: {self.name}")
+        logger.info(f"[Plugin] Deactivated: {self.name}")
 
     def install(self):
         """安装插件"""
@@ -109,14 +111,14 @@ class BasePlugin:
 
         self.installed = True
         self.load_metadata()
-        print(f"[Plugin] Installed: {self.name} v{self.version}")
+        logger.info(f"[Plugin] Installed: {self.name} v{self.version}")
 
     def uninstall(self):
         """卸载插件"""
         if self.active:
             self.deactivate()
         self.installed = False
-        print(f"[Plugin] Uninstalled: {self.name}")
+        logger.info(f"[Plugin] Uninstalled: {self.name}")
 
     def register_hooks(self):
         """注册钩子 - 子类应重写此方法"""
@@ -151,13 +153,13 @@ class BasePlugin:
                 if is_valid and manifest:
                     self.manifest = manifest
                     self.capabilities = manifest.capabilities
-                    print(f"[Plugin] Loaded manifest for {self.name}: {len(self.capabilities)} capabilities declared")
+                    logger.info(f"[Plugin] Loaded manifest for {self.name}: {len(self.capabilities)} capabilities declared")
                 else:
-                    print(f"[Plugin] Warning: Invalid manifest for {self.name}: {msg}")
+                    logger.warning(f"[Plugin] Invalid manifest for {self.name}: {msg}")
                     self.capabilities = self.metadata.get('capabilities', [])
 
             except Exception as e:
-                print(f"[Plugin] Failed to load metadata: {str(e)}")
+                logger.error(f"[Plugin] Failed to load metadata: {str(e)}")
 
     def _init_plugin_database(self):
         """初始化插件数据库"""
@@ -180,10 +182,10 @@ class BasePlugin:
             init_func_name = f"init_{self.slug.replace('-', '_')}_db"
             if hasattr(module, init_func_name):
                 getattr(module, init_func_name)()
-                print(f"[Plugin] Database initialized for {self.name}")
+                logger.info(f"[Plugin] Database initialized for {self.name}")
 
         except Exception as e:
-            print(f"[Plugin] Failed to initialize database: {e}")
+            logger.error(f"[Plugin] Failed to initialize database: {e}")
             raise
 
     # ─── 持久化助手 ────────────────────────────
@@ -218,7 +220,7 @@ class BasePlugin:
         """
         engine = self.get_db_engine()
         base.metadata.create_all(engine)
-        print(f"[Plugin] Database tables created for {self.name}")
+        logger.info(f"[Plugin] Database tables created for {self.name}")
 
     def save_settings(self):
         """保存插件设置"""
@@ -227,7 +229,7 @@ class BasePlugin:
             with open(settings_file, 'w', encoding='utf-8') as f:
                 json.dump(self.settings, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"[Plugin] Failed to save settings: {str(e)}")
+            logger.error(f"[Plugin] Failed to save settings: {str(e)}")
 
     def load_settings(self):
         """加载插件设置"""
@@ -237,7 +239,7 @@ class BasePlugin:
                 with open(settings_file, 'r', encoding='utf-8') as f:
                     self.settings = json.load(f)
             except Exception as e:
-                print(f"[Plugin] Failed to load settings: {str(e)}")
+                logger.error(f"[Plugin] Failed to load settings: {str(e)}")
 
     def get_settings_ui(self) -> Dict[str, Any]:
         """获取设置界面配置"""
@@ -297,7 +299,7 @@ class BasePlugin:
                 f"Plugin '{self.name}' does not have required capability: {capability} ({cap_desc})"
             )
 
-        print(f"[Plugin] Permission denied: {self.name} requested {capability}")
+        logger.warning(f"[Plugin] Permission denied: {self.name} requested {capability}")
         return False
 
 
@@ -334,7 +336,7 @@ class PluginManager:
 
         plugin_path = self.plugins_dir / plugin_slug / "plugin.py"
         if not plugin_path.exists():
-            print(f"[PluginManager] Plugin file not found: {plugin_slug}")
+            logger.warning(f"[PluginManager] Plugin file not found: {plugin_slug}")
             return None
 
         try:
@@ -357,16 +359,16 @@ class PluginManager:
                 plugin.plugin_id = len(self.plugins) + 1
                 plugin.load_settings()
                 self.plugins[plugin_slug] = plugin
-                print(f"[PluginManager] Loaded plugin: {plugin.name}")
+                logger.info(f"[PluginManager] Loaded plugin: {plugin.name}")
                 return plugin
             else:
-                print(f"[PluginManager] No plugin_instance or plugin found in {plugin_slug}")
+                logger.warning(f"[PluginManager] No plugin_instance or plugin found in {plugin_slug}")
                 return None
 
         except Exception as e:
             import traceback
-            print(f"[PluginManager] Failed to load plugin {plugin_slug}: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(f"[PluginManager] Failed to load plugin {plugin_slug}: {str(e)}")
+            logger.error(traceback.format_exc())
             return None
 
     def load_all_plugins(self):
@@ -374,13 +376,13 @@ class PluginManager:
         plugin_slugs = self.discover_plugins()
         for slug in plugin_slugs:
             self.load_plugin(slug)
-        print(f"[PluginManager] Loaded {len(self.plugins)} plugins")
+        logger.info(f"[PluginManager] Loaded {len(self.plugins)} plugins")
 
     def activate_plugin(self, plugin_slug: str) -> bool:
         """激活插件"""
         plugin = self.plugins.get(plugin_slug)
         if not plugin:
-            print(f"[PluginManager] Plugin not found: {plugin_slug}")
+            logger.warning(f"[PluginManager] Plugin not found: {plugin_slug}")
             return False
 
         try:
@@ -390,14 +392,14 @@ class PluginManager:
             if manifest and manifest.category == "theme":
                 active_theme = self.get_active_theme_plugin()
                 if active_theme and active_theme.slug != plugin_slug:
-                    print(f"[PluginManager] Deactivating previous theme: {active_theme.slug}")
+                    logger.info(f"[PluginManager] Deactivating previous theme: {active_theme.slug}")
                     active_theme.deactivate()
 
             plugin.activate()
             self._save_plugin_state()
             return True
         except Exception as e:
-            print(f"[PluginManager] Failed to activate {plugin_slug}: {str(e)}")
+            logger.error(f"[PluginManager] Failed to activate {plugin_slug}: {str(e)}")
             return False
 
     def deactivate_plugin(self, plugin_slug: str) -> bool:
@@ -411,7 +413,7 @@ class PluginManager:
             self._save_plugin_state()
             return True
         except Exception as e:
-            print(f"[PluginManager] Failed to deactivate {plugin_slug}: {str(e)}")
+            logger.error(f"[PluginManager] Failed to deactivate {plugin_slug}: {str(e)}")
             return False
 
     def install_plugin(self, plugin_slug: str) -> bool:
@@ -427,7 +429,7 @@ class PluginManager:
             self._save_plugin_state()
             return True
         except Exception as e:
-            print(f"[PluginManager] Failed to install {plugin_slug}: {str(e)}")
+            logger.error(f"[PluginManager] Failed to install {plugin_slug}: {str(e)}")
             return False
 
     def uninstall_plugin(self, plugin_slug: str) -> bool:
@@ -442,7 +444,7 @@ class PluginManager:
             self._save_plugin_state()
             return True
         except Exception as e:
-            print(f"[PluginManager] Failed to uninstall {plugin_slug}: {str(e)}")
+            logger.error(f"[PluginManager] Failed to uninstall {plugin_slug}: {str(e)}")
             return False
 
     def update_plugin_settings(self, plugin_slug: str, settings: Dict[str, Any]) -> bool:
@@ -456,7 +458,7 @@ class PluginManager:
             plugin.save_settings()
             return True
         except Exception as e:
-            print(f"[PluginManager] Failed to update settings: {str(e)}")
+            logger.error(f"[PluginManager] Failed to update settings: {str(e)}")
             return False
 
     def get_plugin(self, plugin_slug: str) -> Optional[BasePlugin]:
@@ -495,7 +497,7 @@ class PluginManager:
             with open(self.state_file, 'w', encoding='utf-8') as f:
                 json.dump(state, f, indent=2, ensure_ascii=False)
         except Exception as e:
-            print(f"[PluginManager] Failed to save state: {str(e)}")
+            logger.error(f"[PluginManager] Failed to save state: {str(e)}")
 
     def _load_plugin_state(self) -> bool:
         """加载插件状态（优先从数据库，回退到文件）
@@ -516,24 +518,24 @@ class PluginManager:
             from shared.models.plugin import Plugin
             from src.extensions import get_sync_db
 
-            print("\n[PluginManager] Loading plugin state from database...")
+            logger.info("[PluginManager] Loading plugin state from database...")
 
             for db_session in get_sync_db():
                 # 获取所有已安装的插件（不仅仅是激活的）
                 installed_plugins = db_session.query(Plugin).filter(Plugin.is_installed == True).all()
-                print(f"[PluginManager] Found {len(installed_plugins)} installed plugins in database")
+                logger.info(f"[PluginManager] Found {len(installed_plugins)} installed plugins in database")
 
                 for plugin_record in installed_plugins:
                     plugin = self.plugins.get(plugin_record.slug)
                     if plugin:
                         # 先安装插件
                         if not plugin.installed:
-                            print(f"[PluginManager] Installing plugin: {plugin.name} ({plugin_record.slug})")
+                            logger.info(f"[PluginManager] Installing plugin: {plugin.name} ({plugin_record.slug})")
                             plugin.install()
 
                         # 如果数据库中是激活状态，则激活插件
                         if plugin_record.is_active:
-                            print(f"[PluginManager] Activating plugin: {plugin.name} ({plugin_record.slug})")
+                            logger.info(f"[PluginManager] Activating plugin: {plugin.name} ({plugin_record.slug})")
                             plugin.activate()
                             # 如果是 theme 类插件，停用其他已激活的 theme
                             plugin.load_metadata()
@@ -542,19 +544,19 @@ class PluginManager:
                                     if other_slug != plugin_record.slug and other_p.active:
                                         other_p.load_metadata()
                                         if other_p.manifest and other_p.manifest.category == "theme":
-                                            print(f"[PluginManager] Deactivating previous theme from DB: {other_slug}")
+                                            logger.info(f"[PluginManager] Deactivating previous theme from DB: {other_slug}")
                                             other_p.deactivate()
                     else:
-                        print(f"[PluginManager] Warning: Plugin '{plugin_record.slug}' in database but not loaded")
+                        logger.warning(f"[PluginManager] Warning: Plugin {plugin_record.slug} in database but not loaded")
 
-                print(f"[PluginManager] ✅ Plugin state loaded from database successfully\n")
+                logger.info("[PluginManager] Plugin state loaded from database successfully")
                 return True
 
             return False
 
         except Exception as e:
-            print(f"[PluginManager] Failed to load state from database: {e}")
-            print(f"[PluginManager] Falling back to file-based state loading...")
+            logger.error(f"[PluginManager] Failed to load state from database: {e}")
+            logger.warning("[PluginManager] Falling back to file-based state loading...")
             return False
 
     def _load_state_from_file(self) -> bool:
@@ -576,12 +578,12 @@ class PluginManager:
                 if plugin:
                     # 先确保插件已安装
                     if plugin_state.get('installed') and not plugin.installed:
-                        print(f"[PluginManager] Installing plugin from state file: {plugin_slug}")
+                        logger.info(f"[PluginManager] Installing plugin from state file: {plugin_slug}")
                         plugin.install()
 
                     # 如果状态文件中是激活状态，则激活插件
                     if plugin_state.get('active'):
-                        print(f"[PluginManager] Activating plugin from state file: {plugin_slug}")
+                        logger.info(f"[PluginManager] Activating plugin from state file: {plugin_slug}")
                         plugin.activate()
                         # 如果是 theme 类插件，停用其他已激活的 theme
                         plugin.load_metadata()
@@ -590,13 +592,13 @@ class PluginManager:
                                 if other_slug != plugin_slug and other_p.active:
                                     other_p.load_metadata()
                                     if other_p.manifest and other_p.manifest.category == "theme":
-                                        print(f"[PluginManager] Deactivating previous theme from file: {other_slug}")
+                                        logger.info(f"[PluginManager] Deactivating previous theme from file: {other_slug}")
                                         other_p.deactivate()
                         restored = True
 
             return restored
         except Exception as e:
-            print(f"[PluginManager] Failed to load state from file: {e}")
+            logger.error(f"[PluginManager] Failed to load state from file: {e}")
             return False
 
     # ==================== 热插拔功能 ====================
@@ -621,27 +623,27 @@ class PluginManager:
         import importlib
 
         try:
-            print(f"[HotReload] Starting hot reload for plugin: {plugin_slug}")
+            logger.info(f"[HotReload] Starting hot reload for plugin: {plugin_slug}")
 
             # 1. 停用当前插件
             if plugin_slug in self.plugins:
                 old_plugin = self.plugins[plugin_slug]
                 if old_plugin.active:
-                    print(f"[HotReload] Deactivating old plugin instance...")
+                    logger.info("[HotReload] Deactivating old plugin instance...")
                     old_plugin.deactivate()
 
             # 2. 重新加载模块
             module_name = f"plugins.{plugin_slug}.plugin"
             if module_name in sys.modules:
-                print(f"[HotReload] Reloading module: {module_name}")
+                logger.info(f"[HotReload] Reloading module: {module_name}")
                 module = sys.modules[module_name]
                 importlib.reload(module)
             else:
-                print(f"[HotReload] Module not loaded, importing fresh: {module_name}")
+                logger.info(f"[HotReload] Module not loaded, importing fresh: {module_name}")
                 module = importlib.import_module(module_name)
 
             # 3. 创建新的插件实例
-            print(f"[HotReload] Creating new plugin instance...")
+            logger.info("[HotReload] Creating new plugin instance...")
             if hasattr(module, 'plugin'):
                 new_plugin = module.plugin
                 # 确保插件ID和基本信息保持一致
@@ -656,18 +658,18 @@ class PluginManager:
 
                 # 5. 激活新插件
                 if old_plugin and old_plugin.active:
-                    print(f"[HotReload] Activating new plugin instance...")
+                    logger.info("[HotReload] Activating new plugin instance...")
                     new_plugin.activate()
 
                 self._save_plugin_state()
-                print(f"[HotReload] ✅ Plugin '{plugin_slug}' hot reloaded successfully")
+                logger.info(f"[HotReload] Plugin {plugin_slug} hot reloaded successfully")
                 return True
             else:
-                print(f"[HotReload] ❌ Module has no 'plugin' attribute")
+                logger.warning(f"[HotReload] Module has no plugin attribute")
                 return False
 
         except Exception as e:
-            print(f"[HotReload] ❌ Failed to hot reload plugin '{plugin_slug}': {e}")
+            logger.error(f"[HotReload] Failed to hot reload plugin {plugin_slug}: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -685,41 +687,41 @@ class PluginManager:
         import importlib
 
         try:
-            print(f"[HotLoad] Loading new plugin: {plugin_slug}")
+            logger.info(f"[HotLoad] Loading new plugin: {plugin_slug}")
 
             # 检查是否已加载
             if plugin_slug in self.plugins:
-                print(f"[HotLoad] Plugin already loaded, use hot_reload instead")
+                logger.info("[HotLoad] Plugin already loaded, use hot_reload instead")
                 return self.hot_reload_plugin(plugin_slug)
 
             # 1. 导入模块
             module_name = f"plugins.{plugin_slug}.plugin"
-            print(f"[HotLoad] Importing module: {module_name}")
+            logger.info(f"[HotLoad] Importing module: {module_name}")
             module = importlib.import_module(module_name)
 
             # 2. 获取插件实例
             if not hasattr(module, 'plugin'):
-                print(f"[HotLoad] ❌ Module has no 'plugin' attribute")
+                logger.warning(f"[HotLoad] Module has no plugin attribute")
                 return False
 
             new_plugin = module.plugin
 
             # 3. 安装并激活
-            print(f"[HotLoad] Installing plugin...")
+            logger.info("[HotLoad] Installing plugin...")
             new_plugin.install()
 
-            print(f"[HotLoad] Activating plugin...")
+            logger.info("[HotLoad] Activating plugin...")
             new_plugin.activate()
 
             # 4. 注册到管理器
             self.plugins[plugin_slug] = new_plugin
             self._save_plugin_state()
 
-            print(f"[HotLoad] ✅ Plugin '{plugin_slug}' loaded and activated successfully")
+            logger.info(f"[HotLoad] Plugin {plugin_slug} loaded and activated successfully")
             return True
 
         except Exception as e:
-            print(f"[HotLoad] ❌ Failed to load plugin '{plugin_slug}': {e}")
+            logger.error(f"[HotLoad] Failed to load plugin {plugin_slug}: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -737,22 +739,22 @@ class PluginManager:
         import sys
 
         try:
-            print(f"[HotUnload] Unloading plugin: {plugin_slug}")
+            logger.info(f"[HotUnload] Unloading plugin: {plugin_slug}")
 
             # 1. 获取插件
             if plugin_slug not in self.plugins:
-                print(f"[HotUnload] Plugin not found")
+                logger.warning("[HotUnload] Plugin not found")
                 return False
 
             plugin = self.plugins[plugin_slug]
 
             # 2. 停用插件（注销钩子）
             if plugin.active:
-                print(f"[HotUnload] Deactivating plugin...")
+                logger.info("[HotUnload] Deactivating plugin...")
                 plugin.deactivate()
 
             # 3. 卸载插件
-            print(f"[HotUnload] Uninstalling plugin...")
+            logger.info("[HotUnload] Uninstalling plugin...")
             plugin.uninstall()
 
             # 4. 从管理器移除
@@ -762,14 +764,14 @@ class PluginManager:
             # 5. 从sys.modules移除（可选，谨慎使用）
             module_name = f"plugins.{plugin_slug}.plugin"
             if module_name in sys.modules:
-                print(f"[HotUnload] Removing module from cache: {module_name}")
+                logger.info(f"[HotUnload] Removing module from cache: {module_name}")
                 del sys.modules[module_name]
 
-            print(f"[HotUnload] ✅ Plugin '{plugin_slug}' unloaded successfully")
+            logger.info(f"[HotUnload] Plugin {plugin_slug} unloaded successfully")
             return True
 
         except Exception as e:
-            print(f"[HotUnload] ❌ Failed to unload plugin '{plugin_slug}': {e}")
+            logger.error(f"[HotUnload] Failed to unload plugin {plugin_slug}: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -796,7 +798,7 @@ class PluginManager:
                 # 跳过已加载的插件
                 if plugin_slug not in self.plugins:
                     new_plugins.append(plugin_slug)
-                    print(f"[Scan] Found new plugin: {plugin_slug}")
+                    logger.info(f"[Scan] Found new plugin: {plugin_slug}")
 
         return new_plugins
 
