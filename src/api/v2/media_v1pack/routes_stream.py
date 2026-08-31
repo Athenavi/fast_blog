@@ -13,10 +13,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
 from shared.utils.logger import get_logger
+from src.api.v2._helpers import _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from .utils import PREVIEWABLE_TYPES, handle_local_file, handle_s3_streaming
-from src.api.v2._helpers import ok, fail, _catch
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -34,6 +34,10 @@ async def get_cover_image(filename: str):
     """
     # 构建封面文件路径
     cover_dir = Path("storage/cache/cover")
+
+    # 防御路径遍历：确保文件名仅包含合法字符
+    if not filename or '/' in filename or '\\' in filename or '..' in filename:
+        raise HTTPException(status_code=403, detail="非法的文件路径")
     cover_path = cover_dir / filename
 
     # 安全检查：防止目录遍历攻击
@@ -194,8 +198,16 @@ async def get_media_file_by_id(
     if file_hash.storage_path:
         # 处理相对路径格式：objects/xx/xxx.ext
         if not file_hash.storage_path.startswith(("s3://",)):
-            relative_path = Path(file_hash.storage_path)  #
-            full_path = Path("storage") / relative_path
+            # 防御路径遍历：标准化并验证前缀
+            try:
+                full_path = (Path("storage") / file_hash.storage_path).resolve()
+                safe_storage = Path("storage").resolve()
+                if not str(full_path).startswith(str(safe_storage)):
+                    logger.error(f"storage_path 路径逃逸: {file_hash.storage_path}")
+                    raise HTTPException(status_code=403, detail="非法的文件路径")
+            except (ValueError, OSError, RuntimeError) as e:
+                logger.error(f"storage_path 解析失败: {e}")
+                raise HTTPException(status_code=403, detail="非法的文件路径")
             logger.info(f"  尝试从 storage_path 构建路径: {full_path}")
             if full_path.exists():
                 logger.info(f"  [OK] 文件存在于 storage_path 对应的路径: {full_path}")
