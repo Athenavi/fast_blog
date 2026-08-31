@@ -1,24 +1,28 @@
 """
 实时协作 WebSocket API
 """
-from functools import wraps
+import logging
 from typing import Optional
 
 import jwt
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 from shared.services.chat.collaboration import collaboration_service, Step
-from src.api.v2._helpers import ok, fail, _catch
 from src.api.v2.collaboration.collaboration_invites import invitations_db
 from src.setting import settings
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(tags=["websocket"])
+
+# WebSocket 消息大小限制（10KB）
+MAX_WS_MESSAGE_SIZE = 10 * 1024
 
 
 def verify_token_from_cookie(cookie: str) -> Optional[int]:
     """从cookie中验证token并返回user_id"""
     if not cookie:
-        print("[WebSocket] No cookie provided")
+        logger.warning("[WebSocket] No cookie provided")
         return None
 
     try:
@@ -33,17 +37,20 @@ def verify_token_from_cookie(cookie: str) -> Optional[int]:
                     break
 
         if not access_token:
-            print("[WebSocket] No access_token found in cookie")
+            logger.warning("[WebSocket] No access_token found in cookie")
             return None
 
         payload = jwt.decode(access_token, settings.SECRET_KEY, algorithms=["HS256"])
         user_id = payload.get('user_id')
         return user_id
     except jwt.ExpiredSignatureError:
+        logger.warning("[WebSocket] Token expired")
         return None
     except jwt.InvalidTokenError as e:
+        logger.warning(f"[WebSocket] Invalid token: {e}")
         return None
     except Exception as e:
+        logger.warning(f"[WebSocket] Token verification error: {e}")
         return None
 
 

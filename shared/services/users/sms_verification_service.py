@@ -122,12 +122,9 @@ class SMSVerificationService:
             logger.warning("SMS mock mode is only allowed in non-production environments; send FAILED")
             return False
         logger.info(f"[SMS MOCK] Phone: {phone}, Code: {code}")
-        print(f"\n{'=' * 60}")
-        print(f"📱 短信验证码 (MOCK模式)")
-        print(f"手机号: {phone}")
-        print(f"验证码: {code}")
-        print(f"有效期: {self.EXPIRE_MINUTES} 分钟")
-        print(f"{'=' * 60}\n")
+        # 开发/测试环境额外输出到控制台便于调试
+        # 生产环境绝不输出验证码到控制台
+        logger.debug(f"[SMS MOCK] Verification code for {phone}: {code}")
         return True
 
     def _send_sms(self, phone: str, code: str) -> bool:

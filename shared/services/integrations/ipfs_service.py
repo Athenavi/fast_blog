@@ -7,9 +7,12 @@ IPFS 去中心化存储服务
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Any, Optional, List
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -88,9 +91,7 @@ class IPFSService:
             # 3. 如果需要，固定文件
 
             # 模拟上传过程
-            print(f"📤 上传文件到 IPFS: {filename}")
-            print(f"   大小: {len(file_content)} bytes")
-            print(f"   CID: {cid}")
+            logger.info(f"📤 上传文件到 IPFS: {filename} (大小: {len(file_content)} bytes, CID: {cid})")
 
             # 创建文件记录
             ipfs_file = IPFSFile(
@@ -110,12 +111,12 @@ class IPFSService:
             if self.config.get("auto_pin", False):
                 self.pin_file(cid)
 
-            print(f"✅ 文件上传成功: {ipfs_file.gateway_url}")
+            logger.info(f"✅ 文件上传成功: {ipfs_file.gateway_url}")
 
             return ipfs_file
 
         except Exception as e:
-            print(f"❌ 文件上传失败: {e}")
+            logger.error(f"❌ 文件上传失败: {e}")
             import traceback
             traceback.print_exc()
             return None
@@ -188,18 +189,18 @@ class IPFSService:
             # 1. 通过 IPFS 网关或 API 获取文件
             # 2. 返回文件内容
 
-            print(f"📥 从 IPFS 下载文件: {cid}")
+            logger.info(f"📥 从 IPFS 下载文件: {cid}")
 
             # 模拟下载
             if cid in self.file_records:
-                print(f"✅ 文件下载成功")
+                logger.info(f"✅ 文件下载成功")
                 return b"simulated content"
             else:
-                print(f"⚠️ 文件不存在: {cid}")
+                logger.warning(f"⚠️ 文件不存在: {cid}")
                 return None
 
         except Exception as e:
-            print(f"❌ 文件下载失败: {e}")
+            logger.error(f"❌ 文件下载失败: {e}")
             return None
 
     def pin_file(self, cid: str) -> bool:
@@ -240,14 +241,14 @@ class IPFSService:
         try:
             if cid in self.file_records:
                 self.file_records[cid].pinned = False
-                print(f"🔓 文件已取消固定: {cid}")
+                logger.info(f"🔓 文件已取消固定: {cid}")
                 return True
             else:
-                print(f"⚠️ 文件不存在: {cid}")
+                logger.warning(f"⚠️ 文件不存在: {cid}")
                 return False
 
         except Exception as e:
-            print(f"❌ 取消固定失败: {e}")
+            logger.error(f"❌ 取消固定失败: {e}")
             return False
 
     def get_file_info(self, cid: str) -> Optional[Dict[str, Any]]:
@@ -313,7 +314,7 @@ class IPFSService:
         """
         if cid in self.file_records:
             del self.file_records[cid]
-            print(f"🗑️ 文件记录已删除: {cid}")
+            logger.info(f"🗑️ 文件记录已删除: {cid}")
             return True
         else:
             return False
@@ -326,9 +327,7 @@ class IPFSService:
             config: 配置字典
         """
         self.config.update(config)
-        print("✅ IPFS 服务配置已更新")
-        print(f"   API URL: {self.config.get('api_url')}")
-        print(f"   Gateway: {self.config.get('gateway_url')}")
+        logger.info(f"✅ IPFS 服务配置已更新 (API URL: {self.config.get('api_url')}, Gateway: {self.config.get('gateway_url')})")
 
 
 # 全局实例

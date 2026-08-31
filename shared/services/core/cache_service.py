@@ -3,9 +3,12 @@
 """
 
 import json
+import logging
 import time
 from functools import wraps
 from typing import Dict, Any, Optional, Callable, List
+
+logger = logging.getLogger(__name__)
 
 try:
     import redis
@@ -64,13 +67,13 @@ class CacheService:
                 }
                 self.redis_client = redis.Redis(**config)
                 # 移除 ping()：redis.Redis() 本身是惰性的，首次实际操作时才连接
-                print("[CacheService] Redis客户端已创建（惰性连接）")
+                logger.info("[CacheService] Redis客户端已创建（惰性连接）")
             except Exception as e:
-                print(f"[CacheService] Redis连接失败: {e}, 使用内存缓存")
+                logger.error(f"[CacheService] Redis连接失败: {e}, 使用内存缓存")
                 self.use_redis = False
                 self.redis_client = None
         elif use_redis and not REDIS_AVAILABLE:
-            print("[CacheService] redis库未安装,使用内存缓存")
+            logger.warning("[CacheService] redis库未安装,使用内存缓存")
             self.use_redis = False
 
     def get(self, key: str) -> Optional[Any]:
@@ -94,7 +97,7 @@ class CacheService:
                         return value
                 return None
             except Exception as e:
-                print(f"[CacheService] Redis获取失败: {e}, 降级到内存缓存")
+                logger.error(f"[CacheService] Redis获取失败: {e}, 降级到内存缓存")
                 self.use_redis = False
 
         # 从内存缓存获取(cachetools会自动处理TTL)
@@ -173,7 +176,7 @@ class CacheService:
                     self.set(key, value, ttl)
                     return value
             except Exception as e:
-                print(f"[CacheService] 分布式锁获取失败: {e}, 直接回填")
+                logger.warning(f"[CacheService] 分布式锁获取失败: {e}, 直接回填")
                 # 锁失败时直接回填（降级）
                 if asyncio.iscoroutinefunction(factory):
                     value = asyncio.get_event_loop().run_until_complete(factory())
@@ -212,7 +215,7 @@ class CacheService:
 
                 self.redis_client.setex(key, ttl, serialized_value)
             except Exception as e:
-                print(f"[CacheService] Redis存储失败: {e}, 降级到内存缓存")
+                logger.warning(f"[CacheService] Redis存储失败: {e}, 降级到内存缓存")
                 self.use_redis = False
 
         # 存储到内存缓存
@@ -233,7 +236,7 @@ class CacheService:
             try:
                 self.redis_client.delete(key)
             except Exception as e:
-                print(f"[CacheService] Redis删除失败: {e}")
+                logger.warning(f"[CacheService] Redis删除失败: {e}")
 
         if key in self.cache:
             del self.cache[key]
@@ -253,9 +256,9 @@ class CacheService:
                         self.redis_client.delete(*keys)
                     if cursor == 0:
                         break
-                print(f"[CacheService] Redis已清除 {deleted} 个缓存 key (前缀: {prefix})")
+                logger.info(f"[CacheService] Redis已清除 {deleted} 个缓存 key (前缀: {prefix})")
             except Exception as e:
-                print(f"[CacheService] Redis清除失败: {e}")
+                logger.warning(f"[CacheService] Redis清除失败: {e}")
 
         self.cache.clear()
 
@@ -341,7 +344,7 @@ class AssetMinifier:
                 with open(path, 'r', encoding='utf-8') as f:
                     combined.append(f.read())
             except Exception as e:
-                print(f"读取文件失败 {path}: {e}")
+                logger.warning(f"读取文件失败 {path}: {e}")
 
         content = '\n'.join(combined)
 

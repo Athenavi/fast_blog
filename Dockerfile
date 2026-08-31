@@ -58,7 +58,9 @@ WORKDIR /app
 
 # Install ONLY essential runtime dependencies (no curl, no ffmpeg — using static binary)
 # curl removed: healthcheck uses Python urllib instead (saves ~4MB from curl + deps)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# apt upgrade 确保基础镜像所有预安装包为最新版本
+RUN apt-get update && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
     libpq5 \
     tini \
     gosu \

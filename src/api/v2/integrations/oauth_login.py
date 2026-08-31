@@ -1,7 +1,7 @@
 """
 OAuth 第三方登录 API 端点
 """
-
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,8 @@ from src.api.v2._helpers import ok, fail, _catch
 from src.auth import create_access_token
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["oauth"])
 
@@ -34,6 +36,11 @@ async def authorize(
     import os
     import uuid
     from src.extensions import cache
+
+    # 验证 provider 是否受支持
+    supported = oauth_service.get_supported_providers()
+    if provider not in supported:
+        return fail(f"不支持的 OAuth 提供商: {provider}，支持: {', '.join(supported)}")
 
     client_id = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_ID", "")
     redirect_uri = request.url_for("oauth_callback", provider=provider).__str__()
@@ -77,7 +84,12 @@ async def oauth_callback(
     """
     import os
     from src.extensions import cache
-    
+
+    # 验证 provider 是否受支持
+    supported = oauth_service.get_supported_providers()
+    if provider not in supported:
+        return fail(f"不支持的 OAuth 提供商: {provider}")
+
     # 验证state（防止CSRF攻击）
     if not state:
         return fail("缺少state参数")
@@ -163,7 +175,7 @@ async def oauth_callback(
 
         if user:
             # 找到现有用户，创建OAuth关联（账号绑定）
-            print(f"[OAuth] Binding {provider} account to existing user: {user.username}")
+            logger.info(f"[OAuth] Binding {provider} account to existing user: {user.username}")
 
             oauth_account = OAuthAccount(
                 user_id=user.id,
@@ -176,7 +188,7 @@ async def oauth_callback(
 
         else:
             # 创建新用户
-            print(f"[OAuth] Creating new user from {provider}")
+            logger.info(f"[OAuth] Creating new user from {provider}")
 
             # 生成唯一用户名
             username = user_info.get('username') or user_info.get(

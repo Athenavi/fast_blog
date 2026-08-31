@@ -14,6 +14,7 @@ from typing import AsyncGenerator
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
+
 from src.unified_logger import logger
 
 
@@ -195,23 +196,23 @@ def register_all_routes(app: FastAPI, worker_info: str):
         for module_path, prefix, tags, result in load_results:
             if result is None:
                 failed_count += 1
-                print(f"{worker_info} [Warning] v2/{module_path} 未找到加载结果")
+                logger.warning(f"{worker_info} v2/{module_path} 未找到加载结果")
                 continue
 
             _, router, mod_elapsed, req, error = result
 
             if error is not None:
                 if req:
-                    print(f"{worker_info} [ERROR] v2 必需模块加载失败: {module_path} - {error}")
+                    logger.error(f"{worker_info} v2 必需模块加载失败: {module_path} - {error}")
                     raise error
                 else:
                     failed_count += 1
-                    print(f"{worker_info} [Warning] v2/{module_path} 未能加载: {error}")
+                    logger.warning(f"{worker_info} v2/{module_path} 未能加载: {error}")
                     continue
 
             if router is None:
                 failed_count += 1
-                print(f"{worker_info} [Warning] v2/{module_path} 未找到 router 属性")
+                logger.warning(f"{worker_info} v2/{module_path} 未找到 router 属性")
                 continue
 
             try:
@@ -222,34 +223,34 @@ def register_all_routes(app: FastAPI, worker_info: str):
                 loaded_count += 1
                 short_name = module_path.split('.')[-1]
                 if mod_elapsed > 1.0:
-                    print(f"{worker_info} [SLOW] v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
+                    logger.info(f"{worker_info} [SLOW] v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
                 else:
-                    print(f"{worker_info} [OK] v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
+                    logger.info(f"{worker_info} v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
             except Exception as e:
                 if req:
                     raise
                 failed_count += 1
-                print(f"{worker_info} [Warning] v2/{module_path} 注册异常: {e}")
+                logger.warning(f"{worker_info} v2/{module_path} 注册异常: {e}")
 
         routes_elapsed = _time.monotonic() - routes_start
         register_elapsed = _time.monotonic() - register_start
-        print(f"{worker_info} API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count}, "
-              f"加载: {load_elapsed:.2f}s, 注册: {register_elapsed:.2f}s, 总耗时: {routes_elapsed:.2f}s)\n")
+        logger.info(f"{worker_info} API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count}, "
+              f"加载: {load_elapsed:.2f}s, 注册: {register_elapsed:.2f}s, 总耗时: {routes_elapsed:.2f}s)")
     except ImportError as e:
-        print(f"{worker_info} [ERROR] API v2 模块未找到: {e}\n")
+        logger.error(f"{worker_info} API v2 模块未找到: {e}")
         raise
 
     # 注册 v3 路由（移动端专用）
-    print(f"\n{worker_info} {'=' * 60}")
-    print(f"{worker_info} 开始注册 API v3 路由（移动端）...")
+    logger.info(f"{worker_info} {'=' * 60}")
+    logger.info(f"{worker_info} 开始注册 API v3 路由（移动端）...")
     try:
         from src.api.v3 import register_v3_routes
         register_v3_routes(app)
-        print(f"{worker_info} API v3 路由注册完成\n")
+        logger.info(f"{worker_info} API v3 路由注册完成")
     except ImportError as e:
-        print(f"{worker_info} [Warning] API v3 模块未找到，跳过: {e}\n")
+        logger.warning(f"{worker_info} API v3 模块未找到，跳过: {e}\n")
     except Exception as e:
-        print(f"{worker_info} [Warning] API v3 路由注册失败: {e}\n")
+        logger.warning(f"{worker_info} API v3 路由注册失败: {e}\n")
 
 
 # ---------- 生命周期 ----------
@@ -261,39 +262,39 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 1. 安装状态检查
     step_start = _time.monotonic()
     is_installed = check_installation()
-    print(f"[lifespan] 安装检查耗时: {_time.monotonic() - step_start:.2f}s")
+    logger.info(f"[lifespan] 安装检查耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 2. 数据库管理器（仅安装后）
     if is_installed:
         step_start = _time.monotonic()
         await safe_run_async("数据库管理器", _init_database)
-        print(f"[lifespan] 数据库初始化耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 数据库初始化耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 2.5 懒加载系统初始化
     try:
         from src.utils.lazy_loader import init_lazy_loading
         step_start = _time.monotonic()
         safe_run("懒加载系统", init_lazy_loading)
-        print(f"[lifespan] 懒加载系统耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 懒加载系统耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[懒加载系统] 跳过: {e}")
+        logger.warning(f"[懒加载系统] 跳过: {e}")
 
     # 3. 扩展、调度器
     try:
         from src.extensions import init_extensions
         step_start = _time.monotonic()
         safe_run("扩展初始化", lambda: init_extensions(app))
-        print(f"[lifespan] 扩展初始化耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 扩展初始化耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[扩展初始化] 跳过: {e}")
+        logger.warning(f"[扩展初始化] 跳过: {e}")
 
     try:
         from src.scheduler import init_scheduler
         step_start = _time.monotonic()
         safe_run("调度器初始化", lambda: init_scheduler(app))
-        print(f"[lifespan] 调度器初始化耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 调度器初始化耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[调度器初始化] 跳过: {e}")
+        logger.warning(f"[调度器初始化] 跳过: {e}")
 
     if is_installed:
         # 定时发布由 SessionScheduler（src/scheduler.py，每 5 分钟）统一处理，
@@ -304,38 +305,36 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         step_start = _time.monotonic()
         safe_run("插件系统", _init_plugins)
-        print(f"[lifespan] 插件系统耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 插件系统耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[插件系统] 跳过: {e}")
+        logger.warning(f"[插件系统] 跳过: {e}")
 
     # 4.5 审计日志订阅者（依赖 EventBus，需在插件之后）
     try:
         step_start = _time.monotonic()
         from shared.services.security.audit_subscriber import register_audit_subscriber
         register_audit_subscriber()
-        print(f"[lifespan] 审计日志订阅者注册耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 审计日志订阅者注册耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
-        print(f"[审计日志订阅者] 跳过: {e}")
+        logger.warning(f"[审计日志订阅者] 跳过: {e}")
 
     # 5. 下载队列处理器
     if is_installed:
         step_start = _time.monotonic()
         await safe_run_async("下载队列处理器", _init_download_processor)
-        print(f"[lifespan] 下载队列处理器耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 下载队列处理器耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 6. 权限缓存预热 + 广播订阅
     if is_installed:
         step_start = _time.monotonic()
         await safe_run_async("权限缓存预热", _warm_permission_cache)
-        print(f"[lifespan] 权限缓存预热耗时: {_time.monotonic() - step_start:.2f}s")
+        logger.info(f"[lifespan] 权限缓存预热耗时: {_time.monotonic() - step_start:.2f}s")
         # 启动 Redis 广播订阅（后台任务）
         asyncio.ensure_future(_start_redis_subscriber())
-        print(f"[lifespan] Redis 广播订阅已启动")
+        logger.info(f"[lifespan] Redis 广播订阅已启动")
 
     total_elapsed = _time.monotonic() - lifespan_start
-    print(f"\n{'=' * 60}")
-    print(f"[lifespan] 应用启动完成，总耗时: {total_elapsed:.2f}s")
-    print(f"{'=' * 60}\n")
+    logger.info(f"[lifespan] 应用启动完成，总耗时: {total_elapsed:.2f}s")
 
     yield
 
@@ -357,7 +356,7 @@ def _init_plugins():
         from shared.services.plugins.plugin_manager.init import initialize_plugins
         return initialize_plugins()
     except ImportError as e:
-        print(f"[插件系统] 导入失败: {e}")
+        logger.warning(f"[插件系统] 导入失败: {e}")
         return None
 
 
@@ -393,9 +392,9 @@ async def _warm_permission_cache():
             for uid in superadmin_ids:
                 await _memory_cache.set(uid, all_codes)
 
-        print(f"[lifespan] 权限缓存预热: {len(superadmin_ids)} 个超级管理员, {len(all_codes)} 个权限代码")
+        logger.info(f"[lifespan] 权限缓存预热: {len(superadmin_ids)} 个超级管理员, {len(all_codes)} 个权限代码")
     except Exception as e:
-        print(f"[lifespan] 权限缓存预热跳过: {e}")
+        logger.info(f"[lifespan] 权限缓存预热跳过: {e}")
 
 
 def _enable_redis_caches():
@@ -420,9 +419,9 @@ def _enable_redis_caches():
         from shared.services.core.multi_level_cache import multi_level_cache
         multi_level_cache.redis_enabled = True
 
-        print("[CacheService] 已启用 Redis 共享缓存后端（多 worker）")
+        logger.info("[CacheService] 已启用 Redis 共享缓存后端（多 worker）")
     except Exception as e:
-        print(f"[CacheService] 启用 Redis 缓存后端失败，继续使用内存缓存: {e}")
+        logger.warning(f"[CacheService] 启用 Redis 缓存后端失败，继续使用内存缓存: {e}")
 
 
 async def _start_redis_subscriber():
@@ -431,7 +430,7 @@ async def _start_redis_subscriber():
         from src.api.v3._permission import _redis_subscribe_invalidate
         await _redis_subscribe_invalidate()
     except Exception as e:
-        print(f"[lifespan] Redis 广播订阅启动失败: {e}")
+        logger.info(f"[lifespan] Redis 广播订阅启动失败: {e}")
 
     # 启动通用缓存失效广播监听
     try:
@@ -439,9 +438,9 @@ async def _start_redis_subscriber():
         await redis_service.connect()
         await redis_service.start_cache_invalidation_listener()
         _enable_redis_caches()
-        print(f"[lifespan] Redis cache:invalidate 监听已启动")
+        logger.info(f"[lifespan] Redis cache:invalidate 监听已启动")
     except Exception as e:
-        print(f"[lifespan] Redis cache:invalidate 监听启动失败: {e}")
+        logger.info(f"[lifespan] Redis cache:invalidate 监听启动失败: {e}")
 
 
 async def _shutdown_download_processor():
@@ -500,7 +499,7 @@ def register_middleware(app: FastAPI):
         if "*" in allow_origins:
             allow_origins = [o for o in allow_origins if o != "*"] or ["http://localhost:3000"]
 
-    print(f"[CORS] 允许源: {allow_origins}")
+    logger.info(f"[CORS] 允许源: {allow_origins}")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allow_origins,
@@ -520,13 +519,13 @@ def register_middleware(app: FastAPI):
             async def dispatch(self, request, call_next):
                 url = str(request.url)
                 if "/sensitive-words" in url:
-                    print(f"\n[DEBUG] 请求: {request.method} {url}")
-                    print(f"[DEBUG] Headers: {dict(request.headers)}")
+                    logger.debug(f"请求: {request.method} {url}")
+                    logger.debug(f"Headers: {dict(request.headers)}")
                     if request.method == "POST":
                         try:
                             # 先读取 body
                             body = await request.body()
-                            print(f"[DEBUG] Body: {body.decode('utf-8')}")
+                            logger.debug(f"Body: {body.decode('utf-8')}")
 
                             # 重要：将 body 重新设置回 request，以便后续 endpoint 可以读取
                             async def receive():
@@ -534,10 +533,10 @@ def register_middleware(app: FastAPI):
 
                             request._receive = receive
                         except Exception as e:
-                            print(f"[DEBUG] 无法读取 body: {e}")
+                            logger.debug(f"无法读取 body: {e}")
                 response = await call_next(request)
                 if "/sensitive-words" in url and response.status_code == 422:
-                    print(f"[DEBUG] 422 响应: {response.status_code}")
+                    logger.debug(f"422 响应: {response.status_code}")
                 return response
 
         app.add_middleware(DebugMiddleware)
@@ -547,7 +546,7 @@ def register_middleware(app: FastAPI):
 
             async def dispatch(self, request, call_next):
                 if request.headers.get("upgrade", "").lower() == "websocket" and "/collaboration/ws/" in str(request.url):
-                    print(f"[WS DEBUG] 连接尝试: {request.url}")
+                    logger.debug(f"WS 连接尝试: {request.url}")
                 return await call_next(request)
 
         app.add_middleware(WSDebugMiddleware)
@@ -557,7 +556,7 @@ def register_middleware(app: FastAPI):
         from src.middleware.http_cache_middleware import HttpCacheMiddleware
         app.add_middleware(HttpCacheMiddleware, enable_etag=True, enable_last_modified=True,
                            default_cache_ttl=300, skip_methods=['POST', 'PUT', 'DELETE', 'PATCH'])
-        print("[HTTP Cache] 已添加")
+        logger.info("[HTTP Cache] 已添加")
     except ImportError:
         pass
 
@@ -572,21 +571,21 @@ def register_middleware(app: FastAPI):
                 return await _rate_limit_fn(request, call_next)
 
         app.add_middleware(RateLimitMiddleware)
-        print("[Rate Limit] 已添加")
+        logger.info("[Rate Limit] 已添加")
     except ImportError as e:
-        print(f"[Rate Limit] 加载失败: {e}")
+        logger.warning(f"[Rate Limit] 加载失败: {e}")
     except Exception as e:
-        print(f"[Rate Limit] 注册异常: {e}")
+        logger.warning(f"[Rate Limit] 注册异常: {e}")
 
     # RBAC 权限中间件
     try:
         from src.middleware.rbac_middleware import RBACMiddleware
         app.add_middleware(RBACMiddleware)
-        print("[RBAC Middleware] 已添加")
+        logger.info("[RBAC Middleware] 已添加")
     except ImportError as e:
-        print(f"[RBAC Middleware] 加载失败: {e}")
+        logger.warning(f"[RBAC Middleware] 加载失败: {e}")
     except Exception as e:
-        print(f"[RBAC Middleware] 注册异常: {e}")
+        logger.warning(f"[RBAC Middleware] 注册异常: {e}")
 
     # API 版本响应头
     class APIVersionMiddleware(BaseHTTPMiddleware):
@@ -596,34 +595,50 @@ def register_middleware(app: FastAPI):
             response.headers["API-Version"] = "v2"
             return response
 
-    # 安全响应头中间件：X-Frame-Options / X-XSS-Protection / Referrer-Policy / Permissions-Policy
+    # 安全响应头中间件：X-Frame-Options / CSP / Permissions-Policy / Referrer-Policy
     class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
         async def dispatch(self, request, call_next):
             response = await call_next(request)
-            # 如果不是静态文件或流媒体响应，添加安全头
+            # 非错误响应和非文件响应时添加安全头
             if response.status_code < 400:
                 response.headers.setdefault("X-Frame-Options", "DENY")
                 response.headers.setdefault("X-Content-Type-Options", "nosniff")
                 response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+                # CSP: 防御 XSS 和注入攻击。'unsafe-inline' + 'unsafe-eval' 是
+                # 给部分应用（如编辑器、Admin 面板）的最低妥协，生产环境可进一步收紧。
+                response.headers.setdefault("Content-Security-Policy",
+                    "default-src 'self'; "
+                    "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                    "style-src 'self' 'unsafe-inline'; "
+                    "img-src 'self' data: blob:; "
+                    "font-src 'self' data:; "
+                    "connect-src 'self' ws: wss:; "
+                    "frame-ancestors 'none'; "
+                    "form-action 'self'; "
+                    "base-uri 'self'"
+                )
+                response.headers.setdefault("Permissions-Policy",
+                    "geolocation=(), microphone=(), camera=(), payment=()"
+                )
                 if "X-XSS-Protection" not in response.headers:
                     response.headers["X-XSS-Protection"] = "1; mode=block"
             return response
 
     app.add_middleware(SecurityHeadersMiddleware)
-    print("[Security Headers] X-Frame-Options / X-XSS-Protection / Referrer-Policy 已添加")
+    logger.info("[Security Headers] X-Frame-Options / CSP / Permissions-Policy / Referrer-Policy 已添加")
 
     app.add_middleware(APIVersionMiddleware)
-    print("[API Version] 已添加版本响应头中间件")
+    logger.info("[API Version] 已添加版本响应头中间件")
 
     # 性能监控中间件（惰性加载：避免启动时 import psutil）
     try:
         app.add_middleware(
             _make_lazy_middleware("src.middleware.performance_monitor", "RequestPerformanceMiddleware")
         )
-        print("[Performance Monitor] 已添加性能监控中间件（惰性加载）")
+        logger.info("[Performance Monitor] 已添加性能监控中间件（惰性加载）")
     except Exception as e:
-        print(f"[Performance Monitor] 加载失败: {e}")
+        logger.warning(f"[Performance Monitor] 加载失败: {e}")
 
     # 多站点（惰性加载：避免启动时导入 Site 模型）
     try:
@@ -637,17 +652,17 @@ def register_middleware(app: FastAPI):
     try:
         from src.middleware.token_blacklist_middleware import TokenBlacklistMiddleware
         app.add_middleware(TokenBlacklistMiddleware)
-        print("[Token Blacklist] 已添加 Token 黑名单中间件")
+        logger.info("[Token Blacklist] 已添加 Token 黑名单中间件")
     except Exception as e:
-        print(f"[Token Blacklist] 加载失败: {e}")
+        logger.warning(f"[Token Blacklist] 加载失败: {e}")
 
     # 暴力破解防护中间件
     try:
         from src.middleware.brute_force_protection import BruteForceProtectionMiddleware
         app.add_middleware(BruteForceProtectionMiddleware)
-        print("[Brute Force] 已添加暴力破解防护中间件")
+        logger.info("[Brute Force] 已添加暴力破解防护中间件")
     except Exception as e:
-        print(f"[Brute Force] 加载失败: {e}")
+        logger.warning(f"[Brute Force] 加载失败: {e}")
 
 
 # ---------- 错误处理与静态文件 ----------
@@ -731,7 +746,7 @@ def register_error_handlers(app: FastAPI):
                 return HTMLResponse(content=response_data.get('html_content', ''),
                                     status_code=response_data.get('status_code', 404))
         except Exception as e:
-            print(f"[Plugin] 404 hook error: {e}")
+            logger.warning(f"[Plugin] 404 hook error: {e}")
 
         # 2. API 请求返回 JSON
         if _is_api_request(request):
@@ -819,12 +834,12 @@ def create_app(config=None):
     # 注册中间件
     step_start = _time.monotonic()
     register_middleware(app)
-    print(f"{worker_info} [create_app] 中间件注册耗时: {_time.monotonic() - step_start:.2f}s")
+    logger.info(f"{worker_info} [create_app] 中间件注册耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 注册所有 API 路由
     step_start = _time.monotonic()
     register_all_routes(app, worker_info)
-    print(f"{worker_info} [create_app] 路由注册耗时: {_time.monotonic() - step_start:.2f}s")
+    logger.info(f"{worker_info} [create_app] 路由注册耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 错误处理和 SPA 回退
     register_error_handlers(app)
@@ -899,7 +914,7 @@ def create_app(config=None):
         app.mount("/api/v2/assets/themes", StaticFiles(directory=themes_dir), name="themes")
 
     app_elapsed = _time.monotonic() - app_start
-    print(f"{worker_info} [create_app] 应用工厂完成，总耗时: {app_elapsed:.2f}s")
+    logger.info(f"{worker_info} [create_app] 应用工厂完成，总耗时: {app_elapsed:.2f}s")
 
     return app
 
