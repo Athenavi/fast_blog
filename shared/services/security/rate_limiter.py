@@ -77,6 +77,19 @@ class RateLimiter:
         except Exception as e:
             logger.warning(f"Rate limiter Redis init failed, using memory store: {e}")
             self.redis_client = None
+            self._redis_attempted = False  # 允许后续重试
+
+    async def _check_redis_healthy(self) -> bool:
+        """快速检查 Redis 连接是否可用，不可用时自动降级"""
+        if self.redis_client is None:
+            return False
+        try:
+            await self.redis_client.ping()
+            return True
+        except Exception as e:
+            logger.warning(f"Redis connection lost, falling back to memory: {e}")
+            self.redis_client = None
+            return False
 
     def _get_key(self, prefix: str, identifier: str) -> str:
         """生成限流键"""
@@ -100,22 +113,32 @@ class RateLimiter:
         return len(self.memory_store[key])
 
     async def _add_request_redis(self, key: str, timestamp: float, window: int):
-        """在Redis中添加请求记录"""
-        pipe = self.redis_client.pipeline()
-        pipe.zadd(key, {str(timestamp): timestamp})
-        pipe.expire(key, window)
-        await pipe.execute()
+        """在Redis中添加请求记录，失败时降级到内存存储"""
+        try:
+            pipe = self.redis_client.pipeline()
+            pipe.zadd(key, {str(timestamp): timestamp})
+            pipe.expire(key, window)
+            await pipe.execute()
+        except Exception as e:
+            logger.warning(f"Redis add request failed, falling back to memory: {e}")
+            self.redis_client = None
+            await self._add_request_memory(key, timestamp)
 
     async def _get_request_count_redis(self, key: str, window: int) -> int:
-        """从Redis中获取窗口内的请求数"""
-        now = time.time()
-        cutoff = now - window
+        """从Redis中获取窗口内的请求数，失败时降级到内存存储"""
+        try:
+            now = time.time()
+            cutoff = now - window
 
-        # 移除过期记录并计数
-        count = await self.redis_client.zremrangebyscore(key, 0, cutoff)
-        count = await self.redis_client.zcard(key)
+            # 移除过期记录并计数
+            await self.redis_client.zremrangebyscore(key, 0, cutoff)
+            count = await self.redis_client.zcard(key)
 
-        return count
+            return count
+        except Exception as e:
+            logger.warning(f"Redis get request count failed, falling back to memory: {e}")
+            self.redis_client = None
+            return await self._get_request_count_memory(key, window)
 
     async def check_rate_limit(
             self,
@@ -213,7 +236,7 @@ class RateLimiter:
         # 获取当前请求数
         now = time.time()
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             request_count = await self._get_request_count_redis(key, window)
             await self._add_request_redis(key, now, window)
         else:
@@ -277,7 +300,7 @@ class RateLimiter:
         key = self._get_key('user', str(user_id))
         window = self.default_limits['user']['window']
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             current_count = await self._get_request_count_redis(key, window)
         else:
             current_count = await self._get_request_count_memory(key, window)
@@ -310,7 +333,7 @@ class RateLimiter:
             'window': window
         }
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             await self.redis_client.setex(key, 86400, str(config))  # 24小时过期
         else:
             # 内存存储
@@ -326,7 +349,7 @@ class RateLimiter:
         """
         key = self._get_key(limit_type, identifier)
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             await self.redis_client.delete(key)
         else:
             if key in self.memory_store:
@@ -362,7 +385,11 @@ async def rate_limit_middleware(request: Request, call_next):
     client_ip = _resolve_client_ip(request)
 
     # 生产环境优先使用 Redis 存储（多 worker/多实例共享限流计数）
-    await rate_limiter.ensure_redis()
+    # 如果 Redis 不可用，会自动降级到内存存储
+    try:
+        await rate_limiter.ensure_redis()
+    except Exception as e:
+        logger.warning(f"rate_limit_middleware: Redis init failed, continuing with memory: {e}")
 
     # 获取API端点
     endpoint = request.url.path

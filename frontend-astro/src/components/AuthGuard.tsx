@@ -18,18 +18,10 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
 
     const check = async (): Promise<void> => {
       try {
-        const {getAccessTokenFromCookie} = await import('@/lib/auth-utils');
-        // 如果没有 token cookie，直接判定未登录
-        if (!getAccessTokenFromCookie()) {
-          if (!cancelled) setStatus('unauthenticated');
-          return;
-        }
-
         const res = await apiClient.get(USERS.ME);
         if (res.success && res.data) {
           if (!cancelled) setStatus('authenticated');
         } else {
-          // 有 token 但请求失败，重试一次（可能 config 尚未加载）
           if (retries < maxRetries) {
             retries++;
             await new Promise(r => setTimeout(r, 500));

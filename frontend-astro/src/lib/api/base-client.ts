@@ -4,24 +4,6 @@ import {getConfig} from '@/lib/config';
 import {AUTH} from '@/lib/api/api-paths';
 import type {ApiResponse} from '@/lib/api/base-types';
 
-// ─── Cookie helpers ──────────────────────────────
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  for (const c of document.cookie.split(';')) {
-    const [n, v] = c.trim().split('=');
-    if (n === name && v) return decodeURIComponent(v);
-  }
-  return null;
-}
-function setCookie(name: string, value: string, maxAgeSec: number) {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
-}
-function clearCookie(name: string) {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax`;
-}
-
 /** 构建完整 URL：补全 API 前缀 + 查询参数 */
 function buildUrl(path: string, params?: Record<string, any>): string {
   const base = getConfig().API_BASE_URL || '';
@@ -103,11 +85,6 @@ async function request<T = any>(
       // (uncommon case: query + body)
     }
 
-    const accessToken = getCookie('access_token');
-    if (accessToken) {
-      opts.headers = { ...(opts.headers as Record<string, string> || {}), 'Authorization': `Bearer ${accessToken}` };
-    }
-
     let res = await fetch(url, opts);
 
     // ── 404 开发检测工具 ──
@@ -144,15 +121,9 @@ async function request<T = any>(
     if (res.status === 401 && !path.includes('/auth/token/refresh') && !path.includes('/auth/login')) {
       const refreshed = await ensureTokenFresh();
       if (refreshed) {
-        const newToken = getCookie('access_token');
-        if (newToken) {
-          opts.headers = { ...(opts.headers as Record<string, string> || {}), 'Authorization': `Bearer ${newToken}` };
-        }
         res = await fetch(url, opts);
       } else {
-        // Refresh failed — clear cookies and redirect to login
-        clearCookie('access_token');
-        clearCookie('refresh_token');
+        // Refresh failed — redirect to login (httponly cookies are cleared server-side)
         const currentPath = encodeURIComponent(window.location.pathname + window.location.search);
         if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
           window.location.href = `/login?next=${currentPath}`;
