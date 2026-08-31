@@ -1,29 +1,41 @@
 ﻿'use client';
 
 
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api/base-client';
-import {MEMBERSHIP} from '@/lib/api/api-paths';
-import {Check, Crown} from 'lucide-react';
+import {VIPService} from '@/lib/api/vip-services';
+import {Check, Crown, Loader2} from 'lucide-react';
+import {useState} from 'react';
 
 function VipInner() {
-  const {data: features} = useQuery({
+  const queryClient = useQueryClient();
+  const [subscribing, setSubscribing] = useState<number | null>(null);
+  const [subscribeMsg, setSubscribeMsg] = useState<{type: 'success'|'error', text: string} | null>(null);
+
+  const {data: featuresData} = useQuery({
     queryKey: ['vip-features'],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>(MEMBERSHIP.FEATURES);
-      return r.success && r.data ? (Array.isArray(r.data) ? r.data : []) : [];
+      const r = await VIPService.getVipFeatures();
+      return r.success && r.data ? r.data : null;
+    },
+  });
+  const {data: plansData} = useQuery({
+    queryKey: ['vip-plans'],
+    queryFn: async () => {
+      const r = await VIPService.getVipPlans();
+      return r.success && r.data ? r.data : [];
     },
   });
   const {data: status} = useQuery({
     queryKey: ['vip-status'],
     queryFn: async () => {
-      const r = await apiClient.get(MEMBERSHIP.STATUS);
+      const r = await VIPService.getVipStatus();
       return r.success && r.data ? r.data : {};
     },
   });
 
-  const tiers = Array.isArray(features) ? features.map(p => ({
+  const plans = Array.isArray(plansData) ? plansData : [];
+  const tiers = plans.map(p => ({
     name: p.name || '',
     price: p.price ? `¥${p.price}` : '¥0',
     period: p.duration_days ? `/ ${p.duration_days}天` : '',
@@ -35,9 +47,29 @@ function VipInner() {
     })(),
     description: p.description || '',
     level: p.level || 1,
-  })) : [];
+    id: p.id,
+  }));
 
   const hasTiers = tiers.length > 0;
+
+  const handleSubscribe = async (planId: number, planPrice: number) => {
+    setSubscribing(planId);
+    setSubscribeMsg(null);
+    try {
+      const r = await VIPService.subscribe(planId, planPrice);
+      if (r.success) {
+        setSubscribeMsg({type: 'success', text: '订阅成功！'});
+        queryClient.invalidateQueries({queryKey: ['vip-status']});
+        queryClient.invalidateQueries({queryKey: ['vip-plans']});
+      } else {
+        setSubscribeMsg({type: 'error', text: r.message || '订阅失败'});
+      }
+    } catch (e: any) {
+      setSubscribeMsg({type: 'error', text: e?.message || '订阅失败'});
+    } finally {
+      setSubscribing(null);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
@@ -49,10 +81,18 @@ function VipInner() {
 
         {status?.is_vip && <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-100 dark:bg-green-900/20 rounded-xl text-green-700 dark:text-green-300 mb-12"><Crown className="w-5 h-5"/>您是 VIP 会员，有效期至 {new Date(status.expires_at).toLocaleDateString('zh-CN')}</div>}
 
+        {subscribeMsg && (
+          <div className={`mb-6 px-4 py-2 rounded-xl text-sm font-medium ${
+            subscribeMsg.type === 'success' ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+          }`}>
+            {subscribeMsg.text}
+          </div>
+        )}
+
         {hasTiers ? (
           <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {tiers.map(t => (
-              <div key={t.name} className="relative bg-white dark:bg-gray-900 rounded-2xl p-6 border-2 border-gray-100 dark:border-gray-800 transition-all hover:shadow-lg">
+              <div key={t.id || t.name} className="relative bg-white dark:bg-gray-900 rounded-2xl p-6 border-2 border-gray-100 dark:border-gray-800 transition-all hover:shadow-lg">
                 <Crown className="w-8 h-8 mx-auto mb-3 text-blue-600"/>
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t.name}</h2>
                 {t.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-3">{t.description}</p>}
@@ -62,8 +102,16 @@ function VipInner() {
                     <li key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"><Check className="w-4 h-4 text-green-500 shrink-0"/>{f}</li>
                   ))}
                 </ul>
-                <button className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white">
-                  {t.price === '¥0' ? '当前计划' : '立即升级'}
+                <button
+                  onClick={() => handleSubscribe(t.id!, parseFloat(p.price.replace('¥', '')) || 0)}
+                  disabled={subscribing === t.id}
+                  className="w-full py-2.5 rounded-xl text-sm font-medium transition-colors disabled:opacity-60 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white"
+                >
+                  {subscribing === t.id ? (
+                    <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin"/>处理中...</span>
+                  ) : (
+                    t.price === '¥0' ? '当前计划' : '立即升级'
+                  )}
                 </button>
               </div>
             ))}

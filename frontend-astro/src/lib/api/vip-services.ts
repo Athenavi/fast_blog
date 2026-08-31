@@ -1,5 +1,6 @@
 import type {ApiResponse} from '@/lib/api/base-types';
 import {apiClient} from './base-client';
+import {MEMBERSHIP} from './api-paths';
 
 export interface PremiumArticle {
     id: number;
@@ -14,16 +15,20 @@ export interface PremiumArticle {
     updated_at?: string;
     user_id: number;
     category_id: number;
-    author: {
-        id?: number;
-        username: string;
-    };
 }
 
 export interface PremiumContentResponse {
-    active_status: boolean;
+    active_status: {
+        is_vip: boolean;
+        level: number;
+        expires_at: string | null;
+        plan_name: string | null;
+    };
     current_vip_level: number;
     articles: PremiumArticle[];
+    total?: number;
+    page?: number;
+    page_size?: number;
 }
 
 // VIP types
@@ -37,7 +42,6 @@ export interface VIPPlan {
     level: number;
     features?: string;
     is_active: boolean;
-    daily_cost: number;
     created_at?: string;
     updated_at?: string;
 }
@@ -56,6 +60,8 @@ export interface VIPSubscription {
     id: number;
     user_id: number;
     plan_id: number;
+    plan_name?: string;
+    level?: number;
     starts_at: string;
     expires_at: string;
     status: number;
@@ -81,20 +87,36 @@ export interface MyVipSubscriptionResponse {
 
 // VIP service
 export class VIPService {
-    static async getVipPlans(): Promise<ApiResponse<VIPPlansResponse>> {
-        return apiClient.get('/membership/plans');
+    static async getVipPlans(): Promise<ApiResponse<VIPPlan[]>> {
+        return apiClient.get(MEMBERSHIP.PLANS);
     }
 
     static async getVipFeatures(): Promise<ApiResponse<VIPFeaturesResponse>> {
-        return apiClient.get('/membership/features');
+        return apiClient.get(MEMBERSHIP.FEATURES);
     }
 
     static async getMySubscription(): Promise<ApiResponse<MyVipSubscriptionResponse>> {
-        return apiClient.get('/membership/my-subscription');
+        return apiClient.get(MEMBERSHIP.MY_SUBSCRIPTION);
     }
 
     static async getPremiumContent(): Promise<ApiResponse<PremiumContentResponse>> {
-        return apiClient.get('/membership/premium-content');
+        return apiClient.get(MEMBERSHIP.PREMIUM_CONTENT);
+    }
+
+    static async getVipStatus(): Promise<ApiResponse<any>> {
+        return apiClient.get(MEMBERSHIP.STATUS);
+    }
+
+    static async checkContentAccess(articleId: number, requiredLevel: number = 0): Promise<ApiResponse<any>> {
+        return apiClient.get(MEMBERSHIP.CHECK_ACCESS, {article_id: articleId, required_level: requiredLevel});
+    }
+
+    static async subscribe(planId: number, paymentAmount: number = 0, transactionId?: string): Promise<ApiResponse<any>> {
+        return apiClient.post(MEMBERSHIP.SUBSCRIBE, {
+            plan_id: planId,
+            payment_amount: paymentAmount,
+            transaction_id: transactionId || null,
+        });
     }
 }
 
@@ -121,7 +143,10 @@ export interface CreatePaymentResponse {
 // Payment service
 export class PaymentService {
     static async createPayment(data: CreatePaymentRequest): Promise<ApiResponse<CreatePaymentResponse>> {
-        // 后端没有直接的/payment/create，使用membership/subscribe代替
-        return apiClient.post('/membership/subscribe', data);
+        return apiClient.post(MEMBERSHIP.SUBSCRIBE, {
+            plan_id: data.plan_id,
+            payment_amount: 0,
+            transaction_id: null,
+        });
     }
 }

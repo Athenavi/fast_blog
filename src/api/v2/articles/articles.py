@@ -130,29 +130,18 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
     if article.status == 0 and not _is_author_or_admin(current_user, article.user):
         return None
 
-    # VIP-only access check — 基于实时 VIPSubscription 表
+    # VIP-only access check — 复用 MembershipService 统一校验
     if article.is_vip_only and not _is_author_or_admin(current_user, article.user):
         if not current_user:
             raise HTTPException(403, "VIP membership required to access this article")
-        from shared.models.vip import VIPSubscription
-        sub_result = await db.execute(
-            select(VIPSubscription).where(
-                VIPSubscription.user == current_user.id,
-                VIPSubscription.status == 1,
-                VIPSubscription.expires_at > datetime.now(),
-            )
+        from shared.services.core.membership import create_membership_service
+        access_result = await create_membership_service(db).check_content_access(
+            user_id=current_user.id,
+            article_id=article.id,
+            required_level=article.required_vip_level or 0,
         )
-        active_sub = sub_result.scalar_one_or_none()
-        if not active_sub:
-            raise HTTPException(403, "VIP membership required to access this article")
-        if article.required_vip_level:
-            from shared.models.vip import VIPPlan
-            plan_result = await db.execute(
-                select(VIPPlan.level).where(VIPPlan.id == active_sub.plan_id)
-            )
-            user_vip_level = plan_result.scalar() or 0
-            if user_vip_level < article.required_vip_level:
-                raise HTTPException(403, "Insufficient VIP level to access this article")
+        if not access_result.get('has_access'):
+            raise HTTPException(403, access_result.get('reason', 'VIP membership required'))
 
     content_obj = await db.scalar(select(ArticleContent).where(ArticleContent.article == article.id))
     raw = content_obj.content if content_obj else ""

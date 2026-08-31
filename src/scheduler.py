@@ -155,33 +155,13 @@ class SessionScheduler:
                 return
             try:
                 from src.utils.database.unified_manager import db_manager
-                from datetime import datetime
-                from shared.models.vip import VIPSubscription
-                from shared.models.user import User
-                from sqlalchemy import select
+                from shared.services.core.membership import create_membership_service
 
                 async with db_manager.get_session() as db:
-                    now = datetime.now()
-                    # 查询所有过期但状态仍为活跃的订阅
-                    result = await db.execute(
-                        select(VIPSubscription).where(
-                            VIPSubscription.expires_at <= now,
-                            VIPSubscription.status == 1  # 1=active
-                        )
-                    )
-                    expired = result.scalars().all()
-
-                    for sub in expired:
-                        sub.status = 2  # 2=expired
-                        # 同时更新用户的 vip_level
-                        user = await db.get(User, sub.user)
-                        if user:
-                            user.vip_level = 0
-                            user.vip_expires_at = None
-
-                    await db.commit()
-                    if expired:
-                        logger.info(f"已过期 {len(expired)} 个 VIP 订阅")
+                    service = create_membership_service(db)
+                    count = await service.check_expired_subscriptions()
+                    if count > 0:
+                        logger.info(f"已处理 {count} 个过期 VIP 订阅")
             except Exception as e:
                 logger.error(f"检查 VIP 过期时出错：{e}")
                 import traceback

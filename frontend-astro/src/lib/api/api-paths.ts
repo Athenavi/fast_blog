@@ -268,6 +268,7 @@ export const MEMBERSHIP = {
   PREMIUM_CONTENT: '/ext/membership/premium-content',
   SUBSCRIBE: '/ext/membership/subscribe',
   STATUS: '/ext/membership/status',
+  CHECK_ACCESS: '/ext/membership/check-access',
 } as const;
 
 // ─── Tipping 打赏 ──────────────────────────────
