@@ -21,13 +21,13 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-fastblog_secret}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       - DB_NAME=${DB_NAME:-fast_blog}
       # --- Redis 配置 ---
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       # --- 应用配置 ---
-      - SECRET_KEY=${SECRET_KEY:-}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env. Run: python -c "import secrets; print(secrets.token_urlsafe(32))"}
       - ENVIRONMENT=production
       - DEBUG=False
     # 注意：不设置 user，Dockerfile 无 USER 指令，默认 root

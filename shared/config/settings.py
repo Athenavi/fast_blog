@@ -45,9 +45,8 @@ def get_sqlalchemy_uri(db_config):
 
     # 检查必要配置
     if not all([db_host, db_user, db_port, db_name]):
-        print(
-            'The database connection configuration is incomplete. Please check the .env file or environment variables.')
-        print('This is normal during installation wizard - configuration will be set up through the installer.')
+        logger.error('数据库连接配置不完整，请检查 .env 文件或环境变量。')
+        logger.error('如果在安装向导中，请通过安装程序进行配置。')
         return None
 
     # 对于IPv6地址，需要使用方括号包围主机地址
@@ -70,8 +69,8 @@ def get_sqlalchemy_uri(db_config):
     env_key = f"DB_INFO_PRINTED_{os.getpid()}"
 
     if not os.environ.get(env_key):
-        print(f"{worker_info} 数据库引擎：PostgreSQL")
-        print(f"{worker_info} SQLAlchemy URI: {safe_uri}")
+        logger.info("%s 数据库引擎：PostgreSQL", worker_info)
+        logger.info("%s SQLAlchemy URI: %s", worker_info, safe_uri)
         os.environ[env_key] = "1"  # 标记为已打印
 
     return sqlalchemy_uri
@@ -83,13 +82,18 @@ class BaseConfig:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     SECRET_KEY = os.environ.get('SECRET_KEY')
     if not SECRET_KEY:
+        if os.environ.get('ENVIRONMENT', '').lower() == 'production':
+            raise RuntimeError(
+                "SECRET_KEY 未设置！生产环境必须设置 SECRET_KEY 环境变量。\n"
+                "  生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
         import secrets
         SECRET_KEY = secrets.token_urlsafe(32)
         logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
     elif SECRET_KEY.startswith('change-this-to') or SECRET_KEY in ('your-secret-key-here', 'changeme'):
         raise RuntimeError(
             "SECRET_KEY 仍为占位值！请在环境变量中设置一个真实的密钥。\n"
-            f"  当前值: {SECRET_KEY[:20]}...\n"
+            "  当前值已被日志记录，请检查后修改。\n"
             "  生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
         )
 
@@ -247,9 +251,10 @@ class BaseConfig:
     S3_SIGNATURE_VERSION = os.environ.get('S3_SIGNATURE_VERSION', 's3v4')  # 签名版本
 
     # 安全头配置（Talisman）
+    # 注意：生产部署时请根据实际使用的 CDN 域名修改 script-src 中的白名单
     TALISMAN_CONTENT_SECURITY_POLICY = {
         'default-src': "'self'",
-        'script-src': ["'self'", "cdn.example.com"],
+        'script-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'"]
     }
 
@@ -259,25 +264,24 @@ class AppConfig(BaseConfig):
 
     def __init__(self):
         super().__init__()
+        self.db_engine = os.environ.get('DB_ENGINE') or os.getenv('DB_ENGINE', 'postgresql')
+        self.db_host = os.environ.get('DB_HOST') or os.getenv('DATABASE_HOST', 'localhost')
+        self.db_user = os.environ.get('DB_USER') or os.getenv('DATABASE_USER', 'postgres')
+        self.db_name = os.environ.get('DB_NAME') or os.getenv('DATABASE_NAME')
+        self.db_password = os.environ.get('DB_PASSWORD') or os.getenv('DATABASE_PASSWORD')
+        db_port_env = os.environ.get('DB_PORT') or os.getenv('DATABASE_PORT')
+        self.db_port = int(db_port_env) if db_port_env is not None else 5432
+        db_pool_size_env = os.environ.get('DB_POOL_SIZE') or os.getenv('DATABASE_POOL_SIZE')
+        self.db_pool_size = int(db_pool_size_env) if db_pool_size_env is not None else 20
+        db_pool_overflow_env = os.environ.get('DB_POOL_OVERFLOW') or os.getenv('DATABASE_POOL_OVERFLOW')
+        self.db_pool_overflow = int(db_pool_overflow_env) if db_pool_overflow_env is not None else 30
+        db_pool_timeout_env = os.environ.get('DB_POOL_TIMEOUT') or os.getenv('DATABASE_POOL_TIMEOUT')
+        self.db_pool_timeout = int(db_pool_timeout_env) if db_pool_timeout_env is not None else 60
+        self.db_table_prefix = os.environ.get('DB_TABLE_PREFIX') or os.getenv('DB_TABLE_PREFIX', '')
         # 初始化数据库URI（可能为 None，如果配置不完整）
         self.database_url = self._get_database_uri()
         # 为SQLAlchemy设置数据库URI
         self.SQLALCHEMY_DATABASE_URI = self.database_url
-
-    db_engine = os.environ.get('DB_ENGINE') or os.getenv('DB_ENGINE', 'postgresql')
-    db_host = os.environ.get('DB_HOST') or os.getenv('DATABASE_HOST', 'localhost')
-    db_user = os.environ.get('DB_USER') or os.getenv('DATABASE_USER', 'postgres')
-    db_name = os.environ.get('DB_NAME') or os.getenv('DATABASE_NAME')
-    db_password = os.environ.get('DB_PASSWORD') or os.getenv('DATABASE_PASSWORD')
-    db_port_env = os.environ.get('DB_PORT') or os.getenv('DATABASE_PORT')
-    db_port = int(db_port_env) if db_port_env is not None else 5432
-    db_pool_size_env = os.environ.get('DB_POOL_SIZE') or os.getenv('DATABASE_POOL_SIZE')
-    db_pool_size = int(db_pool_size_env) if db_pool_size_env is not None else 20
-    db_pool_overflow_env = os.environ.get('DB_POOL_OVERFLOW') or os.getenv('DATABASE_POOL_OVERFLOW')
-    db_pool_overflow = int(db_pool_overflow_env) if db_pool_overflow_env is not None else 30
-    db_pool_timeout_env = os.environ.get('DB_POOL_TIMEOUT') or os.getenv('DATABASE_POOL_TIMEOUT')
-    db_pool_timeout = int(db_pool_timeout_env) if db_pool_timeout_env is not None else 60
-    db_table_prefix = os.environ.get('DB_TABLE_PREFIX') or os.getenv('DB_TABLE_PREFIX', '')
 
     def _get_database_uri(self):
         """获取数据库URI"""
@@ -337,6 +341,12 @@ def get_app_config():
     # 更新 BaseConfig 中的 SECRET_KEY
     secret_key = os.environ.get('SECRET_KEY')
     if not secret_key:
+        # 在生产环境必须强制设置 SECRET_KEY
+        if os.environ.get('ENVIRONMENT', '').lower() == 'production':
+            raise RuntimeError(
+                "SECRET_KEY 未设置！生产环境必须设置 SECRET_KEY 环境变量。\n"
+                "生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
         # 未配置环境变量时，生成强随机密钥并警告用户
         secret_key = secrets.token_urlsafe(32)
         logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
@@ -385,31 +395,24 @@ class ProductionConfig(AppConfig):
             missing.append('DB_USER')
 
         if missing:
-            print("=" * 70)
-            print("⚠️  警告：以下数据库环境变量未设置，应用将以安装向导模式启动")
-            print("=" * 70)
-            print(f"   未设置的变量: {', '.join(missing)}")
-            print()
-            print("   请通过以下任一方式配置：")
-            print("   1. 创建 .env 文件（参考 .env.example）")
-            print("   2. 在 docker-compose.yml 的 environment 中设置")
-            print("   3. 直接设置系统环境变量")
-            print()
-            print("   示例 docker-compose.yml 配置：")
-            print("     environment:")
-            print("       - DB_HOST=postgres")
-            print("       - DB_PORT=5432")
-            print("       - DB_USER=postgres")
-            print("       - DB_PASSWORD=your_password")
-            print("       - DB_NAME=fast_blog")
-            print("       - SECRET_KEY=your-secret-key-at-least-32-chars")
-            print("=" * 70)
-            print("   应用将继续启动，请通过 /install 页面完成数据库配置。")
-            print("=" * 70)
+            logger.warning("以下数据库环境变量未设置，应用将以安装向导模式启动")
+            logger.warning("未设置的变量: %s", ', '.join(missing))
+            logger.warning("请通过以下任一方式配置：")
+            logger.warning("1. 创建 .env 文件（参考 .env.example）")
+            logger.warning("2. 在 docker-compose.yml 的 environment 中设置")
+            logger.warning("3. 直接设置系统环境变量")
+            logger.warning("示例配置：")
+            logger.warning("  - DB_HOST=postgres")
+            logger.warning("  - DB_PORT=5432")
+            logger.warning("  - DB_USER=postgres")
+            logger.warning("  - DB_PASSWORD=your_password")
+            logger.warning("  - DB_NAME=fast_blog")
+            logger.warning("  - SECRET_KEY=your-secret-key-at-least-32-chars")
+            logger.warning("应用将继续启动，请通过 /install 页面完成数据库配置。")
         else:
             # 警告：未设置密码（允许，但提示安全风险）
             if not self.db_password:
-                print("⚠️  警告：未设置 DB_PASSWORD，数据库将使用空密码连接")
+                logger.warning("警告：未设置 DB_PASSWORD，数据库将使用空密码连接")
 
 
 class DevelopmentConfig(AppConfig):

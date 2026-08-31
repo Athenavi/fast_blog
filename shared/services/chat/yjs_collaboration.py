@@ -5,10 +5,13 @@ Yjs 实时协作编辑服务
 使用 y-websocket 协议进行数据同步
 """
 import asyncio
+import logging
 from datetime import datetime
 from typing import Dict, Optional
 
 from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
 
 
 class YjsDocument:
@@ -56,7 +59,7 @@ class YjsDocument:
                 try:
                     await client.send_bytes(data)
                 except Exception as e:
-                    print(f"[Yjs] Broadcast error for client {client_id}: {e}")
+                    logger.warning("Broadcast error for client %s: %s", client_id, e)
                     disconnected.append(client_id)
 
         # 清理断开的连接
@@ -75,7 +78,7 @@ class YjsDocument:
                         'state': awareness_state
                     })
                 except Exception as e:
-                    print(f"[Yjs] Awareness broadcast error for client {client_id}: {e}")
+                    logger.warning("Awareness broadcast error for client %s: %s", client_id, e)
                     disconnected.append(client_id)
 
         # 清理断开的连接
@@ -129,7 +132,7 @@ class YjsCollaborationService:
         if document_id not in self.documents:
             doc = YjsDocument(document_id, article_id)
             self.documents[document_id] = doc
-            print(f"[Yjs] Created new document: {document_id}")
+            logger.info("Created new document: %s", document_id)
         return self.documents[document_id]
 
     def remove_document(self, document_id: str):
@@ -138,7 +141,7 @@ class YjsCollaborationService:
             doc = self.documents[document_id]
             if len(doc.clients) == 0:
                 del self.documents[document_id]
-                print(f"[Yjs] Removed document: {document_id}")
+                logger.info("Removed document: %s", document_id)
 
     def get_active_documents(self) -> list:
         """获取所有活跃的文档"""
@@ -190,15 +193,14 @@ class YjsCollaborationService:
                 db_session.add(revision)
 
                 await db_session.commit()
-                print(f"[Yjs] Saved document {document_id} (article {article_id}) to database")
+                logger.info("Saved document %s (article %s) to database", document_id, article_id)
 
             doc.last_saved = datetime.now()
             return True
 
         except Exception as e:
-            print(f"[Yjs] Error saving to database: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error("Error saving to database: %s", e, exc_info=True)
+            await db_session.rollback()
             return False
 
 
