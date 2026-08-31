@@ -79,7 +79,7 @@ class UnifiedDatabaseManager:
                 'pool_size': getattr(settings, 'database_pool_size', 20),  # 降低到 20，避免资源浪费
                 'max_overflow': getattr(settings, 'database_pool_overflow', 40),  # 降低到 40
                 'pool_timeout': getattr(settings, 'database_pool_timeout', 30),  # 增加到 30 秒，更宽松
-                'pool_recycle': 1800,  # 增加到 30 分钟，防止频繁重建连接
+                'pool_recycle': getattr(settings, 'database_pool_recycle', 1800),  # 从配置读取，默认30分钟
                 'pool_pre_ping': True,  # Linux 上启用健康检查
             }
 

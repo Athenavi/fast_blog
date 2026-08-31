@@ -339,8 +339,6 @@ class AppConfig(BaseConfig):
         }
 
 
-#
-
 def get_app_config():
     # 使用密码学安全的 secrets 模块生成密钥
     import secrets

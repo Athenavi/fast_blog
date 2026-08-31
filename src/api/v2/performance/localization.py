@@ -2,15 +2,14 @@
 时区和本地化 API
 提供时区检测、日期格式化、货币格式化等功能
 """
-from functools import wraps
-from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Header
+from fastapi import APIRouter, Depends, Query, Header
 
 from shared.models.user import User as UserModel
 from shared.services.translation.localization_service import localization_service
 from src.api.v2._helpers import ok, fail, _catch
+from src.auth import jwt_required_dependency as jwt_required
 from src.auth.auth_deps import get_current_active_user
 
 router = APIRouter(tags=["i18n"])
@@ -21,8 +20,9 @@ router = APIRouter(tags=["i18n"])
 async def detect_timezone(
         locale: str = Query(None, description="语言区域"),
         accept_language: Optional[str] = Header(None, description="Accept-Language头"),
+    current_user=Depends(jwt_required)
 ):
-    """检测用户时区"""
+    """检测用户时区（需登录）"""
     detected_locale = locale
     if not detected_locale and accept_language:
         detected_locale = accept_language.split(',')[0].split(';')[0]
@@ -40,8 +40,9 @@ async def format_date(
         from_format: str = Query("iso", description="输入格式"),
         to_format: str = Query("short", description="输出格式"),
         locale: str = Query("en-US", description="语言区域"),
+    current_user=Depends(jwt_required)
 ):
-    """格式化日期"""
+    """格式化日期（需登录）"""
     formatted = localization_service.format_date(date, from_format, to_format, locale)
     return ok(data={
         'original_date': date, 'formatted_date': formatted,
@@ -55,8 +56,9 @@ async def format_currency(
         amount: float = Query(..., description="金额"),
         currency: str = Query("USD", description="货币代码"),
         locale: str = Query("en-US", description="语言区域"),
+    current_user=Depends(jwt_required)
 ):
-    """格式化货币"""
+    """格式化货币（需登录）"""
     formatted = localization_service.format_currency(amount, currency, locale)
     return ok(data={
         'amount': amount, 'currency': currency,
@@ -70,8 +72,9 @@ async def format_number(
         number: float = Query(..., description="要格式化的数字"),
         locale: str = Query("en-US", description="语言区域"),
         decimals: int = Query(2, ge=0, le=10, description="小数位数"),
+    current_user=Depends(jwt_required)
 ):
-    """格式化数字"""
+    """格式化数字（需登录）"""
     formatted = localization_service.format_number(number, locale, decimals)
     return ok(data={
         'number': number, 'formatted': formatted,

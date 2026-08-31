@@ -5,11 +5,10 @@ CDN 优化配置 API - V2 版本
 注意: CDN 集成当前为模拟实现，所有 API 调用返回模拟数据。
 生产环境需要实现真实的 CDN 提供方集成。
 """
-from functools import wraps
-from typing import Optional
 import logging
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, Body
 
 from shared.models.user import User
 from shared.services.performance.cdn_integration import cdn_service
@@ -20,6 +19,16 @@ logger = logging.getLogger(__name__)
 logger.warning("CDN 集成为模拟实现，所有 API 调用不发送真实 CDN 请求")
 
 router = APIRouter(prefix="/cdn", tags=["CDN Optimization"])
+
+
+def _mask_api_key(key: str) -> str:
+    """脱敏 API 密钥，只保留前4位和后4位"""
+    if not key:
+        return ''
+    key_str = str(key)
+    if len(key_str) <= 8:
+        return key_str[:2] + '****' + key_str[-2:]
+    return key_str[:4] + '****' + key_str[-4:]
 
 
 @router.get("/config", summary="获取 CDN 配置")
@@ -41,6 +50,7 @@ async def configure_cloudflare(
     """配置 Cloudflare CDN"""
     if not current_user.is_superuser:
         return fail("需要管理员权限")
+    logger.info(f"正在配置 Cloudflare CDN (zone: {_mask_api_key(zone_id)})")
     result = cdn_service.configure_cloudflare(
         api_token=api_token, zone_id=zone_id, domain=domain,
         enable_cache=enable_cache, enable_minification=enable_minification,
@@ -59,6 +69,7 @@ async def configure_aws_cloudfront(
     """配置 AWS CloudFront CDN"""
     if not current_user.is_superuser:
         return fail("需要管理员权限")
+    logger.info(f"正在配置 AWS CloudFront (dist: {_mask_api_key(distribution_id)})")
     result = cdn_service.configure_aws_cloudfront(
         access_key_id=access_key_id, secret_access_key=secret_access_key,
         distribution_id=distribution_id, domain=domain,
@@ -76,6 +87,7 @@ async def configure_aliyun_cdn(
     """配置阿里云 CDN"""
     if not current_user.is_superuser:
         return fail("需要管理员权限")
+    logger.info(f"正在配置阿里云 CDN (domain: {domain})")
     result = cdn_service.configure_aliyun_cdn(
         access_key_id=access_key_id, access_key_secret=access_key_secret,
         domain=domain, cache_ttl=cache_ttl
@@ -93,6 +105,7 @@ async def configure_custom_cdn(
     """配置自定义 CDN"""
     if not current_user.is_superuser:
         return fail("需要管理员权限")
+    logger.info(f"正在配置自定义 CDN (name: {name})")
     result = cdn_service.configure_custom_cdn(
         name=name, base_url=base_url, api_endpoint=api_endpoint,
         api_key=api_key, cache_ttl=cache_ttl

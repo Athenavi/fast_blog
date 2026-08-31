@@ -2,7 +2,6 @@
 AI 智能标签推荐 API
 """
 import asyncio
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -11,7 +10,7 @@ from pydantic import BaseModel
 from shared.services.advanced_features.ai_tag_recommendation import ai_tag_service
 from shared.services.advanced_features.ai_writing_assistant import ai_writing_assistant
 from shared.services.security.content_moderation import content_moderation_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["ai"])
@@ -44,8 +43,8 @@ class TextGrammarRequest(BaseModel):
 
 @router.post("/recommend-tags")
 @_catch
-async def recommend_tags(request: TagRecommendationRequest):
-    """基于文章内容推荐标签"""
+async def recommend_tags(request: TagRecommendationRequest, current_user=Depends(jwt_required)):
+    """基于文章内容推荐标签（需登录）"""
     if not request.title or not request.content:
         raise HTTPException(status_code=400, detail="标题和内容不能为空")
 
@@ -61,9 +60,10 @@ async def recommend_tags(request: TagRecommendationRequest):
 async def extract_summary(
         content: str = Query(..., min_length=10, description="文章内容"),
         max_length: int = Query(200, ge=50, le=500, description="摘要最大长度"),
-        method: str = Query('smart', enum=['simple', 'smart'], description="提取方法")
+    method: str = Query('smart', enum=['simple', 'smart'], description="提取方法"),
+    current_user=Depends(jwt_required)
 ):
-    """从文章内容中提取摘要"""
+    """从文章内容中提取摘要（需登录）"""
     summary = ai_tag_service.extract_summary(
         content=content, max_length=max_length, method=method
     )
@@ -73,9 +73,10 @@ async def extract_summary(
 @router.get("/analyze-sentiment")
 @_catch
 async def analyze_sentiment(
-        text: str = Query(..., min_length=1, description="要分析的文本")
+    text: str = Query(..., min_length=1, description="要分析的文本"),
+    current_user=Depends(jwt_required)
 ):
-    """简单的情感分析"""
+    """简单的情感分析（需登录）"""
     sentiment = ai_tag_service.analyze_sentiment(text=text)
     return ok(data=sentiment)
 
@@ -85,9 +86,10 @@ async def analyze_sentiment(
 async def moderate_content(
         content: str = Body(..., description="文章内容"),
         title: Optional[str] = Body(None, description="文章标题（可选）"),
-        check_type: str = Body('all', enum=['sensitive', 'spam', 'ads', 'all'], description="检查类型")
+    check_type: str = Body('all', enum=['sensitive', 'spam', 'ads', 'all'], description="检查类型"),
+    current_user=Depends(jwt_required)
 ):
-    """内容审核"""
+    """内容审核（需登录）"""
     result = await asyncio.get_event_loop().run_in_executor(
         None, content_moderation_service.moderate_content, content, title, check_type
     )
@@ -128,7 +130,7 @@ async def polish_text(request: TextPolishRequest, current_user=Depends(jwt_requi
 
 @router.post("/writing/generate-titles")
 @_catch
-async def generate_titles(current_user=Depends(jwt_required), 
+async def generate_titles(current_user=Depends(jwt_required),
         content: str = Body(..., description="文章内容"),
         count: int = Body(5, ge=1, le=10, description="生成数量"),
         style: str = Body('normal', enum=['normal', 'question', 'list', 'howto'], description="标题风格")

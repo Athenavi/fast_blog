@@ -40,6 +40,7 @@ ROUTE_REGISTRY_V2 = [
     # V2 Comments 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.comments", "/api/v2/comments", ["comments-v2"], True),
     # V1 comments 各子模块已废弃，功能已迁移到 V2 聚合路由器
+
     # ==================== 聊天与消息（V2 聚合路由器）====================
     # V2 Chat 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.chat", "/api/v2/chats", ["chat-v2"], True),

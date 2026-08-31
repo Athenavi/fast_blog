@@ -2,14 +2,17 @@
 打赏系统 API
 提供文章打赏、统计、排行榜等功能
 """
-from functools import wraps
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.article import Article
 from shared.models.user import User as UserModel
 from shared.services.ecommerce.tipping_system import tipping_system
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import get_current_active_user
+from src.auth import jwt_required_dependency as jwt_required
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["tips"])
 
@@ -21,10 +24,16 @@ async def tip_article(
         amount: float = Body(..., ge=1, le=10000, description="打赏金额"),
         message: str = Body('', description="留言(可选)"),
         payment_method: str = Body('balance', enum=['balance', 'wechat', 'alipay'], description="支付方式"),
-        current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """对文章进行打赏"""
-    article_author_id = 1
+    # 从数据库查询文章的实际作者
+    article_query = select(Article.user_id).where(Article.id == article_id)
+    article_result = await db.execute(article_query)
+    article_author_id = article_result.scalar_one_or_none()
+    if article_author_id is None:
+        return fail('文章不存在')
     if article_author_id == current_user.id:
         return fail('不能打赏自己的文章')
 
@@ -41,9 +50,10 @@ async def tip_article(
 @_catch
 async def get_article_tips(
         article_id: int,
-        limit: int = Query(50, ge=1, le=200, description="返回数量")
+    limit: int = Query(50, ge=1, le=200, description="返回数量"),
+    current_user=Depends(jwt_required)
 ):
-    """获取文章的打赏记录列表"""
+    """获取文章的打赏记录列表（需登录）"""
     tips = tipping_system.get_article_tips(article_id, limit=limit)
     stats = tipping_system.get_article_tip_stats(article_id)
     return ok(data={'tips': tips, 'stats': stats, 'count': len(tips)})
@@ -73,25 +83,27 @@ async def get_my_tip_stats(current_user: UserModel = Depends(get_current_active_
 @_catch
 async def get_tipping_leaderboard(
         period: str = Query('all', enum=['all', 'month', 'week'], description="时间周期"),
-        limit: int = Query(100, ge=1, le=500, description="返回数量")
+    limit: int = Query(100, ge=1, le=500, description="返回数量"),
+    current_user=Depends(jwt_required)
 ):
-    """获取打赏排行榜"""
+    """获取打赏排行榜（需登录）"""
     leaderboard = tipping_system.get_tipping_leaderboard(period=period, limit=limit)
     return ok(data={'leaderboard': leaderboard, 'count': len(leaderboard), 'period': period})
 
 
 @router.get("/preset-amounts", summary="获取预设打赏金额")
 @_catch
-async def get_preset_amounts():
-    """获取系统预设的打赏金额选项"""
+async def get_preset_amounts(current_user=Depends(jwt_required)):
+    """获取系统预设的打赏金额选项（需登录）"""
     amounts = tipping_system.get_preset_amounts()
     return ok(data={'amounts': amounts, 'min_amount': tipping_system.min_amount, 'max_amount': tipping_system.max_amount})
 
 
 @router.get("/recent", summary="获取最近打赏记录")
 @_catch
-async def get_recent_tips(limit: int = Query(20, ge=1, le=100, description="返回数量")):
-    """获取全站最近的打赏记录"""
+async def get_recent_tips(limit: int = Query(20, ge=1, le=100, description="返回数量"),
+                          current_user=Depends(jwt_required)):
+    """获取全站最近的打赏记录（需登录）"""
     tips = tipping_system.get_recent_tips(limit=limit)
     return ok(data={'tips': tips, 'count': len(tips)})
 
@@ -171,6 +183,8 @@ async def admin_process_withdrawal(
         current_user: UserModel = Depends(get_current_active_user)
 ):
     """管理员处理提现申请"""
+    if not current_user.is_superuser:
+        return fail('需要管理员权限')
     success = tipping_system.process_withdrawal(
         withdrawal_id=withdrawal_id, status=status, admin_note=admin_note,
     )

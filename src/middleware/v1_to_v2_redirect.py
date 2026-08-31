@@ -9,16 +9,19 @@ V1 到 V2 API 重定向中间件
 4. 可选的 301/302 重定向类型
 """
 import re
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import RedirectResponse
+
+from src.unified_logger import default_logger as logger
 
 
 class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
     """
     V1 到 V2 API 重定向中间件
-    
+
     功能：
     - 拦截所有 /api/v1/* 请求
     - 根据映射表重定向到对应的 /api/v2/* 路径
@@ -29,7 +32,7 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, redirect_type: int = 301, enable_logging: bool = True):
         """
         初始化中间件
-        
+
         Args:
             app: FastAPI 应用实例
             redirect_type: 重定向类型 (301=永久, 302=临时)
@@ -55,11 +58,11 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         """
         处理请求，检查是否需要重定向
-        
+
         Args:
             request: FastAPI 请求对象
             call_next: 下一个处理器
-            
+
         Returns:
             重定向响应或继续处理
         """
@@ -83,8 +86,8 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
             # 记录重定向日志
             if self.enable_logging:
                 self.redirect_count += 1
-                print(f"[V1->V2 Redirect #{self.redirect_count}] "
-                      f"{method} {path} -> {new_url}")
+                logger.info(f"[V1->V2 Redirect #{self.redirect_count}] "
+                            f"{method} {path} -> {new_url}")
 
             # 返回重定向响应
             return RedirectResponse(
@@ -103,10 +106,10 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
     def _find_redirect_target(self, v1_path: str) -> Optional[str]:
         """
         查找 v1 路径对应的 v2 目标路径
-        
+
         Args:
             v1_path: v1 API 路径
-            
+
         Returns:
             v2 API 路径，如果未找到则返回 None
         """
@@ -182,11 +185,11 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
     def _map_module_suffix(self, module_prefix: str, suffix: str) -> str:
         """
         映射模块特定的路径后缀
-        
+
         Args:
             module_prefix: 模块前缀
             suffix: 路径后缀
-            
+
         Returns:
             映射后的后缀
         """
@@ -207,12 +210,12 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
 def create_v1_to_v2_middleware(app, redirect_type: int = 301, enable_logging: bool = True):
     """
     工厂函数：创建 V1 到 V2 重定向中间件
-    
+
     Args:
         app: FastAPI 应用实例
         redirect_type: 重定向类型 (301=永久, 302=临时)
         enable_logging: 是否启用日志
-        
+
     Returns:
         配置好的中间件实例
     """

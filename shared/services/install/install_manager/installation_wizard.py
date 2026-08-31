@@ -239,14 +239,6 @@ class InstallationWizardService:
                 'DB_NAME': config.get('database', 'fast_blog') or 'fast_blog',
             }
 
-            # 调试输出
-            logger.info(f"保存数据库配置到 .env:")
-            for key, value in env_updates.items():
-                if key == 'DB_PASSWORD':
-                    logger.info(f"  {key}: {'***' if value else '(empty)'}")
-                else:
-                    logger.info(f"  {key}: '{value}'")
-
             self._update_env_file(env_updates)
 
             return {
@@ -521,8 +513,8 @@ class InstallationWizardService:
 
         except Exception as e:
             import traceback
-            print(f"导入示例数据失败: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(f"导入示例数据失败: {str(e)}")
+            logger.error(traceback.format_exc())
             return {
                 'success': False,
                 'error': f'导入示例数据失败: {str(e)}'
@@ -624,7 +616,6 @@ class InstallationWizardService:
             # 确保数据库管理器已初始化
             from src.utils.database.unified_manager import db_manager as unified_db_manager
             if unified_db_manager._async_session_factory is None:
-                print("[Install] Initializing database manager for admin user creation...")
                 unified_db_manager.initialize()
 
             # 使用 Argon2 密码哈希函数
@@ -711,8 +702,8 @@ class InstallationWizardService:
 
         except Exception as e:
             import traceback
-            print(f"创建管理员账号失败: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(f"创建管理员账号失败: {str(e)}")
+            logger.error(traceback.format_exc())
             return {
                 'success': False,
                 'error': f'创建管理员账号失败: {str(e)}'

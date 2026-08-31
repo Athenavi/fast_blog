@@ -14,35 +14,36 @@ from typing import AsyncGenerator
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.staticfiles import StaticFiles
+from src.unified_logger import logger
 
 
 # ---------- 工具函数 ----------
 def safe_run(func_name: str, func, *args, **kwargs):
     """安全执行同步/异步初始化，统一日志输出"""
-    print(f"\n{'=' * 60}\n[{func_name}] 开始初始化...")
+    logger.info(f"[{func_name}] 开始初始化...")
     try:
         result = func(*args, **kwargs)
-        print(f"[{func_name}] 完成")
+        logger.info(f"[{func_name}] 完成")
         return result
     except Exception as e:
-        print(f"[{func_name}] 失败: {e}")
+        logger.error(f"[{func_name}] 失败: {e}")
         traceback.print_exc()
         return None
 
 
 async def safe_run_async(func_name: str, func, *args, **kwargs):
     """安全执行异步初始化"""
-    print(f"\n{'=' * 60}\n[{func_name}] 开始初始化...")
+    logger.info(f"[{func_name}] 开始初始化...")
     try:
         # 直接调用函数，如果是协程函数会自动返回协程对象
         result = func(*args, **kwargs)
         # 如果结果是协程，则等待它
         if hasattr(result, '__await__'):
             await result
-        print(f"[{func_name}] 完成")
+        logger.info(f"[{func_name}] 完成")
         return result
     except Exception as e:
-        print(f"[{func_name}] 失败: {e}")
+        logger.error(f"[{func_name}] 失败: {e}")
         traceback.print_exc()
         return None
 
@@ -53,13 +54,10 @@ def check_installation() -> bool:
         from shared.services.install.install_manager import installation_wizard_service
         installed = installation_wizard_service.is_installed()
         if not installed:
-            print("\n" + "=" * 60)
-            print("系统尚未安装")
-            print(" 请启动前端进程后访问 http://localhost:4321/install 完成安装向导")
-            print("=" * 60 + "\n")
+            logger.info("系统尚未安装，请启动前端进程后访问 http://localhost:4321/install 完成安装向导")
         return installed
     except Exception as e:
-        print(f"Warning: Failed to check installation status: {e}")
+        logger.warning(f"检查安装状态失败: {e}")
         return False
 
 
@@ -88,8 +86,7 @@ def register_all_routes(app: FastAPI, worker_info: str):
     """注册 API v2 和 v3 路由（已移除 v1）"""
 
     # 注册 v2 路由（新规范）— 并行加载 + 顺序注册
-    print(f"\n{worker_info} {'=' * 60}")
-    print(f"{worker_info} 开始注册 API v2 路由...")
+    logger.info(f"{worker_info} 开始注册 API v2 路由...")
     routes_start = _time.monotonic()
     try:
         from src.api.v2 import ROUTE_REGISTRY_V2, is_module_enabled as _plugin_enabled
@@ -99,7 +96,7 @@ def register_all_routes(app: FastAPI, worker_info: str):
         # 应用内置插件开关：过滤被 DISABLED_MODULES 关闭的非核心模块
         _disabled = [m for (m, _p, _t, _r) in ROUTE_REGISTRY_V2 if not _plugin_enabled(m)]
         if _disabled:
-            print(f"{worker_info} [Plugin] 已关闭非核心模块: {_disabled}")
+            logger.info(f"{worker_info} [Plugin] 已关闭非核心模块: {_disabled}")
         ROUTE_REGISTRY_V2 = [(m, p, t, r) for (m, p, t, r) in ROUTE_REGISTRY_V2 if _plugin_enabled(m)]
 
         # Phase 0: 预热 shared.models 子包，避免并行导入时 _DeadlockError
@@ -164,9 +161,9 @@ def register_all_routes(app: FastAPI, worker_info: str):
                 except Exception:
                     pass
             _prewarm_elapsed = _time.monotonic() - _prewarm_start
-            print(f"{worker_info} shared.models 预热完成 ({_prewarm_elapsed:.2f}s)")
+            logger.info(f"{worker_info} shared.models 预热完成 ({_prewarm_elapsed:.2f}s)")
         except Exception as _pw_err:
-            print(f"{worker_info} [Warning] shared.models 预热失败: {_pw_err}")
+            logger.warning(f"{worker_info} shared.models 预热失败: {_pw_err}")
 
         # Phase 1: 并行加载所有模块和路由器（ThreadPoolExecutor）
         # importlib + getattr(mod, "router") 触发 _build_router() 是 CPU/IO 密集操作，可并行
@@ -191,7 +188,7 @@ def register_all_routes(app: FastAPI, worker_info: str):
                 load_results.append((module_path, prefix, tags, result_by_path.get(module_path)))
 
         load_elapsed = _time.monotonic() - load_start
-        print(f"{worker_info} 模块并行加载完成 (线程池: {max_workers}, 耗时: {load_elapsed:.2f}s)")
+        logger.info(f"{worker_info} 模块并行加载完成 (线程池: {max_workers}, 耗时: {load_elapsed:.2f}s)")
 
         # Phase 2: 顺序注册路由器到 app（FastAPI include_router 非线程安全）
         register_start = _time.monotonic()
