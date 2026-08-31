@@ -13,9 +13,13 @@ Compliance Audit Plugin
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Any, List
 
 from shared.services.plugins.plugin_manager.core import BasePlugin
+
+# 项目根目录
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +29,7 @@ class ComplianceAuditPlugin(BasePlugin):
 
     def __init__(self):
         super().__init__(
-            plugin_id=2003,
+            plugin_id=2004,
             name="Compliance Audit",
             slug="compliance-audit",
             version="1.0.0",
@@ -255,10 +259,9 @@ class ComplianceAuditPlugin(BasePlugin):
         env = os.environ.get("ENVIRONMENT", "development")
         if env == "development":
             return True  # 开发环境豁免
-        # 检查 nginx 是否配置了 443 ssl
+        # 检查 nginx 是否配置了 443 ssl（基于项目根目录的绝对路径）
         try:
-            import pathlib
-            conf = pathlib.Path("nginx/conf.d/fastblog.conf")
+            conf = _PROJECT_ROOT / "nginx/conf.d/fastblog.conf"
             if conf.exists():
                 content = conf.read_text(encoding="utf-8")
                 return "listen 443" in content and "ssl_certificate" in content

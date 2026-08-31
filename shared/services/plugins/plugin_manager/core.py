@@ -10,8 +10,11 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
+# 基于当前文件路径计算项目根目录
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+
 # 导入 manifest 模块
-from shared.services.plugins.plugin_manager.manifest import ManifestValidator, get_capability_description, PluginManifest
+from shared.services.plugins.plugin_manager.manifest import ManifestValidator, get_capability_description
 
 # 导入审计日志器
 try:
@@ -61,7 +64,7 @@ class BasePlugin:
         self.settings = {}
 
         # 插件目录
-        self.plugin_dir = Path("plugins") / slug
+        self.plugin_dir = _PROJECT_ROOT / "plugins" / slug
 
         # 元数据
         self.metadata = {}
@@ -191,7 +194,7 @@ class BasePlugin:
     # ─── 持久化助手 ────────────────────────────
     def get_storage_path(self) -> Path:
         """获取插件专属存储目录（storage/plugins/<slug>/），自动创建"""
-        p = Path("storage/plugins") / self.slug
+        p = _PROJECT_ROOT / "storage/plugins" / self.slug
         p.mkdir(parents=True, exist_ok=True)
         return p
 
@@ -312,8 +315,8 @@ class PluginManager:
 
     def __init__(self):
         self.plugins: Dict[str, BasePlugin] = {}
-        self.plugins_dir = Path("plugins")
-        self.state_file = Path("storage/plugin_state.json")
+        self.plugins_dir = _PROJECT_ROOT / "plugins"
+        self.state_file = _PROJECT_ROOT / "storage/plugin_state.json"
 
     def discover_plugins(self) -> List[str]:
         """发现所有插件"""
@@ -356,7 +359,7 @@ class PluginManager:
                 plugin = module.plugin
 
             if plugin:
-                plugin.plugin_id = len(self.plugins) + 1
+                # 保留插件自身的 plugin_id，不再覆盖
                 plugin.load_settings()
                 self.plugins[plugin_slug] = plugin
                 logger.info(f"[PluginManager] Loaded plugin: {plugin.name}")
@@ -518,16 +521,11 @@ class PluginManager:
         """从数据库加载插件状态"""
         try:
             from shared.models.plugin import Plugin
-            from src.extensions import get_sync_db
+            from src.extensions import get_db
 
             logger.info("[PluginManager] Loading plugin state from database...")
 
-            db_gen = get_sync_db()
-            db_session = next(db_gen, None)
-            if db_session is None:
-                return False
-
-            try:
+            with get_db() as db_session:
                 # 获取所有已安装的插件（不仅仅是激活的）
                 installed_plugins = db_session.query(Plugin).filter(Plugin.is_installed == True).all()
                 logger.info(f"[PluginManager] Found {len(installed_plugins)} installed plugins in database")
@@ -555,11 +553,6 @@ class PluginManager:
                                             other_p.deactivate()
                     else:
                         logger.warning(f"[PluginManager] Warning: Plugin {plugin_record.slug} in database but not loaded")
-            finally:
-                try:
-                    next(db_gen, None)  # 触发上下文管理器关闭
-                except StopIteration:
-                    pass
 
             logger.info("[PluginManager] Plugin state loaded from database successfully")
             return True
@@ -654,8 +647,13 @@ class PluginManager:
 
             # 3. 创建新的插件实例
             logger.info("[HotReload] Creating new plugin instance...")
-            if hasattr(module, 'plugin'):
+            # 支持两种命名方式：plugin_instance 或 plugin
+            new_plugin = None
+            if hasattr(module, 'plugin_instance'):
+                new_plugin = module.plugin_instance
+            elif hasattr(module, 'plugin'):
                 new_plugin = module.plugin
+            if new_plugin:
                 # 确保插件ID和基本信息保持一致
                 if plugin_slug in self.plugins:
                     old_plugin = self.plugins[plugin_slug]
@@ -675,7 +673,7 @@ class PluginManager:
                 logger.info(f"[HotReload] Plugin {plugin_slug} hot reloaded successfully")
                 return True
             else:
-                logger.warning(f"[HotReload] Module has no plugin attribute")
+                logger.warning(f"[HotReload] Module has no plugin or plugin_instance attribute")
                 return False
 
         except Exception as e:
@@ -709,12 +707,16 @@ class PluginManager:
             logger.info(f"[HotLoad] Importing module: {module_name}")
             module = importlib.import_module(module_name)
 
-            # 2. 获取插件实例
-            if not hasattr(module, 'plugin'):
-                logger.warning(f"[HotLoad] Module has no plugin attribute")
-                return False
+            # 2. 获取插件实例（支持两种命名方式）
+            new_plugin = None
+            if hasattr(module, 'plugin_instance'):
+                new_plugin = module.plugin_instance
+            elif hasattr(module, 'plugin'):
+                new_plugin = module.plugin
 
-            new_plugin = module.plugin
+            if not new_plugin:
+                logger.warning(f"[HotLoad] Module has no plugin or plugin_instance attribute")
+                return False
 
             # 3. 安装并激活
             logger.info("[HotLoad] Installing plugin...")
@@ -795,7 +797,7 @@ class PluginManager:
         """
 
         new_plugins = []
-        plugins_dir = Path("plugins")
+        plugins_dir = self.plugins_dir
 
         if not plugins_dir.exists():
             return new_plugins

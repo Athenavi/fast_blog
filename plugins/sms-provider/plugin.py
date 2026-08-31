@@ -21,7 +21,7 @@ class SmsProviderPlugin(BasePlugin):
 
     def __init__(self):
         super().__init__(
-            plugin_id=2001,
+            plugin_id=2002,
             name="SMS Provider",
             slug="sms-provider",
             version="1.0.0",

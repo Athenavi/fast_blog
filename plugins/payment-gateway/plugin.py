@@ -13,6 +13,7 @@ import hashlib
 import hmac
 import logging
 
+from shared.services.plugins.plugin_manager import requires_capability
 from shared.services.plugins.plugin_manager.core import BasePlugin
 
 logger = logging.getLogger(__name__)
@@ -40,6 +41,7 @@ class PaymentGatewayPlugin(BasePlugin):
 
     # ─── 核心方法 ─────────────────────────────────
 
+    @requires_capability("execute:custom:payment")
     def create_payment(self, order_id: str, amount: int, subject: str = "",
                        user_id: int = None, **kwargs) -> dict:
         """
@@ -67,6 +69,7 @@ class PaymentGatewayPlugin(BasePlugin):
             logger.error(f"Payment plugin: no provider configured (got '{provider}')")
             return {"success": False, "error": "No payment provider configured"}
 
+    @requires_capability("execute:custom:payment")
     def verify_callback(self, provider: str, payload: dict, headers: dict = None) -> dict:
         """
         验证支付回调签名（核心服务委派入口）

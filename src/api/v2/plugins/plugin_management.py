@@ -18,6 +18,8 @@ from src.unified_logger import default_logger as logger
 router = APIRouter(tags=["plugins"])
 
 
+@router.get("/marketplace")
+@_catch
 async def list_marketplace_plugins(
         current_user: User = Depends(admin_required)
 ):
