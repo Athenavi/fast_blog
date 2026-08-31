@@ -103,14 +103,22 @@ def extract_token_from_request(request: Request) -> Optional[str]:
 
 @router.get("/check-username")
 @_catch
-async def check_username(username: str = Query(...), db: AsyncSession = Depends(get_async_db)):
+async def check_username(request: Request, username: str = Query(...), db: AsyncSession = Depends(get_async_db)):
+    ip = request.client.host if request.client else "unknown"
+    ip_limited, _ = await rate_limiter.check_ip_limit(ip)
+    if ip_limited:
+        return JSONResponse({"success": False, "error": "请求过于频繁"}, status_code=429)
     existing = await db.scalar(select(UserModel).where(func.lower(UserModel.username) == func.lower(username)))
     return JSONResponse({"success": True, "available": existing is None, "exists": existing is not None})
 
 
 @router.get("/check-email")
 @_catch
-async def check_email(email: str = Query(...), db: AsyncSession = Depends(get_async_db)):
+async def check_email(request: Request, email: str = Query(...), db: AsyncSession = Depends(get_async_db)):
+    ip = request.client.host if request.client else "unknown"
+    ip_limited, _ = await rate_limiter.check_ip_limit(ip)
+    if ip_limited:
+        return JSONResponse({"success": False, "error": "请求过于频繁"}, status_code=429)
     existing = await db.scalar(select(UserModel).where(func.lower(UserModel.email) == func.lower(email)))
     return JSONResponse({"success": True, "available": existing is None, "exists": existing is not None})
 
@@ -154,8 +162,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     if locked:
         await login_security_service.record_login_attempt_async(username, ip, ua, False,
             "Account locked", db)
-        mins = (unlock_time - datetime.now()).total_seconds() / 60
-        return fail(f"账户已锁定，请 {mins:.0f} 分钟后再试")
+        return fail("账户已被临时锁定，请稍后再试")
 
     user = await authenticate_user_with_session(username, password, db)
     if not user:
@@ -261,6 +268,8 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
 
     await event_bus.emit("user.registered", {"user_id": user.id, "username": user.username, "email": data.email})
 
+    # 注册成功后直接登录（自动发放令牌）
+    # 注意：生产环境建议先验证邮箱后再发放令牌
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
@@ -424,19 +433,16 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
 @router.post("/token/refresh")
 @_catch
 async def refresh_token_api(request: Request):
+    # 优先使用 HttpOnly Cookie 中的 refresh token（最安全）
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
-        # 尝试从请求体获取（兼容前端 localStorage 场景）
+        # 降级方案：从请求体获取（兼容前端 localStorage 场景）
         try:
             body = await request.json()
             refresh_token = body.get("refresh_token", "")
         except Exception:
             refresh_token = ""
-    if not refresh_token:
-        # 最后从 Authorization header 尝试
-        auth = request.headers.get("Authorization")
-        if auth and auth.startswith("Bearer "):
-            refresh_token = auth[7:]
+    # 禁止从 Authorization header 读取 refresh token（避免混淆）
     if not refresh_token:
         return fail("未提供刷新令牌")
 
@@ -456,3 +462,75 @@ async def refresh_token_api(request: Request):
     resp.set_cookie("access_token", new_access, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
     resp.set_cookie("refresh_token", new_refresh, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
     return resp
+
+
+# ─── 密码重置 ───
+
+@router.post("/password/forgot")
+@_catch
+async def forgot_password(data: dict, request: Request, db: AsyncSession = Depends(get_async_db)):
+    """发送密码重置邮件"""
+    email = data.get('email', '')
+    if not email:
+        return fail("邮箱不能为空")
+    ip = request.client.host if request.client else "unknown"
+    ip_limited, _ = await rate_limiter.check_ip_limit(ip)
+    if ip_limited:
+        return fail("请求过于频繁，请稍后再试")
+    user = await db.scalar(select(UserModel).where(UserModel.email == email))
+    if not user:
+        # 统一响应防止邮箱枚举
+        return ok(msg="如果该邮箱已注册，重置链接已发送")
+    # 生成重置令牌（15分钟有效期）
+    reset_token = create_jwt_token(subject=str(user.id), token_type="reset", expires_delta=timedelta(minutes=15))
+    # TODO: 发送重置邮件（包含 reset_token）
+    logger.info(f"[Password Reset] 重置链接已生成: user_id={user.id}")
+    return ok(msg="如果该邮箱已注册，重置链接已发送")
+
+
+@router.post("/password/reset")
+@_catch
+async def reset_password(data: dict, db: AsyncSession = Depends(get_async_db)):
+    """使用重置令牌设置新密码"""
+    token = data.get('token', '')
+    new_password = data.get('password', '')
+    if not token or not new_password:
+        return fail("缺少必要参数")
+    from src.utils.security.password_validator import validate_password_strength, hash_password
+    pw_valid, pw_err = validate_password_strength(new_password)
+    if not pw_valid:
+        return fail(pw_err)
+    try:
+        payload = decode_jwt_token(token)
+    except HTTPException:
+        return fail("重置令牌无效或已过期")
+    if payload.get('type') != 'reset':
+        return fail("令牌类型错误")
+    user_id = int(payload['sub'])
+    user = await db.get(UserModel, user_id)
+    if not user:
+        return fail("用户不存在")
+    user.password = hash_password(new_password)
+    user.updated_at = datetime.now()
+    await db.commit()
+    # 撤销所有会话强制重新登录
+    await session_management_service.revoke_all_sessions(user.id)
+    return ok(msg="密码重置成功，请重新登录")
+
+
+# ─── OAuth 登录 ───
+
+@router.post("/oauth/{provider}")
+@_catch
+async def oauth_login(provider: str, data: dict):
+    """第三方 OAuth 登录（存根）
+    provider: google / github / wechat 等
+    """
+    return fail(f"OAuth provider '{provider}' 暂未实现")
+
+
+@router.post("/oauth/{provider}/callback")
+@_catch
+async def oauth_callback(provider: str, data: dict):
+    """OAuth 回调处理（存根）"""
+    return fail(f"OAuth provider '{provider}' callback 暂未实现")

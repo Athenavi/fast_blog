@@ -5,6 +5,7 @@
 import asyncio
 import os
 from datetime import datetime
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -14,9 +15,25 @@ from shared.services.media.image_tool.image_editor import ImageEditor
 from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["image-edit"])
 editor = ImageEditor()
+STORAGE_ROOT = Path("storage").resolve()
+
+
+def _validate_file_path(file_path: str) -> Path:
+    """验证文件路径是否在允许的 storage 目录范围内"""
+    if not file_path:
+        raise ValueError("文件路径为空")
+    resolved = Path(file_path).resolve()
+    try:
+        resolved.relative_to(STORAGE_ROOT)
+    except ValueError:
+        raise ValueError(f"文件路径不在允许的 storage 目录范围内")
+    if not resolved.exists():
+        raise ValueError("文件不存在")
+    return resolved
 
 
 @router.get("/{media_id}/info")
@@ -33,13 +50,18 @@ async def get_image_info(
             return fail("媒体不存在")
 
         file_path = media.file_path or media.url or ""
-        if not file_path or not os.path.exists(file_path):
-            return fail("图片文件不存在")
+        if not file_path:
+            return fail("图片文件路径无效")
 
-        info = await asyncio.to_thread(editor.get_image_info, file_path)
+        validated_path = _validate_file_path(file_path)
+        info = await asyncio.to_thread(editor.get_image_info, str(validated_path))
         return ok(data={"media_id": media_id, "filename": media.filename or media.title, "info": info})
+    except ValueError as e:
+        logger.error(f"图片信息获取失败: {e}")
+        return fail("获取图片信息失败")
     except Exception as e:
-        return fail(str(e))
+        logger.error(f"图片信息获取异常: {e}")
+        return fail("获取图片信息失败")
 
 
 @router.post("/{media_id}/crop")
@@ -57,10 +79,15 @@ async def crop_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "crop", "x": x, "y": y, "width": width, "height": height}])
+        validated_path = _validate_file_path(media.file_path)
+        await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "crop", "x": x, "y": y, "width": width, "height": height}])
         return ok(data={"message": "裁剪成功"})
+    except ValueError as e:
+        logger.error(f"裁剪失败: {e}")
+        return fail("裁剪失败")
     except Exception as e:
-        return fail(str(e))
+        logger.error(f"裁剪异常: {e}")
+        return fail("裁剪失败")
 
 
 @router.post("/{media_id}/rotate")
@@ -77,10 +104,15 @@ async def rotate_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "rotate", "degrees": degrees}])
+        validated_path = _validate_file_path(media.file_path)
+        await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "rotate", "degrees": degrees}])
         return ok(data={"message": f"旋转 {degrees}° 成功"})
+    except ValueError as e:
+        logger.error(f"旋转失败: {e}")
+        return fail("旋转失败")
     except Exception as e:
-        return fail(str(e))
+        logger.error(f"旋转异常: {e}")
+        return fail("旋转失败")
 
 
 @router.post("/{media_id}/filter")
@@ -97,10 +129,15 @@ async def filter_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "filter", "filter": filter_type}])
+        validated_path = _validate_file_path(media.file_path)
+        await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "filter", "filter": filter_type}])
         return ok(data={"message": f"滤镜 {filter_type} 已应用"})
+    except ValueError as e:
+        logger.error(f"滤镜失败: {e}")
+        return fail("滤镜应用失败")
     except Exception as e:
-        return fail(str(e))
+        logger.error(f"滤镜异常: {e}")
+        return fail("滤镜应用失败")
 
 
 @router.post("/{media_id}/grayscale")
@@ -116,7 +153,12 @@ async def grayscale_image(
         if not media or not media.file_path:
             return fail("媒体不存在")
 
-        await asyncio.to_thread(editor.process_image, media.file_path, [{"type": "grayscale"}])
+        validated_path = _validate_file_path(media.file_path)
+        await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "grayscale"}])
         return ok(data={"message": "已转为灰度图"})
+    except ValueError as e:
+        logger.error(f"灰度转换失败: {e}")
+        return fail("灰度转换失败")
     except Exception as e:
-        return fail(str(e))
+        logger.error(f"灰度转换异常: {e}")
+        return fail("灰度转换失败")

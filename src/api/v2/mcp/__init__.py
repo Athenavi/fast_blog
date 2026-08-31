@@ -167,7 +167,7 @@ async def chat_stream(req: ChatRequest, current_user=Depends(jwt_required)):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception as e:
             logger.exception("SSE error")
-            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'error', 'message': '对话处理失败'}, ensure_ascii=False)}\n\n"
         finally:
             set_user_ctx(None)
 

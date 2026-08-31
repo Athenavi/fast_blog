@@ -75,8 +75,8 @@ async def get_generation_stats():
 @_catch
 async def get_config():
     return ok(data={
-        'output_dir': str(ssg_service.output_dir),
-        'template_dir': str(ssg_service.template_dir),
+        'output_dir': 'storage/static',  # 仅返回相对路径，防止泄露绝对路径
+        'template_dir': 'themes/default/templates',  # 仅返回相对路径
         'cache_enabled': True,
         'cache_ttl_hours': 24,
         'batch_size_default': 50,

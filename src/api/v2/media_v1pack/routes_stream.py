@@ -191,7 +191,7 @@ async def get_media_file_by_id(
 
     # 处理本地文件（优先检查标准路径，支持带扩展名和不带扩展名）
     if file_path.exists():
-        logger.info(f"  [OK] 文件存在于标准路径: {file_path}")
+        logger.info("  [OK] 文件存在于标准路径")
         return await handle_local_file(file_path, file_hash.mime_type, file_hash.filename, range_header, headers)
 
     # 如果标准路径不存在，尝试从 storage_path 构建完整路径
@@ -208,15 +208,15 @@ async def get_media_file_by_id(
             except (ValueError, OSError, RuntimeError) as e:
                 logger.error(f"storage_path 解析失败: {e}")
                 raise HTTPException(status_code=403, detail="非法的文件路径")
-            logger.info(f"  尝试从 storage_path 构建路径: {full_path}")
+            logger.info("  尝试从 storage_path 构建路径")
             if full_path.exists():
-                logger.info(f"  [OK] 文件存在于 storage_path 对应的路径: {full_path}")
+                logger.info("  [OK] 文件存在于 storage_path 对应的路径")
                 return await handle_local_file(full_path, file_hash.mime_type, file_hash.filename, range_header,
                                                headers)
 
     # 处理 S3 存储
     elif file_hash.storage_path and file_hash.storage_path.startswith("s3://"):
-        logger.info(f"  [OK] 使用 S3 路径: {file_hash.storage_path}")
+        logger.info("  [OK] 使用 S3 路径")
         return await handle_s3_streaming(
             s3_path=file_hash.storage_path,
             mime_type=file_hash.mime_type,
@@ -227,10 +227,9 @@ async def get_media_file_by_id(
         )
     else:
         # 如果 storage_path 为空或无效，但文件也不存在于标准路径
-        logger.error(f"  [ERROR] 不支持的存储类型: '{file_hash.storage_path}'")
-        logger.error(f"  文件是否存在于标准路径: {file_path.exists()}")
-        logger.error(
-            f"  FileHash 完整信息: id={file_hash.id}, hash={file_hash.hash}, filename={file_hash.filename}")
+        logger.error(f"  [ERROR] 不支持的存储类型")
+        logger.error("  文件不存在于标准路径或 storage_path")
+        logger.error(f"  FileHash 摘要: id={file_hash.id}")
 
         # 如果文件实际上存在于标准路径但没有被检测到（可能是权限问题）
         if file_path.exists():

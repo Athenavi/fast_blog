@@ -599,6 +599,23 @@ def register_middleware(app: FastAPI):
             response.headers["API-Version"] = "v2"
             return response
 
+    # 安全响应头中间件：X-Frame-Options / X-XSS-Protection / Referrer-Policy / Permissions-Policy
+    class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+
+        async def dispatch(self, request, call_next):
+            response = await call_next(request)
+            # 如果不是静态文件或流媒体响应，添加安全头
+            if response.status_code < 400:
+                response.headers.setdefault("X-Frame-Options", "DENY")
+                response.headers.setdefault("X-Content-Type-Options", "nosniff")
+                response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+                if "X-XSS-Protection" not in response.headers:
+                    response.headers["X-XSS-Protection"] = "1; mode=block"
+            return response
+
+    app.add_middleware(SecurityHeadersMiddleware)
+    print("[Security Headers] X-Frame-Options / X-XSS-Protection / Referrer-Policy 已添加")
+
     app.add_middleware(APIVersionMiddleware)
     print("[API Version] 已添加版本响应头中间件")
 

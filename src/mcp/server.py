@@ -177,7 +177,7 @@ class MCPServer:
             return {"jsonrpc": "2.0", "id": request_id, "result": {"contents": [{"uri": uri, "text": json.dumps(result, ensure_ascii=False)}]}}
         except Exception as e:
             logger.exception(f"Resource read error: {uri}")
-            return self._error_response(request_id, str(e))
+            return self._error_response(request_id, "资源读取失败")
 
     async def _handle_tool_call(self, params: Dict, request_id: Any) -> Dict:
         name = params.get("name", "")
@@ -193,7 +193,7 @@ class MCPServer:
             return self._error_response(request_id, str(e))
         except Exception as e:
             logger.exception(f"Tool call error: {name}")
-            return self._error_response(request_id, str(e))
+            return self._error_response(request_id, "工具调用失败")
 
     async def _handle_prompt_get(self, params: Dict, request_id: Any) -> Dict:
         name = params.get("name", "")

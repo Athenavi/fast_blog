@@ -6,7 +6,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from pydantic import BaseModel
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,6 +24,24 @@ router = APIRouter(tags=["ai-config"])
 
 
 MAX_CONFIGS_PER_USER = 10
+
+
+class CreateConfigRequest(BaseModel):
+    """创建 AI 配置请求（Body 传递，避免 API Key 出现在 URL 参数/日志中）"""
+    name: str
+    api_url: str
+    api_key: str
+    model: str
+    provider: str = "openai"
+
+
+class UpdateConfigRequest(BaseModel):
+    """更新 AI 配置请求（Body 传递，避免 API Key 出现在 URL 参数/日志中）"""
+    name: str | None = None
+    api_url: str | None = None
+    api_key: str | None = None
+    model: str | None = None
+    provider: str | None = None
 
 
 def _encrypt(api_key: str, user: User) -> str:
@@ -52,11 +71,7 @@ async def list_configs(
 @router.post("/ai/configs", summary="创建 AI 配置")
 @_catch
 async def create_config(
-    name: str = Query(...),
-    api_url: str = Query(...),
-    api_key: str = Query(...),
-    model: str = Query(...),
-    provider: str = Query("openai"),
+    req: CreateConfigRequest,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -70,20 +85,20 @@ async def create_config(
 
     # 检查名称唯一
     existing = await db.scalar(
-        select(AIConfig).where(and_(AIConfig.user_id == current_user.id, AIConfig.name == name))
+        select(AIConfig).where(and_(AIConfig.user_id == current_user.id, AIConfig.name == req.name))
     )
     if existing:
         return fail("配置名称已存在")
 
-    encrypted = _encrypt(api_key, current_user)
+    encrypted = _encrypt(req.api_key, current_user)
     now = datetime.now()
     config = AIConfig(
         user_id=current_user.id,
-        name=name,
-        api_url=api_url,
+        name=req.name,
+        api_url=req.api_url,
         api_key_encrypted=encrypted,
-        model=model,
-        provider=provider,
+        model=req.model,
+        provider=req.provider,
         is_active=False,
         sort_order=0,
         created_at=now,
@@ -98,11 +113,7 @@ async def create_config(
 @_catch
 async def update_config(
     config_id: int,
-    name: Optional[str] = Query(None),
-    api_url: Optional[str] = Query(None),
-    api_key: Optional[str] = Query(None),
-    model: Optional[str] = Query(None),
-    provider: Optional[str] = Query(None),
+    req: UpdateConfigRequest,
     current_user: User = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -113,22 +124,22 @@ async def update_config(
     if not config:
         return fail("配置不存在")
 
-    if name is not None:
+    if req.name is not None:
         # 检查名称唯一
         dup = await db.scalar(
-            select(AIConfig).where(and_(AIConfig.user_id == current_user.id, AIConfig.name == name, AIConfig.id != config_id))
+            select(AIConfig).where(and_(AIConfig.user_id == current_user.id, AIConfig.name == req.name, AIConfig.id != config_id))
         )
         if dup:
             return fail("配置名称已存在")
-        config.name = name
-    if api_url is not None:
-        config.api_url = api_url
-    if api_key is not None:
-        config.api_key_encrypted = _encrypt(api_key, current_user)
-    if model is not None:
-        config.model = model
-    if provider is not None:
-        config.provider = provider
+        config.name = req.name
+    if req.api_url is not None:
+        config.api_url = req.api_url
+    if req.api_key is not None:
+        config.api_key_encrypted = _encrypt(req.api_key, current_user)
+    if req.model is not None:
+        config.model = req.model
+    if req.provider is not None:
+        config.provider = req.provider
     config.updated_at = datetime.now()
 
     await db.commit()

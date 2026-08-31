@@ -4,6 +4,7 @@ Webhook管理API端点
 提供Webhook配置管理和事件触发的REST API接口
 """
 from typing import List, Optional
+from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy import select
@@ -16,6 +17,23 @@ from src.auth import admin_required
 from src.utils.database.unified_manager import db_manager
 
 router = APIRouter(tags=["Webhooks"])
+
+
+def _validate_webhook_url(url: str) -> None:
+    """验证 Webhook URL 防止 SSRF 攻击"""
+    parsed = urlparse(url)
+    if parsed.scheme not in ('https', 'http'):
+        raise HTTPException(status_code=400, detail="仅支持 http/https 协议的 URL")
+    host = parsed.hostname or ''
+    # 阻止内网地址
+    private_patterns = ('127.', '10.', '172.16.', '172.17.', '172.18.', '172.19.',
+                        '172.20.', '172.21.', '172.22.', '172.23.', '172.24.',
+                        '172.25.', '172.26.', '172.27.', '172.28.', '172.29.',
+                        '172.30.', '172.31.', '192.168.', '169.254.', '0.')
+    if any(host.startswith(p) for p in private_patterns):
+        raise HTTPException(status_code=400, detail="不允许使用内网地址")
+    if host in ('localhost', '127.0.0.1', '0.0.0.0', '[::1]', '::1'):
+        raise HTTPException(status_code=400, detail="不允许使用内网地址")
 
 
 async def list_webhooks(
@@ -73,6 +91,7 @@ async def create_webhook(
         db: AsyncSession = Depends(db_manager.get_session)
 ):
     """创建新的Webhook"""
+    _validate_webhook_url(url)
     service = WebhookService(db)
     webhook = await service.create_webhook(name, url, events, secret)
 
@@ -108,6 +127,7 @@ async def update_webhook(
     if name is not None:
         update_data['name'] = name
     if url is not None:
+        _validate_webhook_url(url)
         update_data['url'] = url
     if events is not None:
         update_data['events'] = events

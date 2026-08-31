@@ -129,4 +129,4 @@ async def get_media_thumbnail(
             raise HTTPException(status_code=404, detail="该文件类型不支持缩略图")
     except Exception as e:
         logger.error(f"生成缩略图时出错 - media_id: {media_id}, error: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"生成缩略图失败: {str(e)}")
+        raise HTTPException(status_code=500, detail="生成缩略图失败")
