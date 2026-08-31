@@ -36,6 +36,7 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         self.max_per_user = max_attempts_per_user
         # 惰性加载 cache，避免初始化时循环依赖
         self._cache = None
+        self._redis_failed = False  # Redis 是否已标记为不可用
 
     @property
     def cache(self):
@@ -54,6 +55,13 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         """缓存过期时间比窗口略长，确保窗口内数据完整"""
         return self.window_seconds + 60
 
+    # Redis 连接失败标记，首次超时后置为 True 并降级到内存缓存
+    # 使用模块级变量确保跨实例共享，避免每次新实例都重新尝试 Redis
+    _redis_failed = False
+
+    # 模块级标记：Redis 是否已确认不可用
+    _redis_working = None  # None=未检测, True=有效, False=已失效
+
     def _increment_and_check(self, key: str, max_attempts: int) -> bool:
         """
         原子递增尝试次数并检查是否超过限制。
@@ -62,15 +70,28 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         优先使用 Redis INCR 原子操作，降级为 SimpleCache 时使用 get+set。
         """
         c = self.cache
-        # 检测是否使用 Redis 包装器
-        if hasattr(c, '_client') and hasattr(c._client, 'incr'):
+        # 使用模块级标记：一旦 Redis 失效，不再尝试连接
+        _bf_redis_working = getattr(BruteForceProtectionMiddleware, '_redis_working', None)
+
+        # 检测是否使用 Redis 包装器（且之前未确认失败过）
+        if (_bf_redis_working is not False
+                and hasattr(c, '_client') and hasattr(c._client, 'incr')):
             try:
                 count = c._client.incr(key)
                 if count == 1:
                     c._client.expire(key, self._get_cache_ttl())
+                # 标记 Redis 可用（可能之前是 None）
+                BruteForceProtectionMiddleware._redis_working = True
                 return int(count) > max_attempts
             except Exception as e:
                 logger.error(f"Redis 递增失败: {e}")
+                # 模块级标记 Redis 不可用，后续请求直接降级
+                BruteForceProtectionMiddleware._redis_working = False
+                # 降级后尝试通过 SimpleCache 的 set 写入本次计数
+                try:
+                    c.set(key, "1", ex=self._get_cache_ttl())
+                except Exception:
+                    pass
                 return False
 
         # SimpleCache 降级模式

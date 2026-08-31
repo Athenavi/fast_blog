@@ -530,7 +530,7 @@ async def _get_recent_articles_simple(db: AsyncSession, limit: int) -> list:
         return []
 
 
-async def _get_popular_articles(db: AsyncSession, limit: int) -> list:
+async def _get_popular_articles(db: AsyncSession, limit: int, days: int = 30) -> list:
     """简化版获取热门文章 - 使用批量查询优化"""
     try:
         # 获取热门文章

@@ -28,6 +28,9 @@ def _get_redis():
             db=int(os.environ.get('REDIS_DB', 0)),
             password=os.environ.get('REDIS_PASSWORD') or None,
             decode_responses=True,
+            socket_connect_timeout=2,  # 连接超时 2 秒，避免启动阻塞
+            socket_timeout=2,          # 读写超时 2 秒
+            retry_on_timeout=False,    # 不重试，快速失败
         )
     except Exception:
         return None
@@ -598,7 +601,7 @@ class SessionManagementService:
 
     def _get_location_from_ip(self, ip_address: str) -> Dict[str, str]:
         """
-        从IP地址获取地理位置信息
+        从IP地址获取地理位置信息（并行调用多个 API，最快返回优先）
 
         Args:
             ip_address: IP地址
@@ -606,45 +609,62 @@ class SessionManagementService:
         Returns:
             包含城市、地区、国家信息的字典，失败返回None
         """
-        # 方法1: 使用 ipapi.co API (免费，无需API key)
-        try:
-            import urllib.request
-            import json
+        import json
+        import urllib.request
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            url = f"https://ipapi.co/{ip_address}/json/"
-            response = urllib.request.urlopen(url, timeout=3)
-            data = json.loads(response.read().decode('utf-8'))
-
-            if data.get('error'):
-                logger.debug(f"ipapi.co error: {data.get('reason')}")
+        def _try_ipapi():
+            """方法1: ipapi.co (免费，无需API key)"""
+            try:
+                url = f"https://ipapi.co/{ip_address}/json/"
+                response = urllib.request.urlopen(url, timeout=3)
+                data = json.loads(response.read().decode('utf-8'))
+                if data.get('error'):
+                    return None
+                return {
+                    'city': data.get('city', ''),
+                    'region': data.get('region', ''),
+                    'country': data.get('country_name', ''),
+                    'country_code': data.get('country', ''),
+                    'latitude': data.get('latitude'),
+                    'longitude': data.get('longitude'),
+                }
+            except Exception as e:
+                logger.debug(f"ipapi.co failed: {e}")
                 return None
 
-            location = {
-                'city': data.get('city', ''),
-                'region': data.get('region', ''),
-                'country': data.get('country_name', ''),
-                'country_code': data.get('country', ''),
-                'latitude': data.get('latitude'),
-                'longitude': data.get('longitude'),
-            }
-
-            logger.info(f"Location detected for IP {ip_address}: {location['city']}, {location['country']}")
-            return location
-        except Exception as e:
-            logger.debug(f"ipapi.co failed: {e}")
-
-        # 方法2: 使用 ipgeolocation.io API (需要API key)
-        api_key = os.getenv('IPGEOLOCATION_API_KEY', '')
-        if api_key:
+        def _try_ipinfo():
+            """方法2: ipinfo.io (可选API key)"""
             try:
-                import urllib.request
-                import json
+                token = os.getenv('IPINFO_TOKEN', '')
+                headers = {'Authorization': f'Bearer {token}'} if token else {}
+                url = f"https://ipinfo.io/{ip_address}/json"
+                req = urllib.request.Request(url, headers=headers)
+                response = urllib.request.urlopen(req, timeout=3)
+                data = json.loads(response.read().decode('utf-8'))
+                if 'bogon' in data:
+                    return None
+                city_region = data.get('city', '').split(',')
+                return {
+                    'city': city_region[0] if city_region else '',
+                    'region': city_region[1].strip() if len(city_region) > 1 else '',
+                    'country': data.get('country', ''),
+                    'country_code': data.get('country', ''),
+                }
+            except Exception as e:
+                logger.debug(f"ipinfo.io failed: {e}")
+                return None
 
+        def _try_ipgeolocation():
+            """方法3: ipgeolocation.io (需要API key)"""
+            api_key = os.getenv('IPGEOLOCATION_API_KEY', '')
+            if not api_key:
+                return None
+            try:
                 url = f"https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip_address}"
                 response = urllib.request.urlopen(url, timeout=3)
                 data = json.loads(response.read().decode('utf-8'))
-
-                location = {
+                return {
                     'city': data.get('city', ''),
                     'region': data.get('state_prov', ''),
                     'country': data.get('country_name', ''),
@@ -652,42 +672,26 @@ class SessionManagementService:
                     'latitude': data.get('latitude'),
                     'longitude': data.get('longitude'),
                 }
-
-                logger.info(f"Location detected for IP {ip_address}: {location['city']}, {location['country']}")
-                return location
             except Exception as e:
                 logger.debug(f"ipgeolocation.io failed: {e}")
-
-        # 方法3: 使用 ipinfo.io API (可选API key)
-        try:
-            import urllib.request
-            import json
-
-            token = os.getenv('IPINFO_TOKEN', '')
-            headers = {'Authorization': f'Bearer {token}'} if token else {}
-            url = f"https://ipinfo.io/{ip_address}/json"
-
-            req = urllib.request.Request(url, headers=headers)
-            response = urllib.request.urlopen(req, timeout=3)
-            data = json.loads(response.read().decode('utf-8'))
-
-            if 'bogon' in data:
                 return None
 
-            # ipinfo.io 的 city 格式为 "City, Region"
-            city_region = data.get('city', '').split(',')
+        # 并行调用最多两个 API（ipapi.co + ipinfo.io），避免串行等待 9s+
+        # 只有 ipgeolocation 配置了 key 才加入
+        tasks = [_try_ipapi, _try_ipinfo]
+        if os.getenv('IPGEOLOCATION_API_KEY', ''):
+            tasks.append(_try_ipgeolocation)
 
-            location = {
-                'city': city_region[0] if city_region else '',
-                'region': city_region[1].strip() if len(city_region) > 1 else '',
-                'country': data.get('country', ''),
-                'country_code': data.get('country', ''),
-            }
-
-            logger.info(f"Location detected for IP {ip_address}: {location['city']}, {location['country']}")
-            return location
-        except Exception as e:
-            logger.debug(f"ipinfo.io failed: {e}")
+        with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+            future_to_name = {executor.submit(fn): fn.__name__ for fn in tasks}
+            for future in as_completed(future_to_name, timeout=4):
+                result = future.result()
+                if result:
+                    # 取消其余任务
+                    for f in future_to_name:
+                        f.cancel()
+                    logger.info(f"Location detected for IP {ip_address}: {result.get('city', '')}, {result.get('country', '')}")
+                    return result
 
         return None
 
