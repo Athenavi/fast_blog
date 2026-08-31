@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState, useCallback, useMemo} from 'react';
 import {getConfig} from '@/lib/config';
+import DOMPurify from 'dompurify';
 
 export interface Collaborator {
   client_id: string;
@@ -140,7 +141,7 @@ export function useYjsCollaboration(
           setCollaborators(existing);
           // If server has an HTML snapshot, load it
           if (msg.html_snapshot) {
-            setContent(msg.html_snapshot);
+            setContent(DOMPurify.sanitize(msg.html_snapshot));
           }
         } else if (type === 'awareness') {
           const state = msg.state || {};
@@ -157,7 +158,7 @@ export function useYjsCollaboration(
         } else if (type === 'html_snapshot') {
           // Another collaborator's content snapshot — update our editor
           if (msg.html && msg.client_id !== myClientIdRef.current) {
-            setContent(msg.html);
+            setContent(DOMPurify.sanitize(msg.html));
           }
         } else if (type === 'save_result') {
           window.dispatchEvent(new CustomEvent('yjs-save-result', {

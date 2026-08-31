@@ -40,11 +40,10 @@ class BaseModelMixin:
                 value = value.isoformat()
             data[col.name] = value
 
-        if not exclude_sensitive and self._sensitive_fields:
-            # 默认 exclude_sensitive=True 时已排除敏感字段
-            # 但列反射不会自动排除，所以这里什么也不做
-            # 子类通过覆盖 to_dict 或定义额外逻辑控制
-            pass
+        if exclude_sensitive and self._sensitive_fields:
+            # 过滤敏感字段，防止列反射自动暴露
+            for field in self._sensitive_fields:
+                data.pop(field, None)
 
         return data
 

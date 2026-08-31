@@ -27,13 +27,13 @@ sys.path.insert(0, str(base_dir))
 try:
     from shared.utils.version_manager import version_manager
 except Exception as e:
-    print(f"警告：无法导入版本管理器：{e}")
+    logger.warning(f"无法导入版本管理器：{e}")
 
 # 导入更新历史管理器
 try:
     from shared.utils.update_history import add_update_history
 except Exception as e:
-    print(f"警告：无法导入更新历史管理器：{e}")
+    logger.warning(f"无法导入更新历史管理器：{e}")
     add_update_history = None
 
 from src.unified_logger import default_logger as logger
@@ -101,8 +101,6 @@ class FastBlogUpdater:
             return None
         except Exception as e:
             logger.error(f"下载更新包失败：{e}")
-            import traceback
-            traceback.print_exc()
             return None
 
     def verify_package_integrity(self, package_file: Path) -> bool:

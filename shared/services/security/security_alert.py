@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
+from src.unified_logger import default_logger as logger
+
 
 class AlertChannel:
     """告警渠道基类"""
@@ -83,7 +85,7 @@ class EmailAlertChannel(AlertChannel):
 
             return True
         except Exception as e:
-            print(f"Failed to send email alert: {e}")
+            logger.error(f"Failed to send email alert: {e}")
             return False
 
 
@@ -106,7 +108,7 @@ class WebhookAlertChannel(AlertChannel):
                 ) as response:
                     return response.status == 200
         except Exception as e:
-            print(f"Failed to send webhook alert: {e}")
+            logger.error(f"Failed to send webhook alert: {e}")
             return False
 
 
@@ -141,11 +143,11 @@ class SMSAlertChannel(AlertChannel):
             elif self.provider == 'twilio':
                 return await self._send_via_twilio(message)
             else:
-                print(f"Unsupported SMS provider: {self.provider}")
+                logger.warning(f"Unsupported SMS provider: {self.provider}")
                 return False
 
         except Exception as e:
-            print(f"Failed to send SMS alert: {e}")
+            logger.error(f"Failed to send SMS alert: {e}")
             return False
 
     async def _send_via_aliyun(self, message: str) -> bool:
@@ -163,7 +165,7 @@ class SMSAlertChannel(AlertChannel):
             region_id = self.config.get('region_id', 'cn-hangzhou')
 
             if not all([access_key_id, access_key_secret, sign_name, template_code]):
-                print("Aliyun SMS configuration incomplete")
+                logger.warning("Aliyun SMS configuration incomplete")
                 return False
 
             # 创建客户端
@@ -186,14 +188,14 @@ class SMSAlertChannel(AlertChannel):
 
             # 发送请求
             response = client.do_action_with_exception(request)
-            print(f"Aliyun SMS sent successfully: {response}")
+            logger.info("Aliyun SMS sent successfully")
             return True
 
         except ImportError:
-            print("aliyunsdkcore not installed. Install with: pip install aliyun-python-sdk-core")
+            logger.warning("aliyunsdkcore not installed. Install with: pip install aliyun-python-sdk-core")
             return False
         except Exception as e:
-            print(f"Failed to send via Aliyun SMS: {e}")
+            logger.error(f"Failed to send via Aliyun SMS: {e}")
             return False
 
     async def _send_via_tencent(self, message: str) -> bool:
@@ -211,7 +213,7 @@ class SMSAlertChannel(AlertChannel):
             region = self.config.get('region', 'ap-guangzhou')
 
             if not all([secret_id, secret_key, sdk_app_id, sign_name, template_id]):
-                print("Tencent SMS configuration incomplete")
+                logger.warning("Tencent SMS configuration incomplete")
                 return False
 
             # 创建客户端
@@ -228,14 +230,14 @@ class SMSAlertChannel(AlertChannel):
 
             # 发送请求
             resp = client.SendSms(req)
-            print(f"Tencent SMS sent successfully: {resp.to_json_string()}")
+            logger.info("Tencent SMS sent successfully")
             return True
 
         except ImportError:
-            print("tencentcloud-sdk-python not installed. Install with: pip install tencentcloud-sdk-python")
+            logger.warning("tencentcloud-sdk-python not installed. Install with: pip install tencentcloud-sdk-python")
             return False
         except Exception as e:
-            print(f"Failed to send via Tencent SMS: {e}")
+            logger.error(f"Failed to send via Tencent SMS: {e}")
             return False
 
     async def _send_via_twilio(self, message: str) -> bool:
@@ -249,7 +251,7 @@ class SMSAlertChannel(AlertChannel):
             from_number = self.config.get('from_number', '')
 
             if not all([account_sid, auth_token, from_number]):
-                print("Twilio configuration incomplete")
+                logger.warning("Twilio configuration incomplete")
                 return False
 
             # 创建客户端
@@ -264,18 +266,18 @@ class SMSAlertChannel(AlertChannel):
                         from_=from_number,
                         to=phone_number
                     )
-                    print(f"Twilio SMS sent to {phone_number}: {message_obj.sid}")
+                    logger.info(f"Twilio SMS sent to {phone_number}")
                     success_count += 1
                 except Exception as e:
-                    print(f"Failed to send Twilio SMS to {phone_number}: {e}")
+                    logger.error(f"Failed to send Twilio SMS to {phone_number}: {e}")
 
             return success_count > 0
 
         except ImportError:
-            print("twilio not installed. Install with: pip install twilio")
+            logger.warning("twilio not installed. Install with: pip install twilio")
             return False
         except Exception as e:
-            print(f"Failed to send via Twilio: {e}")
+            logger.error(f"Failed to send via Twilio: {e}")
             return False
 
 
