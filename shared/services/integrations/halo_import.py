@@ -224,7 +224,7 @@ class HaloImportService:
         if publish_time:
             try:
                 created_at = datetime.fromisoformat(publish_time.replace('Z', '+00:00'))
-            except:
+            except Exception:
                 created_at = datetime.now()
         else:
             created_at = datetime.now()

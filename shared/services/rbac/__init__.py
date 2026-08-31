@@ -80,7 +80,7 @@ async def check_user_permission(
         return result.scalar_one_or_none() is not None
 
     except Exception as e:
-        logger.error(f"权限检查失败: {e}", exc_info=True)
+        logger.error(f"权限检查失败: {e}")
         return False
 
 
@@ -121,7 +121,7 @@ async def check_any_permission(
         return result.scalar_one_or_none() is not None
 
     except Exception as e:
-        logger.error(f"权限检查失败: {e}", exc_info=True)
+        logger.error(f"权限检查失败: {e}")
         return False
 
 

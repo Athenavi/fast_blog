@@ -5,10 +5,13 @@
 不依赖 y_py，使用纯 Python 实现 OT 算法
 """
 import asyncio
+import logging
 from datetime import datetime
 from typing import Dict, List, Optional
 
 from fastapi import WebSocket
+
+logger = logging.getLogger(__name__)
 
 
 class Step:
@@ -89,20 +92,20 @@ class CollaborativeDocument:
         disconnected = []
         step_data = step.to_dict()
 
-        print(f"[Collab] Broadcasting step to {len(self.clients)} clients (excluding {exclude})")
+        logger.debug("Broadcasting step to %d clients (excluding %s)", len(self.clients), exclude)
 
         for client_id, client in self.clients.items():
             if client_id != exclude:
                 try:
-                    print(f"[Collab] Sending to client {client_id}")
+                    logger.debug("Sending to client %s", client_id)
                     await client.send_json({
                         'type': 'receive_steps',
                         'steps': [step_data],
                         'version': self.version
                     })
-                    print(f"[Collab] Successfully sent to {client_id}")
+                    logger.debug("Successfully sent to %s", client_id)
                 except Exception as e:
-                    print(f"Broadcast error for client {client_id}: {e}")
+                    logger.warning("Broadcast error for client %s: %s", client_id, e)
                     disconnected.append(client_id)
 
         # 清理断开的连接
@@ -121,7 +124,7 @@ class CollaborativeDocument:
                         'state': awareness_state
                     })
                 except Exception as e:
-                    print(f"Awareness broadcast error for client {client_id}: {e}")
+                    logger.warning("Awareness broadcast error for client %s: %s", client_id, e)
                     disconnected.append(client_id)
 
         # 清理断开的连接
@@ -134,7 +137,7 @@ class CollaborativeDocument:
             try:
                 # 检查版本号，确保是最新的
                 if step.version < self.version:
-                    print(f"[Collab] Warning: Received old step version {step.version}, current is {self.version}")
+                    logger.warning("Received old step version %s, current is %s", step.version, self.version)
                     return False
 
                 # 更新文档内容
@@ -149,13 +152,11 @@ class CollaborativeDocument:
                 if len(self.steps) > 100:
                     self.steps = self.steps[-50:]
 
-                print(f"[Collab] Applied step type={step.step_type}, version {self.version}")
+                logger.info("Applied step type=%s, version %s", step.step_type, self.version)
                 return True
 
             except Exception as e:
-                print(f"Error applying step: {e}")
-                import traceback
-                traceback.print_exc()
+                logger.error("Error applying step: %s", e, exc_info=True)
                 return False
 
     def get_steps_since(self, version: int) -> List[Step]:

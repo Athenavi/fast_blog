@@ -214,7 +214,7 @@ class PluginUpdateManager:
                     with open(info_file, 'r', encoding='utf-8') as f:
                         info = json.load(f)
                     history.append(info)
-                except:
+                except (json.JSONDecodeError, IOError):
                     pass
         
         # 按时间倒序排列

@@ -162,7 +162,7 @@ class MultiSiteService:
         if site.additional_domains:
             try:
                 additional_domains = json.loads(site.additional_domains)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 additional_domains = []
 
         # 检查域名是否已存在
@@ -207,7 +207,7 @@ class MultiSiteService:
                     site.additional_domains = json.dumps(additional_domains)
                     await db.commit()
                     logger.info(f"Domain removed from site {site.slug}: {domain}")
-            except:
+            except (json.JSONDecodeError, TypeError):
                 pass
 
     async def get_site_by_domain(self, db, domain: str) -> Optional[Site]:
@@ -243,7 +243,7 @@ class MultiSiteService:
                     additional_domains = json.loads(site.additional_domains)
                     if domain in additional_domains:
                         return site
-                except:
+                except (json.JSONDecodeError, TypeError):
                     pass
 
         # 返回默认站点

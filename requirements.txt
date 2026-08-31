@@ -81,4 +81,4 @@ aiofiles==25.1.0
 aiohttp==3.14.0
 aioboto3==15.5.0
 
-cryptography>=42.0.0
+cryptography==44.0.0
