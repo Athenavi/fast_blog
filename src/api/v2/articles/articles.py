@@ -127,7 +127,10 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
                 token = request.cookies.get(f"article_access_{article.id}") or request.query_params.get("access_token")
                 if not token or not secrets.compare_digest(token, password_protection_service.generate_access_token(article.id)):
                     return {"requires_password": True, "article_id": article.id, "article_title": article.title, "excerpt": article.excerpt}
-            return None
+                # 密码验证通过，继续渲染文章
+            else:
+                # 隐藏文章且无密码保护 → 非作者不可见
+                return None
 
     if article.status == 0 and not _is_author_or_admin(current_user, article.user):
         return None
@@ -295,12 +298,13 @@ async def get_user_articles_stats_api(user_id: int, db: AsyncSession = Depends(g
 
 @router.get("/p/{slug}")
 @_catch
-async def get_article_by_slug_api(slug: str, request: Request, db: AsyncSession = Depends(get_async_session)):
-    """通过 slug 获取文章详情"""
-    article = await db.scalar(select(Article).where(Article.slug == slug))
+async def get_article_by_slug_api(slug: str, request: Request, db: AsyncSession = Depends(get_async_session),
+                                  current_user=Depends(jwt_optional_dependency)):
+    """通过 slug 获取文章详情（大小写不敏感）"""
+    article = await db.scalar(select(Article).where(func.lower(Article.slug) == func.lower(slug)))
     if not article:
         raise HTTPException(404, "文章不存在")
-    data = await _get_article_detail(request, db, article)
+    data = await _get_article_detail(request, db, article, current_user=current_user)
     if data is None:
         raise HTTPException(404, "文章不存在或无权访问")
     return ApiResponse(success=True, data=data)
@@ -308,12 +312,13 @@ async def get_article_by_slug_api(slug: str, request: Request, db: AsyncSession 
 
 @router.get("/{article_id}.html")
 @_catch
-async def get_article_by_id_html_api(article_id: int, request: Request, db: AsyncSession = Depends(get_async_session)):
+async def get_article_by_id_html_api(article_id: int, request: Request, db: AsyncSession = Depends(get_async_session),
+                                     current_user=Depends(jwt_optional_dependency)):
     """获取文章 HTML 格式内容"""
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         raise HTTPException(404, "文章不存在")
-    data = await _get_article_detail(request, db, article)
+    data = await _get_article_detail(request, db, article, current_user=current_user)
     if data is None:
         raise HTTPException(404, "文章不存在或无权访问")
     return ApiResponse(success=True, data=data)
@@ -322,12 +327,13 @@ async def get_article_by_id_html_api(article_id: int, request: Request, db: Asyn
 @router.get("/detail")
 @_catch
 async def get_article_detail_by_query_api(article_id: int = Query(...), request: Request = None,
-                                            db: AsyncSession = Depends(get_async_session)):
+                                          db: AsyncSession = Depends(get_async_session),
+                                          current_user=Depends(jwt_optional_dependency)):
     """通过 query 参数获取文章详情"""
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         raise HTTPException(404, "文章不存在")
-    data = await _get_article_detail(request, db, article)
+    data = await _get_article_detail(request, db, article, current_user=current_user)
     if data is None:
         raise HTTPException(404, "文章不存在或无权访问")
     return ApiResponse(success=True, data=data)
@@ -335,12 +341,13 @@ async def get_article_detail_by_query_api(article_id: int = Query(...), request:
 
 @router.get("/{article_id}")
 @_catch
-async def get_article_detail_api(article_id: int, request: Request, db: AsyncSession = Depends(get_async_session)):
+async def get_article_detail_api(article_id: int, request: Request, db: AsyncSession = Depends(get_async_session),
+                                 current_user=Depends(jwt_optional_dependency)):
     """获取文章详情"""
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         raise HTTPException(404, "文章不存在")
-    data = await _get_article_detail(request, db, article)
+    data = await _get_article_detail(request, db, article, current_user=current_user)
     if data is None:
         raise HTTPException(404, "文章不存在或无权访问")
     return ApiResponse(success=True, data=data)
