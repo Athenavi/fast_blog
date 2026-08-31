@@ -120,7 +120,8 @@ class TestSafeQueryBuilder:
     def test_with_order_and_limit(self):
         result = safe_query_builder("users", order_by="id", limit=10)
         assert "ORDER BY id" in result.text
-        assert "LIMIT 10" in result.text
+        assert "LIMIT :limit_val" in result.text
+        assert result.compile().params["limit_val"] == 10
 
     def test_invalid_table_name(self):
         with pytest.raises(ValueError):

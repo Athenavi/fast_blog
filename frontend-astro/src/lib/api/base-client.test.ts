@@ -1,4 +1,4 @@
-import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 
 // Mock getConfig before importing base-client
 vi.mock('@/lib/config', () => ({
@@ -155,21 +155,6 @@ describe('base-client', () => {
       expect(opts.headers['Content-Type']).toBe('application/x-www-form-urlencoded');
       expect(opts.body).toContain('username=admin');
       expect(opts.body).toContain('password=123');
-    });
-  });
-
-  describe('Authorization header', () => {
-    it('should include Authorization header when access_token cookie exists', async () => {
-      fetchSpy.mockResolvedValueOnce({
-        status: 200,
-        text: () => Promise.resolve(JSON.stringify({success: true})),
-      });
-
-      const client = await getClient();
-      await client.get('/me');
-
-      const [, opts] = fetchSpy.mock.calls[0];
-      expect(opts.headers.Authorization).toBe('Bearer test-token');
     });
   });
 

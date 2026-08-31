@@ -63,6 +63,17 @@ async function request<T = any>(
 ): Promise<ApiResponse<T>> {
   try {
     const url = buildUrl(path, method === 'GET' ? params : undefined);
+    const headers: Record<string, string> = {};
+    // Include Authorization header if access_token is available in cookies
+    if (typeof document !== 'undefined') {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('access_token='))
+        ?.split('=')[1];
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
     const opts: RequestInit = {
       method,
       credentials: 'include',
@@ -72,14 +83,16 @@ async function request<T = any>(
       if (body instanceof FormData) {
         opts.body = body;
       } else if (contentType === 'application/x-www-form-urlencoded') {
-        opts.headers = {'Content-Type': 'application/x-www-form-urlencoded'};
+        opts.headers = {...headers, 'Content-Type': 'application/x-www-form-urlencoded'};
         opts.body = Object.entries(body)
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
             .join('&');
       } else {
-        opts.headers = {'Content-Type': 'application/json'};
+        opts.headers = {...headers, 'Content-Type': 'application/json'};
         opts.body = JSON.stringify(body);
       }
+    } else if (Object.keys(headers).length > 0) {
+      opts.headers = headers;
     }
     if (params && method !== 'GET') {
       // (uncommon case: query + body)
