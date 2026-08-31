@@ -54,5 +54,13 @@ We support responsible disclosure and will not take legal action against good-fa
 - SQL injection prevention (SQLAlchemy ORM)
 - XSS protection (output sanitization)
 - Rate limiting (configurable per endpoint)
-- Password hashing (bcrypt)
+- Password hashing (Argon2 / bcrypt)
 - Audit logging for sensitive operations
+- Account lockout (database + Redis dual-layer)
+- API rate limiting (Nginx + application layer dual-layer)
+- Content Security Policy (CSP) headers
+- Subresource Integrity (SRI) for CDN assets
+- Content-Disposition protection for file downloads
+- File upload validation (MIME whitelist + SVG sanitization)
+- Defensive security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
+- Dependency version pinning (requirements.txt with `==`)

@@ -12,6 +12,9 @@ from typing import Generator
 import pytest
 
 # Set test environment
+# WARNING: These test-only secrets are used ONLY for local unit/integration tests.
+# They are NOT the same secrets used in production/staging environments.
+# The actual production secrets are loaded from environment variables or .env file.
 os.environ.setdefault("ENVIRONMENT", "testing")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing-only")
 os.environ.setdefault("JWT_SECRET_KEY", "test-jwt-secret-key")

@@ -278,12 +278,13 @@ class TippingSystem:
         """
         return self._preset_amounts.copy()
 
-    def refund_tip(self, tip_id: str, reason: str = '') -> bool:
+    def refund_tip(self, tip_id: str, from_user_id: int = 0, reason: str = '') -> bool:
         """
         退款打赏
         
         Args:
             tip_id: 打赏ID
+            from_user_id: 打赏发起用户ID（0=不检查）
             reason: 退款原因
             
         Returns:
@@ -295,6 +296,11 @@ class TippingSystem:
             return False
 
         if tip['status'] != 'completed':
+            return False
+
+        # 验证退款发起者是否是打赏人
+        if from_user_id > 0 and tip.get('from_user_id') != from_user_id:
+            logger.warning(f"User {from_user_id} attempted to refund tip {tip_id} owned by user {tip.get('from_user_id')}")
             return False
 
         # 更新状态

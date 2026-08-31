@@ -54,10 +54,9 @@ app = FastAPI(
 # ---------- 鉴权：所有管理/变更类接口必须携带 X-Update-Token ----------
 # 未配置 UPDATE_SERVER_TOKEN 时 fail-closed（拒绝一切管理操作），避免无鉴权暴露。
 class UpdateAuthMiddleware(BaseHTTPMiddleware):
-    # 保持只读公开的路径（健康检查/版本信息）
+    # 只读公开路径（健康检查/版本信息）。/docs /redoc 等 API 文档不暴露给生产环境。
     READONLY_PATHS = {
-        "/", "/docs", "/redoc", "/openapi.json",
-        "/api/v1/health", "/api/v1/version", "/api/v1/version/full",
+        "/", "/api/v1/health", "/api/v1/version", "/api/v1/version/full",
         "/api/v1/version/frontend", "/api/v1/version/backend",
         "/api/v1/update/status", "/api/v1/update/auto-check/status",
     }
@@ -147,7 +146,7 @@ class UpdateChecker:
                 "build_time": "",
                 "framework": "FastAPI",
                 "status": "error",
-                "error": str(e)
+                "error": "Failed to read version information"
             }
 
     def get_version_info(self) -> Dict[str, Any]:
@@ -180,7 +179,7 @@ class UpdateChecker:
             logger.error(f"获取版本信息失败：{e}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to retrieve version information',
                 'data': None
             }
 
@@ -205,7 +204,7 @@ class UpdateChecker:
             logger.error(f"获取前端版本失败：{e}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to retrieve frontend version information',
                 'data': None
             }
 
@@ -230,7 +229,7 @@ class UpdateChecker:
             logger.error(f"获取后端版本失败：{e}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': 'Failed to retrieve backend version information',
                 'data': None
             }
 

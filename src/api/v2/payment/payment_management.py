@@ -15,6 +15,7 @@ from shared.models import PaymentGateway, PaymentTransaction, TaxConfig
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["payment-management"])
 
@@ -168,7 +169,7 @@ async def create_gateway(
         await db.rollback()
         raise
 
-    return ok(data=gateway.to_dict(), msg="支付网关创建成功")
+    return ok(data=gateway.to_dict(exclude_sensitive=True), msg="支付网关创建成功")
 
 
 @router.put("/gateways/{gateway_id}")
@@ -210,7 +211,7 @@ async def update_gateway(
         await db.rollback()
         raise
 
-    return ok(data=gateway.to_dict(), msg="支付网关更新成功")
+    return ok(data=gateway.to_dict(exclude_sensitive=True), msg="支付网关更新成功")
 
 
 @router.delete("/gateways/{gateway_id}")
@@ -558,8 +559,8 @@ async def payment_callback(provider: str, request: Request, db: AsyncSession = D
 
     result = plugin.verify_callback(provider, payload, headers)
     if not result.get("verified"):
-        logger.warning(f"Payment callback verification failed: {result.get('error')}")
-        return {"code": "FAIL", "message": result.get("error", "Verification failed")}
+        logger.warning(f"Payment callback verification failed")
+        return {"code": "FAIL", "message": "Verification failed"}
 
     # 验签通过：更新交易状态为成功（这是唯一允许设置 succeeded 的路径）
     from sqlalchemy import update as sa_update

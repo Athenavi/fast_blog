@@ -9,8 +9,10 @@ FastBlog 独立更新器
 """
 
 import argparse
+import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -66,7 +68,12 @@ class FastBlogUpdater:
             if local_release_path.exists():
                 logger.info(f"找到本地更新包：{local_release_path}")
                 return local_release_path
-            
+
+            # 对 target_version 进行校验，防止路径遍历和注入
+            if not re.match(r'^[a-zA-Z0-9._-]+$', self.target_version):
+                logger.error(f"无效的版本号格式: {self.target_version}")
+                return None
+
             # 尝试从更新服务器下载
             update_server_url = os.getenv('UPDATE_SERVER_URL', 'http://localhost:8001')
             update_token = os.getenv('UPDATE_SERVER_TOKEN', '')
@@ -77,24 +84,29 @@ class FastBlogUpdater:
 
             import requests
             response = requests.get(download_url, headers=headers, timeout=60)
-            
+
             if response.status_code == 200:
+                # 验证 Content-Type 是否为 ZIP
+                content_type = response.headers.get('Content-Type', '')
+                if 'zip' not in content_type and 'octet-stream' not in content_type:
+                    logger.warning(f"下载响应 Content-Type 不是 ZIP: {content_type}，仍继续尝试")
+
                 # 保存到releases目录
                 self.base_dir.mkdir(parents=True, exist_ok=True)
                 releases_dir = self.base_dir / "releases"
                 releases_dir.mkdir(exist_ok=True)
-                
+
                 package_file = releases_dir / f"update_{self.target_version}.zip"
                 with open(package_file, 'wb') as f:
                     f.write(response.content)
-                
+
                 logger.info(f"更新包下载成功: {package_file}")
                 return package_file
             else:
                 logger.warning(f"从更新服务器下载失败，状态码: {response.status_code}")
                 logger.info("提示：请先使用 build_release.py 生成更新包并放到 releases/ 目录")
                 return None
-            
+
         except ImportError:
             logger.warning("未安装 requests 库，无法从远程下载")
             logger.info("提示：请先使用 build_release.py 生成更新包并放到 releases/ 目录")
@@ -103,10 +115,9 @@ class FastBlogUpdater:
             logger.error(f"下载更新包失败：{e}")
             return None
 
-    def verify_package_integrity(self, package_file: Path) -> bool:
+    def verify_package_integrity(self, package_file: Path, expected_checksum: Optional[str] = None) -> bool:
         """验证更新包完整性"""
         try:
-            # 这里可以添加校验和验证、数字签名验证等
             if not package_file.exists():
                 return False
 
@@ -114,6 +125,17 @@ class FastBlogUpdater:
             if package_file.stat().st_size < 1024:  # 小于1KB认为无效
                 logger.error("更新包文件过小")
                 return False
+
+            # 如果提供了预期的校验和，进行 SHA256 验证
+            if expected_checksum:
+                sha256_hash = hashlib.sha256()
+                with open(package_file, 'rb') as f:
+                    for chunk in iter(lambda: f.read(4096), b''):
+                        sha256_hash.update(chunk)
+                if sha256_hash.hexdigest() != expected_checksum:
+                    logger.error("更新包 SHA256 校验和不匹配")
+                    return False
+                logger.info("更新包 SHA256 校验通过")
 
             # 尝试解压验证
             with ZipFile(package_file, 'r') as zip_ref:

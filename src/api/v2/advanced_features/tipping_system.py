@@ -116,7 +116,7 @@ async def refund_tip(
         current_user: UserModel = Depends(get_current_active_user)
 ):
     """申请退款打赏"""
-    success = tipping_system.refund_tip(tip_id, reason)
+    success = tipping_system.refund_tip(tip_id, from_user_id=current_user.id, reason=reason)
     if success:
         return ok(data={'tip_id': tip_id}, message='退款成功')
     return fail('退款失败(打赏不存在或已退款)')
