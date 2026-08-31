@@ -51,8 +51,9 @@ def load_sensitive_words(file_path):
         return sensitive_words
     except FileNotFoundError:
         return set()
-    except IOError as e:
-        print(e)
+    except IOError:
+        import logging
+        logging.getLogger(__name__).exception("Failed to load sensitive words file")
         return set()
 
 
@@ -109,13 +110,28 @@ def safe_query_builder(table_name, conditions=None, columns="*", order_by=None, 
     
     :param table_name: 表名
     :param conditions: 条件字典，格式为 {'column': 'value'}
-    :param columns: 要查询的列
+    :param columns: 要查询的列（只允许合法列名、逗号、空格、星号）
     :param order_by: 排序字段
-    :param limit: 限制返回记录数
+    :param limit: 限制返回记录数（必须是正整数）
     :return: SQLAlchemy TextClause 对象
     """
     # 验证表名
     sanitized_table = sanitize_sql_identifier(table_name)
+
+    # 验证 columns 参数：防止注入
+    if columns != "*":
+        # 只允许字母、数字、下划线、逗号、空格、点、星号
+        if not re.match(r'^[a-zA-Z0-9_,\s\.\*]+$', str(columns)):
+            raise ValueError("Invalid columns parameter: contains disallowed characters")
+        # 逐列校验
+        for col in str(columns).split(','):
+            col_stripped = col.strip()
+            if col_stripped and col_stripped != '*':
+                # 支持 table.column 格式
+                parts = col_stripped.split('.')
+                for part in parts:
+                    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', part):
+                        raise ValueError(f"Invalid column name: {col_stripped}")
 
     # 构建基础查询
     query_parts = [f"SELECT {columns} FROM {sanitized_table}"]
@@ -137,9 +153,15 @@ def safe_query_builder(table_name, conditions=None, columns="*", order_by=None, 
         sanitized_order = sanitize_sql_identifier(order_by)
         query_parts.append(f"ORDER BY {sanitized_order}")
 
-    # 处理限制
-    if limit and isinstance(limit, int) and limit > 0:
-        query_parts.append(f"LIMIT {limit}")
+    # 处理限制：严格校验为正整数
+    if limit is not None:
+        try:
+            limit_int = int(limit)
+            if limit_int <= 0:
+                raise ValueError("LIMIT must be a positive integer")
+            query_parts.append(f"LIMIT {limit_int}")
+        except (ValueError, TypeError):
+            raise ValueError("LIMIT parameter must be a positive integer")
 
     query_str = " ".join(query_parts)
     return text(query_str)
@@ -306,7 +328,7 @@ def sql_injection_protection(*param_names):
                                 detail=f'Invalid input for parameter: {param_name}'
                             )
                         validated_params[param_name] = cleaned_value
-            except:
+            except (ValueError, TypeError):
                 # 如果不是JSON数据，检查表单数据
                 try:
                     form_data = await request.form()
@@ -320,7 +342,7 @@ def sql_injection_protection(*param_names):
                                     detail=f'Invalid input for parameter: {param_name}'
                                 )
                             validated_params[param_name] = cleaned_value
-                except:
+                except (ValueError, TypeError, RuntimeError):
                     pass  # 如果既不是JSON也不是表单数据，跳过检查
 
         # 将验证后的参数附加到请求对象上，供后续处理使用

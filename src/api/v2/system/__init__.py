@@ -4,6 +4,8 @@
 
 使用懒加载模式：仅在首次访问 router 时才导入 V1 子模块。
 """
+import datetime
+import logging
 import os
 import platform
 import sys
@@ -12,7 +14,6 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.v2._base import ApiResponse
-
 
 _router = None
 
@@ -45,16 +46,15 @@ def _build_router():
                 return PlainTextResponse(content=report)
             health_data = site_health_service.run_full_check()
             return ApiResponse(success=True, data=health_data)
-        except Exception as e:
-            import traceback
-            print(f"Error in site_health_check_api: {str(e)}")
-            print(traceback.format_exc())
-            return ApiResponse(success=False, error=str(e))
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception("Health check failed")
+            return ApiResponse(success=False, error="Health check failed. See server logs for details.")
 
     @router.get("/health/ping", summary="简易存活检查",
                 description="公开端点，仅返回服务是否存活")
     async def ping():
-        return {"status": "ok", "timestamp": __import__('datetime').datetime.now().isoformat()}
+        return {"status": "ok", "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()}
 
     @router.get("/health/readiness", summary="就绪检查",
                 description="公开端点，检查数据库等核心依赖是否就绪")
@@ -86,11 +86,10 @@ def _build_router():
                 'debug_mode': os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes'),
             }
             return ApiResponse(success=True, data=info)
-        except Exception as e:
-            import traceback
-            print(f"Error in system_info_api: {str(e)}")
-            print(traceback.format_exc())
-            return ApiResponse(success=False, error=str(e))
+        except Exception:
+            logger = logging.getLogger(__name__)
+            logger.exception("System info API failed")
+            return ApiResponse(success=False, error="Failed to retrieve system information.")
 
     # ── V1 聚合子模块 ────
     from src.api.v2.system.admin_settings import router as admin_settings_router
