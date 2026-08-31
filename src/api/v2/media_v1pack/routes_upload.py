@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.notifications.webhook_service import webhook_service
+from src.api.v2.media_v1pack.allowed_mimes import ALLOWED_MIMES_LIST
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config
@@ -28,69 +29,7 @@ async def upload_media_file(
         db: AsyncSession = Depends(get_async_db)
 ):
     upload_limit = getattr(app_config, 'UPLOAD_LIMIT', 10 * 1024 * 1024)
-    allowed_mimes = getattr(app_config, 'ALLOWED_MIMES', [
-        # ===== 图片 =====
-        'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
-        'image/avif', 'image/heic', 'image/heif',
-        # ===== 视频 =====
-        'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
-        'video/x-flv', 'video/x-ms-wmv', 'video/x-m4v', 'video/3gpp', 'video/x-ms-asf',
-        # ===== 音频 =====
-        'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg',
-        'audio/mp3', 'audio/x-wav', 'audio/x-m4a', 'audio/x-ms-wma', 'audio/opus', 'audio/webm', 'audio/x-aiff',
-        # ===== Office Word =====
-        'application/pdf', 'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
-        'application/vnd.ms-word.document.macroEnabled.12',
-        'application/vnd.ms-word.template.macroEnabled.12',
-        # ===== Office Excel =====
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
-        'application/vnd.ms-excel.sheet.macroEnabled.12',
-        'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
-        'application/vnd.ms-excel.template.macroEnabled.12',
-        'application/vnd.oasis.opendocument.spreadsheet',
-        'application/x-iwork-numbers-sffnumbers',
-        'text/csv',
-        # ===== Office PowerPoint =====
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/vnd.openxmlformats-officedocument.presentationml.template',
-        'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
-        'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
-        'application/vnd.ms-powerpoint.template.macroEnabled.12',
-        'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
-        # ===== 文档 & 文本（禁止 text/html / text/xml / application/xml，防止同源 XSS）=====
-        'text/plain', 'text/markdown', 'text/csv',
-        'application/json',
-        # ===== 压缩包 & 归档 =====
-        'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
-        'application/gzip', 'application/x-tar', 'application/x-bzip2',
-        'application/x-xz', 'application/zstd', 'application/x-lzma',
-        'application/x-cab', 'application/x-cpio', 'application/x-iso9660-image',
-        'application/x-lha', 'application/x-lzh',
-        # ===== 电子书 =====
-        'application/epub+zip',
-        # ===== 邮件 =====
-        'message/rfc822', 'application/vnd.ms-outlook',
-        # ===== CAD & 设计 =====
-        'image/vnd.dwg', 'image/vnd.dxf', 'application/dwf',
-        'application/oxps', 'application/vnd.ms-xpsdocument',
-        # ===== 3D 模型 =====
-        'model/gltf-binary', 'model/gltf+json', 'model/obj', 'model/stl',
-        'model/vnd.collada+xml', 'model/vrml', 'model/step',
-        'model/step-xml', 'application/step', 'application/x-ifc',
-        # ===== OFD & 国产格式 =====
-        'application/ofd', 'application/vnd.ofd',
-        # ===== Typst =====
-        'text/typst', 'application/x-typst',
-        # ===== Excalidraw & draw.io =====
-        'application/x-excalidraw', 'application/x-drawio',
-        # ===== 通用二进制（配合扩展名校验）=====
-        'application/octet-stream',
-    ])
+    allowed_mimes = getattr(app_config, 'ALLOWED_MIMES', ALLOWED_MIMES_LIST)
 
     form = await request.form()
     files = form.getlist('file')
@@ -140,69 +79,7 @@ async def upload_media_file(
 
 
 async def _process_single_file(user_id, file_data, filename, allowed_size, allowed_mimes, db):
-    allowed_set = set(str(m) for m in allowed_mimes) if allowed_mimes else {
-        # ===== 图片 =====
-        'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
-        'image/avif', 'image/heic', 'image/heif',
-        # ===== 视频 =====
-        'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
-        'video/x-flv', 'video/x-ms-wmv', 'video/x-m4v', 'video/3gpp', 'video/x-ms-asf',
-        # ===== 音频 =====
-        'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg',
-        'audio/mp3', 'audio/x-wav', 'audio/x-m4a', 'audio/x-ms-wma', 'audio/opus', 'audio/webm', 'audio/x-aiff',
-        # ===== Office Word =====
-        'application/pdf', 'application/msword',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
-        'application/vnd.ms-word.document.macroEnabled.12',
-        'application/vnd.ms-word.template.macroEnabled.12',
-        # ===== Office Excel =====
-        'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
-        'application/vnd.ms-excel.sheet.macroEnabled.12',
-        'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
-        'application/vnd.ms-excel.template.macroEnabled.12',
-        'application/vnd.oasis.opendocument.spreadsheet',
-        'application/x-iwork-numbers-sffnumbers',
-        'text/csv',
-        # ===== Office PowerPoint =====
-        'application/vnd.ms-powerpoint',
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-        'application/vnd.openxmlformats-officedocument.presentationml.template',
-        'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
-        'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
-        'application/vnd.ms-powerpoint.template.macroEnabled.12',
-        'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
-        # ===== 文档 & 文本（禁止 text/html / text/xml / application/xml，防止同源 XSS）=====
-        'text/plain', 'text/markdown', 'text/csv',
-        'application/json',
-        # ===== 压缩包 & 归档 =====
-        'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
-        'application/gzip', 'application/x-tar', 'application/x-bzip2',
-        'application/x-xz', 'application/zstd', 'application/x-lzma',
-        'application/x-cab', 'application/x-cpio', 'application/x-iso9660-image',
-        'application/x-lha', 'application/x-lzh',
-        # ===== 电子书 =====
-        'application/epub+zip',
-        # ===== 邮件 =====
-        'message/rfc822', 'application/vnd.ms-outlook',
-        # ===== CAD & 设计 =====
-        'image/vnd.dwg', 'image/vnd.dxf', 'application/dwf',
-        'application/oxps', 'application/vnd.ms-xpsdocument',
-        # ===== 3D 模型 =====
-        'model/gltf-binary', 'model/gltf+json', 'model/obj', 'model/stl',
-        'model/vnd.collada+xml', 'model/vrml', 'model/step',
-        'model/step-xml', 'application/step', 'application/x-ifc',
-        # ===== OFD & 国产格式 =====
-        'application/ofd', 'application/vnd.ofd',
-        # ===== Typst =====
-        'text/typst', 'application/x-typst',
-        # ===== Excalidraw & draw.io =====
-        'application/x-excalidraw', 'application/x-drawio',
-        # ===== 通用二进制 =====
-        'application/octet-stream',
-    }
+    allowed_set = set(str(m) for m in allowed_mimes) if allowed_mimes else ALLOWED_MIMES_SET
 
     processor = FileProcessor(user_id, allowed_mimes=allowed_set, allowed_size=allowed_size)
     is_valid, validation_result = processor.validate_file(file_data, filename)

@@ -108,8 +108,11 @@ async def remove_exif(
     if not media.mime_type or not media.mime_type.startswith('image/'):
         return fail("只能处理图片文件")
 
-    # 获取文件路径
-    file_path = Path(media.file_path)
+    # 获取文件路径（防御路径遍历）
+    file_path = Path(media.file_path).resolve()
+    safe_storage = Path('storage').resolve()
+    if not str(file_path).startswith(str(safe_storage)):
+        return fail("非法的文件路径")
     if not file_path.exists():
         return fail("文件不存在")
 
@@ -135,7 +138,6 @@ async def remove_exif(
     with open(file_path, 'wb') as f:
         f.write(output.getvalue())
 
-    logger = __import__('logging').getLogger(__name__)
     logger.info(f"EXIF已移除: {media.original_filename}")
 
     return ok(

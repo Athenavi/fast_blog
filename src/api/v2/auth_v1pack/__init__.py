@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User as UserModel
 from shared.services.plugins.event_bus import event_bus
 from shared.services.security.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
+from shared.services.security.rate_limiter import rate_limiter
 from shared.services.users.email_verification_service import email_verification_service
 from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
@@ -87,8 +88,8 @@ def decode_jwt_token(token: str) -> dict:
         if jti and tb.is_available and tb.is_blacklisted(jti):
             raise HTTPException(401, "Token has been revoked")
         return payload
-    except InvalidTokenError as e:
-        raise HTTPException(401, f"Invalid token: {e}")
+    except InvalidTokenError:
+        raise HTTPException(401, "Invalid or expired token")
 
 
 def extract_token_from_request(request: Request) -> Optional[str]:
@@ -143,6 +144,11 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
 
     ip = request.client.host if request.client else "unknown"
     ua = request.headers.get("user-agent", "")
+
+    # IP 维度速率限制：每 IP 每分钟最多 20 次登录尝试
+    ip_limited, ip_info = await rate_limiter.check_ip_limit(ip)
+    if ip_limited:
+        return fail("登录尝试过于频繁，请稍后再试")
 
     locked, unlock_time = await login_security_service.check_account_locked_async(username, db)
     if locked:
@@ -226,6 +232,12 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
     if not pw_valid:
         return fail(pw_err)
 
+    # IP 维度速率限制：每 IP 每分钟最多 5 次注册
+    ip = request.client.host if request.client else "unknown"
+    ip_limited, _ = await rate_limiter.check_ip_limit(ip)
+    if ip_limited:
+        return fail("注册尝试过于频繁，请稍后再试")
+
     existing = await db.scalar(select(UserModel).where(
         (UserModel.username == data.username) | (UserModel.email == data.email)))
     if existing:
@@ -234,7 +246,8 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
     try:
         user = await create_user_account(username=data.username, email=data.email, password=data.password, db=db)
     except Exception as e:
-        return fail(f"注册失败: {e}")
+        logger.exception("注册失败")
+        return fail("注册失败，请稍后重试")
 
     ip = request.client.host if request.client else "unknown"
     ua = request.headers.get("user-agent", "")
