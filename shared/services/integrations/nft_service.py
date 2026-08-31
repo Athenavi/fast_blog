@@ -3,13 +3,22 @@ NFT 内容所有权服务
 提供文章铸造 NFT、验证所有权等功能
 
 注意：此功能需要配置 Web3 provider 和智能合约
+⚠️ 当前实现为模拟/Mock 阶段，尚未对接真实区块链。
+   生产环境启用前需完成以下工作：
+   1. 接入真实 Web3 provider
+   2. 部署智能合约
+   3. 替换 print() 为结构化日志
+   4. 添加权限认证
 """
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Any, Optional, List
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -152,7 +161,7 @@ class NFTService:
 
             # 检查是否已经铸造过
             if article_id in self.nft_records:
-                print(f"⚠️ 文章 {article_id} 已经铸造过 NFT")
+                logger.warning("文章 %s 已经铸造过 NFT", article_id)
                 return self.nft_records[article_id]
 
             # 生成元数据
@@ -184,14 +193,12 @@ class NFTService:
             # 保存记录
             self.nft_records[article_id] = nft_record
 
-            print(f"✅ NFT 铸造成功: Token ID = {token_id}")
-            print(f"   所有者: {owner_address}")
-            print(f"   元数据 URI: {metadata_uri}")
+            logger.info("NFT 铸造成功: Token ID = %s, 所有者: %s", token_id, owner_address)
 
             return nft_record
 
         except Exception as e:
-            print(f"❌ NFT 铸造失败: {e}")
+            logger.error("NFT 铸造失败: %s", e)
             import traceback
             traceback.print_exc()
             return None
@@ -277,7 +284,7 @@ class NFTService:
             是否转移成功
         """
         if article_id not in self.nft_records:
-            print(f"❌ 文章 {article_id} 没有关联的 NFT")
+            logger.warning("文章 %s 没有关联的 NFT", article_id)
             return False
 
         # 在实际实现中，这里应该调用智能合约的 transfer 方法
@@ -286,9 +293,7 @@ class NFTService:
         old_owner = record.owner_address
         record.owner_address = new_owner_address
 
-        print(f"✅ NFT 所有权已转移")
-        print(f"   从: {old_owner}")
-        print(f"   到: {new_owner_address}")
+        logger.info("NFT 所有权已转移: 从 %s 到 %s", old_owner, new_owner_address)
 
         return True
 
@@ -311,7 +316,7 @@ class NFTService:
         metadata_hash = metadata.get_hash()
         ipfs_uri = f"ipfs://{metadata_hash}"
 
-        print(f"📤 元数据已上传到 IPFS: {ipfs_uri}")
+        logger.info("元数据已上传到 IPFS: %s", ipfs_uri)
 
         return ipfs_uri
 
@@ -323,7 +328,7 @@ class NFTService:
             config: 配置字典
         """
         self.config.update(config)
-        print("✅ NFT 服务配置已更新")
+        logger.info("NFT 服务配置已更新")
 
 
 # 全局实例

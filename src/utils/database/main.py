@@ -150,17 +150,18 @@ class DatabaseManager:
         """初始化同步引擎（PostgreSQL）"""
         # 从环境变量读取连接池配置
         from src.setting import settings
-        pool_size = getattr(settings, 'database_pool_size', 50)
-        max_overflow = getattr(settings, 'database_pool_overflow', 100)
+        pool_size = getattr(settings, 'database_pool_size', 20)
+        max_overflow = getattr(settings, 'database_pool_overflow', 30)
         pool_timeout = getattr(settings, 'database_pool_timeout', 60)
+        pool_recycle = getattr(settings, 'database_pool_recycle', 1200)
 
-        logger.info(f"初始化同步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}")
+        logger.info(f"初始化同步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}, recycle={pool_recycle}")
 
         self._sync_engine = create_engine(
             self.database_url,
             poolclass=QueuePool,
             pool_pre_ping=True,
-            pool_recycle=300,
+            pool_recycle=pool_recycle,
             pool_size=pool_size,
             max_overflow=max_overflow,
             pool_timeout=pool_timeout,
@@ -199,16 +200,17 @@ class DatabaseManager:
 
         # 从环境变量读取连接池配置
         from src.setting import settings
-        pool_size = getattr(settings, 'database_pool_size', 50)
-        max_overflow = getattr(settings, 'database_pool_overflow', 100)
+        pool_size = getattr(settings, 'database_pool_size', 20)
+        max_overflow = getattr(settings, 'database_pool_overflow', 30)
         pool_timeout = getattr(settings, 'database_pool_timeout', 60)
+        pool_recycle = getattr(settings, 'database_pool_recycle', 1200)
 
-        logger.info(f"初始化异步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}")
+        logger.info(f"初始化异步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}, recycle={pool_recycle}")
 
         self._async_engine = create_async_engine(
             async_url,
             pool_pre_ping=use_pre_ping,
-            pool_recycle=300,
+            pool_recycle=pool_recycle,
             pool_size=pool_size,
             max_overflow=max_overflow,
             pool_timeout=pool_timeout,
@@ -281,12 +283,6 @@ async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
 
 
 # FastAPI依赖注入
-def get_db():
-    """同步数据库依赖"""
-    with get_session() as session:
-        yield session
-
-
 async def get_async_db():
     """
     异步数据库依赖（已迁移到统一管理器）

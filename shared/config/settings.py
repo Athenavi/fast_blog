@@ -288,6 +288,8 @@ class AppConfig(BaseConfig):
         self.db_pool_overflow = int(db_pool_overflow_env) if db_pool_overflow_env is not None else 30
         db_pool_timeout_env = os.environ.get('DB_POOL_TIMEOUT') or os.getenv('DATABASE_POOL_TIMEOUT')
         self.db_pool_timeout = int(db_pool_timeout_env) if db_pool_timeout_env is not None else 60
+        db_pool_recycle_env = os.environ.get('DB_POOL_RECYCLE') or os.getenv('DATABASE_POOL_RECYCLE')
+        self.db_pool_recycle = int(db_pool_recycle_env) if db_pool_recycle_env is not None else 1200
         self.db_table_prefix = os.environ.get('DB_TABLE_PREFIX') or os.getenv('DB_TABLE_PREFIX', '')
         # 初始化数据库URI（可能为 None，如果配置不完整）
         self.database_url = self._get_database_uri()
@@ -321,27 +323,20 @@ class AppConfig(BaseConfig):
         return self.db_pool_timeout
 
     @property
+    def database_pool_recycle(self):
+        """动态获取连接池回收时间"""
+        return self.db_pool_recycle
+
+    @property
     def pool_config(self):
         """动态获取连接池配置（PostgreSQL）"""
         return {
             "pool_size": int(self.db_pool_size),
             "max_overflow": int(self.db_pool_overflow),
             "pool_timeout": int(self.db_pool_timeout),
-            "pool_recycle": 1200,
+            "pool_recycle": int(self.db_pool_recycle),
             "pool_pre_ping": True,
         }
-
-    # RedisConfig = {
-    #    "host": os.environ.get('REDIS_HOST') or os.getenv('REDIS_HOST', 'localhost'),
-    #    "port": os.environ.get('REDIS_PORT') or os.getenv('REDIS_PORT', 6379),
-    #    "db": os.environ.get('REDIS_DB') or os.getenv('REDIS_DB', 0),
-    #    "password": os.environ.get('REDIS_PASSWORD') or os.getenv('REDIS_PASSWORD') or None,
-    #    "decode_responses": True,
-    #    "socket_connect_timeout": 3,  # 连接超时3秒
-    #    "socket_timeout": 3,  # 读写超时3秒
-    #    "retry_on_timeout": True,  # 超时重试
-    #    "max_connections": 10  # 连接池大小
-    # }
 
 
 #

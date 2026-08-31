@@ -8,7 +8,7 @@ v2 版本采用以下原则：
 4. 合并重复模块功能
 5. 统一领域前缀
 
-内置插件化：非核心功能模块（电商/企业/NFT/广告等）作为内置插件管理，
+内置插件化：非核心功能模块（电商/企业/广告等）作为内置插件管理，
 默认启用，可通过环境变量 DISABLED_MODULES 关闭（逗号分隔模块名或短名），不删除代码。
 """
 import os
@@ -193,7 +193,7 @@ ROUTE_REGISTRY_V2 = [
 OPTIONAL_PLUGIN_MODULES = {
     'src.api.v2.ecommerce',          # 电商（产品/购物车/订单/支付管理/分账）
     'src.api.v2.enterprise',         # 企业套件（许可证/工单/部署脚本/监控告警）
-    'src.api.v2.advanced_features',  # 高级扩展（NFT/WebSocket 等）
+    'src.api.v2.advanced_features',  # 高级扩展（WebSocket/AI推荐等）
     'src.api.v2.marketing',          # 广告管理
     'src.api.v2.accessibility',      # 可访问性（AMP 等）
     'src.api.v2.social',             # 社交（分享统计）

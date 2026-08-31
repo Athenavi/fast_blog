@@ -8,15 +8,18 @@ from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["integration-health"])
 
-INTEGRATIONS = {
-    "ai": {"name": "AI 服务", "type": "external", "needs_config": True, "config_key": "OPENAI_API_KEY"},
-    "meilisearch": {"name": "Meilisearch 搜索", "type": "internal", "needs_config": False},
-    "redis": {"name": "Redis 缓存", "type": "internal", "needs_config": False},
-    "ipfs": {"name": "IPFS 存储", "type": "external", "needs_config": True, "config_key": "IPFS_API_ENDPOINT"},
-    "email": {"name": "邮件服务", "type": "external", "needs_config": True, "config_key": "EMAIL_HOST"},
-    "cdn": {"name": "CDN 分发", "type": "external", "needs_config": True, "config_key": "CDN_PROVIDER"},
-    "oauth": {"name": "OAuth 登录", "type": "external", "needs_config": True, "config_key": "OAUTH_CLIENT_ID"},
-    "nft": {"name": "NFT 集成", "type": "external", "needs_config": True, "config_key": "WEB3_PROVIDER_URL"},
+# 集成配置检查映射（key -> (name, type, check_func)
+# 注意：不保存 env_var 名称，避免泄露环境变量名给攻击者
+# 改为使用 lambda 动态检查，只返回是否已配置的布尔值
+_INTEGRATION_CHECKS = {
+    "ai": ("AI 服务", "external", lambda: bool(__import__('os').environ.get("OPENAI_API_KEY"))),
+    "meilisearch": ("Meilisearch 搜索", "internal", lambda: True),
+    "redis": ("Redis 缓存", "internal", lambda: True),
+    "ipfs": ("IPFS 存储", "external", lambda: bool(__import__('os').environ.get("IPFS_API_ENDPOINT"))),
+    "email": ("邮件服务", "external", lambda: bool(__import__('os').environ.get("EMAIL_HOST"))),
+    "cdn": ("CDN 分发", "external", lambda: bool(__import__('os').environ.get("CDN_PROVIDER"))),
+    "oauth": ("OAuth 登录", "external", lambda: bool(__import__('os').environ.get("OAUTH_CLIENT_ID"))),
+    "nft": ("NFT 集成", "external", lambda: bool(__import__('os').environ.get("WEB3_PROVIDER_URL"))),
 }
 
 
@@ -24,24 +27,19 @@ INTEGRATIONS = {
 @_catch
 async def get_integration_status(current_user=Depends(jwt_required)):
     """获取所有集成的连接状态"""
-    import os
-    
     results = []
-    for key, info in INTEGRATIONS.items():
-        config_key = info.get("config_key", "")
-        is_configured = bool(os.environ.get(config_key)) if config_key else True
+    for key, (name, itype, check_func) in _INTEGRATION_CHECKS.items():
+        is_configured = check_func()
         
         status = "configured" if is_configured else "not_configured"
-        if not info["needs_config"]:
+        if itype == "internal":
             status = "active"
         
         results.append({
             "key": key,
-            "name": info["name"],
-            "type": info["type"],
+            "name": name,
+            "type": itype,
             "status": status,
-            "needs_config": info["needs_config"],
-            "config_key": config_key if info["needs_config"] else None,
         })
     
     return ok(data={"integrations": results, "total": len(results), "configured": sum(1 for r in results if r["status"] != "not_configured")})

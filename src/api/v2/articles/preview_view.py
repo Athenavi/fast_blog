@@ -25,22 +25,49 @@ def _build_html(title, content_body, cover_image, excerpt, updated_at, view_coun
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title_safe} - 预览</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <style>
-  .prose {{ max-width: 65ch; margin: 0 auto; }}
-  .prose h1 {{ font-size: 1.875rem; font-weight: 700; margin-top: 2rem; margin-bottom: 1rem; }}
-  .prose h2 {{ font-size: 1.5rem; font-weight: 600; margin-top: 1.75rem; margin-bottom: 0.75rem; }}
-  .prose h3 {{ font-size: 1.25rem; font-weight: 600; margin-top: 1.5rem; margin-bottom: 0.5rem; }}
-  .prose p {{ margin-bottom: 1rem; line-height: 1.75; }}
-  .prose img {{ max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1.5rem 0; }}
-  .prose blockquote {{ border-left: 4px solid #3b82f6; padding-left: 1rem; color: #6b7280; font-style: italic; margin: 1.5rem 0; }}
-  .prose ul, .prose ol {{ padding-left: 1.5rem; margin-bottom: 1rem; }}
-  .prose li {{ margin-bottom: 0.25rem; }}
-  .prose a {{ color: #2563eb; text-decoration: underline; }}
-  .prose code {{ background: #f3f4f6; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875rem; }}
-  .prose pre {{ background: #1f2937; color: #f3f4f6; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 1rem 0; }}
-  .prose pre code {{ background: none; padding: 0; color: inherit; }}
-</style></head>
+  /* tailwindcss v3.4 minimal subset */
+  *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid}
+  html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
+  .min-h-screen{min-height:100vh}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251/var(--tw-bg-opacity))}
+  .max-w-4xl{max-width:56rem}.mx-auto{margin-left:auto;margin-right:auto}.px-4{padding-left:1rem;padding-right:1rem}.py-8{padding-top:2rem;padding-bottom:2rem}
+  .px-6{padding-left:1.5rem;padding-right:1.5rem}.py-3{padding-top:.75rem;padding-bottom:.75rem}
+  .mb-8{margin-bottom:2rem}.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+  .gap-2{gap:.5rem}.text-lg{font-size:1.125rem;line-height:1.75rem}.text-sm{font-size:.875rem;line-height:1.25rem}
+  .text-xs{font-size:.75rem;line-height:1rem}.font-medium{font-weight:500}.font-bold{font-weight:700}
+  .text-3xl{font-size:1.875rem;line-height:2.25rem}.text-4xl{font-size:2.25rem;line-height:2.5rem}
+  .text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39/var(--tw-text-opacity))}
+  .text-gray-700{--tw-text-opacity:1;color:rgb(55 65 81/var(--tw-text-opacity))}
+  .text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128/var(--tw-text-opacity))}
+  .text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175/var(--tw-text-opacity))}
+  .text-amber-700{--tw-text-opacity:1;color:rgb(180 83 9/var(--tw-text-opacity))}
+  .text-amber-500{--tw-text-opacity:1;color:rgb(217 119 6/var(--tw-text-opacity))}
+  .bg-amber-50{--tw-bg-opacity:1;background-color:rgb(255 251 235/var(--tw-bg-opacity))}
+  .border-amber-200{--tw-border-opacity:1;border-color:rgb(253 230 138/var(--tw-border-opacity))}
+  .rounded-2xl{border-radius:1rem}.border{border-width:1px}
+  .border-gray-200{--tw-border-opacity:1;border-color:rgb(229 231 235/var(--tw-border-opacity))}
+  .border-gray-100{--tw-border-opacity:1;border-color:rgb(243 244 246/var(--tw-border-opacity))}
+  .bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity))}
+  .shadow-sm{box-shadow:0 1px 2px 0 rgb(0 0 0/.05)}.p-8{padding:2rem}.md\\:p-12{padding:3rem}
+  .pb-6{padding-bottom:1.5rem}.mb-4{margin-bottom:1rem}.leading-relaxed{line-height:1.625}
+  .italic{font-style:italic}.text-center{text-align:center}.mt-8{margin-top:2rem}
+  .w-full{width:100%}.h-64{height:16rem}.object-cover{object-fit:cover}.shadow-lg{box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
+  .mb-6{margin-bottom:1.5rem}.gap-3{gap:.75rem}.border-b{border-bottom-width:1px}
+  .hidden{display:none}.max-w-md{max-width:28rem}.justify-center{justify-content:center}.space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}
+  .flex-1{flex:1 1 0%}.px-4{padding-left:1rem;padding-right:1rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
+  .border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219/var(--tw-border-opacity))}
+  .rounded-xl{border-radius:.75rem}.focus\\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 transparent)}
+  .focus\\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246/var(--tw-ring-opacity))}
+  .focus\\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246/var(--tw-border-opacity))}
+  .outline-none{outline:2px solid transparent;outline-offset:2px}
+  .bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity))}
+  .hover\\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216/var(--tw-bg-opacity))}
+  .text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity))}
+  .mt-4{margin-top:1rem}.bg-gray-600{--tw-bg-opacity:1;background-color:rgb(75 85 99/var(--tw-bg-opacity))}
+  .hover\\:bg-gray-700:hover{--tw-bg-opacity:1;background-color:rgb(55 65 81/var(--tw-bg-opacity))}
+  .inline-block{display:inline-block}.text-6xl{font-size:3.75rem;line-height:1}
+  .mx-4{margin-left:1rem;margin-right:1rem}</style></head>
 <body class="bg-gray-50 min-h-screen">
 <div class="max-w-4xl mx-auto px-4 py-8">
   <div class="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-3 mb-8 flex items-center justify-between">
@@ -74,7 +101,35 @@ def _build_password_page(token):
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>预览 - 需要密码</title>
-<script src="https://cdn.tailwindcss.com"></script></head>
+<style>
+  *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid}
+  html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
+  .min-h-screen{min-height:100vh}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251/var(--tw-bg-opacity))}
+  .flex{display:flex}.items-center{align-items:center}.justify-center{justify-content:center}
+  .bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity))}
+  .p-8{padding:2rem}.rounded-2xl{border-radius:1rem}.shadow-lg{box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
+  .max-w-md{max-width:28rem}.w-full{width:100%}.mx-4{margin-left:1rem;margin-right:1rem}
+  .text-xl{font-size:1.25rem;line-height:1.75rem}.font-bold{font-weight:700}
+  .text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39/var(--tw-text-opacity))}
+  .text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128/var(--tw-text-opacity))}
+  .text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175/var(--tw-text-opacity))}
+  .text-xs{font-size:.75rem;line-height:1rem}.text-sm{font-size:.875rem;line-height:1.25rem}
+  .mb-2{margin-bottom:.5rem}.mb-6{margin-bottom:1.5rem}.mt-4{margin-top:1rem}
+  .space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}
+  .flex-1{flex:1 1 0%}.px-4{padding-left:1rem;padding-right:1rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
+  .border{border-width:1px}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219/var(--tw-border-opacity))}
+  .rounded-xl{border-radius:.75rem}.outline-none{outline:2px solid transparent;outline-offset:2px}
+  .focus\\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 transparent)}
+  .focus\\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246/var(--tw-ring-opacity))}
+  .focus\\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246/var(--tw-border-opacity))}
+  .bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity))}
+  .hover\\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216/var(--tw-bg-opacity))}
+  .text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity))}
+  .px-6{padding-left:1.5rem;padding-right:1.5rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
+  .font-medium{font-weight:500}.text-center{text-align:center}
+  .gap-2{gap:.5rem}
+</style></head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen">
 <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
   <h1 class="text-xl font-bold text-gray-900 mb-2">此预览受密码保护</h1>
@@ -93,7 +148,26 @@ def _build_password_page(token):
 _INVALID_HTML = """<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>预览 - 无效链接</title>
-<script src="https://cdn.tailwindcss.com"></script></head>
+<style>
+  *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid}
+  html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
+  .min-h-screen{min-height:100vh}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251/var(--tw-bg-opacity))}
+  .flex{display:flex}.items-center{align-items:center}.justify-center{justify-content:center}
+  .bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity))}
+  .p-8{padding:2rem}.rounded-2xl{border-radius:1rem}.shadow-lg{box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
+  .max-w-md{max-width:28rem}.w-full{width:100%}.mx-4{margin-left:1rem;margin-right:1rem}
+  .text-center{text-align:center}.text-6xl{font-size:3.75rem;line-height:1}.mb-4{margin-bottom:1rem}.mb-6{margin-bottom:1.5rem}
+  .text-xl{font-size:1.25rem;line-height:1.75rem}.font-bold{font-weight:700}
+  .text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39/var(--tw-text-opacity))}
+  .text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128/var(--tw-text-opacity))}
+  .text-sm{font-size:.875rem;line-height:1.25rem}.inline-block{display:inline-block}
+  .px-6{padding-left:1.5rem;padding-right:1.5rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
+  .bg-gray-600{--tw-bg-opacity:1;background-color:rgb(75 85 99/var(--tw-bg-opacity))}
+  .hover\\:bg-gray-700:hover{--tw-bg-opacity:1;background-color:rgb(55 65 81/var(--tw-bg-opacity))}
+  .text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity))}
+  .rounded-xl{border-radius:.75rem}.font-medium{font-weight:500}
+</style></head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen">
 <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4 text-center">
   <div class="text-6xl mb-4">🔗</div>

@@ -1,11 +1,15 @@
 """
 暴力破解防护中间件
-基于 IP 和用户名的登录尝试频率限制
+基于 IP 和用户名的登录尝试频率限制，使用 Redis 缓存实现多 worker 共享。
+
+架构说明：
+- 使用 extensions 中的 cache 抽象（Redis -> 内存 SimpleCache 自动降级）
+- 多进程/多 worker 共享 Redis 时，限流状态全局一致
+- 降级为 SimpleCache 时，单 worker 内安全，但多 worker 间状态独立
 """
 
-import time
-from collections import defaultdict
-from typing import Dict, Tuple
+import json
+from typing import Optional
 
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -21,6 +25,8 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
     - 每 IP 每 15 分钟最多 10 次登录尝试
     - 每用户名每 15 分钟最多 5 次登录尝试
     - 超过限制后返回 429 Too Many Requests
+
+    使用缓存（Redis 优先）实现跨 worker 共享状态。
     """
 
     def __init__(self, app, window_minutes: int = 15, max_attempts_per_ip: int = 10, max_attempts_per_user: int = 5):
@@ -28,26 +34,74 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         self.window_seconds = window_minutes * 60
         self.max_per_ip = max_attempts_per_ip
         self.max_per_user = max_attempts_per_user
-        # ip -> [(timestamp, username), ...]
-        self.ip_attempts: Dict[str, list] = defaultdict(list)
-        # username -> [timestamp, ...]
-        self.user_attempts: Dict[str, list] = defaultdict(list)
+        # 惰性加载 cache，避免初始化时循环依赖
+        self._cache = None
+
+    @property
+    def cache(self):
+        if self._cache is None:
+            from src.extensions import cache as ext_cache
+            self._cache = ext_cache
+        return self._cache
+
+    def _cache_key_ip(self, ip: str) -> str:
+        return f"bf:ip:{ip}"
+
+    def _cache_key_user(self, username: str) -> str:
+        return f"bf:user:{username}"
+
+    def _get_cache_ttl(self) -> int:
+        """缓存过期时间比窗口略长，确保窗口内数据完整"""
+        return self.window_seconds + 60
+
+    def _increment_and_check(self, key: str, max_attempts: int) -> bool:
+        """
+        原子递增尝试次数并检查是否超过限制。
+        返回 True 表示超过限制。
+
+        优先使用 Redis INCR 原子操作，降级为 SimpleCache 时使用 get+set。
+        """
+        c = self.cache
+        # 检测是否使用 Redis 包装器
+        if hasattr(c, '_client') and hasattr(c._client, 'incr'):
+            try:
+                count = c._client.incr(key)
+                if count == 1:
+                    c._client.expire(key, self._get_cache_ttl())
+                return int(count) > max_attempts
+            except Exception as e:
+                logger.error(f"Redis 递增失败: {e}")
+                return False
+
+        # SimpleCache 降级模式
+        try:
+            val = c.get(key)
+            count = 0
+            if val is not None:
+                if isinstance(val, bytes):
+                    count = int(val.decode())
+                else:
+                    count = int(val)
+            count += 1
+            c.set(key, str(count), ex=self._get_cache_ttl())
+            return count > max_attempts
+        except Exception as e:
+            logger.error(f"Cache 递增失败: {e}")
+            return False
 
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
 
-        # 标准化路径：去尾斜杠，仅保留 /api/v2/auth/login 和 /api/v2/auth/register
+        # 标准化路径：去尾斜杠，仅处理 /api/v2/auth/login 和 /api/v2/auth/register
         normalized = path.rstrip('/')
         if not (normalized.endswith("/auth/login") or normalized.endswith("/auth/register") or "/auth/login" in path or "/auth/register" in path):
             return await call_next(request)
 
-        # 优先从 X-Forwarded-For 获取真实 IP（反向代理场景）
-        # 但需验证 IP 格式以防止伪造
+        # 获取客户端真实 IP（支持反向代理）
         import re as _re
         forwarded = request.headers.get("X-Forwarded-For")
         if forwarded:
             candidate = forwarded.split(",")[0].strip()
-            # Only trust if it looks like a valid IPv4 address
             if _re.match(r'^\d{1,3}(\.\d{1,3}){3}$', candidate) and all(0 <= int(octet) <= 255 for octet in candidate.split('.')):
                 client_ip = candidate
             else:
@@ -56,16 +110,10 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
             real_ip = request.headers.get("X-Real-IP")
             client_ip = real_ip if real_ip else (request.client.host if request.client else "unknown")
 
-        # 清理过期记录
-        now = time.time()
-        self.ip_attempts[client_ip] = [
-            (t, u) for t, u in self.ip_attempts[client_ip]
-            if now - t < self.window_seconds
-        ]
-
         # 检查 IP 限制
-        if len(self.ip_attempts[client_ip]) >= self.max_per_ip:
-            logger.warning(f"Brute force detected: IP {client_ip} exceeded login attempts")
+        ip_key = self._cache_key_ip(client_ip)
+        if self._increment_and_check(ip_key, self.max_per_ip):
+            logger.warning(f"IP {client_ip} 登录尝试超过限制")
             raise HTTPException(
                 status_code=429,
                 detail=f"登录尝试过于频繁，请在 {self.window_seconds // 60} 分钟后再试"
@@ -73,36 +121,56 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
 
         response = await call_next(request)
 
-        # 记录登录尝试（只记录失败的）
+        # 记录失败的登录尝试（同时记录到用户级别）
         if response.status_code in (401, 403):
-            self.ip_attempts[client_ip].append((now, ""))
-            # 从请求体提取用户名（如适用）
+            # 从请求体提取用户名
             try:
                 body = await request.json()
                 username = body.get("username", "") or body.get("email", "")
                 if username:
-                    self.record_failed_attempt(client_ip, username)
+                    user_key = self._cache_key_user(username)
+                    if self._increment_and_check(user_key, self.max_per_user):
+                        logger.warning(f"用户名 {username} 登录尝试超过限制")
             except Exception:
                 pass
 
         return response
 
-    def record_failed_attempt(self, ip: str, username: str = ""):
-        """手动记录失败的登录尝试"""
-        now = time.time()
-        self.ip_attempts[ip].append((now, username))
-        if username:
-            self.user_attempts[username] = [
-                t for t in self.user_attempts[username]
-                if now - t < self.window_seconds
-            ]
-            self.user_attempts[username].append(now)
-
     def is_ip_blocked(self, ip: str) -> bool:
-        """检查 IP 是否被封禁"""
-        now = time.time()
-        self.ip_attempts[ip] = [
-            (t, u) for t, u in self.ip_attempts[ip]
-            if now - t < self.window_seconds
-        ]
-        return len(self.ip_attempts[ip]) >= self.max_per_ip
+        """检查 IP 是否被封禁（供外部调用）"""
+        key = self._cache_key_ip(ip)
+        try:
+            val = self.cache.get(key)
+            if val is not None:
+                if isinstance(val, bytes):
+                    count = int(val.decode())
+                else:
+                    count = int(val)
+                return count >= self.max_per_ip
+        except Exception:
+            pass
+        return False
+
+    def reset_ip(self, ip: str) -> None:
+        """重置 IP 的尝试计数（登录成功后调用）"""
+        key = self._cache_key_ip(ip)
+        try:
+            c = self.cache
+            if hasattr(c, '_client') and hasattr(c._client, 'delete'):
+                c._client.delete(key)
+            else:
+                c.delete(key)
+        except Exception as e:
+            logger.error(f"重置 IP 尝试计数失败: {e}")
+
+    def reset_user(self, username: str) -> None:
+        """重置用户名的尝试计数（登录成功后调用）"""
+        key = self._cache_key_user(username)
+        try:
+            c = self.cache
+            if hasattr(c, '_client') and hasattr(c._client, 'delete'):
+                c._client.delete(key)
+            else:
+                c.delete(key)
+        except Exception as e:
+            logger.error(f"重置用户尝试计数失败: {e}")

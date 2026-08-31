@@ -483,8 +483,27 @@ async def forgot_password(data: dict, request: Request, db: AsyncSession = Depen
         return ok(msg="如果该邮箱已注册，重置链接已发送")
     # 生成重置令牌（15分钟有效期）
     reset_token = create_jwt_token(subject=str(user.id), token_type="reset", expires_delta=timedelta(minutes=15))
-    # TODO: 发送重置邮件（包含 reset_token）
-    logger.info(f"[Password Reset] 重置链接已生成: user_id={user.id}")
+    # 发送重置邮件
+    try:
+        from shared.services.notifications.email_service import email_service
+        site_url = getattr(settings, 'domain', 'http://localhost:9421').rstrip('/')
+        reset_link = f"{site_url}/password/reset?token={reset_token}"
+        html_content = f"""
+        <h2>密码重置</h2>
+        <p>您好，</p>
+        <p>请点击以下链接重置您的密码（15分钟内有效）：</p>
+        <p><a href="{reset_link}">{reset_link}</a></p>
+        <p>如果这不是您本人操作，请忽略此邮件。</p>
+        """
+        email_service.send_email(
+            email,
+            subject="[FastBlog] 密码重置",
+            html_content=html_content,
+            text_content=f"请点击以下链接重置密码：{reset_link}"
+        )
+        logger.info(f"[Password Reset] 重置邮件已发送: user_id={user.id}, email={email}")
+    except Exception as e:
+        logger.error(f"[Password Reset] 发送重置邮件失败: user_id={user.id}, error={e}")
     return ok(msg="如果该邮箱已注册，重置链接已发送")
 
 
