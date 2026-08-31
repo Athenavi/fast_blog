@@ -27,7 +27,7 @@ psycopg2-binary==2.9.12
 # Authentication & Security
 pyjwt==2.13.0
 httpx-oauth==0.17.0
-fastapi-users[sqlalchemy]
+fastapi-users[sqlalchemy]==12.2.2
 argon2-cffi==25.1.0
 pyotp==2.9.0
 qrcode[pil]
@@ -80,11 +80,5 @@ aiofiles==25.1.0
 # HTTP & Async
 aiohttp==3.14.0
 aioboto3==15.5.0
-
-# Type checking
-mypy>=1.0
-types-requests
-types-redis
-types-PyYAML
 
 cryptography>=42.0.0

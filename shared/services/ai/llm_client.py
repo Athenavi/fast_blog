@@ -26,22 +26,29 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """通用 LLM 客户端，兼容 OpenAI API 格式"""
+    """通用 LLM 客户端，兼容 OpenAI API 格式
+
+    API key 不在 __init__ 中缓存，而是每次请求时从环境变量读取，
+    避免 api_key 在进程内存中持续暴露（对 core dump / 调试器可见）。
+    """
 
     def __init__(self):
-        self.api_key = os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
         self.api_base = os.environ.get("LLM_API_BASE", os.environ.get("OPENAI_API_BASE", "https://api.openai.com/v1"))
         self.model = os.environ.get("LLM_MODEL", "gpt-3.5-turbo")
         self.max_tokens = int(os.environ.get("LLM_MAX_TOKENS", "2000"))
         self.temperature = float(os.environ.get("LLM_TEMPERATURE", "0.7"))
         self._available: Optional[bool] = None
 
+    def _get_api_key(self) -> str:
+        """每次调用时从环境变量读取 API key，避免内存中持续残留"""
+        return os.environ.get("LLM_API_KEY", os.environ.get("OPENAI_API_KEY", ""))
+
     @property
     def is_available(self) -> bool:
         """检查 LLM 服务是否可用"""
         if self._available is not None:
             return self._available
-        self._available = bool(self.api_key and httpx)
+        self._available = bool(self._get_api_key() and httpx)
         return self._available
 
     async def chat_completion(
@@ -83,12 +90,13 @@ class LLMClient:
             if response_format:
                 payload["response_format"] = {"type": response_format}
 
+            api_key = self._get_api_key()
             async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
                     f"{self.api_base}/chat/completions",
                     json=payload,
                     headers={
-                        "Authorization": f"Bearer {self.api_key}",
+                        "Authorization": f"Bearer {api_key}",
                         "Content-Type": "application/json",
                     },
                 )

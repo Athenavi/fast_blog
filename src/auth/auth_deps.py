@@ -63,19 +63,15 @@ def create_access_token(
 # ---------- 提取与验证 Token ----------
 async def _get_token_from_request(request: Request) -> Optional[str]:
     """
-    从 Authorization Header、Cookie 或查询参数中提取 JWT token
+    从 Authorization Header 或 Cookie 中提取 JWT token
+    注意：不再从 URL 查询参数提取 token，避免在浏览器历史/日志/Referer 中泄露
     """
     # 1. 优先从 Bearer Header 获取
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         return auth_header[len("Bearer "):]
 
-    # 2. 从查询参数 token 获取（用于 iframe/img 等无法携带 header/cookie 的场景）
-    token_param = request.query_params.get("token")
-    if token_param:
-        return token_param
-
-    # 3. 从 Cookie 获取（兼容页面路由）
+    # 2. 从 Cookie 获取（兼容页面路由）
     return request.cookies.get("access_token") or request.cookies.get("access_token_cookie")
 
 
@@ -105,11 +101,11 @@ async def _authenticate_user(
     try:
         payload = jwt.decode(token, jwt_secret, algorithms=[jwt_algorithm],
                             options={"verify_exp": True, "require": ["exp", "iat"]})
-    except InvalidTokenError as e:
+    except InvalidTokenError:
         if required:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token: {str(e)}",
+                detail="Invalid or expired token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return None

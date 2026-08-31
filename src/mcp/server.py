@@ -66,6 +66,7 @@ class MCPServer:
             )).scalars().all()
             return [a.to_dict() for a in articles]
 
+    @require_superuser
     async def _get_categories_resource(self, params: Dict) -> List[Dict]:
         async with get_async_session_context() as db:
             cats = (await db.execute(
@@ -201,7 +202,14 @@ class MCPServer:
             return self._error_response(request_id, f"Prompt not found: {name}")
         try:
             args = params.get("arguments", {})
-            text = template.format(**args)
+            # 使用 string.Template 替代 str.format 防止属性访问注入
+            import string as _string
+            safe_tmpl = _string.Template(template)
+            # 只允许预定义的模板变量，过滤多余参数
+            safe_args = {k: v for k, v in args.items()
+                         if isinstance(k, str) and isinstance(v, (str, int, float, bool, type(None)))}
+            # 只替换模板中实际出现的变量，忽略未知变量
+            text = safe_tmpl.safe_substitute(**safe_args)
             return {"jsonrpc": "2.0", "id": request_id, "result": {"description": name, "messages": [{"role": "user", "content": text}]}}
         except KeyError as e:
             return self._error_response(request_id, f"Missing prompt argument: {e}")

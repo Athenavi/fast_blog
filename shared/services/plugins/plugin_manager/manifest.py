@@ -582,6 +582,25 @@ class DependencyResolver:
         return cycles
 
     @staticmethod
+    def _validate_package_name(name: str) -> bool:
+        """验证包名是否合法（只允许 PyPI 标准包名：字母、数字、-、_、.）"""
+        import re
+        return bool(re.match(r'^[a-zA-Z][a-zA-Z0-9._-]*$', name))
+
+    @staticmethod
+    def _validate_version_spec(spec: str) -> bool:
+        """验证版本号说明是否合法（只允许标准 PEP 440 版本和运算符）"""
+        import re
+        if not spec:
+            return True
+        # 支持 ==, >=, <=, >, <, ~=, != 后跟合法版本号
+        return bool(re.match(
+            r'^(==|>=|<=|>|<|~=|!=)?\s*[\d]+(\.[\d]+)*'
+            r'((a|b|rc|dev|post)\d*)?(\.\d+)*$',
+            spec.strip()
+        ))
+
+    @staticmethod
     def install_dependencies(manifest: PluginManifest) -> tuple[bool, List[str]]:
         """
         安装插件依赖
@@ -594,6 +613,7 @@ class DependencyResolver:
         """
         import subprocess
         import sys
+        import shlex
 
         messages = []
         success = True
@@ -603,30 +623,46 @@ class DependencyResolver:
                 messages.append(f"跳过可选依赖: {dep.name}")
                 continue
 
-            # 构建 pip 安装命令
-            package_spec = dep.name
+            # 校验包名合法性
+            if not DependencyResolver._validate_package_name(dep.name):
+                messages.append(f"✗ 非法包名: {dep.name}")
+                success = False
+                continue
+
+            # 校验版本号合法性
+            if dep.version and not DependencyResolver._validate_version_spec(dep.version):
+                messages.append(f"✗ 非法版本号: {dep.version}")
+                success = False
+                continue
+
+            # 构建 pip 安装命令（使用列表方式避免 shell 注入）
+            pip_args = [sys.executable, "-m", "pip", "install"]
             if dep.version:
-                package_spec += dep.version
+                # 验证后的 dep.version 格式为 "==1.0.0" 或 ">=1.0.0" 等，
+                # pip 需要 "package==1.0.0" 格式（无空格）
+                pip_args.append(f"{dep.name}{dep.version.strip()}")
+            else:
+                pip_args.append(dep.name)
 
             try:
                 result = subprocess.run(
-                    [sys.executable, "-m", "pip", "install", package_spec],
+                    pip_args,
                     capture_output=True,
                     text=True,
                     timeout=300  # 5分钟超时
                 )
 
                 if result.returncode == 0:
-                    messages.append(f"✓ 安装成功: {package_spec}")
+                    messages.append(f"✓ 安装成功: {dep.name}{dep.version or ''}")
                 else:
-                    messages.append(f"✗ 安装失败: {package_spec}")
+                    messages.append(f"✗ 安装失败: {dep.name}{dep.version or ''}")
                     messages.append(f"  错误: {result.stderr[:200]}")
                     success = False
             except subprocess.TimeoutExpired:
-                messages.append(f"✗ 安装超时: {package_spec}")
+                messages.append(f"✗ 安装超时: {dep.name}{dep.version or ''}")
                 success = False
             except Exception as e:
-                messages.append(f"✗ 安装异常: {package_spec} - {str(e)}")
+                messages.append(f"✗ 安装异常: {dep.name}{dep.version or ''} - {str(e)}")
                 success = False
 
         return success, messages

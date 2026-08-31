@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from shared.logging import default_logger as logger
 from shared.models.enterprise.deployment_log import DeploymentLog
 from shared.models.enterprise.deployment_script import DeploymentScript
 from shared.models.enterprise.enterprise_license import EnterpriseLicense
@@ -16,7 +17,6 @@ from shared.models.enterprise.support_ticket import SupportTicket
 from shared.models.enterprise.support_ticket_reply import SupportTicketReply
 from shared.models.monitoring.monitoring_alert import MonitoringAlert
 from shared.models.monitoring.monitoring_metric import MonitoringMetric
-from shared.logging import default_logger as logger
 
 
 class EnterpriseService:
@@ -309,11 +309,24 @@ class EnterpriseService:
         logger.info(f"Deployment script created: {name} (v{version})")
         return script
 
+    @staticmethod
+    def _validate_script_content(content: str) -> None:
+        """校验脚本内容，禁止危险命令"""
+        _FORBIDDEN_PATTERNS = [
+            'rm -rf /', 'rm -rf /*', 'mkfs.', 'dd if=', '> /dev/sd',
+            ':(){ :|:& };:',  # fork bomb
+            'chmod -R 000 /', 'chown -R 0:0 /',
+        ]
+        content_lower = content.lower()
+        for pattern in _FORBIDDEN_PATTERNS:
+            if pattern in content_lower:
+                raise ValueError(f"脚本包含危险命令，已拒绝执行: {pattern}")
+
     async def execute_deployment_script(
             self,
             db: AsyncSession,
             script_id: int,
-            user_id: Optional[int] = None
+            user_id: int  # 改为必选参数，必须提供执行者
     ) -> DeploymentLog:
         """
         执行部署脚本
@@ -325,7 +338,35 @@ class EnterpriseService:
 
         Returns:
             部署日志
+
+        Raises:
+            PermissionError: 调用者没有执行权限
+            ValueError: 脚本不存在或已被禁用 或 包含危险命令
         """
+        # 检查脚本是否存在且有效
+        stmt = select(DeploymentScript).where(DeploymentScript.id == script_id)
+        result = await db.execute(stmt)
+        script = result.scalar_one_or_none()
+
+        if not script:
+            raise ValueError(f"部署脚本不存在: script_id={script_id}")
+
+        if not getattr(script, 'is_active', True):
+            raise ValueError(f"部署脚本已被禁用: {script.name}")
+
+        # 权限检查：只有脚本创建者或管理员才能执行
+        if script.created_by is not None and script.created_by != user_id:
+            # 检查用户是否为管理员
+            from shared.models.user import User
+            user_stmt = select(User).where(User.id == user_id)
+            user_result = await db.execute(user_stmt)
+            caller = user_result.scalar_one_or_none()
+            if not caller or not getattr(caller, 'is_superuser', False):
+                raise PermissionError(f"用户 {user_id} 无权执行脚本 {script.name}")
+
+        # 校验脚本内容，防止命令注入
+        self._validate_script_content(script.content)
+
         # 创建日志记录
         log = DeploymentLog(
             script_id=script_id,
@@ -338,15 +379,30 @@ class EnterpriseService:
         await db.commit()
         await db.refresh(log)
 
-        # 执行脚本（简化版本，实际生产环境需要更复杂的异步执行逻辑）
+        # 执行脚本 — 以临时文件方式运行，避免 shell 注入
         try:
             import subprocess
-            result = subprocess.run(
-                ['bash', '-c', script.content],
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
+            import tempfile
+            import os
+
+            # 用临时文件代替 shell -c，防止注入
+            with tempfile.NamedTemporaryFile(
+                mode='w', suffix='.sh', prefix='deploy_',
+                delete=False
+            ) as f:
+                f.write(script.content)
+                script_path = f.name
+
+            try:
+                os.chmod(script_path, 0o500)  # 只允许所有者执行
+                result = subprocess.run(
+                    [script_path],
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+            finally:
+                os.unlink(script_path)  # 执行后立即删除
 
             log.output = result.stdout
             if result.returncode != 0:

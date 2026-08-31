@@ -8,9 +8,11 @@
 - qrlogin_utils: 二维码登录相关功能
 """
 from src.utils.security.safe import validate_password_strength
-from .password_utils import *
-from .qrlogin_utils import *
-from .user_entities import *
+
+# 显式导入，替代通配符导入
+from .password_utils import verify_password, update_password, hash_password, validate_password
+from .qrlogin_utils import gen_qr_token, qr_login, phone_scan_back, check_qr_login_back
+from .user_entities import auth_by_uid, check_user_conflict, db_save_bio, change_username, bind_email, get_avatar
 
 __all__ = [
     # 从 user_entities 导入的函数

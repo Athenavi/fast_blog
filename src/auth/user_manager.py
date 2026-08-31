@@ -80,11 +80,17 @@ class UserManager:
                 setattr(user, field, value)
         return await self.user_db.update(user)
 
+    # 模块级缓存的 dummy 哈希，用于恒定时间验证
+    _DUMMY_HASH: Optional[str] = None
+
     async def authenticate(self, email: str, password: str) -> Optional[UserModel]:
         user = await self.get_by_email(email)
         if not user or not user.is_active:
             # 恒定时间响应，防止用户枚举
-            _ = verify_password(password, "$2b$12$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+            if UserManager._DUMMY_HASH is None:
+                import secrets
+                UserManager._DUMMY_HASH = hash_password(secrets.token_hex(16))
+            _ = verify_password(password, UserManager._DUMMY_HASH)
             return None
         if not verify_password(password, user.password):
             return None

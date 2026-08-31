@@ -373,7 +373,7 @@ async def get_article_comments(
         root_query = root_query.offset(offset).limit(per_page)
         root_comments = (await db.execute(root_query)).scalars().all()
 
-        # 3. 递归获取所有后代评论
+        # 3. 一次性查询所有后代评论（避免 N+1）
         all_comment_ids = set(c.id for c in root_comments)
         parent_ids = [c.id for c in root_comments]
         all_comments = list(root_comments)
@@ -387,6 +387,7 @@ async def get_article_comments(
                 break
             all_comments.extend(children)
             all_comment_ids.update(c.id for c in children)
+            # 下一层继续批量查询
             parent_ids = [c.id for c in children]
 
         # 4. 获取用户信息

@@ -64,8 +64,13 @@ class I18nService:
 
         if variables and isinstance(translation, str):
             try:
-                translation = translation.format(**variables)
-            except (KeyError, IndexError):
+                import string as _string
+                # 使用 string.Template 替代 str.format 防止属性访问注入
+                safe_tmpl = _string.Template(translation)
+                safe_args = {k: str(v) for k, v in variables.items()
+                             if isinstance(k, str) and isinstance(v, (str, int, float, bool, type(None)))}
+                translation = safe_tmpl.safe_substitute(**safe_args)
+            except Exception:
                 pass
 
         return translation
