@@ -1,4 +1,4 @@
-"""
+﻿"""
 多语言翻译管理服务
 提供翻译编辑、批量翻译、进度跟踪等功能
 """
@@ -57,7 +57,7 @@ class TranslationManager:
                 with open(translation_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
-                print(f"加载翻译文件失败: {e}")
+                logger.error("加载翻译文件失败: %s", e)
         
         return {}
     
@@ -87,7 +87,7 @@ class TranslationManager:
             
             return True
         except Exception as e:
-            print(f"保存翻译失败: {e}")
+            logger.error("保存翻译失败: %s", e)
             return False
     
     def batch_translate(

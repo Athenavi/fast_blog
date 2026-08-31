@@ -15,6 +15,7 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from src.unified_logger import default_logger as logger
+from src.setting import settings
 
 
 class UnifiedDatabaseManager:
@@ -47,7 +48,6 @@ class UnifiedDatabaseManager:
     @property
     def database_url(self) -> str:
         """获取数据库URL"""
-        from src.setting import settings
         return settings.database_url
 
     def _get_pool_config(self) -> dict:
@@ -59,8 +59,6 @@ class UnifiedDatabaseManager:
         - 设置合理的超时时间避免长时间阻塞
         - 禁用 pre-ping 避免 Proactor 事件循环问题
         """
-        from src.setting import settings
-
         if sys.platform == 'win32':
             # Windows: 优化配置以平衡性能和稳定性
             # 参考最佳实践：pool_size=5-10, timeout=5-10s
@@ -145,8 +143,7 @@ class UnifiedDatabaseManager:
                 'pool_size': pool_config['pool_size'],
                 'max_overflow': pool_config['max_overflow'],
                 'pool_timeout': pool_config['pool_timeout'],
-                'echo': getattr(__import__('src.setting', fromlist=['settings']).settings,
-                                'database_echo', False),
+                'echo': getattr(settings, 'database_echo', False),
             }
 
             # Windows + asyncpg: 添加额外的连接参数

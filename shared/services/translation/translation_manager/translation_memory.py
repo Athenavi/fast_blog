@@ -1,4 +1,4 @@
-"""
+﻿"""
 翻译记忆系统服务
 存储和管理原文-译文对,提供相似度匹配和自动建议
 类似WordPress WPML Translation Memory
@@ -42,7 +42,7 @@ class TranslationMemoryService:
             with open(self.memory_file, 'w', encoding='utf-8') as f:
                 json.dump(self.memory, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Failed to save translation memory: {e}")
+            logger.error("Failed to save translation memory: %s", e)
     
     def add_translation(self, source_text: str, target_text: str, 
                        source_lang: str, target_lang: str,
@@ -186,7 +186,7 @@ class TranslationMemoryService:
             self._save_memory()
             return True
         except Exception as e:
-            print(f"Failed to import translation memory: {e}")
+            logger.error("Failed to import translation memory: %s", e)
             return False
     
     def clear_memory(self, language_pair: Optional[str] = None):

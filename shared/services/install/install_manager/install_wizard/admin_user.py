@@ -1,9 +1,9 @@
 """
 安装向导 — 管理员创建模块
 """
-from pathlib import Path
-from typing import Dict, Any, Optional
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, Any
 
 from shared.logging import default_logger as logger
 
@@ -19,10 +19,11 @@ async def create_admin_user(project_root: Path, username: str, email: str, passw
         from src.utils.database.main import get_async_session_context
         from shared.models.user import User as UserModel
         from src.utils.security.password_validator import hash_password
+        from sqlalchemy import select
 
         async with get_async_session_context() as db:
             existing = await db.execute(
-                __import__("sqlalchemy").select(UserModel).where(UserModel.username == username)
+                select(UserModel).where(UserModel.username == username)
             )
             if existing.scalar_one_or_none():
                 return {"success": False, "message": "用户名已存在"}
@@ -51,9 +52,10 @@ async def seed_rbac_if_empty() -> Dict[str, Any]:
         from src.utils.database.main import get_async_session_context
         from shared.models.rbac import Role
         from scripts.seed_rbac import seed_capabilities, seed_roles
+        from sqlalchemy import select
 
         async with get_async_session_context() as db:
-            existing = await db.execute(__import__("sqlalchemy").select(Role).limit(1))
+            existing = await db.execute(select(Role).limit(1))
             if existing.scalar_one_or_none():
                 return {"success": True, "message": "RBAC 数据已存在，跳过"}
 

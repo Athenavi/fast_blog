@@ -1,4 +1,4 @@
-"""
+﻿"""
 重定向管理器 (Redirect Manager)
 管理 URL 重定向规则，支持 301/302 重定向
 """
@@ -40,7 +40,7 @@ class RedirectManager:
                 with open(self.redirects_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
-                print(f"加载重定向规则失败: {e}")
+                logger.error("加载重定向规则失败: %s", e)
         
         return []
     
@@ -50,7 +50,7 @@ class RedirectManager:
             with open(self.redirects_file, 'w', encoding='utf-8') as f:
                 json.dump(self.redirects, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"保存重定向规则失败: {e}")
+            logger.error("保存重定向规则失败: %s", e)
     
     def add_redirect(
         self,

@@ -1,4 +1,4 @@
-"""
+﻿"""
 增量备份服务
 支持差异备份和增量备份，优化存储空间
 """
@@ -6,10 +6,13 @@
 import asyncio
 import hashlib
 import json
+import logging
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class IncrementalBackupService:
@@ -30,7 +33,7 @@ class IncrementalBackupService:
                 with open(self.metadata_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
             except Exception as e:
-                print(f"[IncrementalBackup] Failed to load metadata: {e}")
+                logger.error("[IncrementalBackup] Failed to load metadata: %s", e)
                 return {}
         return {}
 
@@ -40,7 +43,7 @@ class IncrementalBackupService:
             with open(self.metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(self.metadata, f, indent=2, default=str)
         except Exception as e:
-            print(f"[IncrementalBackup] Failed to save metadata: {e}")
+            logger.error("[IncrementalBackup] Failed to save metadata: %s", e)
 
     async def create_incremental_backup(
             self,
@@ -50,12 +53,12 @@ class IncrementalBackupService:
     ) -> Dict[str, Any]:
         """
         创建增量备份
-        
+
         Args:
             db_config: 数据库配置
             base_backup_id: 基础备份ID（None表示查找最新完整备份）
             tables: 要备份的表列表
-            
+
         Returns:
             备份结果
         """
@@ -141,7 +144,7 @@ class IncrementalBackupService:
             }
 
         except Exception as e:
-            print(f"[IncrementalBackup] Error creating incremental backup: {e}")
+            logger.exception("[IncrementalBackup] Error creating incremental backup: %s", e)
             import traceback
             traceback.print_exc()
             return {
@@ -157,12 +160,12 @@ class IncrementalBackupService:
     ) -> Dict[str, Any]:
         """
         创建差异备份（基于最新完整备份的所有变化）
-        
+
         Args:
             db_config: 数据库配置
             base_backup_id: 基础备份ID
             tables: 要备份的表列表
-            
+
         Returns:
             备份结果
         """
@@ -195,7 +198,7 @@ class IncrementalBackupService:
             return result
 
         except Exception as e:
-            print(f"[IncrementalBackup] Error creating differential backup: {e}")
+            logger.error("[IncrementalBackup] Error creating differential backup: %s", e)
             return {
                 'success': False,
                 'error': str(e)
@@ -208,11 +211,11 @@ class IncrementalBackupService:
     ) -> Dict[str, Any]:
         """
         恢复增量备份链
-        
+
         Args:
             backup_chain: 备份ID链（从完整备份到目标增量备份）
             db_config: 数据库配置
-            
+
         Returns:
             恢复结果
         """
@@ -266,7 +269,7 @@ class IncrementalBackupService:
             }
 
         except Exception as e:
-            print(f"[IncrementalBackup] Error restoring backup chain: {e}")
+            logger.error("[IncrementalBackup] Error restoring backup chain: %s", e)
             return {
                 'success': False,
                 'error': str(e)
@@ -280,12 +283,12 @@ class IncrementalBackupService:
     ) -> List[str]:
         """
         检测自上次备份以来变化的表
-        
+
         Args:
             db_config: 数据库配置
             previous_checksums: 之前的表校验和
             tables: 要检查的表列表
-            
+
         Returns:
             变化的表列表
         """
@@ -332,28 +335,28 @@ class IncrementalBackupService:
 
         except ImportError:
             # 如果没有asyncpg，返回所有表（保守策略）
-            print("[IncrementalBackup] asyncpg not available, assuming all tables changed")
+            logger.warning("[IncrementalBackup] asyncpg not available, assuming all tables changed")
             return tables or []
         except Exception as e:
-            print(f"[IncrementalBackup] Error detecting changed tables: {e}")
+            logger.error("[IncrementalBackup] Error detecting changed tables: %s", e)
             # 出错时返回所有表以确保数据安全
             return tables or []
 
     async def _calculate_table_checksum(self, conn, table_name: str) -> str:
         """
         计算表的校验和
-        
+
         Args:
             conn: 数据库连接
             table_name: 表名
-            
+
         Returns:
             校验和字符串
         """
         try:
             # 获取行数和最后修改时间
             row = await conn.fetchval(f"""
-                SELECT COUNT(*) as count, 
+                SELECT COUNT(*) as count,
                        MAX(updated_at) as last_update
                 FROM "{table_name}"
             """)
@@ -398,7 +401,7 @@ class IncrementalBackupService:
                 await conn.close()
 
         except Exception as e:
-            print(f"[IncrementalBackup] Error calculating checksums: {e}")
+            logger.error("[IncrementalBackup] Error calculating checksums: %s", e)
             return {}
 
     async def _perform_incremental_dump(
@@ -409,12 +412,12 @@ class IncrementalBackupService:
     ) -> Dict[str, Any]:
         """
         执行增量转储
-        
+
         Args:
             db_config: 数据库配置
             backup_path: 备份文件路径
             tables: 要备份的表列表
-            
+
         Returns:
             转储结果
         """
@@ -469,7 +472,7 @@ class IncrementalBackupService:
                 'error': 'pg_dump not found. Please install PostgreSQL client tools.'
             }
         except Exception as e:
-            print(f"[IncrementalBackup] Error performing dump: {e}")
+            logger.error("[IncrementalBackup] Error performing dump: %s", e)
             return {
                 'success': False,
                 'error': str(e)
@@ -483,12 +486,12 @@ class IncrementalBackupService:
     ) -> Dict[str, Any]:
         """
         恢复单个备份
-        
+
         Args:
             backup_path: 备份文件路径
             db_config: 数据库配置
             is_full_backup: 是否为完整备份
-            
+
         Returns:
             恢复结果
         """
@@ -542,7 +545,7 @@ class IncrementalBackupService:
                 'error': 'pg_restore not found. Please install PostgreSQL client tools.'
             }
         except Exception as e:
-            print(f"[IncrementalBackup] Error restoring backup: {e}")
+            logger.error("[IncrementalBackup] Error restoring backup: %s", e)
             return {
                 'success': False,
                 'error': str(e)
@@ -565,10 +568,10 @@ class IncrementalBackupService:
     def get_backup_chain(self, target_backup_id: str) -> Optional[List[str]]:
         """
         获取恢复到目标备份所需的备份链
-        
+
         Args:
             target_backup_id: 目标备份ID
-            
+
         Returns:
             备份ID链（从完整备份到目标备份）
         """
@@ -642,10 +645,10 @@ class IncrementalBackupService:
     def cleanup_old_backups(self, keep_days: int = 30) -> Dict[str, Any]:
         """
         清理旧备份
-        
+
         Args:
             keep_days: 保留天数
-            
+
         Returns:
             清理结果
         """
@@ -674,7 +677,7 @@ class IncrementalBackupService:
                         # 从元数据中删除
                         del self.metadata[backup_id]
                     except Exception as e:
-                        print(f"[IncrementalBackup] Failed to delete {filename}: {e}")
+                        logger.error(f"[IncrementalBackup] Failed to delete {filename}: {e}")
 
         self._save_metadata()
 

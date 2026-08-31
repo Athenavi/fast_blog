@@ -1,4 +1,4 @@
-"""
+﻿"""
 增量静态再生成 (ISR) 服务
 支持在内容更新后自动触发前端页面的重新构建
 """
@@ -22,7 +22,7 @@ class ISRService:
                 # 调用 Astro 或 Next.js 的 ISR 端点
                 await client.post(f"{frontend_url}/api/revalidate", json={"path": path})
         except Exception as e:
-            print(f"ISR revalidation failed for {path}: {e}")
+            logger.error("ISR revalidation failed for %s: %s", path, e)
 
     @staticmethod
     async def on_article_update(slug: str):
