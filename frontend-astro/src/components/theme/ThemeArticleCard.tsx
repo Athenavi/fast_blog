@@ -9,7 +9,7 @@
  */
 import React from 'react';
 import {motion} from 'framer-motion';
-import {BookOpen, Clock, Eye, Heart, Hash} from 'lucide-react';
+import {BookOpen, Clock, Crown, Eye, Hash, Heart} from 'lucide-react';
 import {getFullMediaUrl} from '@/lib/utils';
 import {useThemeSlots} from '@/lib/theme-components';
 
@@ -32,13 +32,20 @@ export default function ThemeArticleCard({article, layout = 'grid', index = 0}: 
       <motion.a key={article.id} initial={{opacity: 0, y: 12}} animate={{opacity: 1, y: 0}}
                 transition={{delay: index * 0.04, duration: 0.35}}
                 href={href}
-                className="group flex items-center gap-4 p-3 rounded-xl border theme-border card-hover">
+                className="group flex items-center gap-4 p-3 rounded-xl border theme-border card-hover relative">
         {cover ? (
           <img src={cover} alt="" loading="lazy"
                className="w-20 h-16 rounded-lg object-cover flex-shrink-0"/>
         ) : (
-          <div className="w-20 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0">
+          <div className="w-20 h-16 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center flex-shrink-0 relative">
             <BookOpen className="w-5 h-5 text-gray-300 dark:text-gray-600"/>
+          </div>
+        )}
+        {article.is_vip_only && (
+          <div className="absolute top-0.5 left-0.5">
+            <span className="badge bg-amber-400/90 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 backdrop-blur-sm text-[8px] flex items-center gap-0.5 px-1 py-0.5">
+              <Crown className="w-2 h-2"/>VIP
+            </span>
           </div>
         )}
         <div className="min-w-0 flex-1">
@@ -63,12 +70,19 @@ export default function ThemeArticleCard({article, layout = 'grid', index = 0}: 
                 transition={{delay: index * 0.03, duration: 0.4}}
                 href={href}
                 className="group flex gap-5 p-5 theme-bg rounded-2xl border theme-border card-hover">
-        <div className="w-40 h-28 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 flex-shrink-0 hidden sm:block">
+        <div className="w-40 h-28 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 flex-shrink-0 hidden sm:block relative">
           {cover ? (
             <img src={cover} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy"/>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-gray-200 dark:text-gray-700"/>
+            </div>
+          )}
+          {article.is_vip_only && (
+            <div className="absolute top-2 right-2">
+              <span className="badge bg-amber-400/90 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 backdrop-blur-sm text-[9px] flex items-center gap-0.5 px-1.5 py-0.5">
+                <Crown className="w-2.5 h-2.5"/>VIP
+              </span>
             </div>
           )}
         </div>
@@ -109,6 +123,13 @@ export default function ThemeArticleCard({article, layout = 'grid', index = 0}: 
           <div className="absolute top-3 left-3">
             <span className="badge bg-white/90 dark:bg-gray-900/90 text-gray-700 dark:text-gray-300 backdrop-blur-sm text-[10px]">
               {article.category.name}
+            </span>
+          </div>
+        )}
+        {article.is_vip_only && (
+          <div className="absolute top-3 right-3">
+            <span className="badge bg-amber-400/90 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 backdrop-blur-sm text-[10px] flex items-center gap-1">
+              <Crown className="w-3 h-3"/>VIP
             </span>
           </div>
         )}

@@ -85,6 +85,24 @@ export interface MyVipSubscriptionResponse {
     subscription_history: VIPSubscription[];
 }
 
+// Payment types
+export interface CreatePaymentRequest {
+    plan_id: number;
+    provider?: string;
+    return_url?: string;
+    notify_url?: string;
+}
+
+export interface CreatePaymentResponse {
+    order_id: string | null;
+    payment_url?: string;
+    prepay_id?: string;
+    provider?: string;
+    amount: number;
+    plan_id: number;
+    note?: string;
+}
+
 // VIP service
 export class VIPService {
     static async getVipPlans(): Promise<ApiResponse<VIPPlan[]>> {
@@ -118,35 +136,8 @@ export class VIPService {
             transaction_id: transactionId || null,
         });
     }
-}
 
-
-// Payment types
-export interface CreatePaymentRequest {
-    user_id: number;
-    plan_id: number;
-    payment_method: 'alipay' | 'wechat';
-}
-
-export interface PaymentData {
-    pay_url?: string;
-    qr_code?: string;
-    order_id: string;
-    amount: number;
-    description: string;
-}
-
-export interface CreatePaymentResponse {
-    payment_data: PaymentData;
-}
-
-// Payment service
-export class PaymentService {
     static async createPayment(data: CreatePaymentRequest): Promise<ApiResponse<CreatePaymentResponse>> {
-        return apiClient.post(MEMBERSHIP.SUBSCRIBE, {
-            plan_id: data.plan_id,
-            payment_amount: 0,
-            transaction_id: null,
-        });
+        return apiClient.post(MEMBERSHIP.CREATE_PAYMENT, data);
     }
 }

@@ -433,7 +433,18 @@
     "expires": "Expires",
     "active": "Active",
     "expired": "Expired",
-    "noSubscription": "No Subscription"
+    "noSubscription": "No Subscription",
+    "unlockAll": "Unlock All Features",
+    "upgradeDesc": "Upgrade to VIP and unlock powerful writing & analytics tools",
+    "activeStatus": "You are a VIP member, valid until",
+    "subscriptionSuccess": "Subscription successful!",
+    "subscriptionFailed": "Subscription failed",
+    "perMonth": "/month",
+    "recommended": "Recommended",
+    "currentPlan": "Current Plan",
+    "noPlans": "No plans available",
+    "contactAdmin": "Please contact admin to configure VIP plans",
+    "level": "Level"
   },
   "error": {
     "notFound": "Page Not Found",

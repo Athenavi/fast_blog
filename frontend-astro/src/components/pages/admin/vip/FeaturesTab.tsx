@@ -6,8 +6,8 @@ import {apiClient} from '@/lib/api/base-client';
 import {DASHBOARD} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
-import {Shield, Plus, Edit3, Check, Trash2} from 'lucide-react';
-import {VIPFeature, FeatureForm, Modal, Inp} from './shared';
+import {Check, Edit3, Plus, Shield, Trash2} from 'lucide-react';
+import {FeatureForm, Inp, Modal, VIPFeature} from './shared';
 
 const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> = ({features, onChanged}) => {
   const confirm = useConfirm();
@@ -39,7 +39,7 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
     },
   });
   const updateMut = useMutation({
-    mutationFn: (d: { id: number; form: FeatureForm }) => apiClient.put(`/dashboard/vip/features/${d.id}`, d.form),
+    mutationFn: (d: { id: number; form: FeatureForm }) => apiClient.put(`${DASHBOARD.VIP_FEATURES}/${d.id}`, d.form),
     onSuccess: (r) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['admin-vip']});
@@ -49,7 +49,7 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
     },
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/dashboard/vip/features/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`${DASHBOARD.VIP_FEATURES}/${id}`),
     onSuccess: (r) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['admin-vip']});
@@ -58,7 +58,7 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
     },
   });
   const toggleMut = useMutation({
-    mutationFn: (fe: VIPFeature) => apiClient.put(`/dashboard/vip/features/${fe.id}`, {
+    mutationFn: (fe: VIPFeature) => apiClient.put(`${DASHBOARD.VIP_FEATURES}/${fe.id}`, {
       is_active: fe.is_active ? '0' : '1',
       code: fe.code,
       name: fe.name,

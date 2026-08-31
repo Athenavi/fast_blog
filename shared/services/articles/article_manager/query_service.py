@@ -19,7 +19,7 @@ class ArticleQueryService:
         """
         获取粘性文章判断条件
         now 每次调用重新计算，避免过期判定永久失效
-        
+
         Returns:
             SQLAlchemy condition object
         """
@@ -30,7 +30,7 @@ class ArticleQueryService:
                 Article.sticky_until > datetime.now()
             )
         )
-    
+
     @staticmethod
     async def get_articles_list(
         db: AsyncSession,
@@ -45,7 +45,7 @@ class ArticleQueryService:
     ) -> Tuple[List[Article], int]:
         """
         获取文章列表（支持粘性文章优先排序）
-        
+
         Args:
             db: 数据库会话
             page: 页码
@@ -56,20 +56,21 @@ class ArticleQueryService:
             status: 状态筛选 (draft/published/deleted)
             include_sticky: 是否包含粘性文章并优先排序
             is_admin: 是否为管理员
-            
+
         Returns:
             (文章列表, 总数)
         """
         # 构建基础查询
         query = select(Article).join(User, Article.user == User.id)
-        
-        # 非管理员只能查看已发布且非隐藏的文章
+
+        # 非管理员只能查看已发布、非隐藏、非 VIP-only 的文章
         if not is_admin:
             query = query.where(
                 Article.status == 1,
-                Article.hidden == False
+                Article.hidden == False,
+                Article.is_vip_only == False
             )
-        
+
         # 搜索功能
         if search:
             query = query.where(
@@ -78,15 +79,15 @@ class ArticleQueryService:
                     Article.excerpt.contains(search)
                 )
             )
-        
+
         # 分类筛选
         if category_id:
             query = query.where(Article.category == category_id)
-        
+
         # 用户筛选
         if user_id:
             query = query.where(Article.user == user_id)
-        
+
         # 状态筛选
         if status:
             if status == 'draft':
@@ -101,7 +102,8 @@ class ArticleQueryService:
         if not is_admin:
             count_query = count_query.where(
                 Article.hidden == False,
-                Article.status == 1
+                Article.status == 1,
+                Article.is_vip_only == False
             )
         if category_id:
             count_query = count_query.where(Article.category == category_id)
@@ -134,17 +136,17 @@ class ArticleQueryService:
                 Article.sort_order.asc(),
                 desc(Article.created_at)
             )
-        
+
         # 分页
         offset = (page - 1) * per_page
         query = query.offset(offset).limit(per_page)
-        
+
         # 执行查询
         result = await db.execute(query)
         articles = result.scalars().all()
-        
+
         return list(articles), total
-    
+
     @staticmethod
     async def get_homepage_articles(
         db: AsyncSession,
@@ -152,16 +154,16 @@ class ArticleQueryService:
     ) -> List[Article]:
         """
         获取首页文章列表（粘性文章优先）
-        
+
         Args:
             db: 数据库会话
             limit: 返回数量限制
-            
+
         Returns:
             文章列表
         """
         sticky_condition = ArticleQueryService._get_sticky_condition()
-        
+
         query = select(Article).where(
             Article.status == 1,
             Article.hidden == False,
@@ -171,10 +173,10 @@ class ArticleQueryService:
             Article.sort_order.asc(),
             desc(Article.created_at)
         ).limit(limit)
-        
+
         result = await db.execute(query)
         return list(result.scalars().all())
-    
+
     @staticmethod
     async def get_category_articles(
         db: AsyncSession,
@@ -184,13 +186,13 @@ class ArticleQueryService:
     ) -> Tuple[List[Article], int]:
         """
         获取分类下的文章列表（支持粘性文章）
-        
+
         Args:
             db: 数据库会话
             category_id: 分类ID
             page: 页码
             per_page: 每页数量
-            
+
         Returns:
             (文章列表, 总数)
         """
@@ -202,7 +204,7 @@ class ArticleQueryService:
             include_sticky=True,
             is_admin=False
         )
-    
+
     @staticmethod
     async def toggle_sticky_status(
         db: AsyncSession,
@@ -212,39 +214,39 @@ class ArticleQueryService:
     ) -> Optional[Article]:
         """
         切换文章粘性状态
-        
+
         Args:
             db: 数据库会话
             article_id: 文章ID
             is_sticky: 是否置顶
             sticky_until: 置顶过期时间
-            
+
         Returns:
             更新后的文章对象
         """
         query = select(Article).where(Article.id == article_id)
         result = await db.execute(query)
         article = result.scalar_one_or_none()
-        
+
         if not article:
             return None
-        
+
         article.is_sticky = is_sticky
         article.sticky_until = sticky_until
-        
+
         await db.commit()
         await db.refresh(article)
-        
+
         return article
-    
+
     @staticmethod
     async def clean_expired_sticky_articles(db: AsyncSession) -> int:
         """
         清理过期的粘性文章（批量更新优化）
-        
+
         Args:
             db: 数据库会话
-            
+
         Returns:
             清理的文章数量
         """

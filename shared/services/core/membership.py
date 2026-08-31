@@ -15,6 +15,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class MembershipService:
+
+    # 审计事件名称常量
+    EVENT_SUB_CREATED = "vip.subscription.created"
+    EVENT_SUB_CANCELLED = "vip.subscription.cancelled"
+    EVENT_SUB_EXPIRED = "vip.subscription.expired"
+    EVENT_SUB_RENEWED = "vip.subscription.renewed"
+
     """
     会员订阅服务
     """
@@ -178,6 +185,21 @@ class MembershipService:
                 user.vip_expires_at = expires_at
             await self.db.commit()
 
+        # 发送审计事件
+        try:
+            from shared.services.plugins.event_bus import event_bus
+            await event_bus.emit(self.EVENT_SUB_CREATED, {
+                'user_id': user_id,
+                'plan_id': plan_id,
+                'plan_name': plan.name,
+                'level': plan.level,
+                'subscription_id': subscription.id,
+                'payment_amount': payment_amount,
+                'expires_at': expires_at.isoformat(),
+            })
+        except Exception:
+            pass  # 审计日志失败不影响主流程
+
         return {
             'success': True,
             'subscription_id': subscription.id,
@@ -240,6 +262,17 @@ class MembershipService:
 
         await self.db.commit()
 
+        # 发送审计事件
+        try:
+            from shared.services.plugins.event_bus import event_bus
+            await event_bus.emit(self.EVENT_SUB_CANCELLED, {
+                'user_id': user_id,
+                'subscription_id': subscription_id,
+                'plan_id': subscription.plan,
+            })
+        except Exception:
+            pass
+
         return {
             'success': True,
             'message': '订阅已取消',
@@ -264,6 +297,7 @@ class MembershipService:
         result = await self.db.execute(stmt)
         plans = result.scalars().all()
 
+        import json
         return [
             {
                 'id': plan.id,
@@ -273,7 +307,7 @@ class MembershipService:
                 'original_price': plan.original_price,
                 'duration_days': plan.duration_days,
                 'level': plan.level,
-                'features': plan.features,
+                'features': json.loads(plan.features) if isinstance(plan.features, str) else (plan.features or []),
                 'is_active': plan.is_active,
                 'created_at': plan.created_at.isoformat() if plan.created_at else None,
                 'updated_at': plan.updated_at.isoformat() if plan.updated_at else None,
@@ -415,7 +449,7 @@ class MembershipService:
                     'views': a.views,
                     'likes': a.likes,
                     'required_vip_level': a.required_vip_level,
-                    'accessible': user_level >= a.required_vip_level if a.required_vip_level else False,
+                    'accessible': user_level >= (a.required_vip_level or 0),
                     'created_at': a.created_at.isoformat() if a.created_at else None,
                     'updated_at': a.updated_at.isoformat() if a.updated_at else None,
                     'user_id': a.user,
@@ -472,6 +506,20 @@ class MembershipService:
                 user.vip_expires_at = new_expires
                 await self.db.commit()
 
+            # 发送续费审计事件
+            try:
+                from shared.services.plugins.event_bus import event_bus
+                await event_bus.emit(self.EVENT_SUB_RENEWED, {
+                    'user_id': user_id,
+                    'plan_id': plan_id,
+                    'plan_name': plan.name,
+                    'level': plan.level,
+                    'subscription_id': existing.id,
+                    'expires_at': new_expires.isoformat(),
+                })
+            except Exception:
+                pass
+
             return {
                 'success': True,
                 'subscription_id': existing.id,
@@ -502,8 +550,10 @@ class MembershipService:
         expired = result.scalars().all()
 
         count = 0
+        expired_users = set()
         for sub in expired:
             sub.status = 0  # 标记为过期
+            expired_users.add(sub.user)
             # 检查用户是否有其他有效订阅
             other_stmt = select(VIPSubscription).where(
                 VIPSubscription.user == sub.user,
@@ -525,6 +575,17 @@ class MembershipService:
 
         if count > 0:
             await self.db.commit()
+
+            # 发送审计事件（每个用户一条）
+            try:
+                from shared.services.plugins.event_bus import event_bus
+                for uid in expired_users:
+                    await event_bus.emit(self.EVENT_SUB_EXPIRED, {
+                        'user_id': uid,
+                        'count': 1,
+                    })
+            except Exception:
+                pass
 
         return count
 

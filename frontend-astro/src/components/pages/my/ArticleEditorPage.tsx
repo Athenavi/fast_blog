@@ -84,6 +84,7 @@ const schema = z.object({
   category_id: z.coerce.number().optional(), tags: z.string().optional(),
   status: z.union([z.literal(0), z.literal(1)]).default(0),
   hidden: z.boolean().catch(false), is_vip_only: z.boolean().catch(false),
+  required_vip_level: z.coerce.number().catch(0),
 });
 type FormData = z.infer<typeof schema>;
 interface Props { mode: 'create' | 'edit'; }
@@ -246,6 +247,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
               tags: Array.isArray(art.tags) ? art.tags.join(', ') : (art.tags || ''),
               status: art.status ?? 0,
               hidden: art.hidden || false, is_vip_only: art.is_vip_only || false,
+              required_vip_level: art.required_vip_level || 0,
               cover_image: art.cover_image || '',
             });
           setContent(d.content || art.content || '');
@@ -289,7 +291,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         setSaving(true);
         try {
           // 确保布尔字段始终是布尔值，防御 react-hook-form 边缘情况
-          const safeData = {...data, hidden: !!data.hidden, is_vip_only: !!data.is_vip_only};
+          const safeData = {...data, hidden: !!data.hidden, is_vip_only: !!data.is_vip_only, required_vip_level: data.required_vip_level || 0};
           await submitMut.mutateAsync(safeData);
         } finally {
             setSaving(false);
@@ -838,6 +840,23 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                                           className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"/>
                                   </div>
                               </label>
+                              {watch('is_vip_only') && (
+                                <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700">
+                                  <div className="flex items-center gap-2.5">
+                                    <Crown className="w-4 h-4 text-purple-500"/>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">所需 VIP 等级</span>
+                                  </div>
+                                  <select
+                                    value={String(watch('required_vip_level') || 1)}
+                                    onChange={(e) => setValue('required_vip_level', Number(e.target.value))}
+                                    className="text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-500/20 dark:text-white"
+                                  >
+                                    <option value="1">Lv.1</option>
+                                    <option value="2">Lv.2</option>
+                                    <option value="3">Lv.3</option>
+                                  </select>
+                                </div>
+                              )}
                           </div>
                       </Section>
 

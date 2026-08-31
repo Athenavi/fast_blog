@@ -2,7 +2,6 @@
 仪表板相关 API
 """
 
-import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
@@ -14,17 +13,13 @@ from shared.models import VIPPlan, VIPFeature
 from shared.models.analytics import UserActivity
 from shared.models.article import Article
 from shared.models.category import Category
-from shared.models.media import Media, FileHash
-from shared.models.notification import Notification
 from shared.models.user import User
 # 导入 SQLAlchemy 模型和服务
-from shared.models.user import User as UserModel
 from shared.models.vip import VIPSubscription
 # 注意：避免在此处直接导入 article_service，防止循环依赖
 # article_service 的导入已移至使用位置
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
-    get_current_active_user
+from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
@@ -114,7 +109,6 @@ async def __get_recent_articles(
     """
     获取最近的文章
     """
-    from sqlalchemy.orm import selectinload
 
     # 查询最近的文章（按创建时间排序），使用预加载来避免N+1问题
     recent_articles_query = select(Article).order_by(
@@ -418,11 +412,11 @@ async def get_my_articles(
 @_catch
 async def get_vip_management_data(
         request: Request,
-        current_user: User = Depends(jwt_required),
+    current_user: User = Depends(admin_required_api),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取 VIP 管理数据
+    获取 VIP 管理数据（仅管理员）
     """
     from datetime import datetime, timedelta
 

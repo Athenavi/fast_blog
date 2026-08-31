@@ -5,7 +5,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
@@ -16,12 +16,35 @@ from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["membership"])
 
+# ─── 支付网关集成 ─────────────────────────────
+PAYMENT_PLUGIN_SLUG = "payment-gateway"
+
+
+def _get_payment_plugin():
+    """获取支付网关插件实例（如果已安装激活）"""
+    try:
+        from shared.services.plugins.plugin_manager import plugin_manager
+        plugin = plugin_manager.get_plugin(PAYMENT_PLUGIN_SLUG)
+        if plugin and plugin.active:
+            return plugin
+    except Exception:
+        pass
+    return None
+
 
 class CreateSubscriptionRequest(BaseModel):
     """创建订阅请求"""
     plan_id: int
     payment_amount: float
     transaction_id: Optional[str] = None
+
+
+class CreatePaymentRequest(BaseModel):
+    """创建支付请求"""
+    plan_id: int = Field(..., description="套餐ID")
+    provider: Optional[str] = Field(None, description="支付服务商，如 alipay/wechat/stripe，为空则使用插件默认")
+    return_url: Optional[str] = Field(None, description="支付成功后的前端跳转URL")
+    notify_url: Optional[str] = Field(None, description="支付回调通知URL")
 
 
 @router.get("/status")
@@ -50,6 +73,61 @@ async def check_content_access(
     return ok(data=result)
 
 
+@router.post("/create-payment")
+@_catch
+async def create_payment(
+        request: CreatePaymentRequest,
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """创建支付订单（通过支付网关插件）"""
+    # 获取套餐信息
+    service = create_membership_service(db)
+    plans = await service.get_available_plans()
+    plan = next((p for p in plans if p.get('id') == request.plan_id), None)
+    if not plan:
+        return fail("套餐不存在")
+
+    # 尝试使用支付网关插件
+    plugin = _get_payment_plugin()
+    if plugin:
+        # 设置提供商
+        if request.provider:
+            plugin.settings['provider'] = request.provider
+
+        order_id = f"VIP_{current_user.id}_{request.plan_id}_{int(__import__('time').time())}"
+        amount = int(float(plan.get('price', 0)) * 100)  # 转换为分
+
+        result = plugin.create_payment(
+            order_id=order_id,
+            amount=amount,
+            subject=f"VIP {plan.get('name', '')}",
+            user_id=current_user.id,
+            return_url=request.return_url or "",
+            notify_url=request.notify_url or "",
+        )
+        if result.get('success'):
+            return ok(data={
+                'order_id': order_id,
+                'payment_url': result.get('payment_url'),
+                'prepay_id': result.get('prepay_id'),
+                'provider': result.get('provider'),
+                'amount': amount,
+                'plan_id': request.plan_id,
+            })
+        return fail(result.get('error', '创建支付失败'))
+    else:
+        # 支付网关插件未安装，返回支付信息供前端自行处理
+        return ok(data={
+            'order_id': None,
+            'payment_url': None,
+            'provider': None,
+            'amount': int(float(plan.get('price', 0)) * 100),
+            'plan_id': request.plan_id,
+            'note': 'Payment gateway plugin not available',
+        })
+
+
 @router.post("/subscribe")
 @_catch
 async def create_subscription(
@@ -57,7 +135,7 @@ async def create_subscription(
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """创建新订阅"""
+    """创建新订阅（支付确认后调用）"""
     service = create_membership_service(db)
     result = await service.create_subscription(
         user_id=current_user.id,

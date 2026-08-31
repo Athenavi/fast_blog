@@ -102,6 +102,8 @@ def _fmt_article_brief(article, users: dict, cats: dict) -> dict:
         "category_id": article.category,
         "category_name": cats[article.category].name if article.category in cats else None,
         "views": article.views or 0, "likes": article.likes or 0, "status": article.status,
+        "is_vip_only": article.is_vip_only,
+        "required_vip_level": article.required_vip_level,
         "created_at": article.created_at.isoformat() if article.created_at else None,
         "updated_at": article.updated_at.isoformat() if article.updated_at else None,
     }
@@ -275,8 +277,9 @@ async def get_user_articles_api(request: Request, user_id: int = Path(...), page
     if current_user and current_user.id != user_id and not _is_admin(current_user):
         raise HTTPException(403, "Permission denied")
 
+    is_admin = _is_admin(current_user)
     articles, total = await article_query_service.get_articles_list(
-        db=db, page=page, per_page=per_page, user_id=user_id, include_sticky=True)
+        db=db, page=page, per_page=per_page, user_id=user_id, include_sticky=True, is_admin=is_admin)
     return ApiResponse(success=True, data=articles, pagination=_paginate(total, page, per_page))
 
 
@@ -379,6 +382,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
         is_vip_only=data.get('is_vip_only', False), article_ad=data.get('article_ad', ''),
         status=data.get('status', 0), is_featured=data.get('is_featured', False),
         post_type=data.get('post_type', 'article'),
+        required_vip_level=data.get('required_vip_level', 0),
         created_at=datetime.now(), updated_at=datetime.now(), views=0, likes=0,
     )
     # 自动生成 slug（如果为空）
@@ -429,7 +433,7 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
         raise HTTPException(403, "无权修改此文章")
 
     for field in ('title', 'slug', 'excerpt', 'cover_image', 'hidden', 'is_vip_only', 'is_featured', 'status',
-                  'post_type'):
+                  'post_type', 'required_vip_level'):
         if field in data:
             setattr(article, field, data[field])
     # 兼容前端传的 'tags'（字符串）→ 存入 tags_list（JSON 列表）
@@ -524,11 +528,11 @@ async def get_articles_by_tag_api(tag_name: str, page: int = Query(1, ge=1), per
     offset = (page - 1) * per_page
     q = select(Article).where(
         Article.tags_list.cast(String).op('~*')(f'"{re.escape(tag_name)}"'),
-        Article.status == 1
+        Article.status == 1,
     ).order_by(Article.id.desc())
     total = await db.scalar(select(func.count()).select_from(Article).where(
         Article.tags_list.cast(String).op('~*')(f'"{re.escape(tag_name)}"'),
-        Article.status == 1
+        Article.status == 1,
     )) or 0
     articles = (await db.execute(q.offset(offset).limit(per_page))).scalars().all()
 
@@ -580,7 +584,8 @@ async def get_edit_article_api(article_id: int, current_user=Depends(jwt_require
     return ok(data={"id": article.id, "title": article.title, "slug": article.slug,
                     "excerpt": article.excerpt, "content": content or "", "cover_image": article.cover_image,
                     "tags": article.tags_list, "category_id": article.category, "status": article.status,
-                    "hidden": article.hidden, "is_vip_only": article.is_vip_only, "is_featured": article.is_featured})
+                    "hidden": article.hidden, "is_vip_only": article.is_vip_only, "is_featured": article.is_featured,
+                    "required_vip_level": article.required_vip_level})
 
 
 @router.get("/new")
