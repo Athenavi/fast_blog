@@ -671,7 +671,7 @@ class PluginManager:
         except Exception as e:
             logger.error(f"[HotReload] Failed to hot reload plugin {plugin_slug}: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             return False
 
     def hot_load_plugin(self, plugin_slug: str) -> bool:
@@ -723,7 +723,7 @@ class PluginManager:
         except Exception as e:
             logger.error(f"[HotLoad] Failed to load plugin {plugin_slug}: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             return False
 
     def hot_unload_plugin(self, plugin_slug: str) -> bool:
@@ -773,7 +773,7 @@ class PluginManager:
         except Exception as e:
             logger.error(f"[HotUnload] Failed to unload plugin {plugin_slug}: {e}")
             import traceback
-            traceback.print_exc()
+            logger.error(traceback.format_exc())
             return False
 
     def scan_for_new_plugins(self) -> List[str]:

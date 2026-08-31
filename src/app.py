@@ -926,5 +926,6 @@ def create_app(config=None):
 try:
     app = create_app()
 except Exception as e:
+    logger.error(f"Failed to create app: {e}")
     traceback.print_exc()
     app = None

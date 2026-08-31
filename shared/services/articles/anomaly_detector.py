@@ -20,12 +20,17 @@ class AnomalyDetector:
     def __init__(self):
         """初始化异常行为检测器"""
         # 登录尝试记录 {ip: [(timestamp, success), ...]}
+        # 注意：使用内存存储，仅适用于单 worker 开发环境。
+        # 生产环境（多 worker / 多实例）应改为 Redis 等共享存储，
+        # 否则各 worker 间异常检测数据独立，无法有效协同。
         self.login_attempts: Dict[str, List[tuple]] = defaultdict(list)
 
         # 用户活动记录 {user_id: [(action, timestamp, details), ...]}
+        # 同上，内存存储，生产环境建议使用 Redis 持久化
         self.user_activities: Dict[int, List[tuple]] = defaultdict(list)
 
         # 访问模式 {ip: [timestamps]}
+        # 同上，内存存储，生产环境建议使用 Redis 持久化
         self.access_patterns: Dict[str, List[datetime]] = defaultdict(list)
 
         # 告警阈值配置
