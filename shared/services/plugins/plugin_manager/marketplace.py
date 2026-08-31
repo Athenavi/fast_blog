@@ -4,8 +4,11 @@
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class PluginMarketService:
@@ -83,7 +86,7 @@ class PluginMarketService:
 
                     discovered.append(metadata)
             except Exception as e:
-                print(f"读取插件元数据失败 {plugin_dir.name}: {e}")
+                logger.error("读取插件元数据失败 %s: %s", plugin_dir.name, e)
 
         # 更新缓存
         from datetime import datetime, timezone
@@ -229,7 +232,7 @@ class PluginMarketService:
             return metadata
 
         except Exception as e:
-            print(f"读取插件详情失败 {plugin_slug}: {e}")
+            logger.error("读取插件详情失败 %s: %s", plugin_slug, e)
             return None
 
     def _get_category_name(self, category_slug: str) -> str:

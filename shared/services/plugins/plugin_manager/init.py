@@ -4,8 +4,8 @@
 使用 EventBus 事件系统
 """
 
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from shared.services.plugins.plugin_manager.core import plugin_manager
 
@@ -41,22 +41,20 @@ def initialize_plugins():
         total_count = len(plugin_manager.plugins)
 
         if not state_restored and total_count > 0:
-            logger.info(f"[PluginSystem] No saved state found, activating all {total_count} plugins...")
+            logger.info("[PluginSystem] No saved state found, activating all %d plugins...", total_count)
             for slug in list(plugin_manager.plugins.keys()):
                 try:
                     plugin_manager.activate_plugin(slug)
                 except Exception as e:
-                    logger.error(f"[PluginSystem] Failed to auto-activate plugin '{slug}': {e}")
+                    logger.error("[PluginSystem] Failed to auto-activate plugin '%s': %s", slug, e)
 
             # 保存初始状态，以便后续启动时恢复
             plugin_manager._save_plugin_state()
             active_count = len(plugin_manager.get_active_plugins())
 
-        logger.info(f"[PluginSystem] Plugin system initialized: {active_count}/{total_count} plugins active")
+        logger.info("[PluginSystem] Plugin system initialized: %d/%d plugins active", active_count, total_count)
         return True
 
     except Exception as e:
-        import traceback
-        logger.error(f"[PluginSystem] Failed to initialize: {str(e)}")
-        logger.error(traceback.format_exc())
+        logger.exception("[PluginSystem] Failed to initialize: %s", str(e))
         return False

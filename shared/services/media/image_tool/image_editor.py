@@ -4,10 +4,13 @@
 """
 
 import io
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 
 from PIL import Image, ImageFilter, ImageEnhance, ImageOps
+
+logger = logging.getLogger(__name__)
 
 # 滤镜映射（类级别常量）
 FILTERS = {
@@ -174,7 +177,7 @@ class ImageEditor:
                 'size': Path(image_path).stat().st_size,
             }
         except Exception as e:
-            print(f"获取图片信息失败: {e}")
+            logger.error("获取图片信息失败: %s", e)
             return None
 
 

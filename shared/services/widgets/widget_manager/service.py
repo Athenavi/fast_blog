@@ -5,6 +5,7 @@ Widget服务核心逻辑
 
 import hashlib
 import json
+import logging
 import re
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
@@ -16,6 +17,8 @@ from shared.models.widget import WidgetInstance
 from shared.services.performance.cache_manager import cache_service
 from shared.services.widgets.widget_manager.config import WIDGET_TYPES, WIDGET_AREAS
 from shared.services.widgets.widget_manager.renderer import WidgetRenderer
+
+logger = logging.getLogger(__name__)
 
 
 class WidgetService:

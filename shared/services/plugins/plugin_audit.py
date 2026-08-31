@@ -6,10 +6,13 @@
 """
 
 import json
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from collections import defaultdict
+
+logger = logging.getLogger(__name__)
 
 
 class PluginAuditLogger:
@@ -366,7 +369,7 @@ class PluginAuditLogger:
             self._write_log_to_file(plugin_slug, anomaly_log)
 
             # 打印告警
-            print(f"[PLUGIN AUDIT ALERT] {anomaly['message']}")
+            logger.warning("[PLUGIN AUDIT ALERT] %s", anomaly['message'])
 
     def _write_log_to_file(self, plugin_slug: str, log_entry: Dict[str, Any]):
         """
@@ -385,7 +388,7 @@ class PluginAuditLogger:
                 f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
 
         except Exception as e:
-            print(f"[Plugin Audit] Failed to write log: {e}")
+            logger.error("[Plugin Audit] Failed to write log: %s", e)
 
     def clear_old_logs(self, days: int = 30):
         """

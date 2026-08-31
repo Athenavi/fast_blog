@@ -8,10 +8,11 @@
 """
 
 import json
+import logging
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
-from shared.logging import default_logger as logger
+logger = logging.getLogger(__name__)
 
 
 class CustomBlockPatternService:
@@ -155,7 +156,7 @@ class CustomBlockPatternService:
                 return [p.to_dict() for p in patterns]
 
         except Exception as e:
-            logger.error(f"获取用户块模式失败: {e}")
+            logger.error("获取用户块模式失败: %s", e)
             return []
 
     async def get_pattern_by_id(self, user_id: int, pattern_id: int) -> Optional[Dict[str, Any]]:
@@ -188,7 +189,7 @@ class CustomBlockPatternService:
                 return None
 
         except Exception as e:
-            logger.error(f"获取块模式失败: {e}")
+            logger.error("获取块模式失败: %s", e)
             return None
 
     async def update_pattern(
@@ -322,7 +323,7 @@ class CustomBlockPatternService:
                 return sorted(categories)
 
         except Exception as e:
-            logger.error(f"获取分类失败: {e}")
+            logger.error("获取分类失败: %s", e)
             return []
 
 

@@ -4,11 +4,12 @@ CSS优化服务
 类似WordPress Critical CSS插件
 """
 import hashlib
+import logging
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-from shared.logging import default_logger as logger
+logger = logging.getLogger(__name__)
 
 
 class CSSOptimizerService:
@@ -194,7 +195,7 @@ nav a:hover {
         try:
             cache_file.write_text(css, encoding='utf-8')
         except Exception as e:
-            print(f"Failed to cache critical CSS: {e}")
+            logger.error("Failed to cache critical CSS: %s", e)
     
     def generate_cache_key(self, content: str, css_files: list) -> str:
         """
@@ -266,7 +267,7 @@ nav a:hover {
                 file.unlink()
             return True
         except Exception as e:
-            logger.error(f"Failed to clear cache: {e}")
+            logger.error("Failed to clear cache: %s", e)
             return False
     
     def get_cache_stats(self) -> Dict[str, Any]:

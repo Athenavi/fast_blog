@@ -10,10 +10,13 @@ ThemePlugin 继承 BasePlugin 并添加主题专属功能：
 """
 
 import json
+import logging
 from pathlib import Path
 from typing import Any, Optional
 
 from shared.services.plugins.plugin_manager.core import BasePlugin
+
+logger = logging.getLogger(__name__)
 
 
 class ThemePlugin(BasePlugin):
@@ -123,7 +126,7 @@ class ThemePlugin(BasePlugin):
             self.save_settings()
             return True
         except Exception as e:
-            print(f"[ThemePlugin] Failed to save settings for {self.name}: {e}")
+            logger.error("[ThemePlugin] Failed to save settings for %s: %s", self.name, e)
             return False
 
     def get_settings_schema(self) -> dict:

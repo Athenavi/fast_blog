@@ -27,8 +27,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import traceback
 import logging
+import traceback
 from dataclasses import dataclass, field, asdict
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 
@@ -145,8 +145,7 @@ class EventBus:
                 if inspect.iscoroutine(result):
                     await result
             except Exception as e:
-                logger.error(f"[EventBus] Error in '{event_name}' listener: {e}")
-                traceback.print_exc()
+                logger.exception("Error in '%s' listener: %s", event_name, e)
 
     async def pipeline(self, name: str, value: Any, **context) -> Any:
         """
@@ -177,8 +176,7 @@ class EventBus:
                     if inspect.iscoroutine(result):
                         result = await result
             except Exception as e:
-                logger.error(f"[EventBus] Error in pipeline '{name}': {e}")
-                traceback.print_exc()
+                logger.exception("Error in pipeline '%s': %s", name, e)
                 # 管道失败时返回当前值（不阻断整个请求）
         return result
 

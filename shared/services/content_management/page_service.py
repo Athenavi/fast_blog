@@ -3,6 +3,7 @@
 提供页面的CRUD操作和层级管理
 """
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 
@@ -12,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.pages import Pages
 from shared.models.user import User
 
-logger = __import__('logging').getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 async def get_pages_list(
@@ -109,9 +110,7 @@ async def get_pages_list(
         }
 
     except Exception as e:
-        logger.error(f"获取页面列表失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("获取页面列表失败: %s", e)
         return {
             "success": False,
             "error": str(e),
@@ -176,7 +175,7 @@ async def get_page_by_slug(db: AsyncSession, slug: str) -> Optional[Dict[str, An
         }
 
     except Exception as e:
-        logger.error(f"获取页面详情失败: {e}")
+        logger.error("获取页面详情失败: %s", e)
         return None
 
 
@@ -245,9 +244,7 @@ async def create_page(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"创建页面失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("创建页面失败: %s", e)
         return None
 
 
@@ -292,7 +289,7 @@ async def update_page(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"更新页面失败: {e}")
+        logger.error("更新页面失败: %s", e)
         return False
 
 
@@ -322,7 +319,7 @@ async def delete_page(db: AsyncSession, page_id: int) -> bool:
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"删除页面失败: {e}")
+        logger.error("删除页面失败: %s", e)
         return False
 
 
@@ -360,5 +357,5 @@ async def get_page_hierarchy(db: AsyncSession) -> List[Dict[str, Any]]:
         return root_pages
 
     except Exception as e:
-        logger.error(f"获取页面层级失败: {e}")
+        logger.error("获取页面层级失败: %s", e)
         return []

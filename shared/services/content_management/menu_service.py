@@ -81,7 +81,7 @@ async def get_menu_with_items(db: AsyncSession, menu_id: int) -> Optional[Dict[s
         }
 
     except Exception as e:
-        logger.error(f"获取菜单详情失败: {e}")
+        logger.error("获取菜单详情失败: %s", e)
         return None
 
 
@@ -123,7 +123,7 @@ async def create_menu(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"创建菜单失败: {e}")
+        logger.error("创建菜单失败: %s", e)
         return None
 
 
@@ -162,7 +162,7 @@ async def update_menu(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"更新菜单失败: {e}")
+        logger.error("更新菜单失败: %s", e)
         return False
 
 
@@ -201,7 +201,7 @@ async def delete_menu(db: AsyncSession, menu_id: int) -> bool:
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"删除菜单失败: {e}")
+        logger.error("删除菜单失败: %s", e)
         return False
 
 
@@ -251,7 +251,7 @@ async def add_menu_item(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"添加菜单项失败: {e}")
+        logger.error("添加菜单项失败: %s", e)
         return None
 
 
@@ -289,7 +289,7 @@ async def update_menu_item(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"更新菜单项失败: {e}")
+        logger.error("更新菜单项失败: %s", e)
         return False
 
 
@@ -328,7 +328,7 @@ async def delete_menu_item(db: AsyncSession, item_id: int) -> bool:
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"删除菜单项失败: {e}")
+        logger.error("删除菜单项失败: %s", e)
         return False
 
 
@@ -378,9 +378,7 @@ async def reorder_menu_items(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"重新排序菜单项失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("重新排序菜单项失败: %s", e)
         return False
 
 
@@ -416,7 +414,7 @@ async def get_available_pages_for_menu(db: AsyncSession) -> List[Dict[str, Any]]
         ]
 
     except Exception as e:
-        logger.error(f"获取可用页面失败: {e}")
+        logger.error("获取可用页面失败: %s", e)
         return []
 
 
@@ -452,5 +450,5 @@ async def get_available_categories_for_menu(db: AsyncSession) -> List[Dict[str, 
         ]
 
     except Exception as e:
-        logger.error(f"获取可用分类失败: {e}")
+        logger.error("获取可用分类失败: %s", e)
         return []

@@ -4,8 +4,8 @@
 """
 import importlib
 import importlib.util
-import sys
 import logging
+import sys
 from pathlib import Path
 from typing import Dict, Any
 
@@ -48,10 +48,10 @@ class PluginHotSwapper:
                     instance.register_hooks()
                 return True
             else:
-                logger.warning(f"Plugin {plugin_slug}: no plugin_instance or plugin found")
+                logger.warning("Plugin %s: no plugin_instance or plugin found", plugin_slug)
                 return False
         except Exception as e:
-            logger.error(f"Failed to load plugin {plugin_slug}: {e}")
+            logger.error("Failed to load plugin %s: %s", plugin_slug, e)
             return False
 
     async def unload_plugin(self, plugin_slug: str):

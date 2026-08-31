@@ -4,6 +4,7 @@
 """
 
 import json
+import logging
 import shutil
 import tempfile
 import zipfile
@@ -11,6 +12,8 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 
 from shared.services.plugins.plugin_manager.dependency import plugin_dependency_manager
+
+logger = logging.getLogger(__name__)
 
 
 class PluginInstaller:
@@ -345,7 +348,7 @@ class PluginInstaller:
 
                     installed.append(metadata)
             except Exception as e:
-                print(f"读取插件元数据失败 {plugin_dir.name}: {e}")
+                logger.error("读取插件元数据失败 %s: %s", plugin_dir.name, e)
 
         return installed
 

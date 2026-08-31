@@ -4,8 +4,11 @@
 """
 
 import json
+import logging
 import os
 from typing import Dict, List, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 # 支持的语言配置
 SUPPORTED_LANGUAGES = {
@@ -256,7 +259,7 @@ class I18nService:
             with open(translation_file, 'w', encoding='utf-8') as f:
                 json.dump(translations, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            print(f"Error saving translations: {e}")
+            logger.error("Error saving translations: %s", e)
 
     def generate_translation_template(self) -> Dict[str, str]:
         """生成翻译模板(基于默认语言)"""

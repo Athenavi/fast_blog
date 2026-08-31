@@ -4,9 +4,12 @@
 类似WordPress WPML Translation Memory
 """
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
+
+logger = logging.getLogger(__name__)
 
 # 默认配置
 MEMORY_FILE_PATH = Path(__file__).parent.parent.parent / "plugins_data" / "translation_memory.json"

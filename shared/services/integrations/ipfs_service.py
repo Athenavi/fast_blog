@@ -218,14 +218,14 @@ class IPFSService:
 
             if cid in self.file_records:
                 self.file_records[cid].pinned = True
-                print(f"📌 文件已固定: {cid}")
+                logger.info("文件已固定: %s", cid)
                 return True
             else:
-                print(f"⚠️ 文件不存在: {cid}")
+                logger.warning("文件不存在: %s", cid)
                 return False
 
         except Exception as e:
-            print(f"❌ 固定文件失败: {e}")
+            logger.error("固定文件失败: %s", e)
             return False
 
     def unpin_file(self, cid: str) -> bool:

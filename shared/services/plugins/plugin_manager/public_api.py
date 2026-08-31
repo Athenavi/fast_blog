@@ -2,6 +2,7 @@
 插件公开API服务
 提供插件可以安全调用的公开接口，避免插件直接操作数据库
 """
+import logging
 import re
 from typing import Dict, List, Any, Optional
 
@@ -9,6 +10,8 @@ from sqlalchemy import select
 
 from shared.models.article import Article
 from src.extensions import get_async_session_context
+
+logger = logging.getLogger(__name__)
 
 
 class PluginPublicAPI:
@@ -98,9 +101,7 @@ class PluginPublicAPI:
             return []
 
         except Exception as e:
-            print(f"[PluginPublicAPI] Failed to get published articles: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("[PluginPublicAPI] Failed to get published articles: %s", e)
             return []
 
     @staticmethod
@@ -144,7 +145,7 @@ class PluginPublicAPI:
                     return None
 
         except Exception as e:
-            print(f"[PluginPublicAPI] Failed to get article by slug: {e}")
+            logger.error("[PluginPublicAPI] Failed to get article by slug: %s", e)
             return None
 
     @staticmethod
@@ -177,7 +178,7 @@ class PluginPublicAPI:
         #     'status': page.status,
         # } for page in pages]
 
-        print("[PluginPublicAPI] Pages feature not yet implemented, returning empty list")
+        logger.warning("[PluginPublicAPI] Pages feature not yet implemented, returning empty list")
         return []
 
     @staticmethod
@@ -213,7 +214,7 @@ class PluginPublicAPI:
                     }
 
         except Exception as e:
-            print(f"[PluginPublicAPI] Failed to get site settings: {e}")
+            logger.error("[PluginPublicAPI] Failed to get site settings: %s", e)
             return {
                 'site_name': 'FastBlog',
                 'site_description': '',

@@ -2,9 +2,12 @@
 增量静态再生成 (ISR) 服务
 支持在内容更新后自动触发前端页面的重新构建
 """
+import logging
 import os
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class ISRService:

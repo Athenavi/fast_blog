@@ -3,6 +3,7 @@
 组合多种检测策略进行综合判断
 """
 
+import logging
 from datetime import datetime
 from typing import Dict, Any, Optional
 
@@ -14,6 +15,8 @@ from shared.services.security.spam_filter_manager.strategies import (
     HoneypotStrategy,
     UserAgentStrategy
 )
+
+logger = logging.getLogger(__name__)
 
 
 class SpamFilterService:
@@ -262,5 +265,5 @@ class SpamFilterService:
                 self.enable_ua_check = bool(config['enable_ua_check'])
             return True
         except Exception as e:
-            print(f"更新配置失败: {e}")
+            logger.error("更新配置失败: %s", e)
             return False

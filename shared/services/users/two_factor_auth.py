@@ -5,12 +5,15 @@
 
 import base64
 import json
+import logging
 import secrets
 from io import BytesIO
 from typing import Dict, Any, Optional, List
 
 import pyotp
 import qrcode
+
+logger = logging.getLogger(__name__)
 
 
 class TwoFactorAuthService:

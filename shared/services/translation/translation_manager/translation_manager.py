@@ -4,9 +4,12 @@
 """
 
 import json
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 # 支持的语言配置
 SUPPORTED_LANGUAGES = [

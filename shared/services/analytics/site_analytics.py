@@ -5,12 +5,13 @@
 """
 
 import json
+import logging
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from collections import defaultdict, Counter
 
-from shared.logging import default_logger as logger
+logger = logging.getLogger(__name__)
 
 
 class SiteAnalyticsService:
@@ -403,7 +404,7 @@ class SiteAnalyticsService:
             self.events_buffer.clear()
 
         except Exception as e:
-            logger.error(f"[Analytics] Failed to flush events: {e}")
+            logger.error("[Analytics] Failed to flush events: %s", e)
 
     def _extract_domain(self, url: str) -> str:
         """从URL提取域名"""
@@ -440,7 +441,7 @@ class SiteAnalyticsService:
                     if line:
                         events.append(json.loads(line))
         except Exception as e:
-            logger.error(f"[Analytics] Failed to load events: {e}")
+            logger.error("[Analytics] Failed to load events: %s", e)
 
         return events
 
