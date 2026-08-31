@@ -1,84 +1,89 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {apiClient} from '@/lib/api/base-client';
+import {Flame, Loader2} from 'lucide-react';
+
+const PLUGIN_SLUG = 'popular-articles';
+
+function call(action: string, params: any = {}) {
+  return apiClient.post(`/plugins/${PLUGIN_SLUG}/action`, {action, params});
+}
 
 /**
  * Popular Articles — 阅读排行管理页面
  */
-export default function PopularArticlesPage() {
-  const [articles, setArticles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+function PopularRanking() {
   const [maxItems, setMaxItems] = useState(5);
   const [days, setDays] = useState(30);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/v2/plugins/popular-articles/action`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        action: 'get_popular',
-        params: {max_items: maxItems, days}
-      }),
-    })
-      .then(r => r.json())
-      .then(res => {
-        setArticles(res.data || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [maxItems, days]);
+  const {data: articles = [], isLoading} = useQuery({
+    queryKey: ['popular-articles', maxItems, days],
+    queryFn: async () => {
+      const r = await call('get_popular', {max_items: maxItems, days});
+      return r.data || [];
+    },
+    placeholderData: (prev: any) => prev || [],
+  });
 
   return (
-    <AuthGuard>
-      <QueryProvider>
-        <AdminShell title="🔥 阅读排行">
-          <div className="space-y-6 p-6">
-            <div className="flex gap-4 items-center">
-              <label className="text-sm">显示数量:
-                <select value={maxItems} onChange={e => setMaxItems(Number(e.target.value))}
-                        className="ml-2 border rounded px-2 py-1 text-sm">
-                  {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </label>
-              <label className="text-sm">统计天数:
-                <select value={days} onChange={e => setDays(Number(e.target.value))}
-                        className="ml-2 border rounded px-2 py-1 text-sm">
-                  {[7, 14, 30, 90].map(n => <option key={n} value={n}>{n}天</option>)}
-                </select>
-              </label>
-            </div>
-
-            {loading ? (
-              <div className="animate-pulse space-y-3">
-                {Array.from({length: 5}).map((_, i) => (
-                  <div key={i} className="h-12 bg-gray-200 dark:bg-gray-700 rounded"/>
-                ))}
+    <AdminShell title="阅读排行" actions={
+      <div className="flex items-center gap-4 text-sm">
+        <label className="flex items-center gap-1.5 text-gray-500">
+          <span>显示</span>
+          <select value={maxItems} onChange={e => setMaxItems(Number(e.target.value))}
+                  className="border rounded-lg px-2 py-1 text-xs bg-white dark:bg-gray-800">
+            {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </label>
+        <label className="flex items-center gap-1.5 text-gray-500">
+          <span>近</span>
+          <select value={days} onChange={e => setDays(Number(e.target.value))}
+                  className="border rounded-lg px-2 py-1 text-xs bg-white dark:bg-gray-800">
+            {[7, 14, 30, 90].map(n => <option key={n} value={n}>{n}天</option>)}
+          </select>
+        </label>
+      </div>
+    }>
+      {isLoading ? (
+        <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 animate-spin text-blue-500"/></div>
+      ) : articles.length === 0 ? (
+        <div className="text-center py-16 text-gray-400">
+          <Flame className="w-12 h-12 mx-auto mb-4 opacity-50"/>
+          <p className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-1">暂无热门文章</p>
+          <p className="text-sm">文章需要有一定的浏览量才会出现在这里</p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border overflow-hidden">
+          <div className="divide-y dark:divide-gray-800">
+            {articles.map((a: any, i: number) => (
+              <div key={a.id}
+                   className="flex items-center gap-4 px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
+                <span className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold ${
+                  i === 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                    i === 1 ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' :
+                      i === 2 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                        'text-gray-400'
+                }`}>{i + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{a.title || `#${a.id}`}</p>
+                  <p className="text-xs text-gray-400">{a.views ?? 0} 次浏览</p>
+                </div>
+                <a href={`/article/${a.slug || a.id}`} target="_blank" rel="noopener noreferrer"
+                   className="px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors whitespace-nowrap">
+                  查看
+                </a>
               </div>
-            ) : (
-              <div className="space-y-2">
-                {articles.map((a: any, i: number) => (
-                  <div key={a.id}
-                       className="flex items-center gap-4 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <span className="text-lg font-bold text-gray-400 w-8 text-center">#{i + 1}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{a.title}</p>
-                      <p className="text-xs text-gray-400">{a.views} 次浏览</p>
-                    </div>
-                    <a href={`/article/${a.slug || a.id}`} target="_blank"
-                       className="text-blue-500 hover:underline text-sm whitespace-nowrap">查看</a>
-                  </div>
-                ))}
-                {articles.length === 0 && (
-                  <p className="text-gray-400 text-center py-8">暂无数据</p>
-                )}
-              </div>
-            )}
+            ))}
           </div>
-        </AdminShell>
-      </QueryProvider>
-    </AuthGuard>
+        </div>
+      )}
+    </AdminShell>
   );
+}
+
+export default function PopularArticlesPage() {
+  return <AuthGuard><QueryProvider><PopularRanking/></QueryProvider></AuthGuard>;
 }

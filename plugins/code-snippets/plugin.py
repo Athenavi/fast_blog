@@ -5,16 +5,14 @@
 """
 
 import re
-import time
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
-from sqlalchemy import Column, Integer, String, Text, DateTime, create_engine
+from sqlalchemy import Column, Integer, String, Text, DateTime
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from shared.services.plugins.plugin_manager.core import BasePlugin
-from shared.services.plugins.event_bus import event_bus
 from shared.logging import default_logger as logger
+from shared.services.plugins.plugin_manager.core import BasePlugin
 
 # ── 插件本地 ORM 模型（SQLite，独立于主库）──
 SnippetBase = declarative_base()
@@ -52,7 +50,7 @@ class CodeSnippetsPlugin(BasePlugin):
 
     def __init__(self):
         super().__init__(
-            plugin_id=0,
+            plugin_id=3002,
             name="代码片段收藏",
             slug="code-snippets",
             version="1.0.0"
