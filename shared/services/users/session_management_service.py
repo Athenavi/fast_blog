@@ -4,8 +4,8 @@
 """
 
 
-import hashlib
 import asyncio
+import hashlib
 import json
 import os
 from collections import defaultdict
@@ -463,7 +463,7 @@ class SessionManagementService:
             from src.utils.database.unified_manager import db_manager
             from shared.models.user.user_session import UserSession
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 record = UserSession(
                     user_id=user_id,
                     access_token=session_info['session_id'],
@@ -487,7 +487,7 @@ class SessionManagementService:
             from shared.models.user.user_session import UserSession
             from sqlalchemy import select
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 result = await session.execute(
                     select(UserSession).where(
                         UserSession.user_id == user_id,
@@ -508,7 +508,7 @@ class SessionManagementService:
             from shared.models.user.user_session import UserSession
             from sqlalchemy import update
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 stmt = (
                     update(UserSession)
                     .where(UserSession.user_id == user_id, UserSession.is_active == True)

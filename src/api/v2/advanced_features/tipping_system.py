@@ -24,7 +24,7 @@ async def tip_article(
         amount: float = Body(..., ge=1, le=10000, description="打赏金额"),
         message: str = Body('', description="留言(可选)"),
         payment_method: str = Body('balance', enum=['balance', 'wechat', 'alipay'], description="支付方式"),
-    current_user: UserModel = Depends(get_current_active_user),
+    current_user: UserModel = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db)
 ):
     """对文章进行打赏"""
@@ -63,7 +63,7 @@ async def get_article_tips(
 @_catch
 async def get_my_received_tips(
         limit: int = Query(100, ge=1, le=500, description="返回数量"),
-        current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(jwt_required)
 ):
     """获取当前用户收到的打赏记录"""
     tips = tipping_system.get_user_received_tips(current_user.id, limit=limit)
@@ -73,7 +73,7 @@ async def get_my_received_tips(
 
 @router.get("/my-stats", summary="获取我的打赏统计")
 @_catch
-async def get_my_tip_stats(current_user: UserModel = Depends(get_current_active_user)):
+async def get_my_tip_stats(current_user: UserModel = Depends(jwt_required)):
     """获取当前用户的打赏统计数据"""
     stats = tipping_system.get_user_tip_stats(current_user.id)
     return ok(data=stats)
@@ -113,7 +113,7 @@ async def get_recent_tips(limit: int = Query(20, ge=1, le=100, description="返�
 async def refund_tip(
         tip_id: str = Body(..., description="打赏ID"),
         reason: str = Body('', description="退款原因"),
-        current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(jwt_required)
 ):
     """申请退款打赏"""
     success = tipping_system.refund_tip(tip_id, from_user_id=current_user.id, reason=reason)
@@ -124,7 +124,7 @@ async def refund_tip(
 
 @router.get("/balance", summary="获取可提现余额")
 @_catch
-async def get_available_balance(current_user: UserModel = Depends(get_current_active_user)):
+async def get_available_balance(current_user: UserModel = Depends(jwt_required)):
     """获取当前用户的可提现余额信息"""
     balance_info = tipping_system.get_user_available_balance(current_user.id)
     return ok(data=balance_info)
@@ -136,7 +136,7 @@ async def request_withdrawal(
         amount: float = Body(..., ge=1, description="提现金额"),
         payment_method: str = Body('bank_transfer', enum=['bank_transfer', 'wechat', 'alipay'], description="支付方式"),
         account_info: dict = Body({}, description="账户信息"),
-        current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(jwt_required)
 ):
     """申请提现"""
     withdrawal = tipping_system.create_withdrawal(
@@ -154,7 +154,7 @@ async def request_withdrawal(
 @_catch
 async def get_my_withdrawals(
         limit: int = Query(50, ge=1, le=200, description="返回数量"),
-        current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(jwt_required)
 ):
     """获取当前用户的提现记录"""
     withdrawals = tipping_system.get_user_withdrawals(current_user.id, limit=limit)
@@ -165,7 +165,7 @@ async def get_my_withdrawals(
 @_catch
 async def cancel_withdrawal(
         withdrawal_id: str,
-        current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(jwt_required)
 ):
     """取消提现申请（仅限pending状态）"""
     success = tipping_system.cancel_withdrawal(withdrawal_id, current_user.id)
@@ -180,7 +180,7 @@ async def admin_process_withdrawal(
         withdrawal_id: str = Body(..., description="提现ID"),
         status: str = Body('completed', enum=['completed', 'rejected'], description="处理结果"),
         admin_note: str = Body('', description="管理员备注"),
-        current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(jwt_required)
 ):
     """管理员处理提现申请"""
     if not current_user.is_superuser:

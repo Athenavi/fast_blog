@@ -6,17 +6,13 @@
 
  已废弃：此模块仅作为向后兼容的 re-export 层。
 请迁移到: from shared.config.settings import settings
+
+注意：所有大写配置变量（DB_ENGINE, DB_HOST, MAIL_SERVER 等）
+均为 BaseConfig/AppConfig 的类属性/实例属性，不是模块级变量。
+需要访问时请通过 settings 对象：settings.DB_ENGINE, settings.DB_HOST 等。
 """
 from shared.config.settings import (  # noqa: F401
-    settings, SECRET_KEY, JWT_SECRET_KEY, DB_ENGINE, DB_HOST, DB_PORT,
-    DB_USER, DB_PASSWORD, DB_NAME, DB_TABLE_PREFIX, DB_POOL_SIZE,
-    DB_POOL_OVERFLOW, DB_POOL_TIMEOUT, DB_POOL_RECYCLE, DOMAIN, TITLE,
-    DESCRIPTION, KEYWORDS, TIME_ZONE, ENVIRONMENT, DEBUG, JWT_EXPIRATION_DELTA,
-    REFRESH_TOKEN_EXPIRATION_DELTA, JWT_ALGORITHM, WORKERS, DISABLED_MODULES,
-    REDIS_HOST, REDIS_PORT, REDIS_DB, REDIS_PASSWORD, REDIS_MAX_CONNECTIONS,
-    CACHE_TTL_DEFAULT, CACHE_TTL_ARTICLES, CACHE_TTL_USERS, MAIL_SERVER,
-    MAIL_PORT, MAIL_USE_TLS, MAIL_USERNAME, MAIL_PASSWORD, MAIL_FROM,
-    MAIL_FROM_NAME, UPLOAD_LIMIT, USER_FREE_STORAGE_LIMIT, FRONTEND_PORT,
-    BACKEND_PORT,
+    settings, app_config, BaseConfig, AppConfig,
+    ProductionConfig, DevelopmentConfig, TestingConfig,
+    get_app_config, get_config_by_env, get_sqlalchemy_uri, _get_worker_info,
 )
-from shared.config.settings import _get_worker_info  # noqa: F401

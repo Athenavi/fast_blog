@@ -6,4 +6,6 @@
 """
 from shared.logging import default_logger, get_logger, LoggerConfig  # noqa: F401
 
-__all__ = ['default_logger', 'get_logger', 'LoggerConfig']
+logger = default_logger  # 兼容旧代码的 import logger
+
+__all__ = ['default_logger', 'get_logger', 'LoggerConfig', 'logger']
