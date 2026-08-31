@@ -477,7 +477,9 @@ class PluginManager:
         """获取当前激活的主题插件（category='theme' 且 active 的插件）"""
         for plugin in self.plugins.values():
             if plugin.active:
-                plugin.load_metadata()
+                # 仅在元数据未加载时读取文件，避免重复 I/O
+                if not plugin.metadata:
+                    plugin.load_metadata()
                 if plugin.manifest and plugin.manifest.category == "theme":
                     return plugin
         return None
@@ -520,7 +522,12 @@ class PluginManager:
 
             logger.info("[PluginManager] Loading plugin state from database...")
 
-            for db_session in get_sync_db():
+            db_gen = get_sync_db()
+            db_session = next(db_gen, None)
+            if db_session is None:
+                return False
+
+            try:
                 # 获取所有已安装的插件（不仅仅是激活的）
                 installed_plugins = db_session.query(Plugin).filter(Plugin.is_installed == True).all()
                 logger.info(f"[PluginManager] Found {len(installed_plugins)} installed plugins in database")
@@ -548,11 +555,14 @@ class PluginManager:
                                             other_p.deactivate()
                     else:
                         logger.warning(f"[PluginManager] Warning: Plugin {plugin_record.slug} in database but not loaded")
+            finally:
+                try:
+                    next(db_gen, None)  # 触发上下文管理器关闭
+                except StopIteration:
+                    pass
 
-                logger.info("[PluginManager] Plugin state loaded from database successfully")
-                return True
-
-            return False
+            logger.info("[PluginManager] Plugin state loaded from database successfully")
+            return True
 
         except Exception as e:
             logger.error(f"[PluginManager] Failed to load state from database: {e}")

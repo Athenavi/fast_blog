@@ -134,6 +134,15 @@ class PluginInstaller:
 
         return None
 
+    def _discover_installed_plugins(self) -> List[str]:
+        """扫描插件目录，返回已安装的插件slug列表"""
+        if not self.plugins_dir.exists():
+            return []
+        return [
+            item.name for item in self.plugins_dir.iterdir()
+            if item.is_dir() and (item / "metadata.json").exists() and (item / "plugin.py").exists()
+        ]
+
     def _check_dependencies(self, metadata: Dict[str, Any]) -> Tuple[bool, str]:
         """
         检查插件依赖
@@ -146,10 +155,10 @@ class PluginInstaller:
         """
         try:
             plugin_slug = metadata.get('slug', '')
+            installed_plugins = self._discover_installed_plugins()
             result = plugin_dependency_manager.check_dependencies(
                 plugin_slug,
-                plugin_dependency_manager.discover_plugins() if hasattr(plugin_dependency_manager,
-                                                                        'discover_plugins') else []
+                installed_plugins
             )
 
             if not result.get("success"):
@@ -243,28 +252,27 @@ class PluginInstaller:
                 return False, "插件主文件不存在"
 
             # 更新数据库中的激活状态
-            for db_session in get_sync_db():
-                plugin = db_session.query(Plugin).filter(Plugin.slug == plugin_slug).first()
+            db_session = next(get_sync_db())
+            plugin = db_session.query(Plugin).filter(Plugin.slug == plugin_slug).first()
 
-                if not plugin:
-                    # 如果数据库中不存在,创建记录
-                    plugin = Plugin(
-                        slug=plugin_slug,
-                        name=plugin_slug,
-                        version="1.0.0",
-                        is_active=True,
-                        is_installed=True,
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
-                    )
-                    db_session.add(plugin)
-                else:
-                    # 更新现有记录
-                    plugin.is_active = True
-                    plugin.updated_at = datetime.now()
+            if not plugin:
+                # 如果数据库中不存在,创建记录
+                plugin = Plugin(
+                    slug=plugin_slug,
+                    name=plugin_slug,
+                    version="1.0.0",
+                    is_active=True,
+                    is_installed=True,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                db_session.add(plugin)
+            else:
+                # 更新现有记录
+                plugin.is_active = True
+                plugin.updated_at = datetime.now()
 
-                db_session.commit()
-                break
+            db_session.commit()
 
             return True, f"插件 '{plugin_slug}' 已激活"
 
@@ -294,18 +302,13 @@ class PluginInstaller:
                 return False, f"插件 '{plugin_slug}' 未安装"
 
             # 更新数据库中的激活状态
-            for db_session in get_sync_db():
-                plugin = db_session.query(Plugin).filter(Plugin.slug == plugin_slug).first()
+            db_session = next(get_sync_db())
+            plugin = db_session.query(Plugin).filter(Plugin.slug == plugin_slug).first()
 
-                if plugin:
-                    plugin.is_active = False
-                    plugin.updated_at = datetime.now()
-                    db_session.commit()
-                else:
-                    # 如果数据库中不存在,说明从未激活过
-                    pass
-
-                break
+            if plugin:
+                plugin.is_active = False
+                plugin.updated_at = datetime.now()
+                db_session.commit()
 
             return True, f"插件 '{plugin_slug}' 已停用"
 

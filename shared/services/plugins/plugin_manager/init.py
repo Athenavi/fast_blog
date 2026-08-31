@@ -22,12 +22,16 @@ def initialize_plugins():
     try:
         logger.info("[PluginSystem] Initializing plugin system...")
 
+        # 基于当前文件路径计算项目根目录
+        _current_file = Path(__file__).resolve()
+        _project_root = _current_file.parent.parent.parent.parent.parent  # shared/services/plugins/plugin_manager -> 项目根
+
         # 确保插件目录存在
-        plugins_dir = Path("plugins")
+        plugins_dir = _project_root / "plugins"
         plugins_dir.mkdir(exist_ok=True)
 
         # 确保storage目录存在
-        storage_dir = Path("storage")
+        storage_dir = _project_root / "storage"
         storage_dir.mkdir(exist_ok=True)
 
         # 加载所有插件

@@ -71,6 +71,10 @@ class PluginDependencyManager:
             }
 
         dependencies = metadata.get("dependencies", {})
+        # 兼容 manifest 的 plugin_dependencies 字段（List[str] 格式）
+        plugin_deps = metadata.get("plugin_dependencies", [])
+        if isinstance(plugin_deps, list) and not dependencies:
+            dependencies = {dep: "" for dep in plugin_deps}
         conflicts = metadata.get("conflicts", [])
         requires_version = metadata.get("requires", "")
 
