@@ -1,12 +1,12 @@
 """
 草稿预览查看页面 - 后端渲染
 """
+import html
+
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-import html
 
 from shared.models.article import Article, ArticleContent
 from shared.services.articles.draft_preview_service import draft_preview_service
@@ -14,19 +14,8 @@ from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["preview-view"])
 
-
-def _build_html(title, content_body, cover_image, excerpt, updated_at, view_count, expires_at):
-    title_safe = html.escape(title or '无标题')
-    cover_image_safe = html.escape(cover_image) if cover_image else ''
-    excerpt_safe = html.escape(excerpt) if excerpt else ''
-    cover_html = f'<img src="{cover_image_safe}" class="w-full h-64 object-cover rounded-2xl mb-8 shadow-lg"/>' if cover_image else ''
-    excerpt_html = f'<p class="text-lg text-gray-500 mb-6">{excerpt_safe}</p>' if excerpt else ''
-    date_str = updated_at.strftime('%Y-%m-%d %H:%M') if updated_at else ''
-    return f"""<!DOCTYPE html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title_safe} - 预览</title>
-<style>
-  /* tailwindcss v3.4 minimal subset */
+# 公共 CSS 样式常量（非 f-string，避免 Python 3.12+ 花括号解析问题）
+_PREVIEW_STYLES = """\
   *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid}
   html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
   body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
@@ -67,7 +56,52 @@ def _build_html(title, content_body, cover_image, excerpt, updated_at, view_coun
   .mt-4{margin-top:1rem}.bg-gray-600{--tw-bg-opacity:1;background-color:rgb(75 85 99/var(--tw-bg-opacity))}
   .hover\\:bg-gray-700:hover{--tw-bg-opacity:1;background-color:rgb(55 65 81/var(--tw-bg-opacity))}
   .inline-block{display:inline-block}.text-6xl{font-size:3.75rem;line-height:1}
-  .mx-4{margin-left:1rem;margin-right:1rem}</style></head>
+  .mx-4{margin-left:1rem;margin-right:1rem}"""
+
+_PREVIEW_STYLES_PASSWORD = """\
+  *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid}
+  html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
+  .min-h-screen{min-height:100vh}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251/var(--tw-bg-opacity))}
+  .flex{display:flex}.items-center{align-items:center}.justify-center{justify-content:center}
+  .bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity))}
+  .p-8{padding:2rem}.rounded-2xl{border-radius:1rem}.shadow-lg{box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
+  .max-w-md{max-width:28rem}.w-full{width:100%}.mx-4{margin-left:1rem;margin-right:1rem}
+  .text-xl{font-size:1.25rem;line-height:1.75rem}.font-bold{font-weight:700}
+  .text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39/var(--tw-text-opacity))}
+  .text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128/var(--tw-text-opacity))}
+  .text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175/var(--tw-text-opacity))}
+  .text-xs{font-size:.75rem;line-height:1rem}.text-sm{font-size:.875rem;line-height:1.25rem}
+  .mb-2{margin-bottom:.5rem}.mb-6{margin-bottom:1.5rem}.mt-4{margin-top:1rem}
+  .space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}
+  .flex-1{flex:1 1 0%}.px-4{padding-left:1rem;padding-right:1rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
+  .border{border-width:1px}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219/var(--tw-border-opacity))}
+  .rounded-xl{border-radius:.75rem}.outline-none{outline:2px solid transparent;outline-offset:2px}
+  .focus\\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 transparent)}
+  .focus\\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246/var(--tw-ring-opacity))}
+  .focus\\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246/var(--tw-border-opacity))}
+  .bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity))}
+  .hover\\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216/var(--tw-bg-opacity))}
+  .text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity))}
+  .px-6{padding-left:1.5rem;padding-right:1.5rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
+  .font-medium{font-weight:500}.text-center{text-align:center}
+  .gap-2{gap:.5rem}"""
+
+
+def _build_html(title, content_body, cover_image, excerpt, updated_at, view_count, expires_at):
+    title_safe = html.escape(title or '无标题')
+    cover_image_safe = html.escape(cover_image) if cover_image else ''
+    excerpt_safe = html.escape(excerpt) if excerpt else ''
+    cover_html = f'<img src="{cover_image_safe}" class="w-full h-64 object-cover rounded-2xl mb-8 shadow-lg"/>' if cover_image else ''
+    excerpt_html = f'<p class="text-lg text-gray-500 mb-6">{excerpt_safe}</p>' if excerpt else ''
+    date_str = updated_at.strftime('%Y-%m-%d %H:%M') if updated_at else ''
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{title_safe} - 预览</title>
+<style>
+  /* tailwindcss v3.4 minimal subset */
+  {_PREVIEW_STYLES}
+</style></head>
 <body class="bg-gray-50 min-h-screen">
 <div class="max-w-4xl mx-auto px-4 py-8">
   <div class="bg-amber-50 border border-amber-200 rounded-2xl px-6 py-3 mb-8 flex items-center justify-between">
@@ -102,33 +136,7 @@ def _build_password_page(token):
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>预览 - 需要密码</title>
 <style>
-  *,::before,::after{box-sizing:border-box;border-width:0;border-style:solid}
-  html{line-height:1.5;-webkit-text-size-adjust:100%;tab-size:4}
-  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif}
-  .min-h-screen{min-height:100vh}.bg-gray-50{--tw-bg-opacity:1;background-color:rgb(249 250 251/var(--tw-bg-opacity))}
-  .flex{display:flex}.items-center{align-items:center}.justify-center{justify-content:center}
-  .bg-white{--tw-bg-opacity:1;background-color:rgb(255 255 255/var(--tw-bg-opacity))}
-  .p-8{padding:2rem}.rounded-2xl{border-radius:1rem}.shadow-lg{box-shadow:0 10px 15px -3px rgb(0 0 0/.1),0 4px 6px -4px rgb(0 0 0/.1)}
-  .max-w-md{max-width:28rem}.w-full{width:100%}.mx-4{margin-left:1rem;margin-right:1rem}
-  .text-xl{font-size:1.25rem;line-height:1.75rem}.font-bold{font-weight:700}
-  .text-gray-900{--tw-text-opacity:1;color:rgb(17 24 39/var(--tw-text-opacity))}
-  .text-gray-500{--tw-text-opacity:1;color:rgb(107 114 128/var(--tw-text-opacity))}
-  .text-gray-400{--tw-text-opacity:1;color:rgb(156 163 175/var(--tw-text-opacity))}
-  .text-xs{font-size:.75rem;line-height:1rem}.text-sm{font-size:.875rem;line-height:1.25rem}
-  .mb-2{margin-bottom:.5rem}.mb-6{margin-bottom:1.5rem}.mt-4{margin-top:1rem}
-  .space-y-4>:not([hidden])~:not([hidden]){--tw-space-y-reverse:0;margin-top:calc(1rem*(1 - var(--tw-space-y-reverse)));margin-bottom:calc(1rem*var(--tw-space-y-reverse))}
-  .flex-1{flex:1 1 0%}.px-4{padding-left:1rem;padding-right:1rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
-  .border{border-width:1px}.border-gray-300{--tw-border-opacity:1;border-color:rgb(209 213 219/var(--tw-border-opacity))}
-  .rounded-xl{border-radius:.75rem}.outline-none{outline:2px solid transparent;outline-offset:2px}
-  .focus\\:ring-2:focus{--tw-ring-offset-shadow:var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);--tw-ring-shadow:var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);box-shadow:var(--tw-ring-offset-shadow),var(--tw-ring-shadow),var(--tw-shadow,0 0 transparent)}
-  .focus\\:ring-blue-500:focus{--tw-ring-opacity:1;--tw-ring-color:rgb(59 130 246/var(--tw-ring-opacity))}
-  .focus\\:border-blue-500:focus{--tw-border-opacity:1;border-color:rgb(59 130 246/var(--tw-border-opacity))}
-  .bg-blue-600{--tw-bg-opacity:1;background-color:rgb(37 99 235/var(--tw-bg-opacity))}
-  .hover\\:bg-blue-700:hover{--tw-bg-opacity:1;background-color:rgb(29 78 216/var(--tw-bg-opacity))}
-  .text-white{--tw-text-opacity:1;color:rgb(255 255 255/var(--tw-text-opacity))}
-  .px-6{padding-left:1.5rem;padding-right:1.5rem}.py-2\\.5{padding-top:.625rem;padding-bottom:.625rem}
-  .font-medium{font-weight:500}.text-center{text-align:center}
-  .gap-2{gap:.5rem}
+  {_PREVIEW_STYLES_PASSWORD}
 </style></head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen">
 <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
