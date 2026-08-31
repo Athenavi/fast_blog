@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 from collections import defaultdict, Counter
 
+from shared.logging import default_logger as logger
+
 
 class SiteAnalyticsService:
     """
@@ -401,7 +403,7 @@ class SiteAnalyticsService:
             self.events_buffer.clear()
 
         except Exception as e:
-            print(f"[Analytics] Failed to flush events: {e}")
+            logger.error(f"[Analytics] Failed to flush events: {e}")
 
     def _extract_domain(self, url: str) -> str:
         """从URL提取域名"""
@@ -438,7 +440,7 @@ class SiteAnalyticsService:
                     if line:
                         events.append(json.loads(line))
         except Exception as e:
-            print(f"[Analytics] Failed to load events: {e}")
+            logger.error(f"[Analytics] Failed to load events: {e}")
 
         return events
 

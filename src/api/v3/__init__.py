@@ -53,21 +53,23 @@ ROUTE_REGISTRY_V3 = [
 def register_v3_routes(app):
     """注册 v3 API 路由"""
     from importlib import import_module
+    import logging
+    logger = logging.getLogger(__name__)
 
     for module_path, prefix, tags, required in ROUTE_REGISTRY_V3:
         try:
             module = import_module(module_path)
             if hasattr(module, 'router'):
                 app.include_router(module.router, prefix=prefix, tags=tags)
-                print(f"[V3 API] Registered: {prefix}")
+                logger.info(f"[V3 API] Registered: {prefix}")
             else:
-                print(f"[V3 API] Warning: No router found in {module_path}")
+                logger.warning(f"[V3 API] Warning: No router found in {module_path}")
         except Exception as e:
             if required:
-                print(f"[V3 API] Error: Failed to load required module {module_path}: {e}")
+                logger.error(f"[V3 API] Error: Failed to load required module {module_path}: {e}")
                 raise
             else:
-                print(f"[V3 API] Warning: Failed to load optional module {module_path}: {e}")
+                logger.warning(f"[V3 API] Warning: Failed to load optional module {module_path}: {e}")
 
 
 # 创建主路由器

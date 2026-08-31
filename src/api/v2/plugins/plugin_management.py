@@ -3,17 +3,17 @@
 提供插件的激活、停用、配置等功能
 """
 import asyncio
-from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
-from shared.services.plugins.plugin_manager.core import plugin_manager
 from shared.services.plugins.plugin_audit import plugin_audit_logger
+from shared.services.plugins.plugin_manager.core import plugin_manager
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth import admin_required, jwt_required_dependency as jwt_required
+from src.auth import admin_required
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["plugins"])
 
@@ -23,7 +23,7 @@ async def list_marketplace_plugins(
 ):
     """
     获取插件市场列表（扫描 plugins/ 目录发现所有可安装的插件）
-    
+
     Returns:
         所有可发现的插件列表
     """
@@ -44,7 +44,7 @@ async def list_plugins(
 ):
     """
     获取所有已安装的插件列表
-    
+
     Returns:
         插件列表
     """
@@ -62,7 +62,7 @@ async def load_all_plugins(
 ):
     """
     加载所有插件
-    
+
     Returns:
         加载结果
     """
@@ -82,10 +82,10 @@ async def activate_plugin(
 ):
     """
     激活插件
-    
+
     Args:
         plugin_slug: 插件标识
-        
+
     Returns:
         激活结果
     """
@@ -110,10 +110,10 @@ async def deactivate_plugin(
 ):
     """
     停用插件
-    
+
     Args:
         plugin_slug: 插件标识
-        
+
     Returns:
         停用结果
     """
@@ -135,10 +135,10 @@ async def get_plugin_info(
 ):
     """
     获取插件详细信息
-    
+
     Args:
         plugin_slug: 插件标识
-        
+
     Returns:
         插件信息
     """
@@ -158,10 +158,10 @@ async def get_plugin_settings(
 ):
     """
     获取插件设置
-    
+
     Args:
         plugin_slug: 插件标识
-        
+
     Returns:
         插件设置和UI配置
     """
@@ -187,13 +187,13 @@ async def update_plugin_settings(
 ):
     """
     更新插件设置
-    
+
     Args:
         plugin_slug: 插件标识
-        
+
     Body参数:
         settings: 新的设置值
-        
+
     Returns:
         更新结果
     """
@@ -219,14 +219,14 @@ async def execute_plugin_action(
 ):
     """
     执行插件自定义动作
-    
+
     Args:
         plugin_slug: 插件标识
-        
+
     Body参数:
         action: 动作名称
         params: 动作参数
-        
+
     Returns:
         执行结果
     """
@@ -288,7 +288,7 @@ async def get_active_plugins(
 ):
     """
     获取所有激活的插件
-    
+
     Returns:
         激活的插件列表
     """
@@ -306,10 +306,10 @@ async def uninstall_plugin(
 ):
     """
     卸载插件
-    
+
     Args:
         plugin_slug: 插件标识
-        
+
     Returns:
         卸载结果
     """
@@ -331,13 +331,13 @@ async def sync_plugin_config(
 ):
     """
     同步插件配置 - 将本地插件状态同步到数据库
-    
+
     此接口会:
     1. 扫描本地 plugins 目录中的所有插件
     2. 读取 plugin_state.json 中的激活状态
     3. 将状态同步到数据库的 fb_plugins 表
     4. 确保数据库和本地状态一致
-    
+
     Returns:
         同步结果
     """
@@ -369,7 +369,7 @@ async def sync_plugin_config(
                                 'metadata': metadata
                             })
                     except Exception as e:
-                        print(f"读取插件元数据失败 {item.name}: {e}")
+                        logger.warning(f"读取插件元数据失败 {item.name}: {e}")
 
     result = await db.execute(select(Plugin))
     db_plugins = result.scalars().all()
@@ -396,7 +396,7 @@ async def sync_plugin_config(
                     with open(settings_file, 'r', encoding='utf-8') as sf:
                         settings_data = json.load(sf)
                 except Exception as e:
-                    print(f"读取插件设置失败 {slug}: {e}")
+                    logger.warning(f"读取插件设置失败 {slug}: {e}")
 
             if slug in existing_plugins:
                 plugin = existing_plugins[slug]
@@ -420,7 +420,8 @@ async def sync_plugin_config(
                 if needs_update:
                     plugin.updated_at = datetime.now()
                     updated_count += 1
-                    print(f"[SyncConfig] Updated plugin: {slug} (active={is_active}, settings={'yes' if settings_data else 'no'})")
+                    logger.info(
+                        f"[SyncConfig] Updated plugin: {slug} (active={is_active}, settings={'yes' if settings_data else 'no'})")
             else:
                 settings_json = json.dumps(settings_data, ensure_ascii=False) if settings_data else None
 
@@ -443,7 +444,7 @@ async def sync_plugin_config(
                 created_count += 1
                 if settings_data:
                     settings_synced += 1
-                print(f"[SyncConfig] Created plugin: {slug} (with settings={'yes' if settings_data else 'no'})")
+                logger.info(f"[SyncConfig] Created plugin: {slug} (with settings={'yes' if settings_data else 'no'})")
 
             synced_count += 1
 
@@ -474,16 +475,16 @@ async def hot_reload_plugin(
 ):
     """
     热重载插件（无需重启应用）
-    
+
     步骤:
     1. 停用当前插件（注销钩子）
     2. 重新加载模块代码
     3. 创建新的插件实例
     4. 激活新插件（注册钩子）
-    
+
     Args:
         plugin_slug: 插件slug
-        
+
     Returns:
         重载结果
     """
@@ -505,10 +506,10 @@ async def hot_load_plugin(
 ):
     """
     热加载新插件（运行时动态加载，无需重启）
-    
+
     Args:
         plugin_slug: 插件slug
-        
+
     Returns:
         加载结果
     """
@@ -530,10 +531,10 @@ async def hot_unload_plugin(
 ):
     """
     热卸载插件（运行时动态卸载，无需重启）
-    
+
     Args:
         plugin_slug: 插件slug
-        
+
     Returns:
         卸载结果
     """
@@ -554,7 +555,7 @@ async def scan_new_plugins(
 ):
     """
     扫描新插件（发现plugins目录中未加载的插件）
-    
+
     Returns:
         新发现的插件列表
     """

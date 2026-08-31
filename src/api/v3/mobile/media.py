@@ -14,6 +14,9 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["mobile-media"])
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _process_mobile_image(content: bytes, content_type: str):
@@ -116,7 +119,7 @@ async def upload_mobile_image(
         )
     except Exception as e:
         import traceback
-        print(f"Error in upload_mobile_image: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in upload_mobile_image: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -174,5 +177,5 @@ async def upload_article_cover(
         )
     except Exception as e:
         import traceback
-        print(f"Error in upload_article_cover: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in upload_article_cover: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))

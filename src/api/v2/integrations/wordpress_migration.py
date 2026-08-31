@@ -7,7 +7,7 @@ import os
 import tempfile
 from typing import Optional
 
-from fastapi import APIRouter, UploadFile, File, Depends, Form, BackgroundTasks, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, Form, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
@@ -15,6 +15,7 @@ from shared.services.integrations.wordpress_import import WordPressImportService
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(prefix="/wordpress", tags=["WordPress Migration"])
 
@@ -181,13 +182,13 @@ async def _download_media_background(media_list: list, user_id: int):
 
         def progress_callback(current, total):
             percentage = (current / total * 100) if total > 0 else 0
-            print(f"媒体下载进度: {current}/{total} ({percentage:.1f}%)")
+            logger.info(f"媒体下载进度: {current}/{total} ({percentage:.1f}%)")
 
         result = await importer.download_media_files(media_list, progress_callback)
-        print(f"媒体下载完成: {result}")
+        logger.info(f"媒体下载完成: {result}")
 
     except Exception as e:
-        print(f"媒体下载失败: {str(e)}")
+        logger.error(f"媒体下载失败: {str(e)}")
 
 
 @router.get("/template", summary="获取导入模板和指南")

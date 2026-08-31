@@ -250,7 +250,7 @@ async def verify_2fa_login(
                 user.backup_codes = json.dumps(hashed_codes)
                 verification_method = 'backup_code'
         except Exception as e:
-            print(f"Backup code verification error: {e}")
+            logger.warning(f"Backup code verification error: {e}")
 
     if not verification_method:
         return fail("验证码错误")
@@ -275,9 +275,9 @@ async def verify_2fa_login(
             ip_address=ip_address,
             user_agent=user_agent,
         )
-        print(f"[2FA Verify] Session created for user {user.id}")
+        logger.info(f"[2FA Verify] Session created for user {user.id}")
     except Exception as e:
-        print(f"[2FA Verify] Warning: Failed to create session: {e}")
+        logger.warning(f"[2FA Verify] Warning: Failed to create session: {e}")
 
     # 更新最后登录时间
     user.last_login = datetime.now(timezone.utc)
@@ -294,7 +294,7 @@ async def verify_2fa_login(
         )
         await login_security_service.clear_failed_attempts_async(user.username, db)
     except Exception as e:
-        print(f"Failed to record login attempt: {e}")
+        logger.warning(f"Failed to record login attempt: {e}")
 
     return ok(data={
         "user": {

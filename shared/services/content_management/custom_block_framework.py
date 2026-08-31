@@ -44,6 +44,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
+from shared.logging import default_logger as logger
+
 from .block_editor_service import BlockType, BlockEditorService
 
 
@@ -158,7 +160,7 @@ class BlockPluginManager:
 
         # 检查是否已加载
         if plugin_name in self.plugins:
-            print(f"⚠️ 插件 '{plugin_name}' 已加载")
+            logger.warning(f"插件 '{plugin_name}' 已加载")
             return False
 
         try:
@@ -181,13 +183,13 @@ class BlockPluginManager:
             # 调用激活钩子
             plugin_instance.on_activate()
 
-            print(f"✅ 插件 '{plugin_name}' v{plugin_instance.version} 加载成功")
-            print(f"   注册了 {len(plugin_info.blocks)} 个块类型")
+            logger.info(f"插件 '{plugin_name}' v{plugin_instance.version} 加载成功")
+            logger.info(f"注册了 {len(plugin_info.blocks)} 个块类型")
 
             return True
 
         except Exception as e:
-            print(f"❌ 插件 '{plugin_name}' 加载失败: {e}")
+            logger.error(f"插件 '{plugin_name}' 加载失败: {e}")
             import traceback
             traceback.print_exc()
             return False
@@ -203,7 +205,7 @@ class BlockPluginManager:
             是否卸载成功
         """
         if plugin_name not in self.plugins:
-            print(f"⚠️ 插件 '{plugin_name}' 未加载")
+            logger.warning(f"插件 '{plugin_name}' 未加载")
             return False
 
         try:
@@ -216,11 +218,11 @@ class BlockPluginManager:
             del self.plugins[plugin_name]
             del self.plugin_instances[plugin_name]
 
-            print(f"✅ 插件 '{plugin_name}' 已卸载")
+            logger.info(f"插件 '{plugin_name}' 已卸载")
             return True
 
         except Exception as e:
-            print(f"❌ 插件 '{plugin_name}' 卸载失败: {e}")
+            logger.error(f"插件 '{plugin_name}' 卸载失败: {e}")
             return False
 
     def activate_plugin(self, plugin_name: str) -> bool:
@@ -259,7 +261,7 @@ class BlockPluginManager:
             成功加载的插件数量
         """
         if not self.plugin_dir.exists():
-            print(f"📁 插件目录不存在: {self.plugin_dir}")
+            logger.warning(f"插件目录不存在: {self.plugin_dir}")
             return 0
 
         loaded_count = 0
@@ -288,9 +290,9 @@ class BlockPluginManager:
                             loaded_count += 1
 
             except Exception as e:
-                print(f"⚠️ 加载插件 {plugin_path} 失败: {e}")
+                logger.error(f"加载插件 {plugin_path} 失败: {e}")
 
-        print(f"🔍 自动发现完成，成功加载 {loaded_count} 个插件")
+        logger.info(f"自动发现完成，成功加载 {loaded_count} 个插件")
         return loaded_count
 
     def get_plugin(self, plugin_name: str) -> Optional[BlockPlugin]:

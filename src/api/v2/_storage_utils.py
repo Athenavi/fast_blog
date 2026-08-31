@@ -3,6 +3,7 @@
 """
 from decimal import Decimal
 
+from src.unified_logger import default_logger as logger
 from src.utils.storage.s3_storage import s3_storage
 
 
@@ -42,12 +43,12 @@ def async_file_cleanup(db_session, cleanup_data):
                     # 从S3删除文件
                     success = s3_storage.delete_file(storage_path)
                     if success:
-                        print(f"成功从S3删除文件: {storage_path}")
+                        logger.info(f"成功从S3删除文件: {storage_path}")
                     else:
-                        print(f"从S3删除文件失败: {storage_path}")
+                        logger.warning(f"从S3删除文件失败: {storage_path}")
 
             except Exception as e:
-                print(f"文件删除失败: {storage_path} - {str(e)}")
+                logger.error(f"文件删除失败: {storage_path} - {str(e)}")
 
     except Exception as e:
-        print(f"后台清理任务失败: {str(e)}")
+        logger.error(f"后台清理任务失败: {str(e)}")

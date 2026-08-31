@@ -28,8 +28,11 @@ from __future__ import annotations
 import asyncio
 import inspect
 import traceback
+import logging
 from dataclasses import dataclass, field, asdict
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+
+logger = logging.getLogger(__name__)
 
 # ── 预定义事件 Payload ──────────────────────────
 
@@ -142,7 +145,7 @@ class EventBus:
                 if inspect.iscoroutine(result):
                     await result
             except Exception as e:
-                print(f"[EventBus] Error in '{event_name}' listener: {e}")
+                logger.error(f"[EventBus] Error in '{event_name}' listener: {e}")
                 traceback.print_exc()
 
     async def pipeline(self, name: str, value: Any, **context) -> Any:
@@ -174,7 +177,7 @@ class EventBus:
                     if inspect.iscoroutine(result):
                         result = await result
             except Exception as e:
-                print(f"[EventBus] Error in pipeline '{name}': {e}")
+                logger.error(f"[EventBus] Error in pipeline '{name}': {e}")
                 traceback.print_exc()
                 # 管道失败时返回当前值（不阻断整个请求）
         return result

@@ -18,6 +18,8 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 
+from src.unified_logger import default_logger as logger
+
 
 # ────────────── 工具函数（保留原样） ──────────────
 
@@ -30,18 +32,18 @@ def json_filter(value):
     try:
         return json.loads(value)
     except (ValueError, TypeError) as e:
-        print(f"Error parsing JSON: {e}, Value: {value}")
+        logger.warning(f"Error parsing JSON: {e}, Value: {value}")
         return None
 
 def string_split(value, delimiter=','):
     """在模板中对字符串进行分割"""
     if not isinstance(value, str):
-        print(f"Unexpected type for value: {type(value)}. Expected a string.")
+        logger.warning(f"Unexpected type for value: {type(value)}. Expected a string.")
         return []
     try:
         return value.split(delimiter)
     except Exception as e:
-        print(f"Error splitting string: {e}, Value: {value}")
+        logger.warning(f"Error splitting string: {e}, Value: {value}")
         return []
 
 def relative_time_filter(dt):
@@ -126,7 +128,7 @@ def f2list(input_value, delimiter=None):
             return result
         return [str(input_value).strip()]
     except (ValueError, TypeError, AttributeError) as e:
-        print(f"Error converting to list: {e}, Input: {input_value}")
+        logger.warning(f"Error converting to list: {e}, Input: {input_value}")
         return [str(input_value)] if input_value else []
 
 

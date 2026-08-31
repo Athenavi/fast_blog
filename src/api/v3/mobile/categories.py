@@ -11,6 +11,9 @@ from src.api.v2._base import ApiResponse
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["mobile-categories"])
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/list")
@@ -42,5 +45,5 @@ async def get_mobile_categories(
         )
     except Exception as e:
         import traceback
-        print(f"Error in get_mobile_categories: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in get_mobile_categories: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))

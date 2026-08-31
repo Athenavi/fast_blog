@@ -12,14 +12,16 @@
 
 import importlib
 import time
-from typing import Dict, Any, Optional, Callable
 from datetime import datetime
+from typing import Dict, Any
+
+from src.unified_logger import default_logger as logger
 
 
 class LazyModule:
     """
     懒加载模块包装器
-    
+
     延迟导入模块，直到首次访问
     """
 
@@ -38,9 +40,9 @@ class LazyModule:
             try:
                 self._module = importlib.import_module(self.module_path)
                 self._load_time = time.time() - start_time
-                print(f"[LazyLoader] 已加载模块: {self.module_path} ({self._load_time:.4f}s)")
+                logger.info(f"[LazyLoader] 已加载模块: {self.module_path} ({self._load_time:.4f}s)")
             except ImportError as e:
-                print(f"[LazyLoader] 加载失败: {self.module_path} - {e}")
+                logger.error(f"[LazyLoader] 加载失败: {self.module_path} - {e}")
                 raise
 
     def __getattr__(self, name):
@@ -65,7 +67,7 @@ class LazyModule:
 class LazyLoaderManager:
     """
     懒加载管理器
-    
+
     管理所有懒加载模块
     """
 
@@ -82,7 +84,7 @@ class LazyLoaderManager:
     ):
         """
         注册懒加载模块
-        
+
         Args:
             name: 模块名称（用于引用）
             module_path: 模块路径
@@ -106,10 +108,10 @@ class LazyLoaderManager:
     def get_module(self, name: str) -> LazyModule:
         """
         获取懒加载模块
-        
+
         Args:
             name: 模块名称
-            
+
         Returns:
             懒加载模块实例
         """
@@ -121,7 +123,7 @@ class LazyLoaderManager:
     def load_by_priority(self, max_priority: int = None):
         """
         按优先级加载模块
-        
+
         Args:
             max_priority: 最大优先级（只加载优先级<=max_priority的模块）
         """
@@ -134,7 +136,7 @@ class LazyLoaderManager:
                 try:
                     module._load()
                 except Exception as e:
-                    print(f"[LazyLoader] 加载失败 {name}: {e}")
+                    logger.error(f"[LazyLoader] 加载失败 {name}: {e}")
 
     def load_all(self):
         """加载所有模块"""
@@ -164,7 +166,7 @@ class LazyLoaderManager:
     def optimize_loading_strategy(self) -> Dict[str, Any]:
         """
         分析并提供加载策略优化建议
-        
+
         Returns:
             优化建议
         """
@@ -227,7 +229,7 @@ lazy_loader = LazyLoaderManager()
 def register_lazy_modules():
     """
     注册所有可懒加载的模块
-    
+
     这里定义哪些模块可以懒加载以及它们的优先级
     """
     # 核心模块（立即加载）
@@ -260,9 +262,9 @@ def init_lazy_loading():
     # 立即加载关键模块
     lazy_loader.load_by_priority(max_priority=0)
 
-    print("[LazyLoader] 懒加载系统已初始化")
-    print(f"[LazyLoader] 注册了 {len(lazy_loader.modules)} 个模块")
-    print(f"[LazyLoader] 关键模块: {sum(1 for m in lazy_loader.modules.values() if m.critical)}")
+    logger.info("[LazyLoader] 懒加载系统已初始化")
+    logger.info(f"[LazyLoader] 注册了 {len(lazy_loader.modules)} 个模块")
+    logger.info(f"[LazyLoader] 关键模块: {sum(1 for m in lazy_loader.modules.values() if m.critical)}")
 
 
 def get_lazy_loader_stats():

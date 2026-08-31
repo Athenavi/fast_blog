@@ -5,8 +5,11 @@
 """
 
 from pathlib import Path
+import logging
 
 from shared.services.plugins.plugin_manager.core import plugin_manager
+
+logger = logging.getLogger(__name__)
 
 
 def initialize_plugins():
@@ -17,7 +20,7 @@ def initialize_plugins():
     首次运行时自动激活所有已加载的插件；后续启动时恢复上次的激活状态。
     """
     try:
-        print("[PluginSystem] Initializing plugin system...")
+        logger.info("[PluginSystem] Initializing plugin system...")
 
         # 确保插件目录存在
         plugins_dir = Path("plugins")
@@ -38,22 +41,22 @@ def initialize_plugins():
         total_count = len(plugin_manager.plugins)
 
         if not state_restored and total_count > 0:
-            print(f"[PluginSystem] No saved state found, activating all {total_count} plugins...")
+            logger.info(f"[PluginSystem] No saved state found, activating all {total_count} plugins...")
             for slug in list(plugin_manager.plugins.keys()):
                 try:
                     plugin_manager.activate_plugin(slug)
                 except Exception as e:
-                    print(f"[PluginSystem] Failed to auto-activate plugin '{slug}': {e}")
+                    logger.error(f"[PluginSystem] Failed to auto-activate plugin '{slug}': {e}")
 
             # 保存初始状态，以便后续启动时恢复
             plugin_manager._save_plugin_state()
             active_count = len(plugin_manager.get_active_plugins())
 
-        print(f"[PluginSystem] Plugin system initialized: {active_count}/{total_count} plugins active")
+        logger.info(f"[PluginSystem] Plugin system initialized: {active_count}/{total_count} plugins active")
         return True
 
     except Exception as e:
         import traceback
-        print(f"[PluginSystem] Failed to initialize: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"[PluginSystem] Failed to initialize: {str(e)}")
+        logger.error(traceback.format_exc())
         return False

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from shared.models import SystemSettings
 from src.utils.storage.s3_storage import s3_storage
+from src.unified_logger import default_logger as logger
 
 
 class ConfigManager:
@@ -112,17 +113,17 @@ class ConfigManager:
 
             return s3_config
         except Exception as e:
-            print(f"S3配置刷新失败: {e}")
+            logger.error(f"S3 配置刷新失败: {e}")
             return {}
 
     def refresh_all_configs(self, db: Session):
         """刷新所有配置"""
-        print("开始刷新所有配置...")
+        logger.info("开始刷新所有配置...")
 
         mail_config = self.refresh_mail_config(db, self.app_config)
         s3_config = self.refresh_s3_config(db)
 
-        print("所有配置已刷新完成")
+        logger.info("所有配置已刷新完成")
 
         return {
             'mail_config': mail_config,

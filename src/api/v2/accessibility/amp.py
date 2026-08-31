@@ -11,6 +11,7 @@ from shared.models.article import Article, ArticleContent
 from shared.models.user import User
 from shared.services.advanced_features.amp_service import amp_service
 from src.api.v2._helpers import ok, fail, _catch
+from src.unified_logger import default_logger as logger
 from src.utils.database.main import get_async_session
 
 router = APIRouter()
@@ -73,7 +74,7 @@ async def get_article_amp_api(
 
     if not validation['valid']:
         # 如果验证失败,记录错误但仍返回(开发阶段)
-        print(f"AMP Validation Errors: {validation['errors']}")
+        logger.warning(f"AMP Validation Errors: {validation['errors']}")
 
     # 返回AMP HTML
     from fastapi.responses import HTMLResponse

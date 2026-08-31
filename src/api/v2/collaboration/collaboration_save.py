@@ -3,16 +3,16 @@
 """
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import ArticleRevision
 from shared.services.chat.collaboration import collaboration_service, CollaborativeDocument
+from src.api.v2._helpers import ok
 from src.auth import jwt_required_dependency as jwt_required
+from src.unified_logger import default_logger as logger
 from src.utils.database.main import get_async_session as get_async_db
-from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["collaboration"])
 
@@ -25,25 +25,25 @@ async def save_collaborative_document(
 ):
     """
     保存协作文档内容到文章修订版本
-    
+
     Args:
         document_id: 文档ID（invite_id）
         save_data: {"content": "...", "change_summary": "..."}
     """
-    print(f"[Collab Save] Saving document {document_id} for user {current_user.id}")
+    logger.info(f"[Collab Save] Saving document {document_id} for user {current_user.id}")
 
     # 获取协作文档
     doc = collaboration_service.documents.get(document_id)
 
     if not doc:
-        print(f"[Collab Save] Document {document_id} not found in memory")
+        logger.warning(f"[Collab Save] Document {document_id} not found in memory")
         # 即使文档不在内存中，也尝试从数据库保存
         # 这种情况可能发生在用户刷新页面后
 
     # 如果提供了新内容，更新文档状态
     if "content" in save_data:
         content = save_data["content"]
-        print(f"[Collab Save] Received content, length: {len(content)}")
+        logger.info(f"[Collab Save] Received content, length: {len(content)}")
 
         # 更新或创建文档对象
         if not doc:
@@ -71,7 +71,7 @@ async def save_collaborative_document(
     db.add(revision)
     await db.commit()
     await db.refresh(revision)
-    print(f"[Collab Save] Successfully saved document {document_id}")
+    logger.info(f"[Collab Save] Successfully saved document {document_id}")
     return ok(data={
         "document_id": document_id,
         "article_id": doc.article_id if doc else None,

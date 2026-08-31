@@ -15,6 +15,9 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["mobile-comments"])
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/article/{article_id}")
@@ -97,7 +100,7 @@ async def get_mobile_article_comments(
         )
     except Exception as e:
         import traceback
-        print(f"Error in get_mobile_article_comments: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in get_mobile_article_comments: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -153,7 +156,7 @@ async def create_mobile_comment(
     except Exception as e:
         await db.rollback()
         import traceback
-        print(f"Error in create_mobile_comment: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in create_mobile_comment: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -222,5 +225,5 @@ async def like_mobile_comment(
     except Exception as e:
         await db.rollback()
         import traceback
-        print(f"Error in like_mobile_comment: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in like_mobile_comment: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))

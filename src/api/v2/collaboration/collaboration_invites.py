@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
 
 from src.api.v2._helpers import ok, _catch
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["collaboration-invites"])
 
@@ -109,7 +110,7 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
     """
     # 获取当前用户ID
     creator_id = current_user['user_id']
-    print(f"User {creator_id} creating invitation for article: {request.article_id}")
+    logger.info(f"User {creator_id} creating invitation for article: {request.article_id}")
 
     # 创建前清理过期邀请，防止内存泄漏
     _cleanup_expired_invites()
@@ -153,7 +154,7 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
         existing_invite = invitations_db[existing_invite_id]
         # 检查是否过期
         if datetime.now() <= existing_invite["expires_at"]:
-            print(f"Revoking existing invite {existing_invite_id} for user {creator_id}")
+            logger.info(f"Revoking existing invite {existing_invite_id} for user {creator_id}")
             del invitations_db[existing_invite_id]
 
     # 生成唯一邀请ID
@@ -184,7 +185,7 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
     base_url = "http://localhost:3000"  # 前端地址
     invite_url = f"{base_url}/collaboration/room?invite={invite_id}"
 
-    print(f"Invitation created successfully: {invite_id} for article {request.article_id}")
+    logger.info(f"Invitation created successfully: {invite_id} for article {request.article_id}")
 
     return InvitationResponse(
         invite_id=invite_id,

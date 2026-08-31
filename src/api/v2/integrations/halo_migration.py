@@ -4,7 +4,7 @@ Halo 博客迁移 API - V2 版本
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Body
+from fastapi import APIRouter, Depends, BackgroundTasks, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
@@ -12,6 +12,7 @@ from shared.services.integrations.halo_import import HaloImportService
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(prefix="/halo", tags=["Halo Migration"])
 
@@ -23,11 +24,11 @@ async def connect_to_halo(
 ):
     """
     测试与 Halo 博客的连接
-    
+
     参数:
     - halo_url: Halo 博客的 URL (例如: https://your-halo-blog.com)
     - api_token: Halo API Token
-    
+
     返回连接状态和基本信息
     """
     service = HaloImportService(halo_url=halo_url, api_token=api_token)
@@ -57,7 +58,7 @@ async def preview_halo_content(
 ):
     """
     预览 Halo 博客的可迁移内容
-    
+
     返回统计信息，包括文章数、分类数等
     """
     service = HaloImportService(halo_url=halo_url, api_token=api_token)
@@ -97,12 +98,12 @@ async def import_halo_data(
 ):
     """
     从 Halo 博客导入数据到 FastBlog
-    
+
     参数:
     - halo_url: Halo 博客的 URL
     - api_token: Halo API Token
     - user_mapping: 用户映射 JSON (可选)
-    
+
     导入内容:
     - 文章和页面
     - 分类
@@ -126,7 +127,7 @@ async def import_halo_data(
     def progress_callback(current, total):
         progress_data['current'] = current
         progress_data['total'] = total
-        print(f"Halo 导入进度: {current}/{total}")
+        logger.info(f"Halo 导入进度: {current}/{total}")
 
     # 导入数据
     import_result = await service.import_to_database(
@@ -155,7 +156,7 @@ async def import_halo_data(
 async def get_halo_migration_guide():
     """
     获取 Halo 博客迁移指南
-    
+
     返回详细的迁移步骤和注意事项
     """
     return ok(

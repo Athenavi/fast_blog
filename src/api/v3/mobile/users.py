@@ -11,6 +11,9 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["mobile-users"])
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/profile")
@@ -48,7 +51,7 @@ async def get_mobile_user_profile(
         )
     except Exception as e:
         import traceback
-        print(f"Error in get_mobile_user_profile: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in get_mobile_user_profile: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -89,7 +92,7 @@ async def update_mobile_user_profile(
     except Exception as e:
         await db.rollback()
         import traceback
-        print(f"Error in update_mobile_user_profile: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in update_mobile_user_profile: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -128,5 +131,5 @@ async def get_mobile_user_stats(
         )
     except Exception as e:
         import traceback
-        print(f"Error in get_mobile_user_stats: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in get_mobile_user_stats: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))

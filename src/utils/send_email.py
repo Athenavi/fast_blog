@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from typing import Optional
 
 from src.setting import app_config
+from src.unified_logger import default_logger as logger
 
 
 async def request_email_change(user_id, cache_instance, domain, new_email):
@@ -77,8 +78,8 @@ async def api_mail(user_id, body_content, site_name='系统通知', recipient: O
         server.sendmail(config['MAIL_FROM'], recipient_email, text)
         server.quit()
 
-        print(f"邮件派送人: {user_id if user_id != 0 else '系统'}")
+        logger.info(f"邮件派送人: {user_id if user_id != 0 else '系统'}")
         return True
     except Exception as e:
-        print(f"邮件发送失败: {str(e)}")
+        logger.error(f"邮件发送失败: {str(e)}")
         return False

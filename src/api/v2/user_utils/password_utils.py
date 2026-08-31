@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from shared.models.notification import Notification
 from shared.models.user import User
+from src.unified_logger import default_logger as logger
 
 
 def _get_crypt_context():
@@ -104,7 +105,7 @@ async def update_password(user_id: int, new_password: str, confirm_password: str
                     db.commit()
                 return True
             except Exception as e:
-                print(e)
+                logger.error(f"更新密码时发生错误: {e}")
                 if isinstance(db, AsyncSession):
                     await db.rollback()
                 else:

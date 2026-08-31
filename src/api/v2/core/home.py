@@ -2,18 +2,18 @@
 简化版首页API接口
 解决异步greenlet问题，提供稳定的首页数据服务
 """
-import re
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.system import SystemSettings
 from shared.models.article import Article
 from shared.models.category import Category
+from shared.models.system import SystemSettings
 from shared.models.user import User
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
+from src.unified_logger import default_logger as logger
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["home"])
@@ -71,10 +71,10 @@ async def send_subscription_confirmation_email(email: str):
             text_content=text_content
         )
 
-        print(f"订阅确认邮件已发送到: {email}")
+        logger.info(f"订阅确认邮件已发送到: {email}")
 
     except Exception as e:
-        print(f"发送订阅确认邮件失败: {e}")
+        logger.error(f"发送订阅确认邮件失败: {e}")
         import traceback
         traceback.print_exc()
 

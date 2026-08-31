@@ -6,7 +6,7 @@
 import json
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,6 +15,7 @@ from shared.services.content_management.form_builder import form_builder
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["form-builder"])
 
@@ -65,10 +66,10 @@ async def send_form_notification_email(
             text_content=text_content
         )
 
-        print(f"表单通知邮件已发送到: {notification_email}")
+        logger.info(f"表单通知邮件已发送到: {notification_email}")
 
     except Exception as e:
-        print(f"发送表单通知邮件失败: {e}")
+        logger.error(f"发送表单通知邮件失败: {e}")
         import traceback
         traceback.print_exc()
 

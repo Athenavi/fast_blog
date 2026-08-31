@@ -8,6 +8,7 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = 100_000_000
 
 from shared.models import FileHash
+from src.unified_logger import default_logger as logger
 
 
 def resize_image(input_path: str, output_path: str, max_size: Tuple[int, int] = (1920, 1080), quality: int = 85):
@@ -190,7 +191,7 @@ async def get_file_mime_type(file_hash: str, db=None) -> str:
         mime_type = magic.from_file(file_path, mime=True)
         return mime_type
     except Exception as e:
-        print(f"Error detecting file type: {str(e)}")
+        logger.warning(f"Error detecting file type: {str(e)}")
         # 如果所有方法都失败，返回默认的octet-stream类型
         return 'application/octet-stream'
 

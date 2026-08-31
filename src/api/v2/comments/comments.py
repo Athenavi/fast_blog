@@ -5,7 +5,7 @@ import html
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +19,7 @@ from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.auth.auth_deps import jwt_optional_dependency
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 
 # ─── 插件管道处理 ────────────────────────────
@@ -202,7 +203,7 @@ async def create_comment(
                         'content': new_comment.content,
                     })
             except Exception as plugin_err:
-                print(f"Trigger plugin event failed: {plugin_err}")
+                logger.warning(f"Trigger plugin event failed: {plugin_err}")
 
             # 获取文章作者信息
             if article and article.user:
@@ -261,7 +262,7 @@ async def create_comment(
                     )
 
         except Exception as e:
-            print(f"发送评论通知失败: {e}")
+            logger.error(f"发送评论通知失败: {e}")
             import traceback
             traceback.print_exc()
             # 通知失败不影响评论创建
@@ -284,7 +285,7 @@ async def create_comment(
             db=db
         )
     except Exception as webhook_err:
-        print(f"Webhook trigger failed: {webhook_err}")
+        logger.warning(f"Webhook trigger failed: {webhook_err}")
 
     return ok(
         data={

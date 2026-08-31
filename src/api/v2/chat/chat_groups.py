@@ -5,7 +5,7 @@
 from datetime import datetime
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import select, and_, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +15,7 @@ from shared.models.user import User
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["chat-groups"])
 
@@ -127,7 +128,7 @@ async def get_user_groups(
     """
     获取当前用户的群聊列表
     """
-    print(f"[ChatGroup] Getting groups for user {current_user.id}")
+    logger.info(f"[ChatGroup] Getting groups for user {current_user.id}")
     offset = (page - 1) * per_page
 
     # 查询用户加入的群聊
@@ -150,9 +151,9 @@ async def get_user_groups(
     result = await db.execute(query)
     groups = result.scalars().all()
 
-    print(f"[ChatGroup] Found {len(groups)} groups for user {current_user.id}")
+    logger.info(f"[ChatGroup] Found {len(groups)} groups for user {current_user.id}")
     for g in groups:
-        print(f"  - Group: {g.name} (id={g.id})")
+        logger.debug(f"  - Group: {g.name} (id={g.id})")
 
     # 获取总数
     count_query = (

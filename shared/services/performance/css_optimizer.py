@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+from shared.logging import default_logger as logger
+
 
 class CSSOptimizerService:
     """CSS优化服务"""
@@ -264,7 +266,7 @@ nav a:hover {
                 file.unlink()
             return True
         except Exception as e:
-            print(f"Failed to clear cache: {e}")
+            logger.error(f"Failed to clear cache: {e}")
             return False
     
     def get_cache_stats(self) -> Dict[str, Any]:
