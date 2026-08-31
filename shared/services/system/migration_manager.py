@@ -21,6 +21,7 @@ class MigrationManager:
         from alembic.config import Config
         cfg = Config(str(self.alembic_ini))
         # 从 app_config 同步数据库 URL
+        # 注意：database_url 可能包含密码，确保日志/错误消息不会打印完整 URL
         try:
             from shared.config.settings import app_config
             if app_config.database_url:

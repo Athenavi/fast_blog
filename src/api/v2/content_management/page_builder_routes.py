@@ -109,7 +109,7 @@ async def create_page(
         # 解析 blocks_data 为列表返回
         try:
             blocks = json.loads(new_page.blocks_data)
-        except:
+        except (json.JSONDecodeError, TypeError):
             blocks = []
 
         return ok(data=PageResponse(
@@ -157,7 +157,7 @@ async def list_pages(
         for page in pages:
             try:
                 blocks = json.loads(page.blocks_data)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 blocks = []
 
             response_list.append(PageResponse(
@@ -199,7 +199,7 @@ async def get_page(
 
         try:
             blocks = json.loads(page.blocks_data)
-        except:
+        except (json.JSONDecodeError, TypeError):
             blocks = []
 
         return ok(data=PageResponse(
@@ -259,7 +259,7 @@ async def update_page(
 
         try:
             blocks = json.loads(page.blocks_data)
-        except:
+        except (json.JSONDecodeError, TypeError):
             blocks = []
 
         return ok(data=PageResponse(
@@ -396,7 +396,7 @@ async def get_page_by_slug(slug: str):
         if page:
             try:
                 blocks = json.loads(page.blocks_data)
-            except:
+            except (json.JSONDecodeError, TypeError):
                 blocks = []
             return ok(data=PageResponse(
                 id=page.id, title=page.title, slug=page.slug,
@@ -749,7 +749,7 @@ async def create_page_from_template(
 
         try:
             blocks = json.loads(new_page.blocks_data)
-        except:
+        except (json.JSONDecodeError, TypeError):
             blocks = []
 
         return ok(data=PageResponse(

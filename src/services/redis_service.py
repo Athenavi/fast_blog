@@ -44,9 +44,9 @@ class RedisService:
             )
             # 测试连接
             await self._redis.ping()
-            logger.info(f"Redis 连接成功: {self.url}")
+            logger.info("Redis 连接成功")
         except Exception as e:
-            logger.error(f"Redis 连接失败: {e}")
+            logger.error("Redis 连接失败")
             raise
 
     async def disconnect(self):
