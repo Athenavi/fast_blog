@@ -27,7 +27,7 @@ psycopg2-binary==2.9.12
 # Authentication & Security
 pyjwt==2.13.0
 httpx-oauth==0.17.0
-fastapi-users[sqlalchemy]==12.2.2
+fastapi-users[sqlalchemy]==15.0.5
 argon2-cffi==25.1.0
 pyotp==2.9.0
 qrcode[pil]==8.1.0
