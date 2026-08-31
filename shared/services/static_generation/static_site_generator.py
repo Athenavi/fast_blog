@@ -48,6 +48,18 @@ class StaticSiteGenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
 
+        # 验证模板路径在项目预期范围内，防止路径遍历
+        resolved_template = self.template_dir.resolve()
+        allowed_prefixes = [
+            Path("themes").resolve(),
+            Path("plugins").resolve(),
+            Path(".").resolve(),
+        ]
+        if not any(str(resolved_template).startswith(str(p)) for p in allowed_prefixes):
+            logger.warning(f"Template directory outside allowed paths, resolving to default: {self.template_dir}")
+            self.template_dir = Path("themes/default")
+            resolved_template = self.template_dir.resolve()
+
         # 初始化Jinja2环境
         if self.template_dir.exists():
             self.jinja_env = Environment(

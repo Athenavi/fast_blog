@@ -149,22 +149,32 @@ def safe_query_builder(table_name, conditions=None, columns="*", order_by=None, 
 
     # 处理排序
     if order_by:
-        # 验证排序字段
-        sanitized_order = sanitize_sql_identifier(order_by)
-        query_parts.append(f"ORDER BY {sanitized_order}")
+        # 支持 "column ASC" 或 "column DESC" 格式
+        order_str = str(order_by).strip()
+        order_parts = order_str.split(None, 1)
+        sanitized_col = sanitize_sql_identifier(order_parts[0])
+        if len(order_parts) > 1:
+            direction = order_parts[1].upper()
+            if direction not in ("ASC", "DESC"):
+                raise ValueError("ORDER BY direction must be ASC or DESC")
+            query_parts.append(f"ORDER BY {sanitized_col} {direction}")
+        else:
+            query_parts.append(f"ORDER BY {sanitized_col}")
 
-    # 处理限制：严格校验为正整数
+    # 处理限制：严格校验为正整数，使用参数化绑定
+    bind_params = {}
     if limit is not None:
         try:
             limit_int = int(limit)
             if limit_int <= 0:
                 raise ValueError("LIMIT must be a positive integer")
-            query_parts.append(f"LIMIT {limit_int}")
+            query_parts.append("LIMIT :limit_val")
+            bind_params["limit_val"] = limit_int
         except (ValueError, TypeError):
             raise ValueError("LIMIT parameter must be a positive integer")
 
     query_str = " ".join(query_parts)
-    return text(query_str)
+    return text(query_str).bindparams(**bind_params)
 
 
 def escape_html(text):
@@ -236,11 +246,18 @@ def sanitize_filename(filename):
     if not filename:
         return filename
 
-    # 移除路径分隔符以防止路径遍历
-    filename = os.path.basename(filename)
+    # 移除路径分隔符以防止路径遍历（Windows & Unix）
+    filename = os.path.basename(filename.replace('\\', os.sep).replace('/', os.sep))
 
     # 只允许字母、数字、下划线、连字符、点号
     sanitized = re.sub(r'[^\w.-]', '_', filename)
+
+    # 阻止以点开头的隐藏文件（如 .env, .htaccess）
+    if sanitized.startswith('.'):
+        sanitized = '_' + sanitized[1:]
+
+    # 阻止连续的点号（如 .. 用于路径遍历）
+    sanitized = re.sub(r'\.{2,}', '_', sanitized)
 
     return sanitized
 
