@@ -12,7 +12,34 @@ import HomeCategories from './HomeCategories';
 import HomeLatest from './HomeLatest';
 import HomePopular from './HomePopular';
 import HomeNewsletter from './HomeNewsletter';
+import {useBreakpoint} from '@/lib/hooks/useMediaQuery';
+import {useNetworkState} from '@/lib/hooks/useNetworkState';
 import {useMediaQuery} from '@/lib/utils';
+
+// 响应式布局配置
+const RESPONSIVE_CONFIG = {
+  gridCols: {
+    sm: 1,
+    md: 2,
+    lg: 3,
+    xl: 3,
+    '2xl': 4,
+  },
+  featuredCount: {
+    sm: 1,
+    md: 2,
+    lg: 3,
+    xl: 4,
+    '2xl': 6,
+  },
+  popularCount: {
+    sm: 3,
+    md: 4,
+    lg: 6,
+    xl: 8,
+    '2xl': 12,
+  },
+} as const;
 
 interface Props {
     /** SSR 注入的初始数据 — 有值则跳过客户端首次请求 */
@@ -104,6 +131,8 @@ function ModernHomePage({
   initialConfig = null,
 }: Props) {
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const breakpoint = useBreakpoint();
+  const {saveData} = useNetworkState();
   const hasSsrData = initialFeatured.length > 0 || initialRecent.length > 0;
   const [featured, setFeatured] = useState<Article[]>(initialFeatured);
   const [recent, setRecent] = useState<Article[]>(initialRecent);
@@ -111,6 +140,9 @@ function ModernHomePage({
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [loading, setLoading] = useState(!hasSsrData);
   const {hero, sections, newsletter, messages, loading: cfgLoading} = useHomeConfig(initialConfig);
+  const featuredCount = RESPONSIVE_CONFIG.featuredCount[breakpoint];
+  const popularCount = RESPONSIVE_CONFIG.popularCount[breakpoint];
+  const limitedRecent = saveData ? 6 : 12;
 
   // 移动端弱网络: 使用 requestIdleCallback 延迟加载非关键数据
   const fetchNonCriticalData = useCallback(async () => {
@@ -119,11 +151,11 @@ function ModernHomePage({
         apiClient.get(HOME.POPULAR),
         apiClient.get(HOME.CATEGORIES),
       ]);
-      if (p.success) setPopular(Array.isArray(p.data) ? p.data.slice(0, 8) : p.data?.articles?.slice(0, 8) || []);
+      if (p.success) setPopular(Array.isArray(p.data) ? p.data.slice(0, popularCount) : p.data?.articles?.slice(0, popularCount) || []);
       if (c.success) setCategories(Array.isArray(c.data) ? c.data : c.data?.categories || []);
     } catch { /* ignore */
     }
-  }, []);
+  }, [popularCount]);
 
   useEffect(() => {
     if (hasSsrData) return; // SSR 已提供数据，跳过客户端首次请求
@@ -134,8 +166,8 @@ function ModernHomePage({
           apiClient.get(HOME.FEATURED),
           apiClient.get(HOME.RECENT),
         ]);
-        if (f.success) setFeatured(Array.isArray(f.data) ? f.data : f.data?.articles || []);
-        if (r.success) setRecent(Array.isArray(r.data) ? r.data.slice(0, 12) : r.data?.articles?.slice(0, 12) || []);
+        if (f.success) setFeatured(Array.isArray(f.data) ? f.data.slice(0, featuredCount) : f.data?.articles?.slice(0, featuredCount) || []);
+        if (r.success) setRecent(Array.isArray(r.data) ? r.data.slice(0, limitedRecent) : r.data?.articles?.slice(0, limitedRecent) || []);
 
         // 非核心数据延迟加载 (移动端弱网络优化)
         if (isMobile) {
@@ -146,12 +178,12 @@ function ModernHomePage({
             apiClient.get(HOME.POPULAR),
             apiClient.get(HOME.CATEGORIES),
           ]);
-          if (p.success) setPopular(Array.isArray(p.data) ? p.data.slice(0, 8) : p.data?.articles?.slice(0, 8) || []);
+          if (p.success) setPopular(Array.isArray(p.data) ? p.data.slice(0, popularCount) : p.data?.articles?.slice(0, popularCount) || []);
           if (c.success) setCategories(Array.isArray(c.data) ? c.data : c.data?.categories || []);
         }
       } catch { /* ignore */ } finally { setLoading(false); }
     })();
-  }, []);
+  }, [featuredCount, limitedRecent, popularCount]);
 
   const heroMemo = useMemo(() => ({
     title: hero.title || '',

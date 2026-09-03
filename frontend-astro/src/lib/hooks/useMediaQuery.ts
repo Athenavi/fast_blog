@@ -11,7 +11,7 @@
  * ```
  */
 
-import {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 
 /** 常用断点常量 */
 export const BREAKPOINTS = {
@@ -145,6 +145,132 @@ export function useResponsiveColumns(minWidth: number = 280): number {
   }, [minWidth]);
 
   return {columns, containerRef};
+}
+
+/**
+ * 当前断点检测 Hook
+ * 返回当前视口所属的断点名称 (sm/md/lg/xl/2xl)
+ */
+export function useBreakpoint(): keyof typeof BREAKPOINTS {
+  const [breakpoint, setBreakpoint] = useState<keyof typeof BREAKPOINTS>(() => {
+    if (typeof window === 'undefined') return 'sm';
+    const w = window.innerWidth;
+    if (w >= BREAKPOINTS['2xl']) return '2xl';
+    if (w >= BREAKPOINTS.xl) return 'xl';
+    if (w >= BREAKPOINTS.lg) return 'lg';
+    if (w >= BREAKPOINTS.md) return 'md';
+    return 'sm';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const check = () => {
+      const w = window.innerWidth;
+      if (w >= BREAKPOINTS['2xl']) setBreakpoint('2xl');
+      else if (w >= BREAKPOINTS.xl) setBreakpoint('xl');
+      else if (w >= BREAKPOINTS.lg) setBreakpoint('lg');
+      else if (w >= BREAKPOINTS.md) setBreakpoint('md');
+      else setBreakpoint('sm');
+    };
+
+    // 使用 ResizeObserver 监听视口变化比 resize 事件更高效
+    const ro = new ResizeObserver(check);
+    ro.observe(document.documentElement);
+    check();
+    return () => ro.disconnect();
+  }, []);
+
+  return breakpoint;
+}
+
+/**
+ * 响应式值 Hook
+ * 根据断点返回不同值
+ */
+export function useResponsiveValue<T>(values: {
+  sm: T;
+  md?: T;
+  lg?: T;
+  xl?: T;
+  '2xl'?: T;
+}): T {
+  const bp = useBreakpoint();
+  // 从大到小查找第一个有值的断点
+  const bpOrder: (keyof typeof values)[] = ['2xl', 'xl', 'lg', 'md', 'sm'];
+  for (const b of bpOrder) {
+    if ((values as any)[b] !== undefined) {
+      // 当前断点 >= b 时返回
+      const currentIdx = bpOrder.indexOf(bp);
+      const bIdx = bpOrder.indexOf(b);
+      if (currentIdx >= bIdx) {
+        return (values as any)[b];
+      }
+    }
+  }
+  return values.sm;
+}
+
+/**
+ * 容器查询 Hook (Container Queries API)
+ * 如果浏览器不支持则回退到视口查询
+ */
+export function useContainerQuery(
+  targetRef: React.RefObject<HTMLElement>,
+  query: string
+): boolean {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    const el = targetRef.current;
+    if (!el) return;
+
+    // 尝试 Container Queries API
+    if ('ResizeObserver' in window && 'CSSContainerRule' in window) {
+      try {
+        // 需要在父容器设置 container-type
+        const observer = new ResizeObserver(() => {
+          // 简化回退：基于元素宽度计算
+          const w = el.clientWidth;
+          // 解析 min-width / max-width
+          const minMatch = query.match(/min-width:\s*(\d+)px/);
+          const maxMatch = query.match(/max-width:\s*(\d+)px/);
+          let result = true;
+          if (minMatch) result = result && w >= parseInt(minMatch[1]);
+          if (maxMatch) result = result && w <= parseInt(maxMatch[1]);
+          setMatches(result);
+        });
+        observer.observe(el);
+        observer.entries().forEach(() => {
+          const w = el.clientWidth;
+          const minMatch = query.match(/min-width:\s*(\d+)px/);
+          const maxMatch = query.match(/max-width:\s*(\d+)px/);
+          let result = true;
+          if (minMatch) result = result && w >= parseInt(minMatch[1]);
+          if (maxMatch) result = result && w <= parseInt(maxMatch[1]);
+          setMatches(result);
+        });
+        return () => observer.disconnect();
+      } catch {
+        // fallback below
+      }
+    }
+
+    // 回退到 ResizeObserver
+    const observer = new ResizeObserver(() => {
+      const w = el.clientWidth;
+      const minMatch = query.match(/min-width:\s*(\d+)px/);
+      const maxMatch = query.match(/max-width:\s*(\d+)px/);
+      let result = true;
+      if (minMatch) result = result && w >= parseInt(minMatch[1]);
+      if (maxMatch) result = result && w <= parseInt(maxMatch[1]);
+      setMatches(result);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [targetRef, query]);
+
+  return matches;
 }
 
 export default useMediaQuery;

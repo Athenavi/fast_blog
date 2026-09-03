@@ -1452,3 +1452,133 @@ body {
     display: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════
+   Responsive Utilities
+   ═══════════════════════════════════════════ */
+
+/* 安全区域适配 (iOS notch, Android 手势栏) */
+.safe-pb {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.safe-pt {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+
+.safe-pl {
+  padding-left: max(1rem, env(safe-area-inset-left));
+}
+
+.safe-pr {
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* 底部导航安全间距 */
+body:has(.mobile-bottom-nav) main {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* 响应式触摸优化 */
+@media (pointer: coarse) {
+  .touch-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* 响应式文字缩放 (CSS Clamp) */
+.responsive-text-sm {
+  font-size: clamp(0.75rem, 2vw, 0.875rem);
+}
+
+.responsive-text-base {
+  font-size: clamp(0.875rem, 2.5vw, 1rem);
+}
+
+.responsive-text-lg {
+  font-size: clamp(1rem, 3vw, 1.25rem);
+}
+
+.responsive-text-xl {
+  font-size: clamp(1.25rem, 4vw, 1.5rem);
+}
+
+.responsive-text-2xl {
+  font-size: clamp(1.5rem, 5vw, 2rem);
+}
+
+.responsive-text-3xl {
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+}
+
+/* 响应式间距 */
+.responsive-gap {
+  gap: clamp(0.5rem, 2vw, 1rem);
+}
+
+.responsive-padding {
+  padding: clamp(0.75rem, 3vw, 1.5rem);
+}
+
+/* 响应式图片 */
+.responsive-img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* 横屏适配 */
+@media (orientation: landscape) and (max-height: 500px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+
+  main {
+    padding-bottom: 0 !important;
+  }
+}
+
+/* 高DPI 屏幕优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  img[loading="lazy"] {
+    content-visibility: auto;
+  }
+}
+
+/* 折叠屏适配 */
+@media (hover: none) and (min-width: 600px) and (max-width: 900px) {
+  .theme-container {
+    max-width: 100%;
+    padding-inline: 1rem;
+  }
+}
+
+/* 窄屏手机优化 (< 360px) */
+@media (max-width: 359px) {
+  .theme-container {
+    padding-inline: 0.5rem;
+  }
+
+  h1 {
+    font-size: 1.5rem !important;
+  }
+
+  h2 {
+    font-size: 1.25rem !important;
+  }
+}

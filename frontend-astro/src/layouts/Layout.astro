@@ -8,6 +8,7 @@ import ThemeFooter from '@/components/theme/ThemeFooter';
 import {GlobalShortcuts} from '@/components/GlobalShortcuts';
 import MobileGestures from '@/components/MobileGestures';
 import OfflineBanner from '@/components/OfflineBanner';
+import MobileBottomNav from '@/components/MobileBottomNav';
 
 export interface Props {
   title?: string;
@@ -22,7 +23,11 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
 <html lang={lang} dir={dir} suppressHydrationWarning>
   <head>
     <meta charset="utf-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+      <!-- 响应式Viewport: 支持iOS viewport-fit=cover, 适配安全区域 -->
+      <meta name="viewport"
+            content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"/>
+      <!-- 响应式: 禁止微信/QQ内嵌浏览器双击缩放 -->
+      <meta name="maximum-scale" content="5.0"/>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="manifest" href="/manifest.json" />
@@ -148,12 +153,15 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
     <GlobalShortcuts client:load />
     <MobileGestures client:load />
 
-    <main class="min-h-screen">
+  <main class="min-h-screen responsive-padding safe-pl safe-pr">
       <slot />
     </main>
 
     <ThemeFooter client:load />
 
-    <slot name="scripts" />
+  <!-- 移动端底部导航 -->
+  <MobileBottomNav client:idle/>
+
+  <slot name="scripts" />
   </body>
 </html>
