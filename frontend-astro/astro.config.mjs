@@ -46,6 +46,7 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',
+          orientation: 'portrait-primary',
         icons: [
           {
             src: '/icons/icon-192x192.png',
@@ -63,6 +64,42 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+          // 性能优化: 精细缓存策略
+          runtimeCaching: [
+              {
+                  urlPattern: ({url}) => url.pathname.startsWith('/api/'),
+                  handler: 'NetworkFirst',
+                  options: {
+                      cacheName: 'api-cache',
+                      expiration: {maxEntries: 50, maxAgeSeconds: 5 * 60},
+                      networkTimeoutSeconds: 3,
+                  },
+              },
+              {
+                  urlPattern: ({url}) => url.pathname.match(/\.(png|jpg|jpeg|svg|webp|gif)$/i),
+                  handler: 'CacheFirst',
+                  options: {
+                      cacheName: 'image-cache',
+                      expiration: {maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60},
+                  },
+              },
+              {
+                  urlPattern: ({url}) => url.pathname.match(/\.(woff2?|ttf|otf)$/i),
+                  handler: 'CacheFirst',
+                  options: {
+                      cacheName: 'font-cache',
+                      expiration: {maxEntries: 20, maxAgeSeconds: 365 * 24 * 60 * 60},
+                  },
+              },
+          ],
+          // 清理过期缓存
+          cleanupOutdatedCaches: true,
+          //  rude precaching
+          skipWaiting: true,
+          clientsClaim: true,
+      },
+        devOptions: {
+            enabled: false,
       },
     }),
   ],
@@ -131,6 +168,10 @@ export default defineConfig({
                           '@tiptap/extension-collaboration-cursor',
                       ],
                   },
+                  // 性能优化: 高级压缩
+                  chunkFileNames: 'js/[name]-[hash].js',
+                  entryFileNames: 'js/[name]-[hash].js',
+                  assetFileNames: 'assets/[name]-[hash].[ext]',
               },
           },
           // 启用 CSS 代码分割
@@ -139,6 +180,10 @@ export default defineConfig({
           minify: 'esbuild',
           // 生产环境移除 console/debugger
           target: 'es2022',
+          // 性能优化: 减小产物大小
+          reportCompressedSize: true,
+          // CSS 压缩
+          cssMinify: true,
       },
       esbuild: {
           // 生产环境自动移除 console.log 和 debugger
@@ -152,6 +197,9 @@ export default defineConfig({
               '@tanstack/react-query',
               'framer-motion',
               'lucide-react',
+              'clsx',
+              'tailwind-merge',
+              'sonner',
           ],
           exclude: [
               '@testing-library/react',
@@ -160,6 +208,17 @@ export default defineConfig({
               '@testing-library/jest-dom',
           ],
       },
+      // 性能优化: 开发服务器
+      server: {
+          fs: {
+              allow: [__dirname],
+          },
+      },
+  },
+
+    // 实验性特性: 客户端 hydration 优化
+    experimental: {
+        clientPrerenderCapability: true,
   },
 
   i18n: {

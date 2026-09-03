@@ -3,7 +3,7 @@
  * 消除跨组件的重复代码，提供统一的 hooks 实现
  */
 
-import {useState, useEffect, useRef, useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 /**
  * 防抖 Hook - 延迟更新值，减少频繁 API 请求
@@ -203,4 +203,79 @@ export function usePagination({total, page, pageSize = 15}: {
         if (totalPages > 1) pages.push(totalPages);
         return {totalPages, pages, hasPrev: page > 1, hasNext: page < totalPages};
     }, [total, page, pageSize]);
+}
+
+// ═══ Performance Hooks ═══
+
+/**
+ * 图片懒加载 Hook - 使用 IntersectionObserver 延迟加载图片
+ */
+export function useLazyImage() {
+  const observer = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return;
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const img = entry.target as HTMLImageElement;
+            if (img.dataset.src) {
+              img.src = img.dataset.src;
+              img.classList.add('loaded');
+            }
+            observer.current?.unobserve(img);
+          }
+        });
+      },
+      {rootMargin: '200px'}
+    );
+    return () => observer.current?.disconnect();
+  }, []);
+
+  const observe = useCallback((element: HTMLImageElement | null) => {
+    if (element && observer.current) observer.current.observe(element);
+  }, []);
+
+  return observe;
+}
+
+/**
+ * 路由预加载 Hook - 在用户悬停时预加载页面
+ */
+export function useRoutePrefetch(routePath: string) {
+  const [preloaded, setPreloaded] = useState(false);
+  const prefetch = useCallback(async () => {
+    if (preloaded) return;
+    try {
+      await fetch(routePath, {signal: AbortSignal.timeout(3000)});
+      setPreloaded(true);
+    } catch {
+    }
+  }, [routePath, preloaded]);
+  return {prefetch, preloaded};
+}
+
+/**
+ * 节流 Hook - 限制函数执行频率
+ */
+export function useThrottle<T>(value: T, interval: number): T {
+  const [throttledValue, setThrottledValue] = useState(value);
+  const lastRan = useRef(Date.now());
+
+  useEffect(() => {
+    const now = Date.now();
+    if (now - lastRan.current >= interval) {
+      lastRan.current = now;
+      setThrottledValue(value);
+    } else {
+      const handler = setTimeout(() => {
+        lastRan.current = Date.now();
+        setThrottledValue(value);
+      }, interval - (now - lastRan.current));
+      return () => clearTimeout(handler);
+    }
+  }, [value, interval]);
+
+  return throttledValue;
 }

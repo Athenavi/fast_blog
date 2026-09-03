@@ -7,7 +7,7 @@
  *
  * 用于文章列表页（ArticleList）等公共列表。
  */
-import React from 'react';
+import React, {memo} from 'react';
 import {motion} from 'framer-motion';
 import {BookOpen, Clock, Crown, Eye, Hash, Heart} from 'lucide-react';
 import {getFullMediaUrl} from '@/lib/utils';
@@ -19,7 +19,7 @@ interface Props {
   index?: number;
 }
 
-export default function ThemeArticleCard({article, layout = 'grid', index = 0}: Props) {
+function ThemeArticleCardInner({article, layout = 'grid', index = 0}: Props) {
   const {articleCard} = useThemeSlots();
   const cover = article.cover_image ? getFullMediaUrl(article.cover_image) : '';
   const date = article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : '';
@@ -152,3 +152,8 @@ export default function ThemeArticleCard({article, layout = 'grid', index = 0}: 
     </motion.a>
   );
 }
+
+const ThemeArticleCard = memo(ThemeArticleCardInner);
+ThemeArticleCard.displayName = 'ThemeArticleCard';
+
+export default ThemeArticleCard;
