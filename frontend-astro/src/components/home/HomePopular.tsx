@@ -13,7 +13,10 @@ interface Props {
   articles: Article[];
 }
 
-export default function HomePopular({articles}: Props) {
+export default React.memo((props: Props) => HomePopular(props));
+HomePopular.displayName = 'HomePopular';
+
+function HomePopular({articles}: Props) {
   if (!articles.length) return null;
   const list = articles.slice(0, 8);
 

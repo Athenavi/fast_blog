@@ -345,3 +345,167 @@ export function withPerfTiming<T extends any[]>(
     }
   };
 }
+
+// ─── LongTask Observer (检测主线程阻塞) ───
+
+export interface LongTaskEntry {
+  id: string;
+  name: 'LongTask';
+  value: number; // 最长任务持续时间
+  count: number; // 长任务数量
+  tasks: Array<{ startTime: number; duration: number }>;
+}
+
+export function observeLongTasks(
+  onReport: (task: LongTaskEntry) => void,
+  threshold = 50 // ms, 超过此阈值视为长任务
+): (() => void) {
+  if (typeof performance === 'undefined') return () => {
+  };
+
+  const tasks: Array<{ startTime: number; duration: number }> = [];
+
+  // 尝试使用 LongTask API
+  if ('PerformanceLongTaskTiming' in window) {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const duration = entry.duration;
+        if (duration >= threshold) {
+          tasks.push({startTime: entry.startTime, duration});
+        }
+      }
+      if (tasks.length > 0) {
+        const maxTask = tasks.reduce((a, b) => a.duration > b.duration ? a : b);
+        onReport({
+          id: 'LongTask',
+          name: 'LongTask',
+          value: maxTask.duration,
+          count: tasks.length,
+          tasks: [...tasks],
+        });
+      }
+    });
+
+    // @ts-ignore - LongTask API may not be typed
+    observer.observe({type: 'longtask', buffered: true});
+    return () => observer.disconnect();
+  }
+
+  // 降级方案: 使用 EventTiming API 检测长时间事件处理
+  if ('PerformanceObserver' in window) {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const duration = entry.duration;
+          if (duration >= threshold) {
+            tasks.push({startTime: entry.startTime, duration});
+          }
+        }
+        if (tasks.length > 0) {
+          const maxTask = tasks.reduce((a, b) => a.duration > b.duration ? a : b);
+          onReport({
+            id: 'LongTask',
+            name: 'LongTask',
+            value: maxTask.duration,
+            count: tasks.length,
+            tasks: [...tasks],
+          });
+        }
+      });
+
+      observer.observe({type: 'event', buffered: true, durationThreshold: threshold});
+      return () => observer.disconnect();
+    } catch {
+      // 静默失败
+    }
+  }
+
+  return () => {
+  };
+}
+
+// ─── EventTiming Observer ───
+
+export interface EventTimingEntry {
+  entryType: 'event';
+  name: string;
+  startTime: number;
+  duration: number;
+  processingStart: number;
+  interactionId?: number;
+}
+
+export function observeEventTiming(
+  onReport: (event: EventTimingEntry) => void,
+  durationThreshold = 16 // 1帧
+): (() => void) {
+  if (typeof performance === 'undefined') return () => {
+  };
+
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const evt = entry as any;
+        if (evt.duration >= durationThreshold) {
+          onReport({
+            entryType: 'event',
+            name: evt.name,
+            startTime: evt.startTime,
+            duration: evt.duration,
+            processingStart: evt.processingStart,
+            interactionId: evt.interactionId,
+          });
+        }
+      }
+    });
+
+    observer.observe({type: 'event', buffered: true, durationThreshold});
+    return () => observer.disconnect();
+  } catch {
+    return () => {
+    };
+  }
+}
+
+// ─── Resource Timing Observer (检测慢资源) ───
+
+export interface SlowResource {
+  name: string;
+  url: string;
+  duration: number;
+  transferSize: number;
+  decodedBodySize: number;
+  encodedBodySize: number;
+}
+
+export function observeSlowResources(
+  onReport: (resource: SlowResource) => void,
+  threshold = 3000 // 3秒
+): (() => void) {
+  if (typeof performance === 'undefined') return () => {
+  };
+
+  try {
+    const observer = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        const res = entry as PerformanceResourceTiming;
+        if (res.duration >= threshold) {
+          onReport({
+            name: res.name,
+            url: res.name,
+            duration: res.duration,
+            transferSize: res.transferSize,
+            decodedBodySize: res.decodedBodySize,
+            encodedBodySize: res.encodedBodySize,
+          });
+        }
+      }
+    });
+
+    observer.observe({type: 'resource', buffered: true});
+    return () => observer.disconnect();
+  } catch {
+    return () => {
+    };
+  }
+}

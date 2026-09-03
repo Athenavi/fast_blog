@@ -16,7 +16,7 @@ interface Props {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-export default function HomeCategories({categories, title}: Props) {
+function HomeCategories({categories, title}: Props) {
   if (!categories.length) return null;
   const list = categories.slice(0, 9);
 
@@ -55,3 +55,6 @@ export default function HomeCategories({categories, title}: Props) {
     </Section>
   );
 }
+
+export default React.memo(HomeCategories);
+HomeCategories.displayName = 'HomeCategories';

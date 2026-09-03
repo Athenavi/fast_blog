@@ -1,11 +1,5 @@
 'use client';
 
-/**
- * 首页精选 - 编辑式杂志网格
- * - Hero 已展示 featured[0]，本区块展示其余头条（最多 4 篇）
- * - 不对称网格：首篇大图 + 衬线标题，其余竖排小条目
- * - 无卡片边框、无渐变遮罩、无图标堆砌
- */
 import React from 'react';
 import {motion} from 'framer-motion';
 import {getFullMediaUrl} from '@/lib/utils';
@@ -17,7 +11,7 @@ interface Props {
   noSummaryMsg?: string;
 }
 
-export default function HomeFeatured({featured, title, noSummaryMsg = '暂无摘要'}: Props) {
+function HomeFeatured({featured, title, noSummaryMsg = '暂无摘要'}: Props) {
   const rest = featured.slice(1, 5);
   if (!rest.length) return null;
 
@@ -93,3 +87,6 @@ export default function HomeFeatured({featured, title, noSummaryMsg = '暂无摘
     </Section>
   );
 }
+
+export default React.memo(HomeFeatured);
+HomeFeatured.displayName = 'HomeFeatured';

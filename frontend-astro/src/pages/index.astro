@@ -3,6 +3,7 @@
 export const prerender = false;
 import Layout from '@/layouts/Layout.astro';
 import ModernHomePage from '@/components/home/ModernHomePage';
+import PreloadMonitor from '@/components/PreloadMonitor';
 import {apiClient} from '@/lib/api/base-client';
 
 // 服务端获取首页数据（SSR 渲染，爬虫/用户看到真实内容）
@@ -32,7 +33,35 @@ import '@/styles/globals.css';
 ---
 
 <Layout title="FastBlog - 首页" description="发现精彩内容，连接智慧世界">
-  <div class="min-h-screen">
+    <!-- 关键CSS内联: 防止FOUC — 移动端起步渲染关键样式 -->
+    <style is:inline>
+        .min-h-screen {
+            min-height: 100vh
+        }
+
+        .bg-\[\.05070f\] {
+            background-color: #05070f
+        }
+
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite
+        }
+
+        /* 关键布局样式，确保 SSR hydration 前不白屏 */
+        body {
+            margin: 0;
+            background: #05070f;
+            color: #e2e8f0
+        }
+    </style>
+
+    <!-- Route preloading: 空闲时预取文章页和分类页 -->
+    <PreloadMonitor
+        preloadRoutes={['/articles', '/categories']}
+        client:load
+    />
+
+    <div class="min-h-screen">
     <ModernHomePage
       initialFeatured={featured}
       initialRecent={recent}

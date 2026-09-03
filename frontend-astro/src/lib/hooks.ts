@@ -279,3 +279,191 @@ export function useThrottle<T>(value: T, interval: number): T {
 
   return throttledValue;
 }
+
+// ═══ Memory Leak Detection Hook (开发环境) ═══
+
+/**
+ * 在开发模式下检测 useEffect 是否缺少清理函数
+ * 返回 cleanup 函数，如果未提供清理函数则记录警告
+ */
+export function useLeakDetector(
+  effectName: string,
+  cleanup?: () => void
+): () => void {
+  useEffect(() => {
+    if (import.meta.env.DEV && !cleanup) {
+      console.warn(
+        `[Memory Leak] useEffect in "${effectName}" has no cleanup function. ` +
+        `This may cause memory leaks if it sets up event listeners, timers, or subscriptions.`
+      );
+    }
+    return cleanup;
+  }, []);
+  return cleanup || (() => {
+  });
+}
+
+// ═══ useAsyncInit - 异步初始化模式（防止闪屏） ═══
+
+interface UseAsyncInitResult<T> {
+  data: T | null;
+  loading: boolean;
+  error: string | null;
+  retry: () => Promise<void>;
+}
+
+export function useAsyncInit<T>(
+  fn: () => Promise<T>,
+  immediate = true
+): UseAsyncInitResult<T> {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // AbortController 防止竞态条件
+  const abortRef = useRef<AbortController | null>(null);
+
+  const execute = useCallback(async () => {
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const result = await fn();
+      if (!controller.signal.aborted) {
+        setData(result);
+        setLoading(false);
+      }
+    } catch (err: any) {
+      if (!controller.signal.aborted && err?.name !== 'AbortError') {
+        setError(err?.message ?? '初始化失败');
+        setLoading(false);
+      }
+    }
+  }, [fn]);
+
+  useEffect(() => {
+    if (immediate) execute();
+    return () => abortRef.current?.abort();
+  }, [execute, immediate]);
+
+  return {data, loading, error, retry: execute};
+}
+
+// �══ useMediaQuery - 响应式查询 hook ═══
+
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia(query);
+    setMatches(mql.matches);
+
+    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
+    mql.addEventListener('change', listener, {passive: true});
+    return () => mql.removeEventListener('change', listener);
+  }, [query]);
+
+  return matches;
+}
+
+// 常用设备检测 shortcuts
+export function useIsMobile(): boolean {
+  return useMediaQuery('(max-width: 768px)');
+}
+
+export function useIsTablet(): boolean {
+  return useMediaQuery('(min-width: 769px) and (max-width: 1024px)');
+}
+
+export function useIsReducedMotion(): boolean {
+  return useMediaQuery('(prefers-reduced-motion: reduce)');
+}
+
+// ═══ useNetworkState - 网络状态检测 hook ═══
+
+interface NetworkState {
+  online: boolean;
+  saveData: boolean;
+  effectiveType: 'slow-2g' | '2g' | '3g' | '4g' | '';
+  downlink: number | null;
+}
+
+export function useNetworkState(): NetworkState {
+  const conn = typeof navigator !== 'undefined' &&
+    (navigator as any).connection ||
+    (navigator as any).mozConnection ||
+    (navigator as any).webkitConnection;
+
+  const [state, setState] = useState<NetworkState>({
+    online: typeof window !== 'undefined' ? window.navigator.onLine : true,
+    saveData: conn?.saveData ?? false,
+    effectiveType: conn?.effectiveType ?? '',
+    downlink: conn?.downlink ?? null,
+  });
+
+  useEffect(() => {
+    const handleOnline = () => setState(p => ({...p, online: true}));
+    const handleOffline = () => setState(p => ({...p, online: false}));
+
+    window.addEventListener('online', handleOnline, {passive: true});
+    window.addEventListener('offline', handleOffline, {passive: true});
+
+    // 监听连接类型变化
+    let connListener: (() => void) | null = null;
+    if (conn) {
+      const onChange = () => setState({
+        online: window.navigator.onLine,
+        saveData: conn.saveData ?? false,
+        effectiveType: conn.effectiveType ?? '',
+        downlink: conn.downlink ?? null,
+      });
+      conn.addEventListener('change', onChange);
+      connListener = () => conn.removeEventListener('change', onChange);
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      connListener?.();
+    };
+  }, []);
+
+  return state;
+}
+
+// �══ useRequestIdleCallback - 空闲时执行 hook ═══
+
+export function useRequestIdleCallback<T>(
+  fn: (didTimeout: boolean) => void,
+  timeout?: number
+): void {
+  useEffect(() => {
+    if (typeof requestIdleCallback === 'undefined') {
+      setTimeout(() => fn(false), timeout || 1000);
+      return;
+    }
+
+    const handle = requestIdleCallback(
+      (deadline) => fn(deadline.timeRemaining() === 0),
+      {timeout: timeout || 2000}
+    );
+
+    return () => cancelIdleCallback(handle);
+  }, [fn, timeout]);
+}
+
+// ═══ usePrefetchedQuery - 预取 API 数据（与 React Query 兼容） ═══
+
+export async function prefetchApi<T>(
+  key: string,
+  fetchFn: () => Promise<T>,
+  ttl = 300000
+): Promise<T> {
+  const {apiCache} = await import('@/lib/api-cache');
+  return apiCache.getOrFetch(key, fetchFn, ttl, {dedupe: true, staleWhileRevalidate: true});
+}

@@ -2,6 +2,7 @@ import {type ClassValue, clsx} from "clsx";
 import {twMerge} from "tailwind-merge";
 import {getConfig} from "./config";
 import {getAccessTokenFromCookie} from "./auth-utils";
+import {useEffect, useState} from 'react';
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -67,4 +68,52 @@ export function truncate(str: string, len: number): string {
 
 export function slugify(text: string): string {
     return text.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g, '-').replace(/^-|-$/g, '');
+}
+
+/**
+ * 响应式媒体查询 Hook
+ * 用于检测屏幕尺寸、设备类型等
+ */
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mql = window.matchMedia(query);
+    setMatches(mql.matches);
+    const handler = (e: MediaQueryListEvent) => setMatches(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [query]);
+  return matches;
+}
+
+/**
+ * 检测网络状态（弱网络体验优化）
+ */
+export function useNetworkState() {
+  const [state, setState] = useState<{
+    online: boolean;
+    slow: boolean;
+    saveData: boolean;
+  }>({online: true, slow: false, saveData: false});
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const nav = (navigator as any);
+    const connection = nav.connection || nav.mozConnection || navigator.webkitConnection;
+    setState({
+      online: navigator.onLine,
+      slow: connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g',
+      saveData: !!connection?.saveData,
+    });
+    const onLine = () => setState(s => ({...s, online: true}));
+    const offLine = () => setState(s => ({...s, online: false}));
+    window.addEventListener('online', onLine);
+    window.addEventListener('offline', offLine);
+    return () => {
+      window.removeEventListener('online', onLine);
+      window.removeEventListener('offline', offLine);
+    };
+  }, []);
+  return state;
 }

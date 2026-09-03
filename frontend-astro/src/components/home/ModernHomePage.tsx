@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
 import {HOME} from '@/lib/api/api-paths';
 import type {HomeConfig} from '@/hooks/useHomeConfig';
@@ -12,6 +12,7 @@ import HomeCategories from './HomeCategories';
 import HomeLatest from './HomeLatest';
 import HomePopular from './HomePopular';
 import HomeNewsletter from './HomeNewsletter';
+import {useMediaQuery} from '@/lib/utils';
 
 interface Props {
     /** SSR 注入的初始数据 — 有值则跳过客户端首次请求 */
@@ -22,9 +23,9 @@ interface Props {
     initialConfig?: HomeConfig | null;
 }
 
-const LoadingScreen = () => (
+const LoadingScreen = React.memo(() => (
   <div className="min-h-screen bg-[#05070f]">
-    <div className="relative h-[85vh] min-h-[600px] bg-slate-900/60 animate-pulse">
+    <div className="relative h-[85vh] min-h-[600px] bg-slate-900/60 animate-pulse" aria-label="页面加载中">
       <div className="absolute inset-0 flex items-center">
         <div className="max-w-7xl mx-auto px-6 w-full">
           <div className="max-w-2xl space-y-6">
@@ -58,15 +59,51 @@ const LoadingScreen = () => (
       ))}
     </div>
   </div>
-);
+));
+LoadingScreen.displayName = 'LoadingScreen';
 
-export default function ModernHomePage({
+const HomeContent = React.memo(({
+                                  featured, hero, sections, newsletter, messages, categories, recent, popular,
+                                }: {
+  featured: Article[];
+  hero: Props['initialConfig'] & {
+    title: string;
+    subtitle: string;
+    ctaText: string;
+    ctaLink: string;
+    ctaTarget: string;
+    backgroundImage: string
+  };
+  sections: any;
+  newsletter: any;
+  messages: any;
+  categories: Category[];
+  recent: Article[];
+  popular: Article[];
+}) => (
+  <>
+    <HomeHero featured={featured} heroTitle={hero.title || ''} heroSubtitle={hero.subtitle || ''}
+              heroCtaText={hero.ctaText || ''} heroCtaLink={hero.ctaLink || ''} ctaTarget={hero.ctaTarget || ''}
+              heroBg={hero.backgroundImage || ''}/>
+    <HomeFeatured featured={featured} title={sections.featuredTitle || ''}
+                  noSummaryMsg={messages?.noSummary || '暂无摘要'}/>
+    <HomeCategories categories={categories} title={sections.categoriesTitle || ''}/>
+    <HomeLatest articles={recent} title={sections.mainTitle || ''}/>
+    <HomePopular articles={popular}/>
+    <HomeNewsletter title={newsletter.title || ''} subtitle={newsletter.subtitle || ''}
+                    buttonText={newsletter.buttonText || ''}/>
+  </>
+));
+HomeContent.displayName = 'HomeContent';
+
+function ModernHomePage({
   initialFeatured = [],
   initialRecent = [],
   initialPopular = [],
   initialCategories = [],
   initialConfig = null,
 }: Props) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const hasSsrData = initialFeatured.length > 0 || initialRecent.length > 0;
   const [featured, setFeatured] = useState<Article[]>(initialFeatured);
   const [recent, setRecent] = useState<Article[]>(initialRecent);
@@ -75,34 +112,73 @@ export default function ModernHomePage({
   const [loading, setLoading] = useState(!hasSsrData);
   const {hero, sections, newsletter, messages, loading: cfgLoading} = useHomeConfig(initialConfig);
 
+  // 移动端弱网络: 使用 requestIdleCallback 延迟加载非关键数据
+  const fetchNonCriticalData = useCallback(async () => {
+    try {
+      const [p, c] = await Promise.all([
+        apiClient.get(HOME.POPULAR),
+        apiClient.get(HOME.CATEGORIES),
+      ]);
+      if (p.success) setPopular(Array.isArray(p.data) ? p.data.slice(0, 8) : p.data?.articles?.slice(0, 8) || []);
+      if (c.success) setCategories(Array.isArray(c.data) ? c.data : c.data?.categories || []);
+    } catch { /* ignore */
+    }
+  }, []);
+
   useEffect(() => {
     if (hasSsrData) return; // SSR 已提供数据，跳过客户端首次请求
     (async () => {
       try {
-        const [f, r, p, c] = await Promise.all([
-          apiClient.get(HOME.FEATURED), apiClient.get(HOME.RECENT),
-          apiClient.get(HOME.POPULAR), apiClient.get(HOME.CATEGORIES),
+        // 核心数据优先
+        const [f, r] = await Promise.all([
+          apiClient.get(HOME.FEATURED),
+          apiClient.get(HOME.RECENT),
         ]);
         if (f.success) setFeatured(Array.isArray(f.data) ? f.data : f.data?.articles || []);
         if (r.success) setRecent(Array.isArray(r.data) ? r.data.slice(0, 12) : r.data?.articles?.slice(0, 12) || []);
-        if (p.success) setPopular(Array.isArray(p.data) ? p.data.slice(0, 8) : p.data?.articles?.slice(0, 8) || []);
-        if (c.success) setCategories(Array.isArray(c.data) ? c.data : c.data?.categories || []);
+
+        // 非核心数据延迟加载 (移动端弱网络优化)
+        if (isMobile) {
+          const idleCb = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (cb: any) => setTimeout(cb, 1);
+          idleCb(fetchNonCriticalData, {timeout: 2000});
+        } else {
+          const [p, c] = await Promise.all([
+            apiClient.get(HOME.POPULAR),
+            apiClient.get(HOME.CATEGORIES),
+          ]);
+          if (p.success) setPopular(Array.isArray(p.data) ? p.data.slice(0, 8) : p.data?.articles?.slice(0, 8) || []);
+          if (c.success) setCategories(Array.isArray(c.data) ? c.data : c.data?.categories || []);
+        }
       } catch { /* ignore */ } finally { setLoading(false); }
     })();
   }, []);
+
+  const heroMemo = useMemo(() => ({
+    title: hero.title || '',
+    subtitle: hero.subtitle || '',
+    ctaText: hero.ctaText || '',
+    ctaLink: hero.ctaLink || '',
+    ctaTarget: hero.ctaTarget || '',
+    backgroundImage: hero.backgroundImage || '',
+  }), [hero]);
 
   if (loading || cfgLoading) return <LoadingScreen />;
 
   return (
     <div className="bg-[#05070f] overflow-hidden">
-      <HomeHero featured={featured} heroTitle={hero.title || ''} heroSubtitle={hero.subtitle || ''}
-        heroCtaText={hero.ctaText || ''} heroCtaLink={hero.ctaLink || ''} ctaTarget={hero.ctaTarget || ''} heroBg={hero.backgroundImage || ''} />
-      <HomeFeatured featured={featured} title={sections.featuredTitle || ''} noSummaryMsg={messages?.noSummary || '暂无摘要'} />
-      <HomeCategories categories={categories} title={sections.categoriesTitle || ''} />
-      <HomeLatest articles={recent} title={sections.mainTitle || ''} />
-      <HomePopular articles={popular} />
-      <HomeNewsletter title={newsletter.title || ''} subtitle={newsletter.subtitle || ''} buttonText={newsletter.buttonText || ''} />
+      <HomeContent
+        featured={featured}
+        hero={heroMemo}
+        sections={sections}
+        newsletter={newsletter}
+        messages={messages}
+        categories={categories}
+        recent={recent}
+        popular={popular}
+      />
       <div className="h-8" />
     </div>
   );
 }
+
+export default React.memo(ModernHomePage);

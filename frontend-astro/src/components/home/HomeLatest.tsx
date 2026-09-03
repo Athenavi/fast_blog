@@ -16,7 +16,7 @@ interface Props {
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-export default function HomeLatest({articles, title}: Props) {
+function HomeLatest({articles, title}: Props) {
   if (!articles.length) return null;
   const left = articles.slice(0, 6);
   const right = articles.slice(6, 12);
@@ -66,3 +66,6 @@ export default function HomeLatest({articles, title}: Props) {
     </Section>
   );
 }
+
+export default React.memo(HomeLatest);
+HomeLatest.displayName = 'HomeLatest';

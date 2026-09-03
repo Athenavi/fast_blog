@@ -1219,3 +1219,236 @@ body {
     max-width: 100vw;
   }
 }
+
+/* ═══════════════════════════════════════════
+   Responsive: Tablet Layout Adjustments
+   ═══════════════════════════════════════════ */
+@media (min-width: 768px) and (max-width: 1023px) {
+  /* Tablet: 2-column grid for articles */
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Tablet: Sidebar becomes top bar */
+  .tablet-sidebar-top {
+    flex-direction: column;
+  }
+
+  .tablet-sidebar-top aside {
+    width: 100%;
+    order: -1;
+  }
+
+  /* Tablet: Optimized modals */
+  .tablet-modal {
+    max-width: min(90vw, 600px);
+    margin: 5vh auto;
+  }
+
+  /* Tablet: Font size adjustments */
+  h1:not(.text-responsive-\*) {
+    font-size: clamp(1.5rem, 4vw, 2rem);
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Responsive: Large Desktop
+   ═══════════════════════════════════════════ */
+@media (min-width: 1536px) {
+  .theme-container {
+    max-width: 1280px;
+  }
+
+  /* Prevent lines too long for readability */
+  .prose-custom p,
+  .prose-custom li {
+    max-width: 75ch;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Responsive: Image Optimization
+   ═══════════════════════════════════════════ */
+/* Responsive images with srcset helper */
+.responsive-img {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Placeholder while images load */
+.responsive-img-placeholder {
+  position: relative;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+}
+
+.dark .responsive-img-placeholder {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+.responsive-img-placeholder::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   Responsive: Container Queries (modern)
+   ═══════════════════════════════════════════ */
+/* Component-level responsive using container queries */
+.responsive-card {
+  container-type: inline-size;
+  container-name: card;
+}
+
+@container card (min-width: 400px) {
+  .responsive-card .card-content {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+
+  .responsive-card .card-image {
+    width: 200px;
+    flex-shrink: 0;
+  }
+}
+
+@container card (max-width: 399px) {
+  .responsive-card .card-content {
+    flex-direction: column;
+  }
+
+  .responsive-card .card-image {
+    width: 100%;
+    aspect-ratio: 16/9;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Responsive: Orientation Changes
+   ═══════════════════════════════════════════ */
+/* Landscape mobile adjustments */
+@media (max-height: 500px) and (orientation: landscape) {
+  /* Reduce padding in landscape */
+  .landscape-compact {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  /* Sticky header in landscape */
+  .landscape-sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  /* Bottom nav hidden in landscape */
+  .mobile-bottom-nav {
+    display: none;
+  }
+}
+
+/* �══════════════════════════════════════════
+   Responsive: Pointer Type Detection
+   ═══════════════════════════════════════════ */
+/* Hover-available devices: show hover states */
+@media (hover: hover) {
+  .hover-only-visible {
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  *:hover > .hover-only-visible {
+    opacity: 1;
+  }
+}
+
+/* Touch-only: no hover-dependent interactions */
+@media (hover: none) {
+  .hover-only-visible {
+    display: none;
+  }
+
+  /* Ensure tap targets are large enough */
+  button, a, [role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Responsive: Dynamic Color Scheme
+   ═══════════════════════════════════════════ */
+@media (prefers-color-scheme: light) {
+  :root:not(.dark) {
+    color-scheme: light;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    color-scheme: dark;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Responsive: Print Optimization
+   ═══════════════════════════════════════════ */
+@media print {
+  /* Hide navigation and interactive elements */
+  nav, footer, .no-print,
+  .mobile-bottom-nav,
+  button, .toast-container {
+    display: none !important;
+  }
+
+  /* Reset for print readability */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+    line-height: 1.5;
+  }
+
+  a {
+    text-decoration: none;
+    color: black;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    opacity: 0.7;
+  }
+
+  /* Don't print internal links */
+  a[href^="#"]::after,
+  a[href^="/"]::after {
+    content: "";
+  }
+
+  img, svg {
+    page-break-inside: avoid;
+  }
+
+  h1, h2, h3 {
+    page-break-after: avoid;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   Environment: Low-bandwidth Auto-degrade
+   �══════════════════════════════════════════ */
+/* When save-data is enabled, skip heavy animations */
+@media (prefers-reduced-data: reduce) {
+  .motion-safe-animate {
+    animation: none !important;
+  }
+
+  .heavy-image {
+    display: none !important;
+  }
+}

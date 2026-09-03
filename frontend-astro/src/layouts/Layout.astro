@@ -7,6 +7,7 @@ import ThemeHeader from '@/components/theme/ThemeHeader';
 import ThemeFooter from '@/components/theme/ThemeFooter';
 import {GlobalShortcuts} from '@/components/GlobalShortcuts';
 import MobileGestures from '@/components/MobileGestures';
+import OfflineBanner from '@/components/OfflineBanner';
 
 export interface Props {
   title?: string;
@@ -60,23 +61,40 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
       })();
     </script>
 
-    <!-- Active theme CSS + 契约应用：注入激活主题样式，并把设置落地为 CSS 变量与布局属性 -->
-    <script is:inline>
+      <!-- Active theme CSS + 契约应用：采用 requestIdleCallback 非阻塞加载 -->
+      <script defer>
       (function() {
         var root = document.documentElement;
-        // 1) 注入激活主题 CSS
-        if (!document.getElementById('active-theme-css')) {
-          fetch('/api/v2/themes/active/css').then(function(r) { return r.json(); }).then(function(data) {
-            if (data && data.data && data.data.css && !document.getElementById('active-theme-css')) {
-              var style = document.createElement('style');
-              style.id = 'active-theme-css';
-              style.textContent = data.data.css;
-              document.head.appendChild(style);
-            }
-          }).catch(function() {});
-        }
-        // 2) 应用主题契约（颜色/排版/圆角 → CSS 变量，布局 → data-* 属性）
-        fetch('/api/v2/themes/active/config').then(function(r) { return r.json(); }).then(function(data) {
+          var applyTheme = function () {
+              // 1) 注入激活主题 CSS (高优先级)
+              if (!document.getElementById('active-theme-css')) {
+                  fetch('/api/v2/themes/active/css').then(function (r) {
+                      return r.json();
+                  }).then(function (data) {
+                      if (data && data.data && data.data.css && !document.getElementById('active-theme-css')) {
+                          var style = document.createElement('style');
+                          style.id = 'active-theme-css';
+                          style.textContent = data.data.css;
+                          document.head.appendChild(style);
+                      }
+                  }).catch(function () {
+                  });
+              }
+              // 2) 应用主题契约（低优先级 - 不影响首次渲染）
+              if (typeof requestIdleCallback !== 'undefined') {
+                  requestIdleCallback(function () {
+                      fetch('/api/v2/themes/active/config').then(function (r) {
+                          return r.json();
+                      }).then(applyConfig);
+                  }, {timeout: 1000});
+              } else {
+                  fetch('/api/v2/themes/active/config').then(function (r) {
+                      return r.json();
+                  }).then(applyConfig);
+              }
+          };
+
+          function applyConfig(data) {
           var d = data && data.data;
           if (!d) return;
           function setVar(n, v) { if (v !== undefined && v !== null && v !== '') { root.style.setProperty(n, String(v)); } }
@@ -102,14 +120,19 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
           if (layout.contentWidth) { root.dataset.contentWidth = layout.contentWidth; }
           if (typeof layout.showHeader === 'boolean') { root.dataset.showHeader = String(layout.showHeader); }
           if (typeof layout.showFooter === 'boolean') { root.dataset.showFooter = String(layout.showFooter); }
-          // 组件槽位：header / articleCard / footer
           var slots = (d.contract && d.contract.componentSlots) || {};
           if (slots.header) { root.dataset.themeHeader = slots.header; }
           if (slots.articleCard) { root.dataset.themeCard = slots.articleCard; }
           if (slots.footer) { root.dataset.themeFooter = slots.footer; }
-          // 通知前端组件重新读取槽位
           try { window.dispatchEvent(new CustomEvent('theme:applied')); } catch (e) {}
-        }).catch(function() {});
+          }
+
+          // 等待 DOM 解析完成后应用主题
+          if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', applyTheme);
+          } else {
+              applyTheme();
+          }
       })();
     </script>
 
@@ -120,6 +143,7 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
             onload="document.addEventListener('astro:after-swap', function(){try{renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});}catch(e){}});renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});"></script>
   </head>
   <body class="antialiased theme-bg theme-text" suppressHydrationWarning>
+  <OfflineBanner client:load/>
     <ThemeHeader client:load />
     <GlobalShortcuts client:load />
     <MobileGestures client:load />
