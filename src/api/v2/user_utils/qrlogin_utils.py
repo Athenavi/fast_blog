@@ -84,7 +84,7 @@ async def phone_scan_back(request: Request, current_user, cache=None, login_toke
 
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
-        from src.api.v2.auth_v1pack import create_jwt_token
+        from src.api.v2.auth_legacy import create_jwt_token
         refresh_token = create_jwt_token(subject=str(current_user.id), token_type="refresh")
 
     allow_data = {

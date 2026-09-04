@@ -25,12 +25,11 @@ from shared.services.security.rate_limiter import rate_limiter
 from shared.services.users.email_verification_service import email_verification_service
 from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
-from shared.services.users.sms_verification_service import sms_verification_service
 from shared.services.users.user_manager import create_user_account
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 _tb_instance = None
 
@@ -63,7 +62,8 @@ class RegisterRequest(BaseModel):
 
 # ─── JWT 工具函数 ───
 
-async def authenticate_user_with_session(username_or_email: str, password: str, db: AsyncSession) -> Optional[UserModel]:
+async def authenticate_user_with_session(username_or_email: str, password: str, db: AsyncSession) -> Optional[
+    UserModel]:
     from src.utils.security.password_validator import verify_password
     user = await db.scalar(select(UserModel).where(
         (UserModel.username == username_or_email) | (UserModel.email == username_or_email)))
@@ -75,14 +75,16 @@ async def authenticate_user_with_session(username_or_email: str, password: str, 
 def create_jwt_token(subject: str, token_type: str = "access", expires_delta: Optional[timedelta] = None) -> str:
     now = datetime.now(timezone.utc)
     if expires_delta is None:
-        expires_delta = timedelta(seconds=settings.JWT_EXPIRATION_DELTA if token_type == "access" else settings.REFRESH_TOKEN_EXPIRATION_DELTA)
+        expires_delta = timedelta(
+            seconds=settings.JWT_EXPIRATION_DELTA if token_type == "access" else settings.REFRESH_TOKEN_EXPIRATION_DELTA)
     payload = {"sub": subject, "iat": now, "exp": now + expires_delta, "jti": str(uuid.uuid4()), "type": token_type}
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
 def decode_jwt_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM], options={"verify_exp": True})
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM],
+                             options={"verify_exp": True})
         jti = payload.get("jti")
         tb = _get_token_blacklist()
         if jti and tb.is_available and tb.is_blacklisted(jti):
@@ -160,7 +162,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     locked, unlock_time = await login_security_service.check_account_locked_async(username, db)
     if locked:
         await login_security_service.record_login_attempt_async(username, ip, ua, False,
-            "Account locked", db)
+                                                                "Account locked", db)
         return fail("账户已被临时锁定，请稍后再试")
 
     user = await authenticate_user_with_session(username, password, db)
@@ -170,7 +172,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
             db=db, user_id=None, user_name=username,
             action=AuditLogAction.LOGIN, level=AuditLogLevel.WARNING,
             resource_type="user", description="登录失败：用户名或密码错�?,
-            ip_address=ip, user_agent=ua
+        ip_address = ip, user_agent = ua
         )
         await event_bus.emit("user.login_failed", {"user_id": None, "username": username, "ip_address": ip})
         return fail("用户名或密码错误")
@@ -182,8 +184,9 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
         return fail("账户已停�?)
 
         # 2FA 检查：如果用户启用了双因素认证，返回临�?token
-    if user.is_2fa_enabled:
-        temp_token = create_jwt_token(subject=str(user.id), token_type="temp_2fa", expires_delta=timedelta(minutes=5))
+        if user.is_2fa_enabled:
+            temp_token = create_jwt_token(subject=str(user.id), token_type="temp_2fa",
+                                          expires_delta=timedelta(minutes=5))
         return JSONResponse(content={
             "success": True,
             "data": {
@@ -201,15 +204,18 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     # Revoke all old sessions except the current one (session rotation)
     await session_management_service.revoke_all_sessions(user.id, exclude_session_id=session_id)
 
-    resp_data = {"access_token": access_token, "token_type": "bearer", "email_verified": user.is_email_verified if hasattr(user, 'is_email_verified') else False}
+    resp_data = {"access_token": access_token, "token_type": "bearer",
+                 "email_verified": user.is_email_verified if hasattr(user, 'is_email_verified') else False}
     if refresh_token:
         resp_data["refresh_token"] = refresh_token
 
     resp = JSONResponse(content={"success": True, "data": resp_data})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
-    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
+    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600,
+                    path="/")
     if refresh_token:
-        resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
+        resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict",
+                        max_age=2592000, path="/")
 
     await audit_log_service.log_action(
         db=db, user_id=user.id, user_name=user.username,
@@ -229,7 +235,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
 async def register_api(data: RegisterRequest, request: Request, db: AsyncSession = Depends(get_async_db)):
     if not re.match(r'^[a-zA-Z0-9_]+$', data.username):
         return fail("用户名只能包含字母、数字和下划�?)
-    if len(data.username) < 3 or len(data.username) > 30:
+        if len(data.username) < 3 or len(data.username) > 30:
             return fail("用户名长度需�?3-30 字符之间")
 
     # 验证密码强度（与前端 Zod schema 规则一致）
@@ -270,10 +276,13 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
-    resp = JSONResponse(content={"success": True, "data": {"access_token": access_token, "refresh_token": refresh_token, "email_verified": False, "email": data.email}})
+    resp = JSONResponse(content={"success": True, "data": {"access_token": access_token, "refresh_token": refresh_token,
+                                                           "email_verified": False, "email": data.email}})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
-    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
-    resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
+    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600,
+                    path="/")
+    resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000,
+                    path="/")
     return resp
 
 
@@ -288,11 +297,12 @@ async def send_email_verification_code(data: dict, current_user=Depends(jwt_requ
     result = await email_verification_service.send_verification_code(email)
     return ok(data=result, msg="验证码已发�?)
 
+                               @ router.post("/email/send-verification")
+                               @ _catch
+    async
 
-@router.post("/email/send-verification")
-@_catch
-async def send_verification_email(data: dict, db: AsyncSession = Depends(get_async_db),
-                                   current_user=Depends(jwt_required)):
+    def send_verification_email(data: dict, db: AsyncSession = Depends(get_async_db),
+                                current_user=Depends(jwt_required)):
         """发送注册验证邮件（需登录�?""
         email = data.get('email', '')
         if not email:
@@ -467,6 +477,7 @@ async def refresh_token_api(request: Request):
 async def forgot_password(data: dict, request: Request, db: AsyncSession = Depends(get_async_db)):
     """
         发送密码重置邮�?""
+
     email = data.get('email', '')
     if not email:
         return fail("邮箱不能为空")
@@ -479,7 +490,7 @@ async def forgot_password(data: dict, request: Request, db: AsyncSession = Depen
         # 统一响应防止邮箱枚举
         return ok(msg="如果该邮箱已注册，重置链接已发�?)
         # 生成重置令牌�?5分钟有效期）
-    reset_token = create_jwt_token(subject=str(user.id), token_type="reset", expires_delta=timedelta(minutes=15))
+        reset_token = create_jwt_token(subject=str(user.id), token_type="reset", expires_delta=timedelta(minutes=15))
         # 发送重置邮�?    try:
         from shared.services.notifications.email_service import email_service
         site_url = getattr(settings, 'domain', 'http://localhost:9421').rstrip('/')
@@ -499,14 +510,17 @@ async def forgot_password(data: dict, request: Request, db: AsyncSession = Depen
         )
         logger.info(f"[Password Reset] 重置邮件已发�? user_id={user.id}, email={email}")
     except Exception as e:
-        logger.error(f"[Password Reset] 发送重置邮件失�? user_id={user.id}, error={e}")
-
-    return ok(msg="如果该邮箱已注册，重置链接已发�?)
+    logger.error(f"[Password Reset] 发送重置邮件失�? user_id={user.id}, error={e}")
 
 
-@router.post("/password/reset")
-@_catch
-async def reset_password(data: dict, db: AsyncSession = Depends(get_async_db)):
+return ok(msg="如果该邮箱已注册，重置链接已发�?)
+
+              @ router.post("/password/reset")
+              @ _catch
+          async
+
+
+def reset_password(data: dict, db: AsyncSession = Depends(get_async_db)):
     """使用重置令牌设置新密�?""
     token = data.get('token', '')
     new_password = data.get('password', '')
@@ -548,5 +562,7 @@ async def oauth_login(provider: str, data: dict):
 @router.post("/oauth/{provider}/callback")
 @_catch
 async def oauth_callback(provider: str, data: dict):
-    """OAuth 回调处理（存根）"""
+    """
+    OAuth
+    回调处理（存根）"""
     return fail(f"OAuth provider '{provider}' callback 暂未实现")

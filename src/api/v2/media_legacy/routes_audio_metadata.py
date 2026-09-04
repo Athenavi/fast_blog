@@ -14,16 +14,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from src.api.v2._helpers import ok
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["audio-metadata"])
 
 
 async def get_audio_metadata(
-        media_id: int,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    media_id: int,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取音频文件的元数据（封面、歌词等�?
@@ -44,9 +44,9 @@ async def get_audio_metadata(
         # 检查权�?    if media.user != current_user_obj.id and not media.is_public:
         raise HTTPException(status_code=403, detail="无权访问该媒体文�?)
 
-    # 检查是否为音频文件
-    if not media.mime_type or not media.mime_type.startswith('audio/'):
-        raise HTTPException(status_code=400, detail="不是音频文件")
+        # 检查是否为音频文件
+        if not media.mime_type or not media.mime_type.startswith('audio/'):
+            raise HTTPException(status_code=400, detail="不是音频文件")
 
     result = {
         "cover_image": None,  # base64编码的封面图�?        "lyrics": [],  # 歌词数组 [{time: �? text: 文本}]
@@ -268,83 +268,87 @@ def extract_lyrics_from_id3(media: Media) -> list:
 
 
 def parse_lrc_text(text: str) -> list:
-    """解析包含LRC时间戳的歌词文本"""
-    try:
-        import re
-        lyrics = []
+    """
+    解析包含LRC时间戳的歌词文本
+    """
+        try:
+            import re
+            lyrics = []
 
-        # 按行分割
-        lines = text.split('\n')
+            # 按行分割
+            lines = text.split('\n')
 
-        MAX_LYRICS_LINES = 500  # 最大解析行数限�?
-        for line in lines:
-            if len(lyrics) >= MAX_LYRICS_LINES:
-                logger.warning(f"歌词行数超过限制 ({MAX_LYRICS_LINES})，截断多余行")
-                break
+            MAX_LYRICS_LINES = 500  # 最大解析行数限�?
+            for line in lines:
+                if len(lyrics) >= MAX_LYRICS_LINES:
+                    logger.warning(f"歌词行数超过限制 ({MAX_LYRICS_LINES})，截断多余行")
+                    break
 
-        for line in lines:
-            line = line.strip()
-            if not line:
-                continue
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
 
-            # LRC格式: [mm:ss.xx]歌词文本
-            pattern = r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)'
-            matches = re.findall(pattern, line)
+                # LRC格式: [mm:ss.xx]歌词文本
+                pattern = r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)'
+                matches = re.findall(pattern, line)
 
-            for match in matches:
-                minutes = int(match[0])
-                seconds = int(match[1])
-                milliseconds = int(match[2].ljust(3, '0'))  # 补齐3�?                lyric_text = match[3].strip()
+                for match in matches:
+                    minutes = int(match[0])
+                    seconds = int(match[1])
+                    milliseconds = int(match[2].ljust(3, '0'))  # 补齐3�?                lyric_text = match[3].strip()
 
-                if lyric_text:  # 只添加有文本的行
-                    time_in_seconds = minutes * 60 + seconds + milliseconds / 1000
-                    lyrics.append({
-                        "time": round(time_in_seconds, 2),
-                        "text": lyric_text
-                    })
+                    if lyric_text:  # 只添加有文本的行
+                        time_in_seconds = minutes * 60 + seconds + milliseconds / 1000
+                        lyrics.append({
+                            "time": round(time_in_seconds, 2),
+                            "text": lyric_text
+                        })
 
-        return lyrics
+            return lyrics
 
-    except Exception as e:
-        logger.error(f"解析LRC文本失败: {e}")
-        return []
+        except Exception as e:
+            logger.error(f"解析LRC文本失败: {e}")
+            return []
 
 
-def find_lrc_file(media: Media) -> Optional[Path]:
-    """查找与音频文件同名的.lrc歌词文件"""
-    try:
-        audio_path = Path(media.file_path)
-        if not audio_path.exists():
+    def find_lrc_file(media: Media) -> Optional[Path]:
+        """
+    查找与音频文件同名的.lrc歌词文件
+    """
+        try:
+            audio_path = Path(media.file_path)
+            if not audio_path.exists():
+                return None
+
+            # 查找同名.lrc文件
+            lrc_path = audio_path.with_suffix('.lrc')
+            if lrc_path.exists():
+                return lrc_path
+
+            # 在相同目录下查找可能的歌词文�?        parent_dir = audio_path.parent
+            base_name = audio_path.stem
+
+            # 尝试几种常见的命名方�?        possible_names = [
+                f"{base_name}.lrc",
+                f"{base_name}.txt",
+                f"lyrics_{base_name}.lrc",
+            ]
+
+            for name in possible_names:
+                candidate = parent_dir / name
+                if candidate.exists():
+                    return candidate
+
             return None
 
-        # 查找同名.lrc文件
-        lrc_path = audio_path.with_suffix('.lrc')
-        if lrc_path.exists():
-            return lrc_path
-
-        # 在相同目录下查找可能的歌词文�?        parent_dir = audio_path.parent
-        base_name = audio_path.stem
-
-        # 尝试几种常见的命名方�?        possible_names = [
-            f"{base_name}.lrc",
-            f"{base_name}.txt",
-            f"lyrics_{base_name}.lrc",
-        ]
-
-        for name in possible_names:
-            candidate = parent_dir / name
-            if candidate.exists():
-                return candidate
-
-        return None
-
-    except Exception as e:
-        logger.error(f"查找歌词文件失败: {e}")
-        return None
+        except Exception as e:
+            logger.error(f"查找歌词文件失败: {e}")
+            return None
 
 
-def parse_lrc_file(lrc_path: Path) -> list:
-    """
+    def parse_lrc_file(lrc_path: Path) -> list:
+        """
     解析LRC格式的歌词文�?""
     try:
         lyrics = []

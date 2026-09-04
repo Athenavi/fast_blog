@@ -2,9 +2,9 @@
 媒体文件�?API 路由
 提供文件夹的 CRUD 操作和媒体文件管�?"""
 
-from typing import Optional, List
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Body, Request
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -40,22 +40,24 @@ async def get_folder_tree(
 @_catch
 async def get_folder_list(
     parent_id: Optional[int] = Query(None, description="父文件夹ID，None表示根目�?),
-    current_user=Depends(jwt_required),
-    db: AsyncSession = Depends(get_async_db)
-):
-    """
-    获取文件夹列表（扁平结构�?
-    Args:
-        parent_id: 父文件夹ID
+    current_user = Depends(jwt_required),
+    db
 
-    Returns:
-        文件夹列�?    """
-    folders = await media_folder_service.get_folder_list(
-        db,
-        current_user.id,
-        parent_id
-    )
-    return ok(data={"folders": folders, "count": len(folders)})
+: AsyncSession = Depends(get_async_db)
+):
+"""
+获取文件夹列表（扁平结构�?
+Args:
+    parent_id: 父文件夹ID
+
+Returns:
+    文件夹列�?    """
+folders = await media_folder_service.get_folder_list(
+    db,
+    current_user.id,
+    parent_id
+)
+return ok(data={"folders": folders, "count": len(folders)})
 
 
 # ---------- 获取文件夹详�?----------
@@ -106,18 +108,18 @@ async def create_folder(
     if not name:
         return fail("文件夹名称不能为�?)
 
-    result = await media_folder_service.create_folder(
-        db,
-        current_user.id,
-        name=name,
-        parent_id=body.get('parent_id'),
-        description=body.get('description', ''),
-        is_public=body.get('is_public', True)
-    )
+        result = await media_folder_service.create_folder(
+            db,
+            current_user.id,
+            name=name,
+            parent_id=body.get('parent_id'),
+            description=body.get('description', ''),
+            is_public=body.get('is_public', True)
+        )
 
-    if result['success']:
+        if result['success']:
             return ok(msg="文件夹创建成�?, data=result['folder'])
-    else:
+        else:
         return fail(result['error'])
 
 
@@ -152,7 +154,7 @@ async def update_folder(
 
     if result['success']:
         return ok(msg="文件夹更新成�?, data=result['folder'])
-    else:
+        else:
         return fail(result['error'])
 
 
@@ -162,29 +164,31 @@ async def update_folder(
 async def delete_folder(
     folder_id: int,
     delete_media: bool = Query(False, description="是否同时删除文件夹内的媒体文�?),
-    current_user=Depends(jwt_required),
-    db: AsyncSession = Depends(get_async_db)
+    current_user = Depends(jwt_required),
+    db
+
+: AsyncSession = Depends(get_async_db)
 ):
-    """
-    删除文件�?
-    Args:
-        folder_id: 文件夹ID
-        delete_media: 是否同时删除媒体文件
+"""
+删除文件�?
+Args:
+    folder_id: 文件夹ID
+    delete_media: 是否同时删除媒体文件
 
-    Note:
-        - 如果文件夹包含子文件夹，必须先删除子文件�?        - 如果不删除媒体文件，媒体将被移动到根目录
-    """
-    result = await media_folder_service.delete_folder(
-        db,
-        folder_id,
-        current_user.id,
-        delete_media
-    )
+Note:
+    - 如果文件夹包含子文件夹，必须先删除子文件�?        - 如果不删除媒体文件，媒体将被移动到根目录
+"""
+result = await media_folder_service.delete_folder(
+    db,
+    folder_id,
+    current_user.id,
+    delete_media
+)
 
-    if result['success']:
-        return ok(msg=result['message'])
-    else:
-        return fail(result['error'])
+if result['success']:
+    return ok(msg=result['message'])
+else:
+return fail(result['error'])
 
 
 # ---------- 移动媒体到文件夹 ----------
@@ -208,7 +212,6 @@ async def move_media_to_folder(
     # 如果指定了文件夹路径，需要查找最终的文件夹ID
     target_folder_id = None
     if folder_path:
-        from urllib.parse import unquote
         from shared.models import MediaFolder
 
         # 解码 URL 编码的路�?        decoded_path = unquote(folder_path)

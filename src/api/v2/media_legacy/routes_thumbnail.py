@@ -2,9 +2,7 @@
 媒体缩略图路�?- 提供基于 media_id 的缩略图访问
 """
 
-import urllib.parse
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
@@ -12,22 +10,19 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
-from shared.models.media.file_hash import FileHash
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.image.processing import generate_thumbnail as sync_generate_thumbnail
-from .utils import PREVIEWABLE_TYPES, handle_local_file, handle_s3_streaming
-from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter()
 from src.unified_logger import default_logger as logger
 
 
 async def get_media_thumbnail(
-        media_id: int,
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    media_id: int,
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """
     获取媒体文件的缩略图
@@ -53,21 +48,21 @@ async def get_media_thumbnail(
         logger.warning(f"无权访问该媒体文�?- media_id: {media_id}, user: {current_user.id}")
         raise HTTPException(status_code=403, detail="无权访问该媒体文�?)
 
-    # 如果已有缩略图路径，直接返回
-    if media.thumbnail_path:
-        from src.utils.storage.s3_storage import s3_storage
+        # 如果已有缩略图路径，直接返回
+        if media.thumbnail_path:
+            pass
         thumbnail_data = s3_storage.read_file(media.thumbnail_path)
 
         if thumbnail_data:
             logger.info(f"返回已存在的缩略�?- media_id: {media_id}")
-            return Response(
-                content=thumbnail_data,
-                media_type='image/jpeg',
-                headers={
-                    'Cache-Control': 'public, max-age=2592000',
-                    # 缓存30�?                    'Content-Disposition': f'inline; filename="thumbnail_{media_id}.jpg"'
-                }
-            )
+        return Response(
+            content=thumbnail_data,
+            media_type='image/jpeg',
+            headers={
+                'Cache-Control': 'public, max-age=2592000',
+                # 缓存30�?                    'Content-Disposition': f'inline; filename="thumbnail_{media_id}.jpg"'
+            }
+        )
 
     # 如果没有缩略图，尝试生成
     logger.info(f"缩略图不存在，开始生�?- media_id: {media_id}")
@@ -81,20 +76,20 @@ async def get_media_thumbnail(
         original_path = path_without_ext
     else:
         # 尝试查找带扩展名的文�?        if original_dir.exists():
-            for file in original_dir.iterdir():
-                if file.name.startswith(media.hash + '.'):
-                    original_path = file
-                    break
+        for file in original_dir.iterdir():
+            if file.name.startswith(media.hash + '.'):
+                original_path = file
+                break
 
     if not original_path or not original_path.exists():
         logger.error(f"原始文件不存�?- media_id: {media_id}, hash: {media.hash}")
         raise HTTPException(status_code=404, detail="原始文件不存�?)
 
         # 生成缩略�?    thumb_dir = Path(f"storage/thumbnails/{media.hash[:2]}")
-    thumb_dir.mkdir(parents=True, exist_ok=True)
-    thumb_path = thumb_dir / f"{media.hash}.jpg"
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+        thumb_path = thumb_dir / f"{media.hash}.jpg"
 
-    logger.info(f"开始生成缩略图 - media_id: {media_id}, path: {thumb_path}")
+        logger.info(f"开始生成缩略图 - media_id: {media_id}, path: {thumb_path}")
 
     try:
         # 同步生成缩略图（因为 generate_thumbnail 是同步函数）

@@ -5,14 +5,14 @@
 import os
 from threading import Thread
 
-from fastapi import APIRouter, Depends, Body, Request, Query, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, Body, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
-from shared.services.media.image_tool import image_editor, image_processor
+from shared.services.media.image_tool import image_processor
 from shared.services.media.media_manager import media_library_service
 from src.api.v2._storage_utils import async_file_cleanup
 from src.auth import jwt_required_dependency as jwt_required
@@ -25,9 +25,9 @@ from src.api.v2._helpers import ok, fail, _catch
 
 
 async def delete_user_media_api(
-        current_user_obj=Depends(jwt_required),
-        file_id_list: str = Query(..., alias="file-id-list"),
-        db: AsyncSession = Depends(get_async_db)
+    current_user_obj=Depends(jwt_required),
+    file_id_list: str = Query(..., alias="file-id-list"),
+    db: AsyncSession = Depends(get_async_db)
 ):
     if not file_id_list:
         return JSONResponse({'success': False, 'message': '缺少文件ID列表'}, status_code=400)
@@ -47,14 +47,15 @@ async def delete_user_media_api(
     if not media_hashes:
         return JSONResponse({'success': False, 'message': '没有有效的媒体记�?}, status_code=400)
 
-    fh_query = select(FileHash).where(FileHash.hash.in_(media_hashes))
-    fh_result = await db.execute(fh_query)
-    file_hashes = fh_result.scalars().all()
-    fh_map = {fh.hash: fh for fh in file_hashes}
+                             fh_query = select(FileHash).where(FileHash.hash.in_(media_hashes))
+        fh_result = await db.execute(fh_query)
+        file_hashes = fh_result.scalars().all()
+        fh_map = {fh.hash: fh for fh in file_hashes}
 
-    for media in target_files:
-        if not media.hash:
-            continue
+        for media in target_files:
+            if
+        not media.hash:
+        continue
         await db.delete(media)
         fh = fh_map.get(media.hash)
         if fh:
@@ -73,9 +74,9 @@ async def delete_user_media_api(
 @router.post("/batch-delete")
 @_catch
 async def batch_delete_media(
-        media_ids: list = Body(..., embed=True),
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    media_ids: list = Body(..., embed=True),
+    current_user=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     result = await media_library_service.batch_delete_media(db, media_ids, user_id=current_user.id)
     if result["success"]:
@@ -87,10 +88,10 @@ async def batch_delete_media(
 @router.post("/batch-categorize")
 @_catch
 async def batch_categorize_media(
-        media_ids: list = Body(...),
-        category: str = Body(...),
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    media_ids: list = Body(...),
+    category: str = Body(...),
+    current_user=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """批量为媒体设置分�?""
     try:

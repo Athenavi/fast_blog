@@ -11,7 +11,7 @@ from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.two_factor_auth import two_factor_auth
 from src.api.v2._helpers import ok, fail, _catch
-from src.api.v2.auth_v1pack import create_jwt_token
+from src.api.v2.auth_legacy import create_jwt_token
 
 # 2FA 设置密钥临时存储（cache 的后备，避免同步 cache.set 阻塞事件循环�?# 注意: 此内�?dict 在多进程部署下会丢失，如需生产环境高可用，
 #       应使�?Redis 等共享存储作为主要存储，�?dict 仅作为后备�?_setup_secrets: dict = {}
@@ -104,8 +104,6 @@ async def enable_2fa(
 
     需要用户提供TOTP验证码来验证设置正确
     """
-    from shared.models.user import User
-    from sqlalchemy import select
 
     # 获取临时存储的密钥（Redis 优先，内存后备；�?worker �?Redis 是唯一共享存储�?    from src.extensions import cache
     cache_key = f"2fa_setup:{current_user.id}"
@@ -159,7 +157,6 @@ async def disable_2fa(
     禁用2FA（需验证当前密码�?    """
     from shared.models.user import User
     from sqlalchemy import select
-    from src.utils.security.password_validator import verify_password
 
     # 获取用户信息
     query = select(User).where(User.id == current_user.id)
@@ -203,7 +200,6 @@ async def verify_2fa_login(
     """
     from shared.models.user import User
     from sqlalchemy import select
-    from datetime import datetime, timezone
 
     # 获取设备信息（在try块开头定义，确保后续可用�?    user_agent = request.headers.get("User-Agent", "Unknown")
     ip_address = request.client.host if request.client else None

@@ -4,7 +4,7 @@
 import logging
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,9 +19,9 @@ router = APIRouter()
 
 
 async def get_media_exif(
-        media_id: int,
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    media_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """获取媒体文件�?EXIF 信息"""
     query = select(Media).where(Media.id == media_id)
@@ -31,22 +31,22 @@ async def get_media_exif(
     if not media:
         return fail("媒体文件不存�?)
 
-    # 校验所有权：仅文件所有者或管理员可查看 EXIF
-    if media.user != current_user.id and not getattr(current_user, 'is_superuser', False):
-        return fail("无权查看此文件的 EXIF 信息")
+        # 校验所有权：仅文件所有者或管理员可查看 EXIF
+        if media.user != current_user.id and not getattr(current_user, 'is_superuser', False):
+            return fail("无权查看此文件的 EXIF 信息")
 
     file_path = Path(media.file_path) if media.file_path else None
     if not file_path or not file_path.exists():
         # 尝试�?storage 前缀（防御路径遍历：标准化并验证前缀�?        if media.file_path:
-            storage_path = (Path('storage') / media.file_path.lstrip('/')).resolve()
-            if not str(storage_path).startswith(str(Path('storage').resolve())):
-                return ok(data={})  # 路径逃逸被拒绝
-            if storage_path.exists():
-                file_path = storage_path
-            else:
-                return ok(data={})  # Return empty if file not found
+        storage_path = (Path('storage') / media.file_path.lstrip('/')).resolve()
+        if not str(storage_path).startswith(str(Path('storage').resolve())):
+            return ok(data={})  # 路径逃逸被拒绝
+        if storage_path.exists():
+            file_path = storage_path
         else:
-            return ok(data={})
+            return ok(data={})  # Return empty if file not found
+    else:
+        return ok(data={})
 
     exif_data = {}
     try:
@@ -82,9 +82,9 @@ async def get_media_exif(
 @router.post("/{media_id}/remove-exif")
 @_catch
 async def remove_exif(
-        media_id: int,
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    media_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """移除图片的EXIF元数�?""
     from PIL import Image

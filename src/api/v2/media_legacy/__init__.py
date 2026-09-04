@@ -30,20 +30,20 @@ def _build_router():
     from .routes_stream import router as stream_router
 
     # ── 按顺序注册子路由（具体路径的必须优先于通配符）──
-    router.include_router(list_router, prefix="")               # /files, /statistics, /categories, /tags
-    router.include_router(upload_router, prefix="")             # /upload, /upload/chunked/*
-    router.include_router(edit_router, prefix="")               # /detail/{media_id}, /batch-delete 等
-    router.include_router(folders_router, prefix="/folders")    # /folders/*
-    router.include_router(tags_router, prefix="")               # /{media_id}/tags
-    router.include_router(cover_router, prefix="")              # /generate-cover/{media_id}, /remove-cover/{media_id}
-    router.include_router(cover_upload_router, prefix="")       # /cover (POST)
-    router.include_router(cover_external_router, prefix="/cover")   # /cover/from-url
-    router.include_router(edit_tools_router, prefix="/edit")    # /edit/process, /edit/crop
-    router.include_router(enhancement_router, prefix="")        # /optimize/{file_id}
-    router.include_router(thumbnail_router, prefix="")          # /{media_id}/thumbnail
-    router.include_router(audio_metadata_router, prefix="")     # /{media_id}/metadata
-    router.include_router(settings_media_router, prefix="")     # /settings/upload
-    router.include_router(stream_router, prefix="")             # /{media_id} — 通配符，必须最后
+    router.include_router(list_router, prefix="")  # /files, /statistics, /categories, /tags
+    router.include_router(upload_router, prefix="")  # /upload, /upload/chunked/*
+    router.include_router(edit_router, prefix="")  # /detail/{media_id}, /batch-delete 等
+    router.include_router(folders_router, prefix="/folders")  # /folders/*
+    router.include_router(tags_router, prefix="")  # /{media_id}/tags
+    router.include_router(cover_router, prefix="")  # /generate-cover/{media_id}, /remove-cover/{media_id}
+    router.include_router(cover_upload_router, prefix="")  # /cover (POST)
+    router.include_router(cover_external_router, prefix="/cover")  # /cover/from-url
+    router.include_router(edit_tools_router, prefix="/edit")  # /edit/process, /edit/crop
+    router.include_router(enhancement_router, prefix="")  # /optimize/{file_id}
+    router.include_router(thumbnail_router, prefix="")  # /{media_id}/thumbnail
+    router.include_router(audio_metadata_router, prefix="")  # /{media_id}/metadata
+    router.include_router(settings_media_router, prefix="")  # /settings/upload
+    router.include_router(stream_router, prefix="")  # /{media_id} — 通配符，必须最后
 
     _router = router
     return _router

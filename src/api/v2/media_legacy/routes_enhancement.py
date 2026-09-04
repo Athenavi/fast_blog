@@ -4,7 +4,7 @@
 
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, HTTPException
+from fastapi import APIRouter, Depends, Form
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,12 +19,12 @@ from src.unified_logger import default_logger as logger
 
 
 async def optimize_media_file(
-        file_id: int,
-        quality: int = Form(85),
-        max_width: int = Form(1920),
-        max_height: int = Form(1080),
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    file_id: int,
+    quality: int = Form(85),
+    max_width: int = Form(1920),
+    max_height: int = Form(1080),
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """优化指定媒体文件"""
     query = (
@@ -92,11 +92,11 @@ async def optimize_media_file(
 @router.post("/convert-webp/{file_id}")
 @_catch
 async def convert_to_webp_endpoint(
-        file_id: int,
-        quality: int = Form(80),
-        keep_original: bool = Form(True),
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    file_id: int,
+    quality: int = Form(80),
+    keep_original: bool = Form(True),
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """将图片转换为WebP格式"""
     query = (
@@ -111,36 +111,34 @@ async def convert_to_webp_endpoint(
     if not media.mime_type or not media.mime_type.startswith('image/'):
         return fail("只能转换图片文件")
 
-    from PIL import Image
-    import io
-
     # 获取文件路径
     original_path = Path(media.file_path)
     if not original_path.exists():
         return fail("文件不存�?)
 
-    # 打开图片
-    img = Image.open(original_path)
+        # 打开图片
+        img = Image.open(original_path)
 
-    # 生成WebP文件路径
-    webp_path = original_path.with_suffix('.webp')
+        # 生成WebP文件路径
+        webp_path = original_path.with_suffix('.webp')
 
-    # 转换为WebP
-    output = io.BytesIO()
-    img.save(output, format='WEBP', quality=quality, method=6)
+        # 转换为WebP
+        output = io.BytesIO()
+        img.save(output, format='WEBP', quality=quality, method=6)
 
-    # 保存WebP文件
-    with open(webp_path, 'wb') as f:
-        f.write(output.getvalue())
+        # 保存WebP文件
+        with open(webp_path, 'wb') as f:
+            f.write(output.getvalue())
 
-    webp_size = webp_path.stat().st_size
-    original_size = original_path.stat().st_size
+        webp_size = webp_path.stat().st_size
+        original_size = original_path.stat().st_size
 
-    logger.info(f"WebP转换完成: {media.original_filename}, 原始: {_format_file_size(original_size)}, WebP: {_format_file_size(webp_size)}")
+        logger.info(
+            f"WebP转换完成: {media.original_filename}, 原始: {_format_file_size(original_size)}, WebP: {_format_file_size(webp_size)}")
 
-    # 如果不保留原图，删除原图并更新数据库
-    if not keep_original:
-        original_path.unlink()
+        # 如果不保留原图，删除原图并更新数据库
+        if not keep_original:
+            original_path.unlink()
         media.file_path = str(webp_path)
         media.mime_type = 'image/webp'
 
@@ -151,8 +149,8 @@ async def convert_to_webp_endpoint(
         file_hash = file_hash_obj.scalar_one_or_none()
         if file_hash:
             file_hash.file_size = webp_size
-            file_hash.mime_type = 'image/webp'
-            await db.commit()
+        file_hash.mime_type = 'image/webp'
+        await db.commit()
 
     return ok(
         message=f"WebP转换成功，大�? {_format_file_size(webp_size)}",
@@ -160,7 +158,7 @@ async def convert_to_webp_endpoint(
             'original_size': original_size,
             'webp_size': webp_size,
             'webp_path': str(webp_path),
-            'compression_ratio': f"{(1 - webp_size/original_size)*100:.1f}%"
+            'compression_ratio': f"{(1 - webp_size / original_size) * 100:.1f}%"
         }
     )
 
@@ -168,9 +166,9 @@ async def convert_to_webp_endpoint(
 @router.get("/stats/{file_id}")
 @_catch
 async def get_media_stats(
-        file_id: int,
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    file_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """获取媒体文件统计信息"""
     query = (

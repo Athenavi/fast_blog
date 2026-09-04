@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config.settings import app_config
 from shared.services.notifications.webhook_service import webhook_service
-from src.api.v2.media_v1pack.allowed_mimes import ALLOWED_MIMES_LIST
+from src.api.v2.media_legacy.allowed_mimes import ALLOWED_MIMES_LIST
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor, process_single_file
@@ -24,9 +24,9 @@ from src.api.v2._helpers import ok, _catch
 @router.post("/upload")
 @_catch
 async def upload_media_file(
-        request: Request,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     upload_limit = getattr(app_config, 'UPLOAD_LIMIT', 10 * 1024 * 1024)
     allowed_mimes = getattr(app_config, 'ALLOWED_MIMES', ALLOWED_MIMES_LIST)
@@ -99,9 +99,9 @@ async def _process_single_file(user_id, file_data, filename, allowed_size, allow
 @router.post('/upload/chunked/init')
 @_catch
 async def chunked_upload_init(
-        request: Request,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     data = await request.json()
     filename = data.get('filename')
@@ -124,9 +124,9 @@ async def chunked_upload_init(
 @router.post('/upload/chunked/chunk')
 @_catch
 async def chunked_upload_chunk(
-        request: Request,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     form = await request.form()
     upload_id = form.get('upload_id')
@@ -137,21 +137,21 @@ async def chunked_upload_chunk(
     try:
         chunk_index = int(chunk_index_str)
     except (ValueError, TypeError):
-        return JSONResponse({'success': False, 'error': 'chunk_index必须是数�?}, status_code=400)
+        return JSONResponse({'success': False, 'error': 'chunk_index必须是数�?}, status_code=400)
 
-    chunk_data = None
-    if 'chunk' in form:
-        chunk_item = form.get('chunk')
+                             chunk_data = None
+        if 'chunk' in form:
+            chunk_item = form.get('chunk')
         if hasattr(chunk_item, 'read'):
             chunk_data = await chunk_item.read()
         elif isinstance(chunk_item, bytes):
             chunk_data = chunk_item
         elif isinstance(chunk_item, str):
             chunk_data = chunk_item.encode('utf-8')
-    if chunk_data is None:
-        chunk_data = await request.body()
-    if not chunk_data:
-        return JSONResponse({'success': False, 'error': '分块数据为空'}, status_code=400)
+        if chunk_data is None:
+            chunk_data = await request.body()
+        if not chunk_data:
+            return JSONResponse({'success': False, 'error': '分块数据为空'}, status_code=400)
 
     if hashlib.sha256(chunk_data).hexdigest() != chunk_hash:
         return JSONResponse({'success': False, 'error': '分块哈希验证失败'}, status_code=400)
@@ -164,9 +164,9 @@ async def chunked_upload_chunk(
 @router.post('/upload/chunked/complete')
 @_catch
 async def chunked_upload_complete(
-        request: Request,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     data = await request.json()
     upload_id = data.get('upload_id')
@@ -182,9 +182,9 @@ async def chunked_upload_complete(
 @router.get('/upload/chunked/progress')
 @_catch
 async def chunked_upload_progress(
-        request: Request,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     upload_id = request.query_params.get('upload_id')
     if not upload_id:
@@ -197,9 +197,9 @@ async def chunked_upload_progress(
 @router.get('/upload/chunked/chunks')
 @_catch
 async def chunked_upload_chunks(
-        request: Request,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     upload_id = request.query_params.get('upload_id')
     if not upload_id:
@@ -212,9 +212,9 @@ async def chunked_upload_chunks(
 @router.post('/upload/chunked/cancel')
 @_catch
 async def chunked_upload_cancel(
-        request: Request,
-        current_user_obj=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    current_user_obj=Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     data = await request.json()
     upload_id = data.get('upload_id')

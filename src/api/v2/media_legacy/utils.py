@@ -26,11 +26,11 @@ PREVIEWABLE_TYPES = {
 
 
 async def handle_local_file(
-        file_path: Path,
-        mime_type: str,
-        filename: str,
-        range_header: Optional[str],
-        headers: dict
+    file_path: Path,
+    mime_type: str,
+    filename: str,
+    range_header: Optional[str],
+    headers: dict
 ) -> Response:
     file_size = file_path.stat().st_size
     if range_header:
@@ -51,11 +51,11 @@ async def handle_local_file(
 
 
 async def handle_range_request(
-        file_path: Path,
-        range_header: str,
-        file_size: int,
-        mime_type: str,
-        headers: dict
+    file_path: Path,
+    range_header: str,
+    file_size: int,
+    mime_type: str,
+    headers: dict
 ) -> Response:
     range_bytes = range_header.replace("bytes=", "").split("-")
     start = int(range_bytes[0]) if range_bytes[0] else 0
@@ -94,12 +94,12 @@ async def handle_range_request(
 
 
 async def handle_s3_streaming(
-        s3_path: str,
-        mime_type: str,
-        filename: str,
-        range_header: Optional[str],
-        headers: dict,
-        media_hash: str
+    s3_path: str,
+    mime_type: str,
+    filename: str,
+    range_header: Optional[str],
+    headers: dict,
+    media_hash: str
 ) -> Response:
     s3_url = s3_path.replace("s3://", "")
     bucket_name, object_key = s3_url.split("/", 1)
@@ -112,11 +112,11 @@ async def handle_s3_streaming(
 
 
 async def stream_s3_range(
-        bucket_name: str,
-        object_key: str,
-        mime_type: str,
-        range_header: str,
-        headers: dict
+    bucket_name: str,
+    object_key: str,
+    mime_type: str,
+    range_header: str,
+    headers: dict
 ) -> Response:
     try:
         session = aioboto3.Session()
@@ -159,12 +159,12 @@ async def stream_s3_range(
 
 
 async def stream_and_cache_s3(
-        bucket_name: str,
-        object_key: str,
-        mime_type: str,
-        filename: str,
-        headers: dict,
-        cache_path: Path
+    bucket_name: str,
+    object_key: str,
+    mime_type: str,
+    filename: str,
+    headers: dict,
+    cache_path: Path
 ) -> Response:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     temp_file = tempfile.NamedTemporaryFile(delete=False, dir=cache_path.parent)

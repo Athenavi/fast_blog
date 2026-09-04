@@ -14,7 +14,7 @@ def _build_router():
 
     router = APIRouter(tags=["media"])
 
-    from src.api.v2.media_v1pack import router as media_router
+    from src.api.v2.media_legacy import router as media_router
     router.include_router(media_router)
 
     # VIP 离线下载路由

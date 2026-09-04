@@ -16,10 +16,10 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
-from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db, get_current_user
-from src.api.v3._permission import Permission
 from shared.models.user import User
+from src.api.v2._base import ApiResponse
+from src.api.v3._deps import get_db
+from src.api.v3._permission import Permission
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-media"])
@@ -162,7 +162,7 @@ async def upload_media(
         return ApiResponse(success=False, error=f"文件内容与声明类型不符")
 
     # 保存文件到存储
-    from src.api.v2.media_v1pack.upload_service import save_uploaded_file
+    from src.api.v2.media_legacy.upload_service import save_uploaded_file
     result = save_uploaded_file(
         file_content=content,
         filename=file.filename or "untitled",

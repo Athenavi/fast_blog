@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from shared.services.articles.cover_image_service import CoverImageService
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 logger = logging.getLogger(__name__)
@@ -80,8 +80,8 @@ class ExternalImageUrlResponse(BaseModel):
 @router.post("/from-url", summary="从外链URL生成封面")
 @_catch
 async def generate_cover_from_external_url(
-        request_data: ExternalImageUrlRequest,
-        current_user=Depends(jwt_required)
+    request_data: ExternalImageUrlRequest,
+    current_user=Depends(jwt_required)
 ):
     """
     从外链图片URL下载并生成本地封面

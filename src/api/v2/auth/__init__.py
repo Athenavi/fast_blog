@@ -15,7 +15,7 @@ def _build_router():
     router = APIRouter(tags=["auth"])
 
     # ── V1 模块（待逐步内联优化）──
-    from src.api.v2.auth_v1pack import router as auth_router
+    from src.api.v2.auth_legacy import router as auth_router
     router.include_router(auth_router)
 
     _router = router
