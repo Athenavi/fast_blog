@@ -278,11 +278,6 @@ export default defineConfig({
       },
   },
 
-    // 实验性特性: 客户端 hydration 优化
-    experimental: {
-        clientPrerenderCapability: true,
-  },
-
   i18n: {
     defaultLocale: 'zh-CN',
     locales: ['zh-CN', 'en', 'ar', 'he'],
