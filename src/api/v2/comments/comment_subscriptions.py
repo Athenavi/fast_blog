@@ -91,11 +91,11 @@ async def get_my_subscriptions_api(
 
 
 description = "获取指定文章的订阅者列表（用于发送通知�?,
-response_description = "返回订阅者列�?)
+response_description = "返回订阅者列...")
 @_catch
 async def get_article_subscribers_api(
         article_id: int,
-    notify_type: Optional[str] = Query(None, description="通知类型筛�?),
+    notify_type: Optional[str] = Query(None, description="通知类型筛..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):

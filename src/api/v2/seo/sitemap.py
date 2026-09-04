@@ -53,17 +53,19 @@ async def get_sitemap_index(request: Request):
 @router.get("/sitemap-posts.xml")
 @_catch
 async def get_posts_sitemap(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     获取文章站点地图
 
-    包含所有已发布的文�?    """
+    包含所有已发布的文...
+    """
 
     site_url = str(request.base_url).rstrip('/')
 
-    # 查询所有已发布的文�?    stmt = (
+    # 查询所有已发布的文...
+    stmt = (
         select(Article)
         .where(Article.status == 1)
         .order_by(Article.created_at.desc())
@@ -107,8 +109,8 @@ async def get_posts_sitemap(
 @router.get("/sitemap-categories.xml")
 @_catch
 async def get_categories_sitemap(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     获取分类站点地图
@@ -116,13 +118,15 @@ async def get_categories_sitemap(
 
     site_url = str(request.base_url).rstrip('/')
 
-    # 查询所有分�?    stmt = select(Category).order_by(Category.name)
+    # 查询所有分...
+    stmt = select(Category).order_by(Category.name)
     result = await db.execute(stmt)
     categories = result.scalars().all()
 
     generator = SitemapGenerator()
 
-    # 添加分类列表�?    generator.add_url(SitemapUrl(
+    # 添加分类列表...
+    generator.add_url(SitemapUrl(
         loc=f"{site_url}/categories",
         lastmod=datetime.now(),
         changefreq='weekly',
@@ -152,8 +156,8 @@ async def get_categories_sitemap(
 @router.get("/sitemap-tags.xml")
 @_catch
 async def get_tags_sitemap(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     获取标签站点地图
@@ -180,7 +184,8 @@ async def get_tags_sitemap(
 
     generator = SitemapGenerator()
 
-    # 添加标签列表�?    generator.add_url(SitemapUrl(
+    # 添加标签列表...
+    generator.add_url(SitemapUrl(
         loc=f"{site_url}/tags",
         lastmod=datetime.now(),
         changefreq='weekly',
@@ -210,10 +215,11 @@ async def get_tags_sitemap(
 @router.get("/sitemap-pages.xml")
 @_catch
 async def get_pages_sitemap(
-        request: Request,
+    request: Request,
 ):
     """
-    获取静态页面站点地�?    """
+    获取静态页面站点地...
+    """
     site_url = str(request.base_url).rstrip('/')
 
     generator = SitemapGenerator()
@@ -226,7 +232,8 @@ async def get_pages_sitemap(
         priority=1.0,
     ))
 
-    # 其他静态页�?    pages = [
+    # 其他静态页...
+    pages = [
         ('/about', 'monthly', 0.5),
         ('/search', 'weekly', 0.6),
         ('/categories', 'weekly', 0.7),
@@ -255,8 +262,8 @@ async def get_pages_sitemap(
 @router.get("/sitemap-multilingual.xml")
 @_catch
 async def get_multilingual_sitemap(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     获取多语言站点地图
@@ -265,7 +272,8 @@ async def get_multilingual_sitemap(
     """
     site_url = str(request.base_url).rstrip('/')
 
-    # 查询所有已发布的文�?    stmt = (
+    # 查询所有已发布的文...
+    stmt = (
         select(Article)
         .where(Article.status == 1)
         .order_by(Article.created_at.desc())
@@ -282,7 +290,8 @@ async def get_multilingual_sitemap(
         else:
             main_url = f"{site_url}/blog/{article.id}.html"
 
-# 查询该文章的所有翻译版�?        i18n_stmt = select(ArticleContent).where(ArticleContent.article == article.id)
+            # 查询该文章的所有翻译版...
+            i18n_stmt = select(ArticleContent).where(ArticleContent.article == article.id)
         i18n_result = await db.execute(i18n_stmt)
         translations = i18n_result.scalars().all()
 
@@ -333,12 +342,13 @@ async def get_multilingual_sitemap(
 @router.get("/sitemap-authors.xml")
 @_catch
 async def get_authors_sitemap(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     获取作者站点地�?
-    包含所有有公开文章的用�?    """
+    包含所有有公开文章的用...
+    """
     site_url = str(request.base_url).rstrip('/')
 
     # 查询所有有已发布文章的用户
@@ -362,7 +372,8 @@ async def get_authors_sitemap(
         priority=0.7,
     ))
 
-    # 添加各个作者页�?    for author in authors:
+    # 添加各个作者页...
+    for author in authors:
         # 检查用户资料是否公开
         if author.profile_private:
             continue
@@ -388,8 +399,8 @@ async def get_authors_sitemap(
 @router.get("/sitemap-images.xml")
 @_catch
 async def get_images_sitemap(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     获取图片站点地图
@@ -398,7 +409,8 @@ async def get_images_sitemap(
     """
     site_url = str(request.base_url).rstrip('/')
 
-    # 查询所有公开的图片类型媒体文�?    stmt = (
+    # 查询所有公开的图片类型媒体文...
+    stmt = (
         select(Media)
         .where(Media.file_type == 'image')
         .where(Media.is_public == True)
@@ -408,24 +420,18 @@ async def get_images_sitemap(
     images = result.scalars().all()
 
     generator = SitemapGenerator()
-
-# 为每个图片创�?sitemap 条目
     for image in images:
         # 构建图片 URL
         image_url = image.file_url
         if not image_url.startswith('http'):
             image_url = f"{site_url}{image_url}" if not image_url.startswith('/') else f"{site_url}{image_url}"
-
-            # 构建图片元数�?        image_data = {
-            'loc': image_url,
-        }
-
-# 添加可选字�?        if image.description:
+            image_data = {
+                'loc': image_url,
+            }
+        if image.description:
             image_data['caption'] = image.description
         if image.alt_text:
             image_data['title'] = image.alt_text
-
-# 查找图片所属的文章（如果有�?        # 这里简化处理，直接使用图片页面
         page_url = f"{site_url}/media/{image.id}"
 
         generator.add_url(SitemapUrl(
@@ -450,8 +456,8 @@ async def get_images_sitemap(
 @router.get("/sitemap-videos.xml")
 @_catch
 async def get_videos_sitemap(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
 ):
     """
     获取视频站点地图
@@ -460,7 +466,8 @@ async def get_videos_sitemap(
     """
     site_url = str(request.base_url).rstrip('/')
 
-    # 查询所有公开的视频类型媒体文�?    stmt = (
+    # 查询所有公开的视频类型媒体文...
+    stmt = (
         select(Media)
         .where(Media.file_type == 'video')
         .where(Media.is_public == True)
@@ -470,30 +477,24 @@ async def get_videos_sitemap(
     videos = result.scalars().all()
 
     generator = SitemapGenerator()
-
-# 为每个视频创�?sitemap 条目
     for video in videos:
         # 构建视频 URL
         video_url = video.file_url
         if not video_url.startswith('http'):
             video_url = f"{site_url}{video_url}" if not video_url.startswith('/') else f"{site_url}{video_url}"
-
-# 构建缩略�?URL
         thumbnail_url = video.thumbnail_url
         if thumbnail_url and not thumbnail_url.startswith('http'):
             thumbnail_url = f"{site_url}{thumbnail_url}" if not thumbnail_url.startswith(
                 '/') else f"{site_url}{thumbnail_url}"
         elif not thumbnail_url:
             thumbnail_url = f"{site_url}/api/v2/static/video-placeholder.jpg"
-
-# 构建视频元数�?        video_data = {
-            'thumbnail_loc': thumbnail_url,
-            'title': video.original_filename or video.filename,
-            'description': video.description or f'视频文件: {video.filename}',
-            'content_loc': video_url,
-        }
-
-# 添加可选字�?        if video.duration:
+            video_data = {
+                'thumbnail_loc': thumbnail_url,
+                'title': video.original_filename or video.filename,
+                'description': video.description or f'视频文件: {video.filename}',
+                'content_loc': video_url,
+            }
+        if video.duration:
             video_data['duration'] = video.duration
         if video.created_at:
             video_data['publication_date'] = video.created_at.strftime('%Y-%m-%dT%H:%M:%S+00:00')
@@ -528,7 +529,8 @@ async def get_robots_txt(request: Request):
     """
     生成 robots.txt 文件
 
-    包含站点地图声明和爬虫规�?    """
+    包含站点地图声明和爬虫规...
+    """
     site_url = str(request.base_url).rstrip('/')
 
     robots_content = f"""# robots.txt for {AppConfig.site_title or 'FastBlog'}

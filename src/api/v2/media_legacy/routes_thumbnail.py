@@ -42,11 +42,12 @@ async def get_media_thumbnail(
 
     if not media:
         logger.warning(f"媒体文件不存�?- media_id: {media_id}")
-        raise HTTPException(status_code=404, detail="媒体文件不存�?)
+        raise HTTPException(status_code=404, detail="媒体文件不存...")
 
-        # 检查用户权限（只能访问自己的文件或公开文件�?    if media.user != current_user.id and not media.is_public:
+        # 检查用户权限（只能访问自己的文件或公开文件...
+    if media.user != current_user.id and not media.is_public:
         logger.warning(f"无权访问该媒体文�?- media_id: {media_id}, user: {current_user.id}")
-        raise HTTPException(status_code=403, detail="无权访问该媒体文�?)
+        raise HTTPException(status_code=403, detail="无权访问该媒体文...")
 
         # 如果已有缩略图路径，直接返回
         if media.thumbnail_path:
@@ -60,7 +61,8 @@ async def get_media_thumbnail(
             media_type='image/jpeg',
             headers={
                 'Cache-Control': 'public, max-age=2592000',
-                # 缓存30�?                    'Content-Disposition': f'inline; filename="thumbnail_{media_id}.jpg"'
+                # 缓存30...
+                        'Content-Disposition': f'inline; filename="thumbnail_{media_id}.jpg"'
             }
         )
 
@@ -71,11 +73,13 @@ async def get_media_thumbnail(
     original_dir = Path(f"storage/{media.hash[:2]}")
     original_path = None
 
-    # 尝试查找带扩展名或不带扩展名的文�?    path_without_ext = original_dir / media.hash
+    # 尝试查找带扩展名或不带扩展名的文...
+    path_without_ext = original_dir / media.hash
     if path_without_ext.exists():
         original_path = path_without_ext
     else:
-        # 尝试查找带扩展名的文�?        if original_dir.exists():
+        # 尝试查找带扩展名的文...
+            if original_dir.exists():
         for file in original_dir.iterdir():
             if file.name.startswith(media.hash + '.'):
                 original_path = file
@@ -83,9 +87,10 @@ async def get_media_thumbnail(
 
     if not original_path or not original_path.exists():
         logger.error(f"原始文件不存�?- media_id: {media_id}, hash: {media.hash}")
-        raise HTTPException(status_code=404, detail="原始文件不存�?)
+        raise HTTPException(status_code=404, detail="原始文件不存...")
 
-        # 生成缩略�?    thumb_dir = Path(f"storage/thumbnails/{media.hash[:2]}")
+        # 生成缩略...
+    thumb_dir = Path(f"storage/thumbnails/{media.hash[:2]}")
         thumb_dir.mkdir(parents=True, exist_ok=True)
         thumb_path = thumb_dir / f"{media.hash}.jpg"
 
@@ -117,7 +122,7 @@ async def get_media_thumbnail(
             )
         else:
             logger.warning(f"缩略图生成失�?- media_id: {media_id}")
-            raise HTTPException(status_code=404, detail="该文件类型不支持缩略�?)
+            raise HTTPException(status_code=404, detail="该文件类型不支持缩略...")
     except Exception as e:
         logger.error(f"生成缩略图时出错 - media_id: {media_id}, error: {str(e)}")
-        raise HTTPException(status_code=500, detail="生成缩略图失�?)
+        raise HTTPException(status_code=500, detail="生成缩略图失...")

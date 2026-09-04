@@ -66,21 +66,25 @@ async def create_page(
         current_user: 当前登录用户
 
     Returns:
-创建的页面对�?    """
+创建的页面对...
+    """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可创建页�?)
+        raise HTTPException(status_code=403, detail="仅管理员可创建页...")
     async with db_manager.get_session() as db:
-        # 检�?slug 是否已存�?        existing = await db.execute(
+        # 检�?slug 是否已存...
+            existing = await db.execute(
             select(PageBuilder).where(PageBuilder.slug == req.slug)
         )
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail=f"Slug '{req.slug}' 已存�?)
+            raise HTTPException(status_code=400, detail=f"Slug '{req.slug}' 已存...")
 
-        # 创建新页�?        _validate_blocks_data(req.blocks_data)
+        # 创建新页...
+            _validate_blocks_data(req.blocks_data)
         new_page = PageBuilder(
             title=req.title,
             slug=req.slug,
-            blocks_data=json.dumps(req.blocks_data, ensure_ascii=False),  # 存储�?JSON 字符�?            template_name=req.template_name,
+            blocks_data=json.dumps(req.blocks_data, ensure_ascii=False),  # 存储�?JSON 字符...
+                template_name=req.template_name,
             is_published=req.is_published,
             created_at=datetime.now(),
             updated_at=datetime.now()
@@ -90,7 +94,8 @@ async def create_page(
         await db.commit()
         await db.refresh(new_page)
 
-        # 解析 blocks_data 为列表返�?        try:
+        # 解析 blocks_data 为列表返...
+            try:
             blocks = json.loads(new_page.blocks_data)
         except (json.JSONDecodeError, TypeError):
             blocks = []
@@ -178,7 +183,7 @@ async def get_page(
         page = result.scalar_one_or_none()
 
         if not page:
-            raise HTTPException(status_code=404, detail="页面不存�?)
+            raise HTTPException(status_code=404, detail="页面不存...")
 
         try:
             blocks = json.loads(page.blocks_data)
@@ -214,7 +219,7 @@ async def update_page(
         更新后的页面对象
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可更新页�?)
+        raise HTTPException(status_code=403, detail="仅管理员可更新页...")
     async with db_manager.get_session() as db:
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -222,7 +227,7 @@ async def update_page(
         page = result.scalar_one_or_none()
 
         if not page:
-            raise HTTPException(status_code=404, detail="页面不存�?)
+            raise HTTPException(status_code=404, detail="页面不存...")
 
         # 更新字段
         if req.title is not None:
@@ -272,7 +277,7 @@ async def delete_page(
         删除结果
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可删除页�?)
+        raise HTTPException(status_code=403, detail="仅管理员可删除页...")
     async with db_manager.get_session() as db:
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -280,12 +285,12 @@ async def delete_page(
         page = result.scalar_one_or_none()
 
         if not page:
-            raise HTTPException(status_code=404, detail="页面不存�?)
+            raise HTTPException(status_code=404, detail="页面不存...")
 
         await db.delete(page)
         await db.commit()
 
-        return ok(msg="页面已删�?)
+        return ok(msg="页面已删...")
 
 
 @router.post("/pages/{page_id}/publish")
@@ -303,7 +308,7 @@ async def publish_page(
         发布结果
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可发布页�?)
+        raise HTTPException(status_code=403, detail="仅管理员可发布页...")
     async with db_manager.get_session() as db:
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -311,14 +316,14 @@ async def publish_page(
         page = result.scalar_one_or_none()
 
         if not page:
-            raise HTTPException(status_code=404, detail="页面不存�?)
+            raise HTTPException(status_code=404, detail="页面不存...")
 
         page.is_published = True
         page.updated_at = datetime.now()
 
         await db.commit()
 
-        return ok(msg="页面已发�?)
+        return ok(msg="页面已发...")
 
 
 @router.post("/pages/{page_id}/unpublish")
@@ -336,7 +341,7 @@ async def unpublish_page(
         取消发布结果
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可取消发布页�?)
+        raise HTTPException(status_code=403, detail="仅管理员可取消发布页...")
     async with db_manager.get_session() as db:
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -344,14 +349,14 @@ async def unpublish_page(
         page = result.scalar_one_or_none()
 
         if not page:
-            raise HTTPException(status_code=404, detail="页面不存�?)
+            raise HTTPException(status_code=404, detail="页面不存...")
 
         page.is_published = False
         page.updated_at = datetime.now()
 
         await db.commit()
 
-        return ok(msg="页面已取消发�?)
+        return ok(msg="页面已取消发...")
 
 
 @router.get("/pages/slug/{slug}")
@@ -365,10 +370,12 @@ slug
         slug: 页面路径标识
 
     Returns:
-页面对象（仅已发布的�?    """
+页面对象（仅已发布的...
+    """
     async with db_manager.get_session() as db:
         slug_lower = slug.lower()
-        # 先查询页面构建器�?        result = await db.execute(
+        # 先查询页面构建器...
+            result = await db.execute(
             select(PageBuilder).where(
                 (func.lower(PageBuilder.slug) == slug_lower) &
                 (PageBuilder.is_published == True)
@@ -389,7 +396,8 @@ slug
                 updated_at=page.updated_at.isoformat() if page.updated_at else None
             ))
 
-        # 回退：查�?CMS 静态页面表�?admin/settings 创建�?        result = await db.execute(
+        # 回退：查�?CMS 静态页面表�?admin/settings 创建...
+            result = await db.execute(
             select(PagesModel).where(
                 func.lower(PagesModel.slug) == slug_lower
             )
@@ -410,7 +418,7 @@ slug
                 updated_at=cms_page.updated_at.isoformat() if cms_page.updated_at else None
             ))
 
-        raise HTTPException(status_code=404, detail="页面不存在或未发�?)
+        raise HTTPException(status_code=404, detail="页面不存在或未发...")
 
 
 # P6-4: 预建页面模板�?PAGE_TEMPLATES = [
@@ -677,7 +685,7 @@ async def get_template(template_id: str):
     """
     template = next((t for t in PAGE_TEMPLATES if t["id"] == template_id), None)
     if not template:
-        raise HTTPException(status_code=404, detail="模板不存�?)
+        raise HTTPException(status_code=404, detail="模板不存...")
     return template
 
 
@@ -697,21 +705,24 @@ P6 - 4: 从模板创建页�?
         slug: 页面路径
 
     Returns:
-创建的页面对�?    """
+创建的页面对...
+    """
     if not _is_admin_user(current_user):
         raise HTTPException(status_code=403, detail="仅管理员可从模板创建页面")
     template = next((t for t in PAGE_TEMPLATES if t["id"] == template_id), None)
     if not template:
-        raise HTTPException(status_code=404, detail="模板不存�?)
+        raise HTTPException(status_code=404, detail="模板不存...")
 
     async with db_manager.get_session() as db:
-        # 检�?slug 是否已存�?        existing = await db.execute(
+        # 检�?slug 是否已存...
+            existing = await db.execute(
             select(PageBuilder).where(PageBuilder.slug == slug)
         )
         if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail=f"Slug '{slug}' 已存�?)
+            raise HTTPException(status_code=400, detail=f"Slug '{slug}' 已存...")
 
-        # 创建新页�?        new_page = PageBuilder(
+        # 创建新页...
+            new_page = PageBuilder(
             title=title,
             slug=slug,
             blocks_data=json.dumps(template["blocks"]),

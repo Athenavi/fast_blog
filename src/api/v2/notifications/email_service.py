@@ -25,7 +25,8 @@ async def get_email_config(
     获取邮件服务配置
 
     Args:
-        provider: 邮件提供商（sendgrid/mailgun/smtp�?        site_id: 站点 ID
+        provider: 邮件提供商（sendgrid/mailgun/smtp...
+            site_id: 站点 ID
 
     Returns:
         邮件服务配置
@@ -51,15 +52,15 @@ async def get_email_config(
 @_catch
 async def create_email_config(
         provider: str,
-    from_email: str = Body(..., description="发件人邮�?),
-    api_key: Optional[str] = Body(None, description="API Key（SendGrid/Mailgun�?),
+    from_email: str = Body(..., description="发件人邮..."),
+    api_key: Optional[str] = Body(None, description="API Key（SendGrid/Mailgun..."),
         smtp_host: Optional[str] = Body(None, description="SMTP 主机"),
         smtp_port: Optional[int] = Body(None, description="SMTP 端口"),
-smtp_username: Optional[str] = Body(None, description="SMTP 用户�?),
+smtp_username: Optional[str] = Body(None, description="SMTP 用户..."),
         smtp_password: Optional[str] = Body(None, description="SMTP 密码"),
-        from_name: Optional[str] = Body(None, description="发件人名�?),
+        from_name: Optional[str] = Body(None, description="发件人名..."),
         site_id: Optional[int] = Body(None, description="站点 ID"),
-        enable_batch_sending: bool = Body(False, description="批量发�?),
+        enable_batch_sending: bool = Body(False, description="批量发..."),
         batch_size: int = Body(50, description="批量大小"),
         daily_limit: Optional[int] = Body(None, description="每日限制"),
         current_user=Depends(jwt_required),
@@ -71,7 +72,8 @@ smtp_username: Optional[str] = Body(None, description="SMTP 用户�?),
     Args:
         provider: 邮件提供商（sendgrid/mailgun/smtp�?
     Returns:
-        创建的配�?    """
+        创建的配...
+    """
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -159,15 +161,15 @@ async def deactivate_email_config(
     return ok(msg="Email service configuration deactivated successfully")
 
 
-@router.post("/send", summary="发送邮�?)
+@router.post("/send", summary="发送邮...")
 @_catch
 async def send_email(
-    provider: str = Body(..., description="邮件提供�?),
-    to_email: str = Body(..., description="收件人邮�?),
+    provider: str = Body(..., description="邮件提供..."),
+    to_email: str = Body(..., description="收件人邮..."),
         subject: str = Body(..., description="邮件主题"),
         html_content: str = Body(..., description="HTML 内容"),
-text_content: Optional[str] = Body(None, description="纯文本内�?),
-from_name: Optional[str] = Body(None, description="发件人名�?),
+text_content: Optional[str] = Body(None, description="纯文本内..."),
+from_name: Optional[str] = Body(None, description="发件人名..."),
         site_id: Optional[int] = Body(None, description="站点 ID"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
@@ -177,7 +179,8 @@ from_name: Optional[str] = Body(None, description="发件人名�?),
     Args:
         provider: 邮件提供�?
     Returns:
-        发送结�?    """
+        发送结...
+    """
     config = await email_service_integration.get_config(db, provider, site_id)
 
     if not config:
@@ -198,14 +201,14 @@ from_name: Optional[str] = Body(None, description="发件人名�?),
         return fail("Failed to send email")
 
 
-@router.post("/send-batch", summary="批量发送邮�?)
+@router.post("/send-batch", summary="批量发送邮...")
 @_catch
 async def send_batch_emails(
-    provider: str = Body(..., description="邮件提供�?),
-    recipients: List[Dict[str, str]] = Body(..., description="收件人列�?),
+    provider: str = Body(..., description="邮件提供..."),
+    recipients: List[Dict[str, str]] = Body(..., description="收件人列..."),
         subject: str = Body(..., description="邮件主题"),
         html_content: str = Body(..., description="HTML 内容"),
-text_content: Optional[str] = Body(None, description="纯文本内�?),
+text_content: Optional[str] = Body(None, description="纯文本内..."),
         site_id: Optional[int] = Body(None, description="站点 ID"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
@@ -213,10 +216,12 @@ text_content: Optional[str] = Body(None, description="纯文本内�?),
     """
     批量发送邮�?
     Args:
-        provider: 邮件提供�?        recipients: 收件人列�?[{'email': '...', 'name': '...'}]
+        provider: 邮件提供...
+            recipients: 收件人列�?[{'email': '...', 'name': '...'}]
 
     Returns:
-        发送结果统�?    """
+        发送结果统...
+    """
     config = await email_service_integration.get_config(db, provider, site_id)
 
     if not config:
@@ -236,10 +241,10 @@ text_content: Optional[str] = Body(None, description="纯文本内�?),
     )
 
 
-@router.get("/configs", summary="获取所有邮件服务配�?)
+@router.get("/configs", summary="获取所有邮件服务配...")
 @_catch
 async def get_all_configs(
-    include_inactive: bool = Query(False, description="是否包含非活动配�?),
+    include_inactive: bool = Query(False, description="是否包含非活动配..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):

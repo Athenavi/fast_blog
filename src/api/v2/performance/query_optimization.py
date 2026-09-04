@@ -19,7 +19,7 @@ def _check_admin(user):
 @router.get("/analysis", summary="查询分析", description="分析最近的数据库查询，检测性能问题")
 @_catch
 async def analyze_queries(
-    limit: int = Query(100, ge=1, le=1000, description="分析的查询数�?),
+    limit: int = Query(100, ge=1, le=1000, description="分析的查询数..."),
         current_user=Depends(jwt_required),
 ):
 """分析数据库查�?""
@@ -31,7 +31,7 @@ analysis = query_optimizer.analyze_queries(recent_queries)
 return ok(data=analysis)
 
 
-@router.get("/monitor/stats", summary="查询监控统计", description="获取查询监控的统计信�?)
+@router.get("/monitor/stats", summary="查询监控统计", description="获取查询监控的统计信...")
 @_catch
 async def get_query_stats(current_user=Depends(jwt_required)):
 """获取查询监控统计"""
@@ -40,13 +40,13 @@ async def get_query_stats(current_user=Depends(jwt_required)):
     return ok(data=stats)
 
 
-@router.post("/optimize/article-query", summary="优化文章查询", description="使用优化的方式查询文章列�?)
+@router.post("/optimize/article-query", summary="优化文章查询", description="使用优化的方式查询文章列...")
 @_catch
 async def optimize_article_query(
         page: int = Body(1, ge=1, description="页码"),
         per_page: int = Body(10, ge=1, le=100, description="每页数量"),
         category_id: Optional[int] = Body(None, description="分类ID"),
-        status: Optional[int] = Body(None, description="状�?),
+        status: Optional[int] = Body(None, description="状..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db),
 ):
@@ -75,7 +75,7 @@ filters = {}
     })
 
 
-@router.get("/recommendations", summary="优化建议", description="获取数据库优化建�?)
+@router.get("/recommendations", summary="优化建议", description="获取数据库优化建...")
 @_catch
 async def get_optimization_recommendations(current_user=Depends(jwt_required)):
     """获取数据库优化建�?""

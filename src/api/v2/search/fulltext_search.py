@@ -18,12 +18,12 @@ router = APIRouter(tags=["fulltext-search"])
 
 
 async def search_articles(
-    q: str = Query(..., min_length=1, description="搜索关键�?),
+    q: str = Query(..., min_length=1, description="搜索关键..."),
         category_id: Optional[int] = Query(None, description="分类ID"),
         author_id: Optional[int] = Query(None, description="作者ID"),
         date_from: Optional[str] = Query(None, description="起始日期 (YYYY-MM-DD)"),
         date_to: Optional[str] = Query(None, description="结束日期 (YYYY-MM-DD)"),
-status: str = Query("published", description="文章状�?),
+status: str = Query("published", description="文章状..."),
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
         sort_by: str = Query("relevance", enum=["relevance", "date", "views"], description="排序方式"),
@@ -32,11 +32,13 @@ status: str = Query("published", description="文章状�?),
     使用 Meilisearch 搜索文章
 
     Args:
-        q: 搜索关键�?        category_id: 分类ID过滤
+        q: 搜索关键...
+            category_id: 分类ID过滤
         author_id: 作者ID过滤
         date_from: 起始日期
         date_to: 结束日期
-        status: 文章状�?        page: 页码
+        status: 文章状...
+            page: 页码
         per_page: 每页数量
         sort_by: 排序方式
 

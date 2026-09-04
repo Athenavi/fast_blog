@@ -42,11 +42,11 @@ def _validate_url(url: str) -> None:
         hostname = parsed.hostname.lower()
         # 检查内部地址
         if hostname in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):
-            raise HTTPException(status_code=400, detail="不允许下载内部地址的资�?)
+            raise HTTPException(status_code=400, detail="不允许下载内部地址的资...")
         if _BLOCKED_HOST_RE.match(hostname):
-            raise HTTPException(status_code=400, detail="不允许下载内部地址的资�?)
+            raise HTTPException(status_code=400, detail="不允许下载内部地址的资...")
         if hostname.endswith(".local"):
-            raise HTTPException(status_code=400, detail="不允许下载本地网络资�?)
+            raise HTTPException(status_code=400, detail="不允许下载本地网络资...")
     except HTTPException:
         raise
     except Exception:
@@ -115,7 +115,7 @@ async def create_batch_download_tasks(
 @router.get("/tasks", summary="获取下载任务列表")
 @_catch
 async def get_download_tasks(
-        status: Optional[str] = Query(None, description="状态过�?),
+        status: Optional[str] = Query(None, description="状态过..."),
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
         current_user=Depends(jwt_required),
@@ -148,7 +148,8 @@ async def get_download_tasks(
     result = await db.execute(query)
     tasks = result.scalars().all()
 
-    # 序列�?    tasks_data = []
+    # 序列...
+    tasks_data = []
     for task in tasks:
         tasks_data.append({
             "id": task.id,
@@ -189,7 +190,7 @@ async def get_task_detail(
     task_data = await service.get_task_status(task_id)
 
     if not task_data:
-        raise HTTPException(status_code=404, detail="任务不存�?)
+        raise HTTPException(status_code=404, detail="任务不存...")
 
     # 验证权限
     result = await db.execute(
@@ -198,7 +199,7 @@ async def get_task_detail(
     task = result.scalar_one_or_none()
 
     if not task or task.user_id != current_user.id:
-        raise HTTPException(status_code=403, detail="无权访问此任�?)
+        raise HTTPException(status_code=403, detail="无权访问此任...")
 
     return ok(data=task_data)
 
@@ -216,11 +217,11 @@ async def cancel_task(
     success = await service.cancel_task(task_id, current_user.id)
 
     if not success:
-        raise HTTPException(status_code=400, detail="无法取消任务（可能已完成或不存在�?)
+        raise HTTPException(status_code=400, detail="无法取消任务（可能已完成或不存在...")
 
-    return ok(msg="任务已取�?)
+    return ok(msg="任务已取...")
 
-                  @ router.post("/tasks/{task_id}/retry", summary="重试失败的任�?)
+                  @ router.post("/tasks/{task_id}/retry", summary="重试失败的任...")
 @_catch
 async def retry_task(
         task_id: int,
@@ -238,12 +239,13 @@ async def retry_task(
     task = result.scalar_one_or_none()
 
     if not task:
-        raise HTTPException(status_code=404, detail="任务不存�?)
+        raise HTTPException(status_code=404, detail="任务不存...")
 
     if task.status != "failed":
-        raise HTTPException(status_code=400, detail="只能重试失败的任�?)
+        raise HTTPException(status_code=400, detail="只能重试失败的任...")
 
-    # 重置任务状�?    from sqlalchemy import update
+    # 重置任务状...
+    from sqlalchemy import update
     from datetime import datetime
 
     await db.execute(
@@ -259,7 +261,7 @@ async def retry_task(
     )
     await db.commit()
 
-    return ok(msg="任务已重置为待处理状�?)
+    return ok(msg="任务已重置为待处理状...")
 
 
 @router.post("/process-queue", summary="处理下载队列")
@@ -272,7 +274,8 @@ async def process_download_queue(
     """
     处理下载队列（通常由后台任务调用）
 
-    注意：此接口仅供管理员使�?    """
+    注意：此接口仅供管理员使...
+    """
     # 检查管理员权限
     if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
         raise HTTPException(status_code=403, detail="需要管理员权限")

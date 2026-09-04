@@ -10,7 +10,7 @@ from src.api.v2._helpers import _catch
 from src.auth import admin_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
-# 平台级统计分析仅管理员可访问（含用户�?浏览�?趋势等内部数据）
+# 平台级统计分析仅管理员可访问（含用户�?浏览�?趋势等内部数据）
 router = APIRouter(tags=["analytics"], dependencies=[Depends(admin_required)])
 
 
@@ -25,7 +25,7 @@ async def get_overview_stats(
 
     Args:
         days: 统计天数
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
         概览数据
     """
@@ -45,12 +45,13 @@ async def get_article_views_trend(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取文章浏览量趋�?
+    获取文章浏览量趋�?
     Args:
         days: 统计天数
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
-        每日浏览量列�?    """
+        每日浏览量列...
+    """
     service = create_analytics_service(db)
     trend = await service.get_article_views_trend(days)
 
@@ -73,7 +74,7 @@ async def get_popular_articles(
     Args:
         limit: 返回数量
         days: 统计天数
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
         热门文章列表
     """
@@ -95,7 +96,7 @@ async def get_category_distribution(
     获取分类分布
 
     Args:
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
         分类统计列表
     """
@@ -119,7 +120,7 @@ async def get_user_activity(
 
     Args:
         days: 统计天数
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
         用户活动数据
     """
@@ -143,7 +144,7 @@ async def get_content_performance(
 
     Args:
         days: 统计天数
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
         内容表现数据
     """
@@ -167,7 +168,7 @@ async def get_traffic_sources(
 
     Args:
         days: 统计天数
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
         流量来源列表
     """
@@ -191,7 +192,7 @@ async def get_device_stats(
 
     Args:
         days: 统计天数
-        db: 数据库会�?
+        db: 数据库会�?
     Returns:
         设备分布数据
     """

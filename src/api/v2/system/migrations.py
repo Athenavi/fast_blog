@@ -45,7 +45,8 @@ async def apply_migrations_api(
     result = await asyncio.to_thread(migration_manager.apply_all_migrations, db)
 
     if result['success']:
-        # 更新 version.txt 中的迁移版本�?        try:
+        # 更新 version.txt 中的迁移版本...
+            try:
             import configparser
             from pathlib import Path
             vf = Path(__file__).parent.parent.parent.parent / 'version.txt'

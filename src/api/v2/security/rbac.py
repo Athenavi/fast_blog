@@ -30,7 +30,8 @@ async def create_role(
         db: AsyncSession = Depends(get_async_db)
 ):
     """创建自定义角�?""
-    # 权限检�?    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
+    # 权限检...
+    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
     now = datetime.now(timezone.utc)
@@ -127,7 +128,8 @@ async def update_role_permissions(
     if role.is_system:
         return fail("Cannot modify system role permissions")
 
-    # 清空后重新添�?    role.capabilities = []
+    # 清空后重新添...
+    role.capabilities = []
     if permission_codes:
         cap_stmt = select(Capability).where(Capability.code.in_(permission_codes))
         cap_result = await db.execute(cap_stmt)
@@ -166,7 +168,8 @@ async def delete_role(
     if role.is_system:
         return fail("Cannot delete system role")
 
-    # 移除所有用户的该角色关�?    user_roles = await db.execute(
+    # 移除所有用户的该角色关...
+    user_roles = await db.execute(
         select(UserRole).where(UserRole.role_id == role_id)
     )
     affected_uids = [ur.user_id for ur in user_roles.scalars().all()]
@@ -217,7 +220,7 @@ async def get_permissions(
 
 # ==================== 用户角色分配 ====================
 
-@router.post("/users/{user_id}/roles", summary="为用户分配角�?)
+@router.post("/users/{user_id}/roles", summary="为用户分配角...")
 @_catch
 async def assign_role_to_user(
         user_id: int,
@@ -245,7 +248,7 @@ async def assign_role_to_user(
     return ok(msg="Role assigned successfully")
 
 
-@router.delete("/users/{user_id}/roles/{role_id}", summary="从用户移除角�?)
+@router.delete("/users/{user_id}/roles/{role_id}", summary="从用户移除角...")
 @_catch
 async def remove_role_from_user(
         user_id: int,
@@ -291,7 +294,7 @@ async def get_user_permissions(
     })
 
 
-@router.post("/check-permission", summary="检查权�?)
+@router.post("/check-permission", summary="检查权...")
 @_catch
 async def check_permission(
         user_id: int = Body(0, description="用户ID (0 表示当前用户)"),

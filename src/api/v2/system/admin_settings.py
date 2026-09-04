@@ -36,7 +36,8 @@ async def get_system_settings_dict(db: AsyncSession) -> Dict[str, str]:
 
 async def update_system_setting(key: str, value: Any, db: AsyncSession) -> None:
     """
-    更新或创建系统设�?    """
+    更新或创建系统设...
+    """
     if isinstance(value, (str, int, float)):
         serialized_value = str(value)
     elif isinstance(value, bool):
@@ -117,7 +118,8 @@ async def get_settings(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有系统设�?    """
+    获取所有系统设...
+    """
     # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
@@ -249,7 +251,7 @@ async def create_menu(
     description = data.get('description', '')
 
     if not name or not slug:
-        return fail('菜单名称和标识不能为�?)
+        return fail('菜单名称和标识不能为...")
 
     from datetime import datetime
 
@@ -258,7 +260,7 @@ async def create_menu(
     existing_menu_result = await db.execute(existing_menu_query)
     existing_menu = existing_menu_result.scalar_one_or_none()
     if existing_menu:
-            return fail('菜单标识已存�?)
+            return fail('菜单标识已存...")
 
     menu = Menus(
         name=name,
@@ -312,7 +314,7 @@ async def update_menu(
     menu_result = await db.execute(menu_query)
     menu = menu_result.scalar_one_or_none()
     if not menu:
-        return fail('菜单不存�?)
+        return fail('菜单不存...")
 
     menu.name = data.get('name', menu.name)
     menu.slug = data.get('slug', menu.slug)
@@ -361,7 +363,7 @@ async def delete_menu(
     menu_result = await db.execute(menu_query)
     menu = menu_result.scalar_one_or_none()
     if not menu:
-        return fail('菜单不存�?)
+        return fail('菜单不存...")
 
     # 检查菜单项
     menu_items_query = select(MenuItems).where(MenuItems.menu_id == menu_id)
@@ -401,7 +403,7 @@ async def create_page(
     slug = data.get('slug')
 
     if not title or not slug:
-        return fail('页面标题和别名不能为�?)
+        return fail('页面标题和别名不能为...")
 
     from datetime import datetime
 
@@ -410,7 +412,7 @@ async def create_page(
     existing_page_result = await db.execute(existing_page_query)
     existing_page = existing_page_result.scalar_one_or_none()
     if existing_page:
-            return fail('页面别名已存�?)
+            return fail('页面别名已存...")
 
     page = Pages(
         title=title,
@@ -483,7 +485,7 @@ async def update_page(
     page_result = await db.execute(page_query)
     page = page_result.scalar_one_or_none()
     if not page:
-        return fail('页面不存�?)
+        return fail('页面不存...")
 
     page.title = data.get('title', page.title)
     page.slug = data.get('slug', page.slug)
@@ -548,7 +550,7 @@ async def delete_page(
     page_result = await db.execute(page_query)
     page = page_result.scalar_one_or_none()
     if not page:
-        return fail('页面不存�?)
+        return fail('页面不存...")
 
     await db.delete(page)
     await db.commit()
@@ -564,7 +566,8 @@ async def create_menu_item(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    创建菜单�?    """
+    创建菜单...
+    """
     # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
@@ -620,7 +623,8 @@ async def update_menu_item(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    更新菜单�?    """
+    更新菜单...
+    """
     # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
@@ -674,7 +678,8 @@ async def delete_menu_item(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    删除菜单�?    """
+    删除菜单...
+    """
     # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
@@ -692,11 +697,12 @@ async def delete_menu_item(
     if not menu_item:
         return fail('菜单项不存在')
 
-    # 检查是否有子菜单项关联到此菜单�?    child_items_query = select(MenuItems).where(MenuItems.parent_id == menu_item_id)
+    # 检查是否有子菜单项关联到此菜单...
+    child_items_query = select(MenuItems).where(MenuItems.parent_id == menu_item_id)
     child_items_result = await db.execute(child_items_query)
     child_items = child_items_result.scalars().all()
     if child_items:
-        return fail('菜单项下还有子菜单项，无法删�?)
+        return fail('菜单项下还有子菜单项，无法删...")
 
     await db.delete(menu_item)
     await db.commit()

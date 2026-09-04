@@ -78,9 +78,10 @@ async def create_custom_post_type(
 ):
     """
     创建自定义内容类�?""
-    # 检�?slug 唯一�?    existing = await db.scalar(select(CustomPostType).where(CustomPostType.slug == data.slug))
+    # 检�?slug 唯一...
+    existing = await db.scalar(select(CustomPostType).where(CustomPostType.slug == data.slug))
     if existing:
-        return fail(f"Slug '{data.slug}' 已存�?)
+        return fail(f"Slug '{data.slug}' 已存...")
     cpt = CustomPostType(
         name=data.name,
         slug=data.slug,
@@ -114,7 +115,7 @@ async def get_custom_post_type(cpt_id: int,
     cpt = result.scalar_one_or_none()
 
     if not cpt:
-        return fail("内容类型不存�?)
+        return fail("内容类型不存...")
 
     return ok(data=cpt.to_dict())
 
@@ -135,7 +136,7 @@ async def update_custom_post_type(
     cpt = result.scalar_one_or_none()
 
     if not cpt:
-        return fail("内容类型不存�?)
+        return fail("内容类型不存...")
 
     if data.name is not None:
         cpt.name = data.name
@@ -173,9 +174,10 @@ async def delete_custom_post_type(cpt_id: int,
     cpt = result.scalar_one_or_none()
 
     if not cpt:
-        return fail("内容类型不存�?)
+        return fail("内容类型不存...")
 
-    # 先删除关联的内容记录，避免孤儿数�?    from sqlalchemy import delete as sa_delete
+    # 先删除关联的内容记录，避免孤儿数...
+    from sqlalchemy import delete as sa_delete
     from shared.models.content import CustomPostContent
     await db.execute(
         sa_delete(CustomPostContent).where(CustomPostContent.post_type_id == cpt_id)

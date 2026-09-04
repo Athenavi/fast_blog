@@ -20,15 +20,17 @@ async def create_incremental_backup(
 ):
     """
     创建增量备份
-    
+
     Body参数:
         base_backup_id: 基础备份ID（可选，默认使用最新完整备份）
-        tables: 要备份的表列表（可选，默认全部�?    """
+        tables: 要备份的表列表（可选，默认全部...
+    """
     body = await request.json()
     base_backup_id = body.get('base_backup_id')
     tables = body.get('tables')
 
-    # 获取数据库配�?    import os
+    # 获取数据库配...
+    import os
     db_config = {
         'host': os.getenv('DB_HOST', 'localhost'),
         'port': os.getenv('DB_PORT', '5432'),
@@ -58,15 +60,17 @@ async def create_differential_backup(
 ):
     """
     创建差异备份
-    
+
     Body参数:
         base_backup_id: 基础备份ID（可选，默认使用最新完整备份）
-        tables: 要备份的表列表（可选，默认全部�?    """
+        tables: 要备份的表列表（可选，默认全部...
+    """
     body = await request.json()
     base_backup_id = body.get('base_backup_id')
     tables = body.get('tables')
 
-    # 获取数据库配�?    import os
+    # 获取数据库配...
+    import os
     db_config = {
         'host': os.getenv('DB_HOST', 'localhost'),
         'port': os.getenv('DB_PORT', '5432'),
@@ -95,7 +99,8 @@ async def restore_incremental_backup(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    恢复增量备份�?    
+    恢复增量备份...
+
     Body参数:
         target_backup_id: 目标备份ID
     """
@@ -105,11 +110,13 @@ async def restore_incremental_backup(
     if not target_backup_id:
         return fail('target_backup_id is required')
 
-    # 获取备份�?    backup_chain = incremental_backup_service.get_backup_chain(target_backup_id)
+    # 获取备份...
+    backup_chain = incremental_backup_service.get_backup_chain(target_backup_id)
     if not backup_chain:
-        return fail(f'无法找到备份�? {target_backup_id}')
+        return fail(f'无法找到备份�? {target_backup_id}')
 
-    # 获取数据库配�?    import os
+    # 获取数据库配...
+    import os
     db_config = {
         'host': os.getenv('DB_HOST', 'localhost'),
         'port': os.getenv('DB_PORT', '5432'),
@@ -150,16 +157,17 @@ async def get_backup_chain(
 ):
     """
     获取恢复到指定备份所需的备份链
-    
+
     Args:
         backup_id: 备份ID
     """
     chain = incremental_backup_service.get_backup_chain(backup_id)
 
     if not chain:
-        return fail(f'无法找到备份�? {backup_id}')
+        return fail(f'无法找到备份�? {backup_id}')
 
-    # 获取每个备份的详细信�?    chain_details = []
+    # 获取每个备份的详细信...
+    chain_details = []
     for bid in chain:
         backup_info = incremental_backup_service.metadata.get(bid)
         if backup_info:
@@ -184,9 +192,10 @@ async def cleanup_old_backups(
         current_user=Depends(admin_required_api)
 ):
     """
-    清理旧备�?    
+    清理旧备...
+
     Body参数:
-        keep_days: 保留天数（默�?0天）
+        keep_days: 保留天数（默�?0天）
     """
     body = await request.json()
     keep_days = body.get('keep_days', 30)

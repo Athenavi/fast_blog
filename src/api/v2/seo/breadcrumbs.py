@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/article/{article_id}",
             summary="获取文章面包�?,
             description="获取指定文章的面包屑导航路径",
-            response_description = "返回面包屑列表和JSON-LD结构化数�?)
+            response_description = "返回面包屑列表和JSON-LD结构化数...")
 @_catch
 async def get_article_breadcrumbs_api(
         article_id: int = Path(..., description="文章ID"),
@@ -31,7 +31,7 @@ async def get_article_breadcrumbs_api(
 @router.get("/category/{category_id}",
             summary="获取分类面包�?,
             description="获取指定分类的面包屑导航路径",
-            response_description="返回面包屑列表和JSON-LD结构化数�?)
+            response_description="返回面包屑列表和JSON-LD结构化数...")
 @_catch
 async def get_category_breadcrumbs_api(
         category_id: int = Path(..., description="分类ID"),
@@ -47,7 +47,7 @@ async def get_category_breadcrumbs_api(
 @router.get("/page/{page_id}",
             summary="获取页面面包�?,
             description="获取指定页面的面包屑导航路径",
-            response_description = "返回面包屑列表和JSON-LD结构化数�?)
+            response_description = "返回面包屑列表和JSON-LD结构化数...")
 @_catch
 async def get_page_breadcrumbs_api(
         page_id: int = Path(..., description="页面ID"),
@@ -62,10 +62,10 @@ async def get_page_breadcrumbs_api(
 @router.get("/search",
             summary="获取搜索面包�?,
             description="获取搜索结果页的面包屑导航路�?,
-            response_description="返回面包屑列表和JSON-LD结构化数�?)
+            response_description="返回面包屑列表和JSON-LD结构化数...")
 @_catch
 async def get_search_breadcrumbs_api(
-        q: str = Query(..., description="搜索关键�?),
+        q: str = Query(..., description="搜索关键..."),
 ):
     """
     获取搜索结果页的面包屑导�?""
@@ -79,7 +79,7 @@ async def get_search_breadcrumbs_api(
 
 
 description = "获取标签页的面包屑导航路�?,
-response_description = "返回面包屑列表和JSON-LD结构化数�?)
+response_description = "返回面包屑列表和JSON-LD结构化数...")
 @_catch
 async def get_tag_breadcrumbs_api(
         tag_name: str = Path(..., description="标签名称"),
@@ -93,7 +93,7 @@ async def get_tag_breadcrumbs_api(
 @router.get("/author/{author_name}",
             summary="获取作者面包屑",
             description="获取作者页的面包屑导航路径",
-            response_description="返回面包屑列表和JSON-LD结构化数�?)
+            response_description="返回面包屑列表和JSON-LD结构化数...")
 @_catch
 async def get_author_breadcrumbs_api(
         author_name: str = Path(..., description="作者用户名"),

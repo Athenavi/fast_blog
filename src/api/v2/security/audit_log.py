@@ -49,7 +49,8 @@ async def get_audit_logs(
         per_page: 每页数量
 
     Returns:
-        审计日志列表和分页信�?    """
+        审计日志列表和分页信...
+    """
     # 解析日期
     start_dt = None
     end_dt = None
@@ -66,7 +67,8 @@ async def get_audit_logs(
         except ValueError:
             return fail("Invalid end_date format")
 
-    # 解析枚举�?    action_enum = None
+    # 解析枚举...
+    action_enum = None
     if action:
         try:
             action_enum = AuditLogAction(action)
@@ -128,7 +130,8 @@ async def export_audit_logs(
         end_date: 结束日期 (ISO格式字符�?
 
     Returns:
-        导出的数据（JSON或CSV格式�?    """
+        导出的数据（JSON或CSV格式...
+    """
     # 解析日期
     filters = {}
 
@@ -209,7 +212,8 @@ async def get_audit_log_stats(
     total_result = await db.execute(total_query)
     total_count = total_result.scalar()
 
-    # 按操作类型统�?    action_query = select(
+    # 按操作类型统...
+    action_query = select(
         AuditLogModel.action,
         func.count().label('count')
     ).where(
@@ -222,7 +226,8 @@ async def get_audit_log_stats(
         for row in action_result.all()
     ]
 
-# 按日志级别统�?    level_query = select(
+# 按日志级别统...
+    level_query = select(
         AuditLogModel.level,
         func.count().label('count')
     ).where(
@@ -235,7 +240,8 @@ async def get_audit_log_stats(
         for row in level_result.all()
     ]
 
-# 活跃用户�?    users_query = select(
+# 活跃用户...
+    users_query = select(
         func.count(func.distinct(AuditLogModel.user_id))
     ).where(
         AuditLogModel.created_at >= cutoff_date
@@ -252,7 +258,7 @@ async def get_audit_log_stats(
     })
 
 
-@router.post("/cleanup", summary="清理旧日�?)
+@router.post("/cleanup", summary="清理旧日...")
 @_catch
 async def cleanup_old_logs(
         days: int = Query(90, ge=1, description="保留天数"),
@@ -269,4 +275,4 @@ async def cleanup_old_logs(
     """
     await audit_log_service.cleanup_old_logs(db, days)
 
-    return ok(msg=f"已清理{days}天前的审计日�?)
+    return ok(msg=f"已清理{days}天前的审计日...")

@@ -43,9 +43,10 @@ async def optimize_media_file(
     # 获取文件路径
     file_path = Path(media.file_path)
     if not file_path.exists():
-        return fail("文件不存�?)
+        return fail("文件不存...")
 
-        # 只处理图�?    if not media.mime_type or not media.mime_type.startswith('image/'):
+        # 只处理图...
+    if not media.mime_type or not media.mime_type.startswith('image/'):
         return fail("只能优化图片文件")
 
     # 打开图片
@@ -114,7 +115,7 @@ async def convert_to_webp_endpoint(
     # 获取文件路径
     original_path = Path(media.file_path)
     if not original_path.exists():
-        return fail("文件不存�?)
+        return fail("文件不存...")
 
         # 打开图片
         img = Image.open(original_path)

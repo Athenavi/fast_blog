@@ -49,7 +49,7 @@ async def get_internal_link_suggestions_api(
     article = article_result.scalar_one_or_none()
 
     if not article:
-        return fail('文章不存�?)
+        return fail('文章不存...")
 
     # 获取文章内容
     content_query = select(ArticleContent).where(ArticleContent.article == article_id)
@@ -57,7 +57,7 @@ async def get_internal_link_suggestions_api(
     article_content = content_result.scalar_one_or_none()
 
     if not article_content:
-            return fail('文章内容不存�?)
+            return fail('文章内容不存...")
 
         # 获取所有已发布文章(简化版:实际应分�?
     all_articles_query = select(Article).where(Article.status == 1)
@@ -75,7 +75,8 @@ async def get_internal_link_suggestions_api(
         for a in all_articles
     ]
 
-        # 为当前文章添加内�?    current_article_data = {
+        # 为当前文章添加内...
+    current_article_data = {
         'id': article.id,
         'title': article.title,
         'slug': article.slug,

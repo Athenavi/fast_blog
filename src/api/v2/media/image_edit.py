@@ -29,9 +29,9 @@ def _validate_file_path(file_path: str) -> Path:
     try:
         resolved.relative_to(STORAGE_ROOT)
     except ValueError:
-        raise ValueError(f"文件路径不在允许�?storage 目录范围�?)
+        raise ValueError(f"文件路径不在允许�?storage 目录范围...")
     if not resolved.exists():
-        raise ValueError("文件不存�?)
+        raise ValueError("文件不存...")
     return resolved
 
 
@@ -47,7 +47,7 @@ async def get_image_info(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media:
-            return fail("媒体不存�?)
+            return fail("媒体不存...")
 
         file_path = media.file_path or media.url or ""
         if not file_path:
@@ -77,7 +77,7 @@ async def crop_image(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存�?)
+            return fail("媒体不存...")
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "crop", "x": x, "y": y, "width": width, "height": height}])
@@ -102,7 +102,7 @@ async def rotate_image(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存�?)
+            return fail("媒体不存...")
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "rotate", "degrees": degrees}])
@@ -127,7 +127,7 @@ async def filter_image(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存�?)
+            return fail("媒体不存...")
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "filter", "filter": filter_type}])
@@ -151,7 +151,7 @@ async def grayscale_image(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存�?)
+            return fail("媒体不存...")
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "grayscale"}])

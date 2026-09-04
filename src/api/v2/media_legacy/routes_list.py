@@ -25,12 +25,12 @@ async def list_media(
     db: AsyncSession = Depends(get_async_db),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
-    q: Optional[str] = Query(None, description="搜索关键�?),
+    q: Optional[str] = Query(None, description="搜索关键..."),
     media_type: str = Query("all", description="媒体类型: all, image, video, audio, document"),
     category
 
-: Optional[str] = Query(None, description="分类筛�?),
-folder_name: Optional[str] = Query(None, description="文件夹名�?),
+: Optional[str] = Query(None, description="分类筛..."),
+folder_name: Optional[str] = Query(None, description="文件夹名..."),
 folder_id: Optional[int] = Query(None, description="文件�?ID（直接指定）"),
 sort_by: str = Query("created_at_desc", description="排序方式"),
 date_from: Optional[str] = Query(None),

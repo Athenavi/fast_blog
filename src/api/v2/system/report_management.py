@@ -24,8 +24,9 @@ async def get_content_report(
 ):
     """
     获取内容表现报表
-    
-    仅管理员可访问�?    """
+
+    仅管理员可访问...
+    """
     generator = ReportGenerator(db)
     report = await generator.generate_content_report(days, group_by)
 
@@ -40,8 +41,9 @@ async def get_user_activity_report(
 ):
     """
     获取用户活动报表
-    
-    仅管理员可访问�?    """
+
+    仅管理员可访问...
+    """
     report = report_generator.generate_user_activity_report(days)
 
     return ok(data=report)
@@ -55,14 +57,15 @@ async def get_traffic_report(
 ):
     """
     获取流量分析报表
-    
-    仅管理员可访问�?    """
+
+    仅管理员可访问...
+    """
     report = report_generator.generate_traffic_report(days)
 
     return ok(data=report)
 
 
-@router.post("/custom", summary="生成自定义报�?)
+@router.post("/custom", summary="生成自定义报...")
 @_catch
 async def generate_custom_report(
         metrics: List[str] = Body(..., description="要包含的指标列表"),
@@ -71,13 +74,14 @@ async def generate_custom_report(
         current_user=Depends(admin_required_api)
 ):
     """
-    生成自定义报�?    
-    支持选择多个指标组合生成报表�?    """
+    生成自定义报�?
+    支持选择多个指标组合生成报表...
+    """
     # 验证指标
     valid_metrics = ['content', 'users', 'traffic', 'engagement']
     invalid = [m for m in metrics if m not in valid_metrics]
     if invalid:
-        return fail(f"无效的指�? {invalid}. 有效指标: {valid_metrics}")
+        return fail(f"无效的指�? {invalid}. 有效指标: {valid_metrics}")
 
     report = report_generator.generate_custom_report(metrics, days, filters)
 
@@ -93,7 +97,8 @@ async def export_report(
         current_user=Depends(admin_required_api)
 ):
     """
-    导出报表为指定格�?    """
+    导出报表为指定格...
+    """
     # 生成报表
     if report_type == 'content':
         report = report_generator.generate_content_report(days)
@@ -119,8 +124,9 @@ async def export_report(
 async def get_report_templates(current_user=Depends(admin_required_api)):
     """
     获取可用的报表面板和预设
-    
-    仅管理员可访问�?    """
+
+    仅管理员可访问...
+    """
     templates = [
         {
             'id': 'content-overview',
@@ -139,13 +145,13 @@ async def get_report_templates(current_user=Depends(admin_required_api)):
         {
             'id': 'traffic-analysis',
             'name': '流量分析',
-            'description': '访问量、来源渠道、页面表�?,
+            'description': '访问量、来源渠道、页面表�?,
             'metrics': ['traffic'],
             'default_days': 30,
         },
         {
             'id': 'engagement-metrics',
-            'name': '参与度分�?,
+            'name': '参与度分�?,
             'description': '用户互动、停留时间、跳出率',
             'metrics': ['engagement'],
             'default_days': 30,
@@ -179,8 +185,9 @@ async def create_scheduled_report(
 ):
     """
     创建定时报表任务
-    
-    支持每日/每周/每月自动生成报表�?    """
+
+    支持每日/每周/每月自动生成报表...
+    """
     service = create_scheduled_report_service(db)
 
     config = {
@@ -204,8 +211,9 @@ async def get_scheduled_reports(
         db = Depends(get_async_db)
 ):
     """
-    获取所有定时报表任�?    
-    仅管理员可访问�?    """
+    获取所有定时报表任�?
+    仅管理员可访问...
+    """
     service = create_scheduled_report_service(db)
     reports = await service.get_scheduled_reports()
 
@@ -223,8 +231,9 @@ async def toggle_scheduled_report(
         db = Depends(get_async_db)
 ):
     """
-    启用或禁用定时报表任�?    
-    仅管理员可访问�?    """
+    启用或禁用定时报表任�?
+    仅管理员可访问...
+    """
     service = create_scheduled_report_service(db)
     result = await service.toggle_report(report_id)
 

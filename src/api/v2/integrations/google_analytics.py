@@ -14,7 +14,7 @@ router = APIRouter(tags=["google-analytics"])
 
 
 async def get_ga_config(
-    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置�?),
+    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -64,7 +64,7 @@ async def create_ga_config(
         enable_event_tracking: bool = Body(True, description="是否启用事件追踪"),
         enable_user_behavior_analysis: bool = Body(False, description="是否启用用户行为分析"),
     anonymize_ip: bool = Body(True, description="是否匿名�?IP"),
-    sample_rate: float = Body(100.0, description="采样率（0-100�?),
+    sample_rate: float = Body(100.0, description="采样率（0-100..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -72,8 +72,10 @@ async def create_ga_config(
     创建 Google Analytics 配置
 
     Returns:
-        创建的配�?    """
-# 检查权限（需要admin权限�?    has_permission = await check_admin_permission(db, current_user.id)
+        创建的配...
+    """
+# 检查权限（需要admin权限...
+    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -118,7 +120,8 @@ async def update_ga_config(
     Returns:
         更新后的配置
     """
-    # 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
+    # 检查权...
+    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -149,7 +152,8 @@ async def deactivate_ga_config(
     Returns:
         操作结果
     """
-    # 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
+    # 检查权...
+    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -163,7 +167,7 @@ async def deactivate_ga_config(
 @router.get("/tracking-code", summary="获取 Google Analytics 追踪代码")
 @_catch
 async def get_tracking_code(
-    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置�?),
+    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -230,7 +234,7 @@ async def generate_event_code(
 @router.get("/configs", summary="获取所�?Google Analytics 配置")
 @_catch
 async def get_all_configs(
-    include_inactive: bool = Query(False, description="是否包含非活动配�?),
+    include_inactive: bool = Query(False, description="是否包含非活动配..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -242,7 +246,8 @@ async def get_all_configs(
     Returns:
         配置列表
     """
-# 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
+# 检查权...
+    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 

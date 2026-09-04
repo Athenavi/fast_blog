@@ -33,10 +33,12 @@ async def create_approval_request(
     Args:
         content_type: 内容类型
         content_id: 内容ID
-        max_level: 最大审批级�?        approvers: 各级审批人ID列表
+        max_level: 最大审批级...
+            approvers: 各级审批人ID列表
 
     Returns:
-        创建的审批请�?    """
+        创建的审批请...
+    """
     record = await content_approval_service.create_approval_request(
         db=db,
         content_type=content_type,
@@ -174,7 +176,7 @@ async def get_approval_history(
     return ok(data=history)
 
 
-@router.get("/pending", summary="获取待审批列�?)
+@router.get("/pending", summary="获取待审批列...")
 @_catch
 async def get_pending_approvals(
         content_type: Optional[str] = Query(None, description="内容类型过滤"),
@@ -205,7 +207,7 @@ async def get_pending_approvals(
     return ok(data=result)
 
 
-@router.get("/status/{content_type}/{content_id}", summary="检查审批状�?)
+@router.get("/status/{content_type}/{content_id}", summary="检查审批状...")
 @_catch
 async def check_approval_status(
         content_type: str,
@@ -220,7 +222,8 @@ async def check_approval_status(
         content_id: 内容ID
 
     Returns:
-        审批状态信�?    """
+        审批状态信...
+    """
     status = await content_approval_service.check_approval_status(
         db=db,
         content_type=content_type,
@@ -246,11 +249,13 @@ async def get_my_requests(
     获取我提交的审批请求列表
 
     Args:
-        status: 状态过�?        page: 页码
+        status: 状态过...
+            page: 页码
         per_page: 每页数量
 
     Returns:
-        审批请求列表和分页信�?    """
+        审批请求列表和分页信...
+    """
     from sqlalchemy import select, func
     from shared.models.user import User
 
@@ -333,7 +338,8 @@ async def get_approval_stats(
     total_result = await db.execute(total_query)
     total_count = total_result.scalar()
 
-    # 按状态统�?    status_query = select(
+    # 按状态统...
+    status_query = select(
         ApprovalRecord.status,
         func.count().label('count')
     ).where(
@@ -346,7 +352,8 @@ async def get_approval_stats(
         for row in status_result.all()
     ]
 
-# 按内容类型统�?    type_query = select(
+# 按内容类型统...
+    type_query = select(
         ApprovalRecord.content_type,
         func.count().label('count')
     ).where(

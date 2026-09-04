@@ -58,7 +58,8 @@ async def preview_halo_content(
     """
     预览 Halo 博客的可迁移内容
 
-    返回统计信息，包括文章数、分类数�?    """
+    返回统计信息，包括文章数、分类数...
+    """
     service = HaloImportService(halo_url=halo_url, api_token=api_token)
 
     # 获取文章统计
@@ -103,7 +104,8 @@ async def import_halo_data(
     - user_mapping: 用户映射 JSON (可�?
 
     导入内容:
-    - 文章和页�?    - 分类
+    - 文章和页...
+    - 分类
     - 标签
     """
     import json

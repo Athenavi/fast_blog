@@ -32,18 +32,19 @@ def _is_admin(user) -> bool:
 async def list_gateways(
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量"),
-    search: Optional[str] = Query(None, description="搜索关键�?),
-    provider: Optional[str] = Query(None, description="提供商筛�?),
+    search: Optional[str] = Query(None, description="搜索关键..."),
+    provider: Optional[str] = Query(None, description="提供商筛..."),
 
 
-is_active: Optional[bool] = Query(None, description="是否激�?),
+is_active: Optional[bool] = Query(None, description="是否激..."),
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required),
 ):
     """
     获取支付网关列表
 
-    支持分页、搜索、按提供商和激活状态筛�?    """
+    支持分页、搜索、按提供商和激活状态筛...
+    """
     if not _is_admin(current_user):
         raise HTTPException(status_code=403, detail="需要管理员权限")
 
@@ -102,14 +103,16 @@ async def get_gateway(
     gateway = result.scalar_one_or_none()
 
     if not gateway:
-        return fail("支付网关不存�?)
+        return fail("支付网关不存...")
 
-        # 始终脱敏 config_data，避免泄露支付密�?    result_dict = gateway.to_dict(exclude_sensitive=True)
+        # 始终脱敏 config_data，避免泄露支付密...
+    result_dict = gateway.to_dict(exclude_sensitive=True)
     if result_dict.get("config_data"):
         try:
             cfg = json.loads(result_dict["config_data"])
             if isinstance(cfg, dict):
-                # 脱敏所有敏感字�?                for key in cfg:
+                # 脱敏所有敏感字...
+                    for key in cfg:
                     if any(s in key.lower() for s in ("key", "secret", "password", "token", "private", "sign")):
                         cfg[key] = "***masked***"
                 result_dict["config_data"] = json.dumps(cfg, ensure_ascii=False)
@@ -134,7 +137,7 @@ async def create_gateway(
     name = data.get("name")
     provider = data.get("provider")
     if not name or not provider:
-        return fail("name �?provider 为必填字�?)
+        return fail("name �?provider 为必填字...")
 
     existing = await db.execute(
         select(PaymentGateway).where(
@@ -143,7 +146,7 @@ async def create_gateway(
         )
     )
     if existing.scalar_one_or_none():
-            return fail(f"网关 '{name}' (provider={provider}) 已存�?)
+            return fail(f"网关 '{name}' (provider={provider}) 已存...")
 
     config_data = data.get("config_data")
     if isinstance(config_data, dict):
@@ -188,7 +191,7 @@ async def update_gateway(
     gateway = result.scalar_one_or_none()
 
     if not gateway:
-        return fail("支付网关不存�?)
+        return fail("支付网关不存...")
 
     data = await request.json()
 
@@ -229,14 +232,14 @@ async def delete_gateway(
     gateway = result.scalar_one_or_none()
 
     if not gateway:
-        return fail("支付网关不存�?)
+        return fail("支付网关不存...")
 
     txn_count_query = select(func.count()).where(PaymentTransaction.gateway == gateway_id)
     txn_count_result = await db.execute(txn_count_query)
     txn_count = txn_count_result.scalar()
 
     if txn_count > 0:
-            return fail(f"该网关下�?{txn_count} 条交易记录，请先删除或迁移交易记录后再删除网�?)
+            return fail(f"该网关下�?{txn_count} 条交易记录，请先删除或迁移交易记录后再删除网...")
 
     await db.delete(gateway)
     try:
@@ -257,7 +260,7 @@ async def list_transactions(
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量"),
     search: Optional[str] = Query(None, description="搜索订单ID/交易ID"),
-    status: Optional[str] = Query(None, description="交易状�?),
+    status: Optional[str] = Query(None, description="交易状..."),
     payment_method: Optional[str] = Query(None, description="支付方式"),
     currency: Optional[str] = Query(None, description="货币类型"),
     user_id: Optional[int] = Query(None, description="用户ID"),
@@ -268,7 +271,8 @@ async def list_transactions(
     """
     获取支付交易列表
 
-    支持分页、多条件筛�?    """
+    支持分页、多条件筛...
+    """
     if not _is_admin(current_user):
         raise HTTPException(status_code=403, detail="需要管理员权限")
 
@@ -336,7 +340,7 @@ async def get_transaction(
     transaction = result.scalar_one_or_none()
 
     if not transaction:
-        return fail("交易记录不存�?)
+        return fail("交易记录不存...")
 
     return ok(data=transaction.to_dict(exclude_sensitive=False))
 
@@ -357,14 +361,14 @@ async def create_transaction(
     user = data.get("user")
     amount = data.get("amount")
     if not user or amount is None:
-        return fail("user �?amount 为必填字�?)
+        return fail("user �?amount 为必填字...")
 
     gateway_id = data.get("gateway")
     if gateway_id:
         gw_query = select(PaymentGateway).where(PaymentGateway.id == gateway_id)
         gw_result = await db.execute(gw_query)
         if not gw_result.scalar_one_or_none():
-            return fail(f"网关 ID={gateway_id} 不存�?)
+            return fail(f"网关 ID={gateway_id} 不存...")
 
     order_id = data.get("order_id")
     if order_id:
@@ -372,7 +376,7 @@ async def create_transaction(
             select(PaymentTransaction).where(PaymentTransaction.order_id == order_id)
         )
         if existing.scalar_one_or_none():
-            return fail(f"订单ID '{order_id}' 已存�?)
+            return fail(f"订单ID '{order_id}' 已存...")
 
     now = datetime.utcnow()
     transaction = PaymentTransaction(
@@ -419,11 +423,12 @@ async def update_transaction(
     transaction = result.scalar_one_or_none()
 
     if not transaction:
-        return fail("交易记录不存�?)
+        return fail("交易记录不存...")
 
     data = await request.json()
 
-    # 成功态只能由真实网关回调/对账流程产生，禁止通过管理接口手动直改�?    SUCCESS_STATUSES = ("succeeded", "completed", "paid")
+    # 成功态只能由真实网关回调/对账流程产生，禁止通过管理接口手动直改...
+    SUCCESS_STATUSES = ("succeeded", "completed", "paid")
     requested_status = data.get("status")
     if requested_status is not None and str(requested_status).lower() in SUCCESS_STATUSES:
         return fail(f"不允许手动将交易状态改�?'{requested_status}'；成功态只能由真实网关回调/对账流程产生")
@@ -471,7 +476,7 @@ async def delete_transaction(
     transaction = result.scalar_one_or_none()
 
     if not transaction:
-        return fail("交易记录不存�?)
+        return fail("交易记录不存...")
 
     if transaction.status not in ("pending", "failed", "cancelled"):
         return fail(f"不允许删除状态为 '{transaction.status}' 的交易记录，请先将其状态变更为 cancelled")
@@ -533,7 +538,7 @@ async def create_payment(
     if not result.get("success"):
         return fail(result.get("error", "支付发起失败"))
 
-    return ok(data=result, msg="支付已发�?)
+    return ok(data=result, msg="支付已发...")
 
 
 @router.post("/callback/{provider}")
@@ -597,14 +602,15 @@ async def list_tax_configs(
     country: Optional[str] = Query(None, description="国家代码 (ISO 3166-1)"),
     region: Optional[str] = Query(None, description="地区"),
     tax_type: Optional[str] = Query(None, description="税种类型"),
-    is_active: Optional[bool] = Query(None, description="是否激�?),
+    is_active: Optional[bool] = Query(None, description="是否激..."),
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required),
 ):
     """
     获取税务配置列表
 
-    支持分页、按国家/地区/税种/激活状态筛�?    """
+    支持分页、按国家/地区/税种/激活状态筛...
+    """
     if not _is_admin(current_user):
         raise HTTPException(status_code=403, detail="需要管理员权限")
 
@@ -661,7 +667,7 @@ async def get_tax_config(
     config = result.scalar_one_or_none()
 
     if not config:
-        return fail("税务配置不存�?)
+        return fail("税务配置不存...")
 
     return ok(data=config.to_dict())
 
@@ -683,7 +689,7 @@ async def create_tax_config(
     tax_type = data.get("tax_type")
     rate = data.get("rate")
     if not country or not tax_type or rate is None:
-        return fail("country、tax_type、rate 为必填字�?)
+        return fail("country、tax_type、rate 为必填字...")
 
     existing_query = select(TaxConfig).where(
         TaxConfig.country == country.upper(),
@@ -698,7 +704,7 @@ async def create_tax_config(
     existing_result = await db.execute(existing_query)
     if existing_result.scalar_one_or_none():
         region_label = f"/{region}" if region else ""
-        return fail(f"国家 {country.upper()}{region_label} �?{tax_type} 税务配置已存�?)
+        return fail(f"国家 {country.upper()}{region_label} �?{tax_type} 税务配置已存...")
 
     now = datetime.utcnow()
 
@@ -753,7 +759,7 @@ async def update_tax_config(
     config = result.scalar_one_or_none()
 
     if not config:
-        return fail("税务配置不存�?)
+        return fail("税务配置不存...")
 
     data = await request.json()
 
@@ -801,7 +807,7 @@ async def delete_tax_config(
     config = result.scalar_one_or_none()
 
     if not config:
-        return fail("税务配置不存�?)
+        return fail("税务配置不存...")
 
     await db.delete(config)
     try:

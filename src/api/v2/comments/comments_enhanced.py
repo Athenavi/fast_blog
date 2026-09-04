@@ -23,13 +23,13 @@ async def get_article_comments(
 ):
     """
     获取文章的评论树
-    
+
     Args:
         article_id: 文章ID
         sort_by: 排序方式 (latest, oldest, popular)
         page: 页码
         per_page: 每页数量
-        
+
     Returns:
         评论树和分页信息
     """
@@ -56,10 +56,10 @@ async def like_comment(
 ):
     """
     点赞评论
-    
+
     Args:
         comment_id: 评论ID
-        
+
     Returns:
         操作结果
     """
@@ -84,10 +84,10 @@ async def dislike_comment(
 ):
     """
     反对评论
-    
+
     Args:
         comment_id: 评论ID
-        
+
     Returns:
         操作结果
     """
@@ -112,10 +112,10 @@ async def get_user_vote(
 ):
     """
     获取用户对评论的投票
-    
+
     Args:
         comment_id: 评论ID
-        
+
     Returns:
         投票类型 (like, dislike, null)
     """
@@ -141,10 +141,11 @@ async def notify_comment_reply(
         db: AsyncSession = Depends(get_async_db),
 ):
     """
-    通知评论被回复（通常在创建回复评论后调用�?    
+    通知评论被回复（通常在创建回复评论后调用...
+
     Args:
         comment_id: 新评论ID
-        
+
     Returns:
         通知结果
     """

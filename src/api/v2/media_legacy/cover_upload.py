@@ -10,39 +10,38 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.upload.public_upload import FileProcessor, process_single_file
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["media-cover"])
-
-from src.unified_logger import default_logger as logger
 
 
 @router.post("/cover")
 async def upload_cover(
-    request: Request,
-    current_user_obj=Depends(jwt_required),
-    db: AsyncSession = Depends(get_async_db)
+        request: Request,
+        current_user_obj=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
 ):
     """上传文章封面图片"""
     logger.info(f"[cover] handler entered, user={getattr(current_user_obj, 'id', 'N/A')}")
     form = await request.form()
     if 'cover_image' not in form:
-        return JSONResponse({'code': 400, 'msg': '未上传文�?}, status_code=400)
+        return JSONResponse({'code': 400, 'msg': '未上传文件'}, status_code=400)
 
-                             file: UploadFile = form['cover_image']
-        if not file or not file.filename:
-            return JSONResponse({'code': 400, 'msg': '文件名为�?}, status_code=400)
+    file: UploadFile = form['cover_image']
+    if not file or not file.filename:
+        return JSONResponse({'code': 400, 'msg': '文件名为空'}, status_code=400)
 
-                                 file_data = await file.read()
+    file_data = await file.read()
 
-        processor = FileProcessor(
-            current_user_obj.id,
-            allowed_mimes={'image/jpeg', 'image/png', 'image/gif', 'image/webp'},
-            allowed_size=8 * 1024 * 1024
-        )
+    processor = FileProcessor(
+        current_user_obj.id,
+        allowed_mimes={'image/jpeg', 'image/png', 'image/gif', 'image/webp'},
+        allowed_size=8 * 1024 * 1024
+    )
 
-        is_valid, validation_result = processor.validate_file(file_data, file.filename)
-        if not is_valid:
-            return JSONResponse({'code': 400, 'msg': validation_result}, status_code=400)
+    is_valid, validation_result = processor.validate_file(file_data, file.filename)
+    if not is_valid:
+        return JSONResponse({'code': 400, 'msg': validation_result}, status_code=400)
 
     try:
         result = await process_single_file(processor, file_data, file.filename, db)

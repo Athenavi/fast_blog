@@ -27,10 +27,11 @@ async def parse_wordpress_xml(
     解析 WordPress XML 文件
 
     Args:
-        file: 上传�?WXR 文件
+        file: 上传�?WXR 文件
 
     Returns:
-        解析结果和统计信�?    """
+        解析结果和统计信...
+    """
     # 保存临时文件
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
         content = await file.read()
@@ -77,8 +78,8 @@ async def import_wordpress_data(
     导入 WordPress 数据到数据库
 
     Args:
-        file: 上传�?WXR 文件
-        user_mapping: 作者映�?JSON 字符�?{"wp_author_id": system_user_id}
+        file: 上传�?WXR 文件
+        user_mapping: 作者映�?JSON 字符�?{"wp_author_id": system_user_id}
         download_media: 是否下载媒体文件
 
     Returns:
@@ -143,7 +144,7 @@ async def import_wordpress_data(
 @router.get("/template")
 async def get_import_template():
     """
-    获取导入模板和说�?
+    获取导入模板和说�?
     Returns:
         导入指南
     """
@@ -151,12 +152,12 @@ async def get_import_template():
         'success': True,
         'data': {
             'instructions': [
-                '1. �?WordPress 后台进入 工具 > 导出',
-                '2. 选择 "所有内�? 并下载导出文�?,
-                '3. 上传下载�?.xml 文件到这�?,
+                '1. �?WordPress 后台进入 工具 > 导出',
+                '2. 选择 "所有内�? 并下载导出文�?,
+                '3. 上传下载�?.xml 文件到这�?,
                 '4. 预览导入内容',
-                '5. 配置作者映�?可�?',
-                '6. 开始导�?
+                '5. 配置作者映�?可�?',
+                '6. 开始导�?
             ],
             'supported_content': [
                 '文章(Post)',
@@ -167,10 +168,10 @@ async def get_import_template():
                 '媒体引用(Media references)'
             ],
             'notes': [
-                '媒体文件不会自动下载,仅保留引用链�?,
+                '媒体文件不会自动下载,仅保留引用链�?,
                 '需要手动重新上传媒体文件或使用媒体迁移工具',
-                '导入前建议备份当前数�?,
-                '重复的文�?slug相同)会被跳过'
+                '导入前建议备份当前数�?,
+                '重复的文�?slug相同)会被跳过'
             ]
         }
     }

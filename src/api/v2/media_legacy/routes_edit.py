@@ -80,7 +80,7 @@ async def batch_delete_media(
 ):
     result = await media_library_service.batch_delete_media(db, media_ids, user_id=current_user.id)
     if result["success"]:
-        return ok(data=result, msg=f"成功删除 {result['deleted_count']} 个文�?)
+        return ok(data=result, msg=f"成功删除 {result['deleted_count']} 个文...")
     return fail(result.get("error"))
 
 
@@ -104,7 +104,7 @@ async def batch_categorize_media(
         )
         result = await db.execute(stmt)
         await db.commit()
-        return ok(data={"updated_count": result.rowcount}, msg=f"成功�?{result.rowcount} 个文件设置分�?)
+        return ok(data={"updated_count": result.rowcount}, msg=f"成功�?{result.rowcount} 个文件设置分...")
     except Exception:
         await db.rollback()
         raise
@@ -123,7 +123,7 @@ async def batch_update_tags(
     """
     批量为媒体设置标签（每个媒体最�?个标签）"""
     if len(tags) > 5:
-        return fail("最多只能设�?个标�?)
+        return fail("最多只能设�?个标...")
 
     query = select(Media).where(Media.id.in_(media_ids), Media.user == current_user.id)
     result = await db.execute(query)
@@ -144,7 +144,7 @@ async def batch_update_tags(
         updated_count += 1
 
     await db.commit()
-    return ok(data={"updated_count": updated_count}, msg=f"成功�?{updated_count} 个文件更新标�?)
+    return ok(data={"updated_count": updated_count}, msg=f"成功�?{updated_count} 个文件更新标...")
 
 
 # ---------- 详情 ----------
@@ -190,7 +190,7 @@ async def update_media(
         else:
             tags_list = []
         if len(tags_list) > 5:
-            return fail("最多只能设�?个标�?)
+            return fail("最多只能设�?个标...")
         media.tags = ','.join(tags_list) if tags_list else None
     if 'category' in body:
         media.category = body['category']
@@ -287,7 +287,7 @@ async def batch_update_metadata(
 ):
     result = await media_library_service.batch_update_metadata(db, updates, user_id=current_user.id)
     if result["success"]:
-        return ok(data=result, msg=f"成功更新 {result['updated_count']} 个文�?)
+        return ok(data=result, msg=f"成功更新 {result['updated_count']} 个文...")
     return fail(result.get("error"))
 
 
@@ -342,7 +342,7 @@ async def edit_image(
     image_path = body.get('image_path')
     operations = body.get('operations', [])
     if not image_path:
-        return fail("请指定图片路�?)
+        return fail("请指定图片路...")
     success, message, data = image_editor.process_image(image_path, operations)
     if not success:
         return fail(message)

@@ -89,7 +89,8 @@ async def get_area_widgets(area_id: str, db: AsyncSession = Depends(get_async_db
     result = await db.execute(stmt)
     widgets = result.scalars().all()
 
-    # 转换为字典列�?    widget_list = [w.to_dict() for w in widgets]
+    # 转换为字典列...
+    widget_list = [w.to_dict() for w in widgets]
 
     return ok(data={'widgets': widget_list})
 
@@ -107,7 +108,7 @@ async def register_widget(
     result = widget_service.register_widget(area, widget_type, config, position)
 
     if result['success']:
-        return ok(data=result['data'], msg="小部件添加成�?)
+        return ok(data=result['data'], msg="小部件添加成...")
     else:
         return fail(result['error'])
 
@@ -184,7 +185,8 @@ async def create_widget(
     result = await db.execute(stmt)
     max_order = result.scalar() or -1
 
-    # 创建新实�?    new_widget = WidgetInstance(
+    # 创建新实...
+    new_widget = WidgetInstance(
         widget_type=widget_type,
         area=area,
         title=title,
@@ -220,7 +222,7 @@ async def update_widget(
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存�?)
+        return fail("Widget 不存...")
 
     if title is not None:
         widget.title = title
@@ -252,7 +254,7 @@ async def toggle_widget(
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存�?)
+        return fail("Widget 不存...")
 
     widget.is_active = is_active
     widget.updated_at = datetime.now()
@@ -278,7 +280,7 @@ async def reorder_single_widget(
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存�?)
+        return fail("Widget 不存...")
 
     old_order = widget.order_index
     widget.order_index = order_index
@@ -354,7 +356,7 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存�?)
+        return fail("Widget 不存...")
 
     # 解析配置
     config = {}
@@ -384,7 +386,7 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
 @_catch
 async def get_recent_posts_data(
         count: int = Query(5, description="文章数量"),
-    show_thumbnail: bool = Query(True, description="是否显示缩略�?),
+    show_thumbnail: bool = Query(True, description="是否显示缩略..."),
         show_date: bool = Query(True, description="是否显示日期"),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -437,7 +439,7 @@ async def get_tags_cloud_data(
 @router.get("/data/categories")
 @_catch
 async def get_categories_data(
-        show_count: bool = Query(True, description="是否显示文章�?),
+        show_count: bool = Query(True, description="是否显示文章..."),
         hierarchical: bool = Query(True, description="是否层级显示"),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -455,7 +457,7 @@ async def get_categories_data(
 @_catch
 async def get_archives_data(
         archive_type: str = Query('monthly', description="归档类型 (monthly �?yearly)"),
-        show_count: bool = Query(True, description="是否显示文章�?),
+        show_count: bool = Query(True, description="是否显示文章..."),
         db: AsyncSession = Depends(get_async_db)
 ):
     """获取文章归档数据"""
@@ -503,7 +505,8 @@ async def get_menu_data(
     if not menu:
         return fail(f"菜单不存�? {slug}")
 
-    # 查询菜单项（包括层级关系�?    items_stmt = (
+    # 查询菜单项（包括层级关系...
+    items_stmt = (
         select(MenuItems)
         .where(MenuItems.menu_id == menu.id)
         .where(MenuItems.is_active == True)

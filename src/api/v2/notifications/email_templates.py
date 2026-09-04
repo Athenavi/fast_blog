@@ -69,7 +69,7 @@ async def get_template(
     """获取单个邮件模板"""
     try:
         if name not in DEFAULT_TEMPLATES:
-            return fail("模板不存�?)
+            return fail("模板不存...")
 
         result = await db.execute(
             select(SystemSettings).where(SystemSettings.setting_key == f"email_template_{name}")
@@ -99,7 +99,7 @@ async def save_template(
     """保存邮件模板"""
     try:
         if name not in DEFAULT_TEMPLATES:
-            return fail("模板不存�?)
+            return fail("模板不存...")
 
         # 查找已有记录
         result = await db.execute(
@@ -135,7 +135,7 @@ async def reset_template(
     重置邮件模板为默�?""
     try:
         if name not in DEFAULT_TEMPLATES:
-            return fail("模板不存�?)
+            return fail("模板不存...")
 
         result = await db.execute(
             select(SystemSettings).where(SystemSettings.setting_key == f"email_template_{name}")

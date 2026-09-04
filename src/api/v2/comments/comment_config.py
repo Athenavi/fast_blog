@@ -24,7 +24,8 @@ async def get_comment_config(
     """
     获取评论配置
     """
-    # 检查用户权�?- 只有管理员可以访�?    if not getattr(current_user, 'is_superuser', False):
+    # 检查用户权�?- 只有管理员可以访...
+    if not getattr(current_user, 'is_superuser', False):
         from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=403,
@@ -39,9 +40,11 @@ async def get_comment_config(
     result = await db.execute(stmt)
     comment_settings = result.scalars().all()
 
-# 转换为字典格�?    config = {setting.key: setting.value for setting in comment_settings}
+# 转换为字典格...
+    config = {setting.key: setting.value for setting in comment_settings}
 
-# 如果没有任何配置，返回默认�?    if not config:
+# 如果没有任何配置，返回默认...
+    if not config:
         config = {
             'giscus_repo': '',
             'giscus_repo_id': '',
@@ -70,7 +73,8 @@ async def update_comment_config(
     """
     更新评论配置
     """
-    # 检查用户权�?- 只有管理员可以访�?    if not getattr(current_user, 'is_superuser', False):
+    # 检查用户权�?- 只有管理员可以访...
+    if not getattr(current_user, 'is_superuser', False):
         from fastapi.responses import JSONResponse
         return JSONResponse(
             status_code=403,
@@ -97,14 +101,17 @@ async def update_comment_config(
 
     from sqlalchemy import select
 
-# 更新或创建评论配�?    for key, value in data.items():
+# 更新或创建评论配...
+    for key, value in data.items():
 if key.startswith(
-    'giscus_'):  # 确保只更新giscus相关的设�?            setting_query = select(SystemSettings).where(SystemSettings.key == key)
+    'giscus_'):  # 确保只更新giscus相关的设...
+                setting_query = select(SystemSettings).where(SystemSettings.key == key)
             setting_result = await db.execute(setting_query)
             setting = setting_result.scalar_one_or_none()
 
             if setting:
-                setting.value = str(value)  # 确保值是字符�?                setting.updated_at = datetime.now()
+                setting.value = str(value)  # 确保值是字符...
+                    setting.updated_at = datetime.now()
                 setting.updated_by = current_user.id
             else:
                 setting = SystemSettings(

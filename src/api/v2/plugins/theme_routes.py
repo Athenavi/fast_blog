@@ -166,7 +166,8 @@ async def activate_theme(
         current_user: User = Depends(jwt_required),
 ):
     """
-    激活主�?    激活新主题时自动停用其他已激活的主题（单例逻辑�?PluginManager 中）
+    激活主...
+    激活新主题时自动停用其他已激活的主题（单例逻辑�?PluginManager 中）
     """
     plugin = _get_theme_plugin(slug)
 
@@ -242,7 +243,8 @@ async def update_theme_config(
         plugin.save_settings()
         success = True
 
-    # 组件槽位覆盖（持久化�?settings._componentSlots�?    if component_slots and isinstance(component_slots, dict):
+    # 组件槽位覆盖（持久化�?settings._componentSlots...
+    if component_slots and isinstance(component_slots, dict):
         plugin.settings["_componentSlots"] = component_slots
         plugin.save_settings()
 

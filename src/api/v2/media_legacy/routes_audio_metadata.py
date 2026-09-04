@@ -39,17 +39,19 @@ async def get_audio_metadata(
     media = media_result.scalar_one_or_none()
 
     if not media:
-        raise HTTPException(status_code=404, detail="媒体文件不存�?)
+        raise HTTPException(status_code=404, detail="媒体文件不存...")
 
-        # 检查权�?    if media.user != current_user_obj.id and not media.is_public:
-        raise HTTPException(status_code=403, detail="无权访问该媒体文�?)
+        # 检查权...
+    if media.user != current_user_obj.id and not media.is_public:
+        raise HTTPException(status_code=403, detail="无权访问该媒体文...")
 
         # 检查是否为音频文件
         if not media.mime_type or not media.mime_type.startswith('audio/'):
             raise HTTPException(status_code=400, detail="不是音频文件")
 
     result = {
-        "cover_image": None,  # base64编码的封面图�?        "lyrics": [],  # 歌词数组 [{time: �? text: 文本}]
+        "cover_image": None,  # base64编码的封面图...
+            "lyrics": [],  # 歌词数组 [{time: �? text: 文本}]
         "title": media.original_filename,
         "duration": media.duration
     }
@@ -59,7 +61,8 @@ async def get_audio_metadata(
     if cover_data:
         # 转换为base64
         cover_base64 = base64.b64encode(cover_data).decode('utf-8')
-        # 检测图片格�?        mime_type = detect_image_mime_type(cover_data)
+        # 检测图片格...
+            mime_type = detect_image_mime_type(cover_data)
         result["cover_image"] = f"data:{mime_type};base64,{cover_base64}"
         logger.info(f"成功提取音频封面: media_id={media_id}")
 
@@ -67,7 +70,7 @@ async def get_audio_metadata(
     lyrics = extract_lyrics_from_audio(media)
     if lyrics:
         result["lyrics"] = lyrics
-        logger.info(f"成功提取音频歌词: media_id={media_id}, 共{len(lyrics)}�?)
+        logger.info(f"成功提取音频歌词: media_id={media_id}, 共{len(lyrics)}...")
 
     return ok(data=result)
 
@@ -82,7 +85,8 @@ def extract_cover_from_audio(media: Media) -> Optional[bytes]:
         if not file_path:
             return None
 
-            # 如果是S3路径，需要先下载到临时文�?        if file_path.startswith('s3://'):
+            # 如果是S3路径，需要先下载到临时文...
+            if file_path.startswith('s3://'):
             try:
                 import tempfile
                 import boto3
@@ -137,7 +141,8 @@ def extract_lyrics_from_audio(media: Media) -> list:
     all_lyrics = []
 
     try:
-        # 方法2: 从音频元数据中提取USLT帧（同步歌词�?        lyrics = extract_lyrics_from_id3(media)
+        # 方法2: 从音频元数据中提取USLT帧（同步歌词...
+            lyrics = extract_lyrics_from_id3(media)
         if lyrics:
             all_lyrics.extend(lyrics)
     except Exception as e:
@@ -170,7 +175,8 @@ def extract_lyrics_from_audio(media: Media) -> list:
     except Exception as e:
         logger.warning(f"加载LRC歌词文件失败: {e}")
 
-        # 按时间排�?    if all_lyrics:
+        # 按时间排...
+    if all_lyrics:
         all_lyrics.sort(key=lambda x: x["time"])
 
     return all_lyrics
@@ -188,8 +194,9 @@ def extract_lyrics_from_id3(media: Media) -> list:
         if not file_path:
             return []
 
-        # 仅支持本地文�?        if file_path.startswith('s3://'):
-            logger.warning("S3存储的音频文件暂不支持歌词提�?)
+        # 仅支持本地文...
+            if file_path.startswith('s3://'):
+            logger.warning("S3存储的音频文件暂不支持歌词提...")
             return []
 
         full_path = Path("storage/" + file_path)
@@ -197,7 +204,8 @@ def extract_lyrics_from_id3(media: Media) -> list:
             logger.warning(f"音频文件不存�? {full_path}")
             return []
 
-        # 安全限制：拒绝超�?1MB �?ID3 标签（防止内存耗尽�?        MAX_ID3_SIZE = 1 * 1024 * 1024  # 1 MB
+        # 安全限制：拒绝超�?1MB �?ID3 标签（防止内存耗尽...
+            MAX_ID3_SIZE = 1 * 1024 * 1024  # 1 MB
         file_stat = full_path.stat()
         if lower_path.endswith('.mp3'):
             # MP3 文件�?ID3v2 标签位于文件开头，粗略估计为文件前 1MB
@@ -212,10 +220,11 @@ def extract_lyrics_from_id3(media: Media) -> list:
                                 (header[8] & 0x7F) << 7 |
                                 (header[9] & 0x7F))
                     if id3_size > MAX_ID3_SIZE:
-                        logger.warning(f"ID3 标签过大 ({id3_size} bytes)，跳过歌词提�?)
+                        logger.warning(f"ID3 标签过大 ({id3_size} bytes)，跳过歌词提...")
                         return []
         else:
-            # 通用格式：文件整体小�?1MB 才尝试标签提�?            if file_stat.st_size > MAX_ID3_SIZE:
+            # 通用格式：文件整体小�?1MB 才尝试标签提...
+                if file_stat.st_size > MAX_ID3_SIZE:
                 logger.warning(f"文件过大 ({file_stat.st_size} bytes)，跳过通用音频标签提取")
                 return []
 
@@ -235,7 +244,8 @@ def extract_lyrics_from_id3(media: Media) -> list:
 
         lyrics_list = []
 
-        # 查找USLT帧（Unsynchronized Lyrics Text�?        for tag in audio_file.tags.values():
+        # 查找USLT帧（Unsynchronized Lyrics Text...
+            for tag in audio_file.tags.values():
             if isinstance(tag, USLT):
                 # USLT帧包含纯文本歌词
                 lyric_text = tag.text
@@ -245,15 +255,17 @@ def extract_lyrics_from_id3(media: Media) -> list:
                     if parsed_lyrics:
                         lyrics_list.extend(parsed_lyrics)
                     else:
-                        # 如果没有时间戳，将整个文本作为单行歌�?                        lyrics_list.append({
+                        # 如果没有时间戳，将整个文本作为单行歌...
+                            lyrics_list.append({
                             "time": 0.0,
                             "text": lyric_text.strip()
                         })
                     logger.info(f"从ID3标签提取到歌�? {len(lyric_text)} 字符")
 
-        # 按时间排�?        if lyrics_list:
+        # 按时间排...
+            if lyrics_list:
             lyrics_list.sort(key=lambda x: x["time"])
-            logger.info(f"成功从ID3标签提取歌词: {len(lyrics_list)} �?)
+            logger.info(f"成功从ID3标签提取歌词: {len(lyrics_list)} ...")
 
         return lyrics_list
 
@@ -296,7 +308,8 @@ def parse_lrc_text(text: str) -> list:
                 for match in matches:
                     minutes = int(match[0])
                     seconds = int(match[1])
-                    milliseconds = int(match[2].ljust(3, '0'))  # 补齐3�?                lyric_text = match[3].strip()
+                    milliseconds = int(match[2].ljust(3, '0'))  # 补齐3...
+                    lyric_text = match[3].strip()
 
                     if lyric_text:  # 只添加有文本的行
                         time_in_seconds = minutes * 60 + seconds + milliseconds / 1000
@@ -326,10 +339,12 @@ def parse_lrc_text(text: str) -> list:
             if lrc_path.exists():
                 return lrc_path
 
-            # 在相同目录下查找可能的歌词文�?        parent_dir = audio_path.parent
+            # 在相同目录下查找可能的歌词文...
+            parent_dir = audio_path.parent
             base_name = audio_path.stem
 
-            # 尝试几种常见的命名方�?        possible_names = [
+            # 尝试几种常见的命名方...
+            possible_names = [
                 f"{base_name}.lrc",
                 f"{base_name}.txt",
                 f"lyrics_{base_name}.lrc",
@@ -367,7 +382,8 @@ def parse_lrc_text(text: str) -> list:
                 for match in matches:
                     minutes = int(match[0])
                     seconds = int(match[1])
-                    milliseconds = int(match[2].ljust(3, '0'))  # 补齐3�?                    text = match[3].strip()
+                    milliseconds = int(match[2].ljust(3, '0'))  # 补齐3...
+                        text = match[3].strip()
 
                     if text:  # 只添加有文本的行
                         time_in_seconds = minutes * 60 + seconds + milliseconds / 1000
@@ -376,7 +392,8 @@ def parse_lrc_text(text: str) -> list:
                             "text": text
                         })
 
-        # 按时间排�?        lyrics.sort(key=lambda x: x["time"])
+        # 按时间排...
+            lyrics.sort(key=lambda x: x["time"])
 
         return lyrics
 

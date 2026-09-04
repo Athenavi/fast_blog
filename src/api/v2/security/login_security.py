@@ -23,10 +23,10 @@ async def get_my_login_history(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取当前用户的登录历史记�?    
+    获取当前用户的登录历史记�?
     Args:
         limit: 返回数量(1-200)
-        
+
     Returns:
         登录历史列表
     """
@@ -49,7 +49,7 @@ async def get_my_security_stats(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取当前用户的安全统计数�?    
+    获取当前用户的安全统计数�?
     Returns:
         统计数据
     """
@@ -61,7 +61,7 @@ async def get_my_security_stats(
     return ok(data=stats)
 
 
-# 管理员接�?
+# 管理员接�?
 @router.get("/admin/locked-users", summary="获取被锁定的用户列表")
 @_catch
 async def get_locked_users(
@@ -69,7 +69,7 @@ async def get_locked_users(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有当前被锁定的用�?    
+    获取所有当前被锁定的用�?
     Returns:
         锁定用户列表
     """
@@ -96,10 +96,11 @@ async def admin_get_user_history(
 ):
     """
     管理员查看指定用户的登录历史
-    
+
     Args:
-        username: 目标用户�?        limit: 返回数量
-        
+        username: 目标用户...
+            limit: 返回数量
+
     Returns:
         登录历史列表
     """
@@ -125,9 +126,10 @@ async def admin_get_user_stats(
 ):
     """
     管理员查看指定用户的安全统计
-    
+
     Args:
-        username: 目标用户�?        
+        username: 目标用户...
+
     Returns:
         统计数据
     """

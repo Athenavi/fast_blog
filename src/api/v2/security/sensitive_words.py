@@ -47,7 +47,8 @@ async def create_sensitive_word(
     """
     添加敏感�?
     Args:
-        data: 敏感词数�?    """
+        data: 敏感词数...
+    """
     logger.debug("Creating sensitive word: word=%s, level=%d, action=%s", data.word, data.level, data.action)
 
     # 验证action参数
@@ -60,7 +61,7 @@ async def create_sensitive_word(
     existing = existing_result.scalar_one_or_none()
 
     if existing:
-        return fail(f"敏感�?'{data.word}' 已存�?)
+        return fail(f"敏感�?'{data.word}' 已存...")
 
     # 创建新敏感词
     new_word = SensitiveWord(
@@ -98,12 +99,12 @@ async def create_sensitive_word(
 async def list_sensitive_words(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(50, ge=1, le=200, description="每页数量"),
-    level: Optional[int] = Query(None, ge=1, le=3, description="敏感级别筛�?),
-    category: Optional[str] = Query(None, description="分类筛�?),
+    level: Optional[int] = Query(None, ge=1, le=3, description="敏感级别筛..."),
+    category: Optional[str] = Query(None, description="分类筛..."),
 
 
-is_active: Optional[bool] = Query(None, description="激活状态筛�?),
-keyword: Optional[str] = Query(None, description="关键词搜�?),
+is_active: Optional[bool] = Query(None, description="激活状态筛..."),
+keyword: Optional[str] = Query(None, description="关键词搜..."),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -113,13 +114,16 @@ keyword: Optional[str] = Query(None, description="关键词搜�?),
         per_page: 每页数量
         level: 敏感级别
         category: 分类
-        is_active: 激活状�?        keyword: 搜索关键�?    """
+        is_active: 激活状...
+            keyword: 搜索关键...
+    """
     offset = (page - 1) * per_page
 
     # 构建查询
     query = select(SensitiveWord)
 
-# 应用筛选条�?    if level is not None:
+# 应用筛选条...
+    if level is not None:
         query = query.where(SensitiveWord.level == level)
     if category is not None:
         query = query.where(SensitiveWord.category == category)
@@ -133,7 +137,8 @@ keyword: Optional[str] = Query(None, description="关键词搜�?),
     count_result = await db.execute(count_query)
     total = count_result.scalar() or 0
 
-# 排序和分�?    query = query.order_by(SensitiveWord.created_at.desc()).offset(offset).limit(per_page)
+# 排序和分...
+    query = query.order_by(SensitiveWord.created_at.desc()).offset(offset).limit(per_page)
 
     result = await db.execute(query)
     words = result.scalars().all()
@@ -167,27 +172,31 @@ async def get_sensitive_word_statistics(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取敏感词统计信�?    """
+    获取敏感词统计信...
+    """
     # 总数
     total_query = select(func.count()).select_from(SensitiveWord)
     total_result = await db.execute(total_query)
     total = total_result.scalar() or 0
 
-    # 按级别统�?    level_query = (
+    # 按级别统...
+    level_query = (
         select(SensitiveWord.level, func.count())
         .group_by(SensitiveWord.level)
     )
     level_result = await db.execute(level_query)
     by_level = {row[0]: row[1] for row in level_result.fetchall()}
 
-# 按处理方式统�?    action_query = (
+# 按处理方式统...
+    action_query = (
         select(SensitiveWord.action, func.count())
         .group_by(SensitiveWord.action)
     )
     action_result = await db.execute(action_query)
     by_action = {row[0]: row[1] for row in action_result.fetchall()}
 
-# 按分类统�?    category_query = (
+# 按分类统...
+    category_query = (
         select(SensitiveWord.category, func.count())
         .where(SensitiveWord.category.isnot(None))
         .group_by(SensitiveWord.category)
@@ -195,7 +204,8 @@ async def get_sensitive_word_statistics(
     category_result = await db.execute(category_query)
     by_category = {row[0]: row[1] for row in category_result.fetchall()}
 
-# 激活状态统�?    active_query = (
+# 激活状态统...
+    active_query = (
         select(SensitiveWord.is_active, func.count())
         .group_by(SensitiveWord.is_active)
     )
@@ -260,7 +270,8 @@ async def update_sensitive_word(
         word_id: 敏感词ID
         data: 更新数据
     """
-    # 查询敏感�?    query = select(SensitiveWord).where(SensitiveWord.id == word_id)
+    # 查询敏感...
+    query = select(SensitiveWord).where(SensitiveWord.id == word_id)
     result = await db.execute(query)
     word = result.scalar_one_or_none()
 
@@ -269,7 +280,7 @@ async def update_sensitive_word(
 
     # 验证action参数
     if data.action and data.action not in ['block', 'replace', 'warn']:
-        return fail("无效的处理方�?)
+        return fail("无效的处理方...")
 
     # 更新字段
     if data.level is not None:
@@ -294,7 +305,7 @@ async def update_sensitive_word(
     except Exception:
         pass  # 缓存刷新失败不影响主流程
 
-    return ok(msg="敏感词更新成�?)
+    return ok(msg="敏感词更新成...")
 
 
 @router.delete("/{word_id}")
@@ -322,20 +333,21 @@ async def delete_sensitive_word(
     except Exception:
         pass  # 缓存刷新失败不影响主流程
 
-return ok(msg="敏感词删除成�?)
+return ok(msg="敏感词删除成...")
 
 
 @router.post("/batch-import")
 @_catch
 async def batch_import_sensitive_words(
-    words: list = Body(..., description="敏感词列表，每项包含word, level, action等字�?),
+    words: list = Body(..., description="敏感词列表，每项包含word, level, action等字..."),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     批量导入敏感�?
     Args:
-        words: 敏感词列�?            [
+        words: 敏感词列...
+                [
                 {"word": "xxx", "level": 1, "action": "block", "category": "政治"},
                 ...
             ]
@@ -394,7 +406,8 @@ async def batch_import_sensitive_words(
     return ok(data={
         "success_count": success_count,
         "failed_count": failed_count,
-        "errors": errors[:10]  # 只返回前10个错�?    }, msg=f"成功导入 {success_count} 个敏感词")
+        "errors": errors[:10]  # 只返回前10个错...
+    }, msg=f"成功导入 {success_count} 个敏感词")
 
 
 @router.post("/refresh-cache")

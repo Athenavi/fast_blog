@@ -3,7 +3,6 @@
 提供批量更新文章SEO元数据的功能
 """
 from datetime import datetime
-from functools import wraps
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
 from shared.models.article import Article, ArticleSEO
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth import admin_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
@@ -45,11 +44,10 @@ class BatchSEOExportRequest(BaseModel):
 @router.post("/update", summary="批量更新文章SEO")
 @_catch
 async def batch_update_seo(
-        request: BatchSEOUpdateRequest,
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(admin_required)
+    request: BatchSEOUpdateRequest,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(admin_required)
 ):
-    """批量更新多个文章的SEO元数�?""
     if not request.article_ids:
         raise HTTPException(status_code=400, detail="文章ID列表不能为空")
 
@@ -60,7 +58,7 @@ async def batch_update_seo(
     if len(articles) != len(request.article_ids):
         raise HTTPException(
             status_code=404,
-            detail=f"部分文章不存在，找到{len(articles)}个，请求{len(request.article_ids)}�?
+            detail=f"部分文章不存在，找到{len(articles)}个，请求{len(request.article_ids)}"
         )
 
     updated_count = 0
@@ -114,15 +112,15 @@ async def batch_update_seo(
 
     await db.commit()
     return ok(data={"updated_count": updated_count, "total_requested": len(request.article_ids)},
-              message=f"成功更新{updated_count}个文章的SEO元数�?)
+              message=f"成功更新{updated_count}个文章的SEO元数...")
 
 
 @router.post("/export", summary="批量导出SEO数据")
 @_catch
 async def batch_export_seo(
-        request: BatchSEOExportRequest,
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(admin_required)
+    request: BatchSEOExportRequest,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(admin_required)
 ):
     """批量导出文章SEO数据为CSV格式"""
     stmt = select(Article, ArticleSEO).outerjoin(
@@ -178,9 +176,9 @@ async def batch_export_seo(
 @router.post("/import", summary="批量导入SEO数据")
 @_catch
 async def batch_import_seo(
-        csv_content: str,
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(admin_required)
+    csv_content: str,
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(admin_required)
 ):
     """从CSV内容批量导入SEO数据"""
     lines = csv_content.strip().split('\n')
@@ -189,7 +187,7 @@ async def batch_import_seo(
 
     headers = [h.strip().strip('"').lower() for h in lines[0].split(',')]
     if 'article_id' not in headers:
-        raise HTTPException(status_code=400, detail="CSV必须包含article_id�?)
+        raise HTTPException(status_code=400, detail="CSV必须包含article_id...")
 
     imported_count = 0
     error_count = 0
@@ -200,7 +198,7 @@ async def batch_import_seo(
         try:
             values = [v.strip().strip('"') for v in line.split(',')]
             if len(values) != len(headers):
-                errors.append(f"第{i}行：列数不匹�?)
+                errors.append(f"第{i}行：列数不匹...")
                 error_count += 1
                 continue
 
@@ -215,7 +213,7 @@ async def batch_import_seo(
             result = await db.execute(stmt)
             article = result.scalar_one_or_none()
             if not article:
-                errors.append(f"第{i}行：文章ID {article_id} 不存�?)
+                errors.append(f"第{i}行：文章ID {article_id} 不存...")
                 error_count += 1
                 continue
 
@@ -265,14 +263,14 @@ async def batch_import_seo(
         "imported_count": imported_count,
         "error_count": error_count,
         "errors": errors[:10]
-    }, message=f"导入完成：成功{imported_count}个，失败{error_count}�?)
+    }, message=f"导入完成：成功{imported_count}个，失败{error_count}...")
 
 
 @router.get("/stats", summary="获取SEO统计信息")
 @_catch
 async def get_seo_stats(
-        db: AsyncSession = Depends(get_async_db),
-        current_user: User = Depends(admin_required)
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(admin_required)
 ):
     """获取SEO数据统计信息"""
     stmt = select(func.count(Article.id))

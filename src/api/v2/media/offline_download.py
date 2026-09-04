@@ -120,7 +120,7 @@ async def cancel_offline_download_task(
     success, error = await service.cancel_task(task_id)
     if not success:
         raise HTTPException(status_code=400, detail=error or "取消失败")
-    return ok(msg="任务已取�?)
+    return ok(msg="任务已取...")
 
 
 @router.post("/tasks/{task_id}/retry", summary="重试任务")
@@ -135,4 +135,4 @@ async def retry_offline_download_task(
     success, error = await service.retry_task(task_id)
     if not success:
         raise HTTPException(status_code=400, detail=error or "重试失败")
-    return ok(msg="任务已重新加入队�?)
+    return ok(msg="任务已重新加入队...")

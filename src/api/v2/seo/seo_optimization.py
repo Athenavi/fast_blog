@@ -127,7 +127,7 @@ async def get_article_schema(
     article = result.scalar_one_or_none()
 
     if not article:
-        return fail("文章不存�?)
+        return fail("文章不存...")
 
     article_data = {
         'title': article.title, 'excerpt': article.excerpt,
@@ -176,7 +176,7 @@ async def get_article_breadcrumbs(
     article = result.scalar_one_or_none()
 
     if not article:
-        return fail("文章不存�?)
+        return fail("文章不存...")
 
     category = None
     if article.category_id:
@@ -210,7 +210,7 @@ async def get_category_breadcrumbs(
     category = result.scalar_one_or_none()
 
     if not category:
-        return fail("分类不存�?)
+        return fail("分类不存...")
 
     category_data = {'name': category.name, 'slug': category.slug, 'id': category.id}
 

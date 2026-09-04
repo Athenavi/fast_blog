@@ -90,7 +90,7 @@ async def batch_delete_articles(
     return result
 
 
-@router.post("/articles/update-status", summary="批量更新文章状�?)
+@router.post("/articles/update-status", summary="批量更新文章状...")
 @_catch
 async def batch_update_article_status(
         request: BatchUpdateStatusRequest,
@@ -113,7 +113,7 @@ async def batch_update_article_status(
     return result
 
 
-@router.post("/articles/move-category", summary="批量移动文章到分�?)
+@router.post("/articles/move-category", summary="批量移动文章到分...")
 @_catch
 async def batch_move_to_category(
         request: BatchMoveCategoryRequest,
@@ -178,7 +178,7 @@ async def batch_delete_comments(
     return result
 
 
-@router.post("/comments/update-status", summary="批量更新评论状�?)
+@router.post("/comments/update-status", summary="批量更新评论状...")
 @_catch
 async def batch_update_comment_status(
         request: BatchUpdateStatusRequest,
@@ -272,7 +272,7 @@ async def batch_update_product_stock(
     return result
 
 
-@router.post("/products/update-status", summary="批量更新商品状�?)
+@router.post("/products/update-status", summary="批量更新商品状...")
 @_catch
 async def batch_update_product_status(
         request: BatchUpdateStatusRequest,

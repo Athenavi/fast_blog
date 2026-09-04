@@ -27,7 +27,8 @@ async def list_global_styles(
     Returns:
         全局样式配置列表
     """
-    # 查询 GlobalStyleConfig �?    query = select(GlobalStyleConfig).order_by(desc(GlobalStyleConfig.is_active), GlobalStyleConfig.id)
+    # 查询 GlobalStyleConfig ...
+    query = select(GlobalStyleConfig).order_by(desc(GlobalStyleConfig.is_active), GlobalStyleConfig.id)
     result = await db.execute(query)
     configs = result.scalars().all()
 
@@ -52,7 +53,8 @@ async def list_global_styles(
         }
         styles.append(style_data)
 
-        # 如果 GlobalStyleConfig 为空，尝试从 GlobalStyle 表获�?    if not styles:
+        # 如果 GlobalStyleConfig 为空，尝试从 GlobalStyle 表获...
+    if not styles:
         gs_query = select(GlobalStyle).order_by(desc(GlobalStyle.is_active), GlobalStyle.id)
         gs_result = await db.execute(gs_query)
         gs_configs = gs_result.scalars().all()
@@ -86,7 +88,7 @@ async def get_global_style(
     config = result.scalar_one_or_none()
 
     if not config:
-        return fail("全局样式不存�?)
+        return fail("全局样式不存...")
 
     return ok(data=config.to_dict())
 
@@ -146,7 +148,7 @@ async def activate_global_style(
     config = result.scalar_one_or_none()
 
     if not config:
-        return fail("全局样式不存�?)
+        return fail("全局样式不存...")
 
     # 取消所有已激活的样式
     from sqlalchemy import update
@@ -154,7 +156,8 @@ async def activate_global_style(
         update(GlobalStyleConfig).values(is_active=False)
     )
 
-        # 激活目标样�?    config.is_active = True
+        # 激活目标样...
+    config.is_active = True
     await db.commit()
 
     return ok(msg=f"已激活样�? {config.name}")
@@ -174,7 +177,7 @@ async def delete_global_style(
     config = result.scalar_one_or_none()
 
     if not config:
-        return fail("全局样式不存�?)
+        return fail("全局样式不存...")
 
     if config.is_active:
         return fail("不能删除当前激活的样式")
@@ -182,7 +185,7 @@ async def delete_global_style(
     await db.delete(config)
     await db.commit()
 
-    return ok(msg="全局样式已删�?)
+    return ok(msg="全局样式已删...")
 
 
 def _safe_json_parse(json_str: Optional[str], default=None):

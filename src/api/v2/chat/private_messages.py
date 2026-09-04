@@ -36,7 +36,8 @@ async def send_private_message(
         attachment_url: 附件URL(图片或文�?
         parent_message_id: 如果是回复消�?指定父消息ID
     """
-    # 验证接收者是否存�?    user_query = select(User).where(User.id == recipient_id)
+    # 验证接收者是否存...
+    user_query = select(User).where(User.id == recipient_id)
     user_result = await db.execute(user_query)
     recipient = user_result.scalar_one_or_none()
 
@@ -45,7 +46,7 @@ async def send_private_message(
 
     # 不能给自己发消息
     if recipient_id == current_user.id:
-        return fail("不能给自己发送消�?)
+        return fail("不能给自己发送消...")
 
     # 检查是否被对方屏蔽
     block_check_query = select(UserBlock).where(
@@ -58,7 +59,7 @@ async def send_private_message(
     is_blocked = block_check_result.scalar_one_or_none()
 
     if is_blocked:
-            return fail("您已被该用户屏蔽，无法发送消�?)
+        return fail("您已被该用户屏蔽，无法发送消...")
 
     # 检查是否屏蔽了对方
     my_block_query = select(UserBlock).where(
@@ -73,7 +74,8 @@ async def send_private_message(
     if i_blocked:
         return fail("您已屏蔽该用户，请先取消屏蔽")
 
-        # 如果指定了父消息,验证父消息存在且属于该会�?    if parent_message_id:
+        # 如果指定了父消息,验证父消息存在且属于该会...
+    if parent_message_id:
         parent_query = select(PrivateMessage).where(
             PrivateMessage.id == parent_message_id,
             or_(
@@ -93,7 +95,8 @@ async def send_private_message(
         if not parent_msg:
             return fail("父消息不存在或不属于当前会话")
 
-        # 创建新消�?    new_message = PrivateMessage(
+        # 创建新消...
+    new_message = PrivateMessage(
         sender=current_user.id,
         recipient=recipient_id,
         content=content,
@@ -129,10 +132,14 @@ async def get_conversations(
     """
     获取会话列表(按联系人分组,显示最新消�?
 
-    返回与当前用户有过对话的所有用户及其最新消�?    """
-    # 计算偏移�?    offset = (page - 1) * per_page
+    返回与当前用户有过对话的所有用户及其最新消...
+    """
+    # 计算偏移...
+    offset = (page - 1) * per_page
 
-    # 查询所有与当前用户相关的消息的对方用户ID和最新消息时�?    # 使用子查询获取每个联系人的最新消�?    subquery = (
+    # 查询所有与当前用户相关的消息的对方用户ID和最新消息时...
+    # 使用子查询获取每个联系人的最新消...
+    subquery = (
         select(
             func.case(
                 (PrivateMessage.sender == current_user.id, PrivateMessage.recipient),
@@ -177,7 +184,8 @@ async def get_conversations(
     count_result = await db.execute(count_query)
     total = count_result.scalar() or 0
 
-# 获取联系人信息和最新消�?    query = (
+    # 获取联系人信息和最新消...
+    query = (
         select(
             User.id,
             User.username,
@@ -233,11 +241,12 @@ async def get_conversation_messages(
     other_user = user_result.scalar_one_or_none()
 
     if not other_user:
-        return fail("用户不存�?)
+        return fail("用户不存...")
 
     offset = (page - 1) * per_page
 
-        # 查询双方之间的消�?    query = (
+    # 查询双方之间的消...
+    query = (
         select(PrivateMessage)
         .where(
             or_(
@@ -295,7 +304,8 @@ async def get_conversation_messages(
             msg.read_at = datetime.now()
         await db.commit()
 
-        # 格式化消息列�?    message_list = []
+        # 格式化消息列...
+    message_list = []
     for msg in messages:
         message_list.append({
             "id": msg.id,
@@ -347,12 +357,14 @@ async def delete_message(
     message = result.scalar_one_or_none()
 
     if not message:
-        return fail("消息不存�?)
+        return fail("消息不存...")
 
-        # 验证权限:只能删除自己发送或接收的消�?    if message.sender != current_user.id and message.recipient != current_user.id:
-        return fail("无权删除此消�?)
+        # 验证权限:只能删除自己发送或接收的消...
+    if message.sender != current_user.id and message.recipient != current_user.id:
+        return fail("无权删除此消...")
 
-        # 软删�?    if message.sender == current_user.id:
+        # 软删...
+    if message.sender == current_user.id:
         message.is_deleted_by_sender = True
     else:
         message.is_deleted_by_recipient = True
@@ -360,7 +372,7 @@ async def delete_message(
     message.updated_at = datetime.now()
     await db.commit()
 
-    return ok(msg="消息已删�?)
+    return ok(msg="消息已删...")
 
 
 @router.post("/{message_id}/recall")
@@ -382,21 +394,24 @@ async def recall_message(
     message = result.scalar_one_or_none()
 
     if not message:
-        return fail("消息不存�?)
+        return fail("消息不存...")
 
-        # 只有发送者可以撤�?    if message.sender != current_user.id:
-        return fail("只有发送者可以撤回消�?)
+        # 只有发送者可以撤...
+    if message.sender != current_user.id:
+        return fail("只有发送者可以撤回消...")
 
-        # 检查是否在2分钟�?    time_diff = (datetime.now() - message.created_at).total_seconds()
+        # 检查是否在2分钟...
+    time_diff = (datetime.now() - message.created_at).total_seconds()
     if time_diff > 120:
         return fail("超过2分钟,无法撤回消息")
 
-    # 修改内容为撤回提�?    message.content = "[消息已撤回]"
+    # 修改内容为撤回提...
+    message.content = "[消息已撤回]"
     message.message_type = "system"
     message.updated_at = datetime.now()
     await db.commit()
 
-    return ok(msg="消息已撤�?)
+    return ok(msg="消息已撤...")
 
 
 @router.get("/unread/count")

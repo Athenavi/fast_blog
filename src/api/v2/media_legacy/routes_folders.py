@@ -26,7 +26,8 @@ async def get_folder_tree(
     """
     获取文件夹树形结�?
     Returns:
-        文件夹树形结构列�?    """
+        文件夹树形结构列...
+    """
     tree = await media_folder_service.get_folder_tree(
         db,
         current_user.id,
@@ -39,7 +40,7 @@ async def get_folder_tree(
 @router.get("/list")
 @_catch
 async def get_folder_list(
-    parent_id: Optional[int] = Query(None, description="父文件夹ID，None表示根目�?),
+    parent_id: Optional[int] = Query(None, description="父文件夹ID，None表示根目..."),
     current_user = Depends(jwt_required),
     db
 
@@ -51,7 +52,8 @@ Args:
     parent_id: 父文件夹ID
 
 Returns:
-    文件夹列�?    """
+    文件夹列...
+    """
 folders = await media_folder_service.get_folder_list(
     db,
     current_user.id,
@@ -74,7 +76,8 @@ async def get_folder_detail(
         folder_id: 文件夹ID
 
     Returns:
-        文件夹详�?    """
+        文件夹详...
+    """
     folder = await media_folder_service.get_folder_detail(
         db,
         folder_id,
@@ -82,7 +85,7 @@ async def get_folder_detail(
     )
 
     if not folder:
-        return fail("文件夹不存在或无权访�?)
+        return fail("文件夹不存在或无权访...")
 
     return ok(data=folder)
 
@@ -99,14 +102,16 @@ async def create_folder(
     创建新文件夹
 
     Request Body:
-        name: 文件夹名称（必填�?        parent_id: 父文件夹ID（可选）
+        name: 文件夹名称（必填...
+            parent_id: 父文件夹ID（可选）
         description: 描述（可选）
-        is_public: 是否公开（可选，默认True�?    """
+        is_public: 是否公开（可选，默认True...
+    """
     body = await request.json()
     name = body.get('name')
 
     if not name:
-        return fail("文件夹名称不能为�?)
+        return fail("文件夹名称不能为...")
 
         result = await media_folder_service.create_folder(
             db,
@@ -163,7 +168,7 @@ async def update_folder(
 @_catch
 async def delete_folder(
     folder_id: int,
-    delete_media: bool = Query(False, description="是否同时删除文件夹内的媒体文�?),
+    delete_media: bool = Query(False, description="是否同时删除文件夹内的媒体文..."),
     current_user = Depends(jwt_required),
     db
 
@@ -176,7 +181,8 @@ Args:
     delete_media: 是否同时删除媒体文件
 
 Note:
-    - 如果文件夹包含子文件夹，必须先删除子文件�?        - 如果不删除媒体文件，媒体将被移动到根目录
+    - 如果文件夹包含子文件夹，必须先删除子文件...
+            - 如果不删除媒体文件，媒体将被移动到根目录
 """
 result = await media_folder_service.delete_folder(
     db,
@@ -205,7 +211,8 @@ async def move_media_to_folder(
 
     Args:
         media_ids: 媒体文件ID列表
-        folder_path: 目标文件夹路径（支持多级，如 "Photos/2024"�?    """
+        folder_path: 目标文件夹路径（支持多级，如 "Photos/2024"...
+    """
     if not media_ids:
         return fail("请选择要移动的文件")
 
@@ -214,13 +221,15 @@ async def move_media_to_folder(
     if folder_path:
         from shared.models import MediaFolder
 
-        # 解码 URL 编码的路�?        decoded_path = unquote(folder_path)
+        # 解码 URL 编码的路...
+            decoded_path = unquote(folder_path)
 
         # 分割路径
         path_parts = [p.strip() for p in decoded_path.split('/') if p.strip()]
 
         if path_parts:
-            # 逐级查找文件�?            current_parent_id = None
+            # 逐级查找文件...
+                current_parent_id = None
 
             for i, part_name in enumerate(path_parts):
                 folder_query = select(MediaFolder.id).where(
@@ -238,7 +247,8 @@ async def move_media_to_folder(
                 if i == len(path_parts) - 1:
                     target_folder_id = folder_id
                 else:
-            # 否则继续查找下一�?                    current_parent_id = folder_id
+            # 否则继续查找下一...
+                        current_parent_id = folder_id
 
     result = await media_folder_service.move_media_to_folder(
         db,
@@ -270,7 +280,8 @@ async def copy_media_to_folder(
         folder_id: 目标文件夹ID
 
     Note:
-        目前实现为逻辑复制（改变folder_id），物理复制需要额外实�?    """
+        目前实现为逻辑复制（改变folder_id），物理复制需要额外实...
+    """
     if not media_ids:
         return fail("请选择要复制的文件")
 

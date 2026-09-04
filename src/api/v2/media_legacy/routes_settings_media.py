@@ -54,7 +54,8 @@ async def upload_settings_media(
     最大文件大小：50MB
 
     Returns:
-        上传成功返回文件 URL 和媒体信�?    """
+        上传成功返回文件 URL 和媒体信...
+    """
     form = await request.form()
     file = form.get('file')
 
@@ -81,7 +82,8 @@ async def upload_settings_media(
                 status_code=400
             )
 
-        # 处理文件并创建数据库记录（保留带 db rollback �?inner try/except�?    try:
+        # 处理文件并创建数据库记录（保留带 db rollback �?inner try/except...
+    try:
         result = await process_single_file(processor, file_data, file.filename, db)
     except Exception as e:
     await db.rollback()

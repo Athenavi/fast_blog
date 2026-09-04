@@ -69,7 +69,7 @@ async def save_screen_option_api(
     await db.commit()
 
     return ok(
-        msg='选项已保�?,
+        msg='选项已保存',
         data={
             'page_name': page_name,
             'option_key': option_key,
@@ -99,9 +99,9 @@ async def delete_screen_option_api(
     await db.commit()
 
     if success:
-        return ok(msg='选项已删�?)
+        return ok(msg='选项已删除')
     else:
-        return fail('选项不存�?)
+        return fail('选项不存在')
 
 
 @router.post("/options/batch",

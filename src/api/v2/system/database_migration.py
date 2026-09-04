@@ -20,7 +20,8 @@ async def preview_url_replace(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    预览URL替换（不实际执行�?    """
+    预览URL替换（不实际执行...
+    """
     body = await request.json()
     search = body.get('search', '')
     replace = body.get('replace', '')
@@ -44,7 +45,7 @@ async def preview_url_replace(
         case_sensitive=case_sensitive
     )
 
-    return ok(data=result, msg=f"预览完成，将替换 {result.get('total_replacements', 0)} �?)
+    return ok(data=result, msg=f"预览完成，将替换 {result.get('total_replacements', 0)} ...")
 
 
 @router.post("/url-replace/execute")
@@ -81,7 +82,7 @@ async def execute_url_replace(
     )
 
     if result['success']:
-        return ok(data=result, msg=f"成功替换 {result.get('total_replacements', 0)} �?)
+        return ok(data=result, msg=f"成功替换 {result.get('total_replacements', 0)} ...")
     else:
         return fail(result.get('error', '替换失败'))
 
@@ -94,7 +95,8 @@ async def validate_url_replace(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    验证URL替换的正确�?    """
+    验证URL替换的正确...
+    """
     body = await request.json()
     old_url = body.get('old_url', '')
     new_url = body.get('new_url', '')

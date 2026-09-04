@@ -33,7 +33,8 @@ async def get_feed_items(
 
     items = []
     for article in articles:
-        # 获取作者信息（�?batch dict 获取�?        author_name = None
+        # 获取作者信息（�?batch dict 获取...
+            author_name = None
         user = users.get(article.user)
         if user:
             author_name = user.username
@@ -93,7 +94,8 @@ async def get_rss_feed(
     site_title = AppConfig.site_title or "FastBlog"
     site_description = AppConfig.site_description or "FastBlog - 现代化博客系�?
 
-    # 创建 Feed 生成�?    generator = RSSFeedGenerator(
+    # 创建 Feed 生成...
+    generator = RSSFeedGenerator(
         title=site_title,
         link=site_url,
         description=site_description,
@@ -155,7 +157,8 @@ async def get_category_feed(
     if not category:
         return PlainTextResponse("Category not found", status_code=404)
 
-        # 查询该分类下的文�?    stmt = (
+        # 查询该分类下的文...
+    stmt = (
         select(Article)
         .where(
             Article.category == category.id,
@@ -203,7 +206,8 @@ async def get_tag_feed(
 ):
     """获取标签 Feed"""
 
-    # 查询包含该标签的文章（tags_list 字段是逗号分隔的字符串�?    from sqlalchemy import or_
+    # 查询包含该标签的文章（tags_list 字段是逗号分隔的字符串...
+    from sqlalchemy import or_
     stmt = (
         select(Article)
         .where(
@@ -259,7 +263,8 @@ async def get_author_feed(
 ):
     """获取作�?Feed"""
 
-    # 查询作�?    stmt = select(User).where(User.id == user_id)
+    # 查询作...
+    stmt = select(User).where(User.id == user_id)
     result = await db.execute(stmt)
     author = result.scalar_one_or_none()
 

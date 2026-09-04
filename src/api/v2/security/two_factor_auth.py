@@ -46,7 +46,8 @@ async def setup_2fa(
 ):
     """
     设置2FA - 生成密钥和QR�?
-    返回QR码供用户扫描,以及手动输入的密�?    """
+    返回QR码供用户扫描,以及手动输入的密...
+    """
     from shared.models.user import User
     from sqlalchemy import select
 
@@ -56,10 +57,10 @@ async def setup_2fa(
     user = result.scalar_one_or_none()
 
     if not user:
-        return fail("用户不存�?)
+        return fail("用户不存...")
 
     if user.is_2fa_enabled:
-            return fail("2FA已启�?)
+            return fail("2FA已启...")
 
     # 生成新的TOTP密钥
     secret = two_factor_auth.generate_totp_secret()
@@ -75,7 +76,8 @@ async def setup_2fa(
     # 始终保存到内存后备，确保 enable 时可读取
     _setup_secrets[current_user.id] = secret
 
-    # 生成QR�?    qr_data = two_factor_auth.generate_qr_code(
+    # 生成QR...
+    qr_data = two_factor_auth.generate_qr_code(
         secret=secret,
         username=user.username,
         email=user.email
@@ -89,7 +91,7 @@ async def setup_2fa(
             "2. 扫描二维码或手动输入密钥",
             "3. 输入应用生成�?位验证码以完成设�?
         ]
-    }, msg="请扫描二维码或手动输入密�?)
+    }, msg="请扫描二维码或手动输入密...")
 
 
 @router.post("/enable")
@@ -105,18 +107,20 @@ async def enable_2fa(
     需要用户提供TOTP验证码来验证设置正确
     """
 
-    # 获取临时存储的密钥（Redis 优先，内存后备；�?worker �?Redis 是唯一共享存储�?    from src.extensions import cache
+    # 获取临时存储的密钥（Redis 优先，内存后备；�?worker �?Redis 是唯一共享存储...
+    from src.extensions import cache
     cache_key = f"2fa_setup:{current_user.id}"
     secret = cache.get(cache_key) or _setup_secrets.get(current_user.id)
 
     if not secret:
-        return fail("设置已过�?请重新开�?)
+        return fail("设置已过�?请重新开...")
 
     # 验证TOTP令牌
     if not two_factor_auth.verify_totp(secret, request_data.totp_token):
-            return fail("验证码错�?)
+            return fail("验证码错...")
 
-        # 生成备用�?    backup_codes = two_factor_auth.generate_backup_codes()
+        # 生成备用...
+    backup_codes = two_factor_auth.generate_backup_codes()
 
         # 在数据库中启�?FA
     query = select(User).where(User.id == current_user.id)
@@ -124,7 +128,7 @@ async def enable_2fa(
     user = result.scalar_one_or_none()
 
     if not user:
-            return fail("用户不存�?)
+            return fail("用户不存...")
 
     user.is_2fa_enabled = True
     user.totp_secret = secret
@@ -137,13 +141,14 @@ async def enable_2fa(
         await db.rollback()
         raise
 
-    # 清除临时缓存和内存后�?    cache.delete(cache_key)
+    # 清除临时缓存和内存后...
+    cache.delete(cache_key)
     _setup_secrets.pop(current_user.id, None)
 
     return ok(data={
         "backup_codes": backup_codes,
         "message": "请务必保存这些备用码,它们只能使用一�?"
-    }, msg="2FA已成功启�?)
+    }, msg="2FA已成功启...")
 
 
 @router.post("/disable")
@@ -154,7 +159,8 @@ async def disable_2fa(
         current_user=Depends(jwt_required)
 ):
     """
-    禁用2FA（需验证当前密码�?    """
+    禁用2FA（需验证当前密码...
+    """
     from shared.models.user import User
     from sqlalchemy import select
 
@@ -164,7 +170,7 @@ async def disable_2fa(
     user = result.scalar_one_or_none()
 
     if not user:
-        return fail("用户不存�?)
+        return fail("用户不存...")
 
     # 验证密码
     if not user.password or not verify_password(password, user.password):
@@ -182,7 +188,7 @@ async def disable_2fa(
         await db.rollback()
         raise
 
-    return ok(msg="2FA已禁�?)
+    return ok(msg="2FA已禁...")
 
 
 @router.post("/verify-login")
@@ -201,7 +207,8 @@ async def verify_2fa_login(
     from shared.models.user import User
     from sqlalchemy import select
 
-    # 获取设备信息（在try块开头定义，确保后续可用�?    user_agent = request.headers.get("User-Agent", "Unknown")
+    # 获取设备信息（在try块开头定义，确保后续可用...
+    user_agent = request.headers.get("User-Agent", "Unknown")
     ip_address = request.client.host if request.client else None
 
     # 获取用户信息
@@ -210,10 +217,10 @@ async def verify_2fa_login(
     user = query_result.scalar_one_or_none()
 
     if not user:
-        return fail("用户不存�?)
+        return fail("用户不存...")
 
     if not user.is_2fa_enabled:
-            return fail("2FA未启�?)
+            return fail("2FA未启...")
 
     # 验证TOTP或备用码
     verification_method = None
@@ -221,7 +228,8 @@ async def verify_2fa_login(
     # 首先尝试TOTP验证
     if user.totp_secret and two_factor_auth.verify_totp(user.totp_secret, request_data.token):
         verification_method = 'totp'
-        # 然后尝试备用码验�?    elif user.backup_codes:
+        # 然后尝试备用码验...
+    elif user.backup_codes:
         import json
         import hashlib
         try:
@@ -237,7 +245,7 @@ async def verify_2fa_login(
             logger.warning(f"Backup code verification error: {e}")
 
     if not verification_method:
-        return fail("验证码错�?)
+        return fail("验证码错...")
 
     if not user.is_active:
         return fail("账户已被禁用")
@@ -263,7 +271,8 @@ async def verify_2fa_login(
     except Exception as e:
         logger.warning(f"[2FA Verify] Warning: Failed to create session: {e}")
 
-    # 更新最后登录时�?    user.last_login = datetime.now(timezone.utc)
+    # 更新最后登录时...
+    user.last_login = datetime.now(timezone.utc)
     await db.commit()
 
     # 记录成功登录
@@ -304,7 +313,8 @@ async def regenerate_backup_codes(
         current_user=Depends(jwt_required)
 ):
     """
-    重新生成备用�?    """
+    重新生成备用...
+    """
     from shared.models.user import User
     from sqlalchemy import select
 
@@ -314,12 +324,13 @@ async def regenerate_backup_codes(
     user = result.scalar_one_or_none()
 
     if not user:
-        return fail("用户不存�?)
+        return fail("用户不存...")
 
     if not user.is_2fa_enabled:
-            return fail("2FA未启�?)
+            return fail("2FA未启...")
 
-        # 生成新的备用�?    new_codes = two_factor_auth.generate_backup_codes()
+        # 生成新的备用...
+    new_codes = two_factor_auth.generate_backup_codes()
     user.backup_codes = two_factor_auth.hash_backup_codes(new_codes)
 
     # 特殊：保�?db.rollback() 处理
@@ -342,7 +353,8 @@ async def get_2fa_status(
         current_user=Depends(jwt_required)
 ):
     """
-    获取2FA状�?    """
+    获取2FA状...
+    """
     from shared.models.user import User
     from sqlalchemy import select
 
@@ -351,7 +363,7 @@ async def get_2fa_status(
     user = result.scalar_one_or_none()
 
     if not user:
-        return fail("用户不存�?)
+        return fail("用户不存...")
 
     return ok(data={
         "is_2fa_enabled": user.is_2fa_enabled,
