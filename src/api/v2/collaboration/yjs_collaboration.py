@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.config.settings import settings
 from shared.services.chat.yjs_collaboration import yjs_collaboration_service
 from src.api.v2._helpers import ok, _catch
-from src.utils.database.unified_manager import get_db_session as get_async_db
+from src.utils.database.unified_manager import db_manager, get_db_session as get_async_db
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ async def yjs_websocket_endpoint(
 
                     elif msg_type == "save":
                         try:
-                            async with get_async_db() as save_db:
+                            async with db_manager.get_session() as save_db:
                                 success = await yjs_collaboration_service.save_to_database(
                                     document_id, save_db, user_id or 0, "协作编辑保存"
                                 )
@@ -178,7 +178,7 @@ async def yjs_websocket_endpoint(
                         await websocket.send_json({"type": "pong"})
                         if doc.needs_auto_save() and doc.html_snapshot:
                             try:
-                                async with get_async_db() as save_db:
+                                async with db_manager.get_session() as save_db:
                                     await yjs_collaboration_service.save_to_database(
                                         document_id, save_db, user_id or 0, "自动保存"
                                     )
@@ -200,7 +200,7 @@ async def yjs_websocket_endpoint(
         # 最后一个客户端离开时自动保存
         if len(doc.clients) == 0 and doc.html_snapshot:
             try:
-                async with get_async_db() as save_db:
+                async with db_manager.get_session() as save_db:
                     await yjs_collaboration_service.save_to_database(
                         document_id, save_db, user_id or 0, "协作编辑自动保存（断开）"
                     )

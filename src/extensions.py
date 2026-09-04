@@ -609,34 +609,14 @@ from contextlib import asynccontextmanager
 @asynccontextmanager
 async def get_async_session_context() -> AsyncGenerator:
     """
-    获取异步数据库会话的上下文管理器（用于直接调用）
-
-    这是一个异步上下文管理器，用于在代码中直接使用 async with 语法。
-    不应用于 FastAPI 的 Depends() 依赖注入。
-
-    使用示例（直接调用）：
-        async with db_manager.get_session() as session:
-            result = await session.execute(query)
+    获取异步数据库会话的上下文管理器（已废弃，请直接使用 db_manager.get_session()）
     """
-    # 直接使用统一管理器的 get_session 异步上下文管理器
     async with db_manager.get_session() as session:
         yield session
 
 
 # FastAPI依赖注入函数 - 同步版本
 def get_sync_db():
-    """FastAPI依赖注入：获取同步数据库会话"""
+    """FastAPI依赖注入：获取同步数据库会话（已废弃）"""
     with get_db() as session:
-        yield session
-
-
-async def get_async_db_session():
-    """
-    FastAPI依赖注入：获取异步数据库会话（用于 FastAPI Depends）
-
-    这是一个异步生成器，专门用于 FastAPI 的 Depends() 依赖注入。
-    如果需要在代码中直接使用，请使用 get_async_session_context()。
-    """
-    # 直接使用统一管理器的 get_session 异步上下文管理器
-    async with db_manager.get_session() as session:
         yield session

@@ -4,17 +4,15 @@
 """
 
 from functools import wraps
-from typing import List, Optional
+from typing import List
 
-from fastapi import Depends, HTTPException
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.security import FieldPermission
 from shared.models.rbac import UserRole
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
-from src.utils.database.unified_manager import get_session_context
+from shared.models.security import FieldPermission
+from src.utils.database.unified_manager import db_manager
 
 
 async def get_field_permissions(
@@ -83,7 +81,7 @@ def check_field_permission(model_name: str, field_name: str, action: str = "read
             db_session = kwargs.get("db")
             own_session = False
             if db_session is None:
-                db_session = get_async_session_context()
+                db_session = db_manager.get_session()
                 own_session = True
 
             if own_session:

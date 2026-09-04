@@ -368,28 +368,25 @@ async def get_home_menus(request: Request = None):
     获取首页菜单配置
     从数据库获取所有已激活的菜单及其菜单项
     """
-    from src.utils.database.unified_manager import get_db_session as get_async_db_session
+    from src.utils.database.unified_manager import db_manager
     from src.utils.menu_builder import get_all_menus_with_items_async
 
     # 获取数据库会话
-    async for db in get_async_db_session():
-        try:
-            menus_dict = await get_all_menus_with_items_async(db)
+    async with db_manager.get_session() as db:
+        menus_dict = await get_all_menus_with_items_async(db)
 
-            # 将字典转为列表格式，方便前端使用
-            menus_list = []
-            for menu_id, menu_data in menus_dict.items():
-                menus_list.append({
-                    "id": menu_data['id'],
-                    "name": menu_data['name'],
-                    "slug": menu_data['slug'],
-                    "description": menu_data.get('description', ''),
-                    "items": menu_data.get('items', [])
-                })
+        # 将字典转为列表格式，方便前端使用
+        menus_list = []
+        for menu_id, menu_data in menus_dict.items():
+            menus_list.append({
+                "id": menu_data['id'],
+                "name": menu_data['name'],
+                "slug": menu_data['slug'],
+                "description": menu_data.get('description', ''),
+                "items": menu_data.get('items', [])
+            })
 
-            return ok(data={"menus": menus_list})
-        finally:
-            await db.close()
+        return ok(data={"menus": menus_list})
 
 
 @router.get("/search")
