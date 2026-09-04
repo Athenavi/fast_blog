@@ -1,6 +1,6 @@
 [RELEASE]
-version = 0.6.26.0831
-build_time = 2026-08-31T18:00:00Z
+version = 0.7.26.0904
+build_time = 2026-09-04T22:00:00Z
 
 [DATABASE]
 migration = dba7d5c907ac
