@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import FileHash, Media, UploadChunk, UploadTask
 from shared.services.media.media_manager import media_service
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.storage import s3_storage
 from src.utils.image.video_processor import video_processor
 
@@ -478,7 +478,7 @@ class FileProcessor:
                 from datetime import datetime
                 import tempfile
                 from sqlalchemy import update
-                from src.extensions import get_async_db_session
+                from src.utils.database.unified_manager import db_manager
 
                 logger.info(f"开始处理视频文件: {media.filename}")
 
@@ -504,7 +504,7 @@ class FileProcessor:
                         logger.info(f"视频信息: {video_info}")
 
                         # 更新媒体记录的宽度和高度
-                        async with get_async_db_session()() as db:
+                        async with db_manager.get_session() as db:
                             stmt = update(Media).where(
                                 Media.id == media.id
                             ).values(
@@ -542,7 +542,7 @@ class FileProcessor:
                         )
 
                         # 更新媒体记录的缩略图信息
-                        async with get_async_db_session()() as db:
+                        async with db_manager.get_session() as db:
                             stmt = update(Media).where(
                                 Media.id == media.id
                             ).values(

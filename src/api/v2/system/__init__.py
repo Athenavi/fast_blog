@@ -61,11 +61,10 @@ def _build_router():
     async def readiness():
         issues = []
         try:
-            from src.extensions import get_async_db_session
+            from src.utils.database.unified_manager import db_manager
             from sqlalchemy import text
-            async for db in get_async_db_session():
+            async with db_manager.get_session() as db:
                 await db.execute(text("SELECT 1"))
-                break
         except Exception:
             issues.append("database_unreachable")
         return {"status": "ready" if not issues else "degraded", "issues": issues}

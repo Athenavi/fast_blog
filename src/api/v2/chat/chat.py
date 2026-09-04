@@ -13,7 +13,7 @@ from shared.models.chat import ChatGroupMember, PrivateMessage, ChatGroup
 from shared.models.user import User
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["chat"])
 
@@ -23,13 +23,10 @@ async def get_user_groups(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取用户加入的所有群聊
-
+    获取用户加入的所有群�?
     Returns:
-        群聊列表，包含未读消息数等信息
-    """
-    # 获取用户加入的群聊
-    member_query = select(ChatGroupMember).where(
+        群聊列表，包含未读消息数等信�?    """
+    # 获取用户加入的群�?    member_query = select(ChatGroupMember).where(
         ChatGroupMember.user == current_user.id
     )
     member_result = await db.execute(member_query)
@@ -47,8 +44,7 @@ async def get_user_groups(
 
     groups_data = []
     if group_ids:
-        # 批量查询所有群组的未读消息数
-        unread_query = select(
+        # 批量查询所有群组的未读消息�?        unread_query = select(
             PrivateMessage.group,
             func.count(PrivateMessage.id)
         ).where(
@@ -62,8 +58,7 @@ async def get_user_groups(
         unread_result = await db.execute(unread_query)
         unread_map = dict(unread_result.all())
 
-        # 批量查询所有群组的成员数
-        member_query = select(
+# 批量查询所有群组的成员�?        member_query = select(
             ChatGroupMember.group,
             func.count(ChatGroupMember.id)
         ).where(
@@ -90,8 +85,7 @@ async def get_user_groups(
             'created_at': group.created_at.isoformat(),
         })
 
-    # 按最后消息时间排序
-    groups_data.sort(key=lambda x: x['last_message_at'] or '', reverse=True)
+# 按最后消息时间排�?    groups_data.sort(key=lambda x: x['last_message_at'] or '', reverse=True)
 
     return ok(
         data={
@@ -106,23 +100,20 @@ async def get_user_groups(
 async def get_group_messages(
         group_id: int,
         limit: int = Query(50, ge=1, le=100, description="返回数量"),
-        offset: int = Query(0, ge=0, description="偏移量"),
+    offset: int = Query(0, ge=0, description="偏移�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取群聊的历史消息
-
+    获取群聊的历史消�?
     Args:
         group_id: 群聊ID
         limit: 返回数量
-        offset: 偏移量
-
+        offset: 偏移�?
     Returns:
         消息列表
     """
-    # 验证用户是否是群聊成员
-    member_query = select(ChatGroupMember).where(
+# 验证用户是否是群聊成�?    member_query = select(ChatGroupMember).where(
         and_(
             ChatGroupMember.group == group_id,
             ChatGroupMember.user == current_user.id
@@ -132,7 +123,7 @@ async def get_group_messages(
     member = member_result.scalar_one_or_none()
 
     if not member:
-        return fail("您不是该群聊的成员")
+        return fail("您不是该群聊的成�?)
 
     # 获取消息列表
     messages_query = select(PrivateMessage).where(
@@ -144,8 +135,7 @@ async def get_group_messages(
     messages_result = await db.execute(messages_query)
     messages = messages_result.scalars().all()
 
-    # 获取发送者信息
-    sender_ids = list(set([msg.sender for msg in messages]))
+        # 获取发送者信�?    sender_ids = list(set([msg.sender for msg in messages]))
     users_query = select(User).where(User.id.in_(sender_ids))
     users_result = await db.execute(users_query)
     users = {user.id: user for user in users_result.scalars().all()}
@@ -178,12 +168,12 @@ async def get_group_messages(
     )
 
 
-@router.get("/private/{user_id}", summary="获取与某用户的私聊消息")
+@router.get("/private/{user_id}", summary="获取与某用户的私聊消�?)
 @_catch
 async def get_private_messages(
         user_id: int,
         limit: int = Query(50, ge=1, le=100, description="返回数量"),
-        offset: int = Query(0, ge=0, description="偏移量"),
+    offset: int = Query(0, ge=0, description="偏移�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -193,8 +183,7 @@ async def get_private_messages(
     Args:
         user_id: 对方用户ID
         limit: 返回数量
-        offset: 偏移量
-
+        offset: 偏移�?
     Returns:
         私聊消息列表
     """
@@ -254,7 +243,7 @@ async def get_private_messages(
     )
 
 
-@router.post("/private/{user_id}/send", summary="发送私聊消息")
+@router.post("/private/{user_id}/send", summary="发送私聊消�?)
 @_catch
 async def send_private_message(
         user_id: int,
@@ -266,8 +255,7 @@ async def send_private_message(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    发送私聊消息
-
+    发送私聊消�?
     Args:
         user_id: 接收者用户ID
         content: 消息内容
@@ -276,23 +264,21 @@ async def send_private_message(
         parent_message: 回复的消息ID
 
     Returns:
-        发送结果
-    """
+        发送结�?    """
     from shared.models.chat import PrivateMessage
     from shared.models.user import User
     from datetime import datetime
 
-    # 验证接收者存在
-    user_query = select(User).where(User.id == user_id)
+    # 验证接收者存�?    user_query = select(User).where(User.id == user_id)
     user_result = await db.execute(user_query)
     recipient = user_result.scalar_one_or_none()
 
     if not recipient:
-        return fail("用户不存在")
+        return fail("用户不存�?)
 
     # 不能给自己发消息
     if user_id == current_user.id:
-        return fail("不能给自己发送消息")
+            return fail("不能给自己发送消�?)
 
     # 创建消息
     message = PrivateMessage(
@@ -314,7 +300,7 @@ async def send_private_message(
 
     return ok(
         data={
-            'message': '消息发送成功',
+            'message': '消息发送成�?,
             'message_id': message.id,
         }
     )
@@ -327,15 +313,13 @@ async def get_unread_count(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取用户的未读消息总数（包括群聊和私聊）
-
+    获取用户的未读消息总数（包括群聊和私聊�?
     Returns:
         未读消息统计
     """
     from shared.models.chat import PrivateMessage
 
-    # 私聊未读数
-    private_unread_query = select(func.count(PrivateMessage.id)).where(
+    # 私聊未读�?    private_unread_query = select(func.count(PrivateMessage.id)).where(
         and_(
             PrivateMessage.recipient == current_user.id,
             PrivateMessage.group == None,
@@ -348,8 +332,7 @@ async def get_unread_count(
     private_unread_result = await db.execute(private_unread_query)
     private_unread = private_unread_result.scalar() or 0
 
-    # 群聊未读数
-    group_unread_query = select(func.count(PrivateMessage.id)).where(
+    # 群聊未读�?    group_unread_query = select(func.count(PrivateMessage.id)).where(
         and_(
             PrivateMessage.group != None,
             PrivateMessage.sender != current_user.id,
@@ -371,7 +354,7 @@ async def get_unread_count(
     )
 
 
-@router.post("/messages/{message_id}/read", summary="标记消息为已读")
+@router.post("/messages/{message_id}/read", summary="标记消息为已�?)
 @_catch
 async def mark_message_read(
         message_id: int,
@@ -379,8 +362,7 @@ async def mark_message_read(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    标记消息为已读
-
+    标记消息为已�?
     Args:
         message_id: 消息ID
 
@@ -395,11 +377,10 @@ async def mark_message_read(
     message = message_result.scalar_one_or_none()
 
     if not message:
-        return fail("消息不存在")
+        return fail("消息不存�?)
 
-    # 只能标记发给自己的消息
-    if message.recipient != current_user.id and message.group is None:
-        return fail("无权操作此消息")
+        # 只能标记发给自己的消�?    if message.recipient != current_user.id and message.group is None:
+        return fail("无权操作此消�?)
 
     message.is_read = True
     message.read_at = datetime.now()

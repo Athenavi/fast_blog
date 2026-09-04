@@ -12,7 +12,7 @@ from shared.config.settings import app_config
 from shared.services.notifications.webhook_service import webhook_service
 from src.api.v2.media_v1pack.allowed_mimes import ALLOWED_MIMES_LIST
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor, process_single_file
 
 router = APIRouter()
@@ -137,7 +137,7 @@ async def chunked_upload_chunk(
     try:
         chunk_index = int(chunk_index_str)
     except (ValueError, TypeError):
-        return JSONResponse({'success': False, 'error': 'chunk_index必须是数字'}, status_code=400)
+        return JSONResponse({'success': False, 'error': 'chunk_index必须是数�?}, status_code=400)
 
     chunk_data = None
     if 'chunk' in form:

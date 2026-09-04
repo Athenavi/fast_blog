@@ -1,7 +1,6 @@
 """
 RSS/Atom Feed API
-提供博客内容的 RSS 和 Atom 订阅源
-"""
+提供博客内容�?RSS �?Atom 订阅�?"""
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -12,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.config.settings import AppConfig
 from shared.models import User, Article, Category
 from src.api.v2._helpers import _catch
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.feed_generator import FeedItem, RSSFeedGenerator
 
 router = APIRouter(tags=["feed"])
@@ -24,7 +23,7 @@ async def get_feed_items(
         site_url: str,
         feed_type: str = 'rss'
 ) -> list:
-    """从文章列表生成 Feed 条目"""
+    """从文章列表生�?Feed 条目"""
     # Batch-load users to eliminate N+1
     user_ids = {a.user for a in articles if a.user}
     if user_ids:
@@ -34,8 +33,7 @@ async def get_feed_items(
 
     items = []
     for article in articles:
-        # 获取作者信息（从 batch dict 获取）
-        author_name = None
+        # 获取作者信息（�?batch dict 获取�?        author_name = None
         user = users.get(article.user)
         if user:
             author_name = user.username
@@ -77,7 +75,7 @@ async def get_rss_feed(
     """
     获取全站文章 Feed
 
-    支持 RSS 2.0 和 Atom 1.0 格式
+    支持 RSS 2.0 �?Atom 1.0 格式
     """
 
     # 查询已发布的文章
@@ -93,10 +91,9 @@ async def get_rss_feed(
     # 站点配置
     site_url = str(request.base_url).rstrip('/')
     site_title = AppConfig.site_title or "FastBlog"
-    site_description = AppConfig.site_description or "FastBlog - 现代化博客系统"
+    site_description = AppConfig.site_description or "FastBlog - 现代化博客系�?
 
-    # 创建 Feed 生成器
-    generator = RSSFeedGenerator(
+    # 创建 Feed 生成�?    generator = RSSFeedGenerator(
         title=site_title,
         link=site_url,
         description=site_description,
@@ -158,8 +155,7 @@ async def get_category_feed(
     if not category:
         return PlainTextResponse("Category not found", status_code=404)
 
-    # 查询该分类下的文章
-    stmt = (
+        # 查询该分类下的文�?    stmt = (
         select(Article)
         .where(
             Article.category == category.id,
@@ -207,8 +203,7 @@ async def get_tag_feed(
 ):
     """获取标签 Feed"""
 
-    # 查询包含该标签的文章（tags_list 字段是逗号分隔的字符串）
-    from sqlalchemy import or_
+    # 查询包含该标签的文章（tags_list 字段是逗号分隔的字符串�?    from sqlalchemy import or_
     stmt = (
         select(Article)
         .where(
@@ -262,10 +257,9 @@ async def get_author_feed(
         limit: int = Query(default=20, ge=1, le=100),
         format: str = Query(default='rss', pattern='^(rss|atom)$'),
 ):
-    """获取作者 Feed"""
+    """获取作�?Feed"""
 
-    # 查询作者
-    stmt = select(User).where(User.id == user_id)
+    # 查询作�?    stmt = select(User).where(User.id == user_id)
     result = await db.execute(stmt)
     author = result.scalar_one_or_none()
 
@@ -288,9 +282,9 @@ async def get_author_feed(
     # 创建 Feed
     site_url = str(request.base_url).rstrip('/')
     generator = RSSFeedGenerator(
-        title=f"{author.username} 的文章 - {AppConfig.site_title or 'FastBlog'}",
+        title=f"{author.username} 的文�?- {AppConfig.site_title or 'FastBlog'}",
         link=f"{site_url}/author/{user_id}",
-        description=f"{author.username} 发布的文章",
+        description=f"{author.username} 发布的文�?,
         language='zh-CN',
         feed_url=f"{site_url}/author/{user_id}/feed",
         copyright=f"© {datetime.now().year} {AppConfig.site_title}",

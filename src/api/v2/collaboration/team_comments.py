@@ -1,8 +1,7 @@
 """
-团队评论和反馈 API
+团队评论和反�?API
 
-提供团队内部评论的管理功能
-"""
+提供团队内部评论的管理功�?"""
 
 from typing import Optional, List
 
@@ -12,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.comments.team_comments import team_comment_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter()
 
@@ -101,7 +100,7 @@ async def resolve_comment(
     return ok(data=comment, msg="Comment resolved")
 
 
-@router.get("/content/{content_type}/{content_id}", summary="获取内容评论", description="获取指定内容的评论（支持分页）")
+@router.get("/content/{content_type}/{content_id}", summary="获取内容评论", description="获取指定内容的评论（支持分页�?)
 @_catch
 async def get_content_comments(
         content_type: str,
@@ -112,7 +111,7 @@ async def get_content_comments(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db),
 ):
-    """获取内容评论（支持分页，批量加载回复）"""
+    """获取内容评论（支持分页，批量加载回复�?""
     result = await team_comment_service.get_comments_for_content(
         db=db,
         content_id=content_id,
@@ -128,7 +127,7 @@ async def get_content_comments(
     })
 
 
-@router.get("/mentions", summary="获取@提及", description="获取@当前用户的评论")
+@router.get("/mentions", summary="获取@提及", description="获取@当前用户的评�?)
 @_catch
 async def get_mentions(
         unread_only: bool = Query(False, description="是否只返回未读的"),

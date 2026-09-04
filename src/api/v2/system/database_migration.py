@@ -1,5 +1,5 @@
 """
-数据库 URL 替换 API
+数据�?URL 替换 API
 用于网站迁移时批量替换数据库中的URL
 """
 
@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.system.database_url_replacer import database_url_replacer
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["Migration"])
 
@@ -20,8 +20,7 @@ async def preview_url_replace(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    预览URL替换（不实际执行）
-    """
+    预览URL替换（不实际执行�?    """
     body = await request.json()
     search = body.get('search', '')
     replace = body.get('replace', '')
@@ -45,7 +44,7 @@ async def preview_url_replace(
         case_sensitive=case_sensitive
     )
 
-    return ok(data=result, msg=f"预览完成，将替换 {result.get('total_replacements', 0)} 处")
+    return ok(data=result, msg=f"预览完成，将替换 {result.get('total_replacements', 0)} �?)
 
 
 @router.post("/url-replace/execute")
@@ -82,7 +81,7 @@ async def execute_url_replace(
     )
 
     if result['success']:
-        return ok(data=result, msg=f"成功替换 {result.get('total_replacements', 0)} 处")
+        return ok(data=result, msg=f"成功替换 {result.get('total_replacements', 0)} �?)
     else:
         return fail(result.get('error', '替换失败'))
 
@@ -95,8 +94,7 @@ async def validate_url_replace(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    验证URL替换的正确性
-    """
+    验证URL替换的正确�?    """
     body = await request.json()
     old_url = body.get('old_url', '')
     new_url = body.get('new_url', '')
@@ -132,12 +130,12 @@ async def get_common_patterns(
                 {
                     'search': 'http://old-domain.com',
                     'replace': 'https://new-domain.com',
-                    'note': '同时处理HTTP到HTTPS的升级'
+                    'note': '同时处理HTTP到HTTPS的升�?
                 },
                 {
                     'search': 'old-domain.com',
                     'replace': 'new-domain.com',
-                    'note': '仅替换域名部分'
+                    'note': '仅替换域名部�?
                 }
             ]
         },
@@ -164,29 +162,29 @@ async def get_common_patterns(
                 {
                     'search': '/wp-content/',
                     'replace': '/media/',
-                    'note': 'WordPress迁移时更改媒体路径'
+                    'note': 'WordPress迁移时更改媒体路�?
                 }
             ]
         },
         'port_change': {
             'name': '端口变更',
-            'description': '更改服务器端口',
+            'description': '更改服务器端�?,
             'examples': [
                 {
                     'search': ':8080',
                     'replace': ':443',
-                    'note': '从开发端口改为生产端口'
+                    'note': '从开发端口改为生产端�?
                 }
             ]
         },
         'regex_patterns': {
-            'name': '正则表达式模式',
-            'description': '使用正则表达式进行复杂替换',
+            'name': '正则表达式模�?,
+                    'description': '使用正则表达式进行复杂替�?,
             'examples': [
                 {
                     'search': r'http://(\w+)\.old\.com',
                     'replace': r'https://\1.new.com',
-                    'note': '使用捕获组进行动态替换',
+                    'note': '使用捕获组进行动态替�?,
                     'use_regex': True
                 }
             ]

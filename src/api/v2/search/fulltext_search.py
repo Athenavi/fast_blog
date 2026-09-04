@@ -12,18 +12,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.integrations.meilisearch_service import meilisearch_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["fulltext-search"])
 
 
 async def search_articles(
-        q: str = Query(..., min_length=1, description="搜索关键词"),
+    q: str = Query(..., min_length=1, description="搜索关键�?),
         category_id: Optional[int] = Query(None, description="分类ID"),
         author_id: Optional[int] = Query(None, description="作者ID"),
         date_from: Optional[str] = Query(None, description="起始日期 (YYYY-MM-DD)"),
         date_to: Optional[str] = Query(None, description="结束日期 (YYYY-MM-DD)"),
-        status: str = Query("published", description="文章状态"),
+status: str = Query("published", description="文章状�?),
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
         sort_by: str = Query("relevance", enum=["relevance", "date", "views"], description="排序方式"),
@@ -32,13 +32,11 @@ async def search_articles(
     使用 Meilisearch 搜索文章
 
     Args:
-        q: 搜索关键词
-        category_id: 分类ID过滤
+        q: 搜索关键�?        category_id: 分类ID过滤
         author_id: 作者ID过滤
         date_from: 起始日期
         date_to: 结束日期
-        status: 文章状态
-        page: 页码
+        status: 文章状�?        page: 页码
         per_page: 每页数量
         sort_by: 排序方式
 
@@ -112,8 +110,7 @@ async def rebuild_search_index(
     """
     重建搜索索引（仅管理员）
 
-    重新索引所有已发布的文章
-
+    重新索引所有已发布的文�?
     Returns:
         重建结果
     """
@@ -201,8 +198,7 @@ async def sync_article_to_index(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    手动同步单篇文章到搜索索引
-
+    手动同步单篇文章到搜索索�?
     Args:
         article_id: 文章ID
 

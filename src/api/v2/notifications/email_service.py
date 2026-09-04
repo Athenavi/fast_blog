@@ -1,8 +1,6 @@
 """
-邮件服务集成 API（SendGrid/Mailgun/SMTP）
-
-提供邮件服务配置管理和邮件发送功能
-"""
+邮件服务集成 API（SendGrid/Mailgun/SMTP�?
+提供邮件服务配置管理和邮件发送功�?"""
 from typing import Optional, Dict, Any, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -12,7 +10,7 @@ from shared.services.notifications.email_service_integration import email_servic
 from src.api.v2._helpers import ok, fail, _catch
 from src.api.v2.system.multisite import check_admin_permission
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["email-service"])
 
@@ -25,11 +23,10 @@ async def get_email_config(
 ):
     """
     获取邮件服务配置
-    
+
     Args:
-        provider: 邮件提供商（sendgrid/mailgun/smtp）
-        site_id: 站点 ID
-        
+        provider: 邮件提供商（sendgrid/mailgun/smtp�?        site_id: 站点 ID
+
     Returns:
         邮件服务配置
     """
@@ -54,15 +51,15 @@ async def get_email_config(
 @_catch
 async def create_email_config(
         provider: str,
-        from_email: str = Body(..., description="发件人邮箱"),
-        api_key: Optional[str] = Body(None, description="API Key（SendGrid/Mailgun）"),
+    from_email: str = Body(..., description="发件人邮�?),
+    api_key: Optional[str] = Body(None, description="API Key（SendGrid/Mailgun�?),
         smtp_host: Optional[str] = Body(None, description="SMTP 主机"),
         smtp_port: Optional[int] = Body(None, description="SMTP 端口"),
-        smtp_username: Optional[str] = Body(None, description="SMTP 用户名"),
+smtp_username: Optional[str] = Body(None, description="SMTP 用户�?),
         smtp_password: Optional[str] = Body(None, description="SMTP 密码"),
-        from_name: Optional[str] = Body(None, description="发件人名称"),
+        from_name: Optional[str] = Body(None, description="发件人名�?),
         site_id: Optional[int] = Body(None, description="站点 ID"),
-        enable_batch_sending: bool = Body(False, description="批量发送"),
+        enable_batch_sending: bool = Body(False, description="批量发�?),
         batch_size: int = Body(50, description="批量大小"),
         daily_limit: Optional[int] = Body(None, description="每日限制"),
         current_user=Depends(jwt_required),
@@ -70,13 +67,11 @@ async def create_email_config(
 ):
     """
     创建邮件服务配置
-    
+
     Args:
-        provider: 邮件提供商（sendgrid/mailgun/smtp）
-        
+        provider: 邮件提供商（sendgrid/mailgun/smtp�?
     Returns:
-        创建的配置
-    """
+        创建的配�?    """
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -116,11 +111,11 @@ async def update_email_config(
 ):
     """
     更新邮件服务配置
-    
+
     Args:
         config_id: 配置 ID
         updates: 更新字段
-        
+
     Returns:
         更新后的配置
     """
@@ -148,10 +143,10 @@ async def deactivate_email_config(
 ):
     """
     停用邮件服务配置
-    
+
     Args:
         config_id: 配置 ID
-        
+
     Returns:
         操作结果
     """
@@ -164,28 +159,25 @@ async def deactivate_email_config(
     return ok(msg="Email service configuration deactivated successfully")
 
 
-@router.post("/send", summary="发送邮件")
+@router.post("/send", summary="发送邮�?)
 @_catch
 async def send_email(
-        provider: str = Body(..., description="邮件提供商"),
-        to_email: str = Body(..., description="收件人邮箱"),
+    provider: str = Body(..., description="邮件提供�?),
+    to_email: str = Body(..., description="收件人邮�?),
         subject: str = Body(..., description="邮件主题"),
         html_content: str = Body(..., description="HTML 内容"),
-        text_content: Optional[str] = Body(None, description="纯文本内容"),
-        from_name: Optional[str] = Body(None, description="发件人名称"),
+text_content: Optional[str] = Body(None, description="纯文本内�?),
+from_name: Optional[str] = Body(None, description="发件人名�?),
         site_id: Optional[int] = Body(None, description="站点 ID"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    发送邮件
-    
+    发送邮�?
     Args:
-        provider: 邮件提供商
-        
+        provider: 邮件提供�?
     Returns:
-        发送结果
-    """
+        发送结�?    """
     config = await email_service_integration.get_config(db, provider, site_id)
 
     if not config:
@@ -206,28 +198,25 @@ async def send_email(
         return fail("Failed to send email")
 
 
-@router.post("/send-batch", summary="批量发送邮件")
+@router.post("/send-batch", summary="批量发送邮�?)
 @_catch
 async def send_batch_emails(
-        provider: str = Body(..., description="邮件提供商"),
-        recipients: List[Dict[str, str]] = Body(..., description="收件人列表"),
+    provider: str = Body(..., description="邮件提供�?),
+    recipients: List[Dict[str, str]] = Body(..., description="收件人列�?),
         subject: str = Body(..., description="邮件主题"),
         html_content: str = Body(..., description="HTML 内容"),
-        text_content: Optional[str] = Body(None, description="纯文本内容"),
+text_content: Optional[str] = Body(None, description="纯文本内�?),
         site_id: Optional[int] = Body(None, description="站点 ID"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    批量发送邮件
-    
+    批量发送邮�?
     Args:
-        provider: 邮件提供商
-        recipients: 收件人列表 [{'email': '...', 'name': '...'}]
-        
+        provider: 邮件提供�?        recipients: 收件人列�?[{'email': '...', 'name': '...'}]
+
     Returns:
-        发送结果统计
-    """
+        发送结果统�?    """
     config = await email_service_integration.get_config(db, provider, site_id)
 
     if not config:
@@ -247,19 +236,17 @@ async def send_batch_emails(
     )
 
 
-@router.get("/configs", summary="获取所有邮件服务配置")
+@router.get("/configs", summary="获取所有邮件服务配�?)
 @_catch
 async def get_all_configs(
-        include_inactive: bool = Query(False, description="是否包含非活动配置"),
+    include_inactive: bool = Query(False, description="是否包含非活动配�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有邮件服务配置
-    
+    获取所有邮件服务配�?
     Args:
-        include_inactive: 是否包含非活动配置
-        
+        include_inactive: 是否包含非活动配�?
     Returns:
         配置列表
     """

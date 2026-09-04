@@ -39,7 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User as UserModel
 from shared.services.security.rbac_service import rbac_service
 from src.auth.auth_deps import get_current_user
-from src.utils.database.main import get_async_session
+from src.utils.database.unified_manager import get_db_session as get_async_session
 
 logger = logging.getLogger(__name__)
 

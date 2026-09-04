@@ -1,7 +1,7 @@
 """
-搜索与媒体管理扩展 API
+搜索与媒体管理扩�?API
 
-提供搜索索引(SearchIndex)和媒体优化(MediaOptimization)的 CRUD 管理接口
+提供搜索索引(SearchIndex)和媒体优�?MediaOptimization)�?CRUD 管理接口
 """
 import json
 from datetime import datetime
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import SearchIndex, MediaOptimization
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["search-media-management"])
 
@@ -31,7 +31,7 @@ def _is_admin(user) -> bool:
 async def list_search_index(
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量"),
-    indexed: Optional[bool] = Query(None, description="是否已索引"),
+    indexed: Optional[bool] = Query(None, description="是否已索�?),
     article_id: Optional[int] = Query(None, description="文章ID"),
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required),
@@ -39,8 +39,7 @@ async def list_search_index(
     """
     获取搜索索引列表
 
-    支持分页、按索引状态和文章ID筛选
-    """
+    支持分页、按索引状态和文章ID筛�?    """
     if not _is_admin(current_user):
         raise HTTPException(status_code=403, detail="需要管理员权限")
 
@@ -91,7 +90,7 @@ async def get_search_index(
     index = result.scalar_one_or_none()
 
     if not index:
-        return fail("搜索索引记录不存在")
+        return fail("搜索索引记录不存�?)
 
     return ok(data=index.to_dict())
 
@@ -111,7 +110,7 @@ async def create_search_index(
 
     article_id = data.get("article_id")
     if not article_id:
-        return fail("article_id 为必填字段")
+        return fail("article_id 为必填字�?)
 
     existing = await db.execute(
         select(SearchIndex).where(SearchIndex.article_id == article_id)
@@ -157,7 +156,7 @@ async def update_search_index(
     index = result.scalar_one_or_none()
 
     if not index:
-        return fail("搜索索引记录不存在")
+        return fail("搜索索引记录不存�?)
 
     data = await request.json()
 
@@ -200,7 +199,7 @@ async def delete_search_index(
     index = result.scalar_one_or_none()
 
     if not index:
-        return fail("搜索索引记录不存在")
+        return fail("搜索索引记录不存�?)
 
     await db.delete(index)
     try:
@@ -220,10 +219,8 @@ async def batch_reindex(
     current_user=Depends(jwt_required),
 ):
     """
-    批量标记需要重新索引
-
-    将指定文章或所有文章的索引状态重置为待索引
-    """
+    批量标记需要重新索�?
+    将指定文章或所有文章的索引状态重置为待索�?    """
     if not _is_admin(current_user):
         raise HTTPException(status_code=403, detail="需要管理员权限")
 
@@ -246,7 +243,7 @@ async def batch_reindex(
         except Exception:
             await db.rollback()
             raise
-        return ok(data={"reset_count": count}, msg=f"已重置 {count} 条索引记录")
+        return ok(data={"reset_count": count}, msg=f"已重�?{count} 条索引记�?)
     else:
         from sqlalchemy import update
         try:
@@ -262,7 +259,7 @@ async def batch_reindex(
         total_count = total.scalar()
         return ok(
             data={"reset_count": total_count},
-            msg=f"已重置全部 {total_count} 条索引记录",
+            msg=f"已重置全�?{total_count} 条索引记�?,
         )
 
 
@@ -275,15 +272,14 @@ async def list_media_optimizations(
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量"),
     media_id: Optional[int] = Query(None, description="媒体ID"),
-    optimization_status: Optional[str] = Query(None, description="优化状态"),
+    optimization_status: Optional[str] = Query(None, description="优化状�?),
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required),
 ):
     """
     获取媒体优化配置列表
 
-    支持分页、按媒体ID和优化状态筛选
-    """
+    支持分页、按媒体ID和优化状态筛�?    """
     if not _is_admin(current_user):
         raise HTTPException(status_code=403, detail="需要管理员权限")
 
@@ -334,7 +330,7 @@ async def get_media_optimization(
     opt = result.scalar_one_or_none()
 
     if not opt:
-        return fail("媒体优化配置不存在")
+        return fail("媒体优化配置不存�?)
 
     return ok(data=opt.to_dict())
 
@@ -354,7 +350,7 @@ async def create_media_optimization(
 
     media_id = data.get("media_id")
     if not media_id:
-        return fail("media_id 为必填字段")
+        return fail("media_id 为必填字�?)
 
     existing = await db.execute(
         select(MediaOptimization).where(MediaOptimization.media_id == media_id)
@@ -403,7 +399,7 @@ async def update_media_optimization(
     opt = result.scalar_one_or_none()
 
     if not opt:
-        return fail("媒体优化配置不存在")
+        return fail("媒体优化配置不存�?)
 
     data = await request.json()
 
@@ -445,7 +441,7 @@ async def delete_media_optimization(
     opt = result.scalar_one_or_none()
 
     if not opt:
-        return fail("媒体优化配置不存在")
+        return fail("媒体优化配置不存�?)
 
     await db.delete(opt)
     try:

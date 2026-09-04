@@ -16,7 +16,7 @@ from shared.models.rbac import Role, Capability, RoleCapability, UserRole
 from shared.services.security.rbac_service import rbac_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.api.v3._permission import invalidate_permission_cache
 
 router = APIRouter(tags=["rbac"])
@@ -32,9 +32,8 @@ async def create_role(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """创建自定义角色"""
-    # 权限检查
-    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
+    """创建自定义角�?""
+    # 权限检�?    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
     now = datetime.now(timezone.utc)
@@ -131,8 +130,7 @@ async def update_role_permissions(
     if role.is_system:
         return fail("Cannot modify system role permissions")
 
-    # 清空后重新添加
-    role.capabilities = []
+    # 清空后重新添�?    role.capabilities = []
     if permission_codes:
         cap_stmt = select(Capability).where(Capability.code.in_(permission_codes))
         cap_result = await db.execute(cap_stmt)
@@ -171,8 +169,7 @@ async def delete_role(
     if role.is_system:
         return fail("Cannot delete system role")
 
-    # 移除所有用户的该角色关联
-    user_roles = await db.execute(
+    # 移除所有用户的该角色关�?    user_roles = await db.execute(
         select(UserRole).where(UserRole.role_id == role_id)
     )
     affected_uids = [ur.user_id for ur in user_roles.scalars().all()]
@@ -200,7 +197,8 @@ async def get_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取所有权限列表"""
+    """
+    获取所有权限列�?""
     query = select(Capability).where(Capability.is_active == True)
     if resource_type:
         query = query.where(Capability.resource_type == resource_type)
@@ -222,7 +220,7 @@ async def get_permissions(
 
 # ==================== 用户角色分配 ====================
 
-@router.post("/users/{user_id}/roles", summary="为用户分配角色")
+@router.post("/users/{user_id}/roles", summary="为用户分配角�?)
 @_catch
 async def assign_role_to_user(
         user_id: int,
@@ -230,7 +228,7 @@ async def assign_role_to_user(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """为用户分配角色"""
+    """为用户分配角�?""
     if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
@@ -250,7 +248,7 @@ async def assign_role_to_user(
     return ok(msg="Role assigned successfully")
 
 
-@router.delete("/users/{user_id}/roles/{role_id}", summary="从用户移除角色")
+@router.delete("/users/{user_id}/roles/{role_id}", summary="从用户移除角�?)
 @_catch
 async def remove_role_from_user(
         user_id: int,
@@ -258,7 +256,8 @@ async def remove_role_from_user(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """从用户移除角色"""
+    """
+    从用户移除角�?""
     if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
@@ -285,7 +284,7 @@ async def get_user_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取用户的所有权限代码列表"""
+    """获取用户的所有权限代码列�?""
     codes = await rbac_service.get_user_permission_codes(db, user_id)
 
     return ok(data={
@@ -295,7 +294,7 @@ async def get_user_permissions(
     })
 
 
-@router.post("/check-permission", summary="检查权限")
+@router.post("/check-permission", summary="检查权�?)
 @_catch
 async def check_permission(
         user_id: int = Body(0, description="用户ID (0 表示当前用户)"),
@@ -387,4 +386,4 @@ async def _log_audit(
         created_at=datetime.now(timezone.utc),
     )
     db.add(log)
-    # 注意：不在这里 commit，由调用方统一 commit
+    # 注意：不在这�?commit，由调用方统一 commit

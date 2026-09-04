@@ -2,7 +2,7 @@
 MCP 通知/邮件工具处理器 — 通知管理/邮件发送/订阅
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 from src.mcp.tools._perms import require_superuser, require_role
 
 
@@ -16,7 +16,7 @@ async def list_notifications(arguments: dict) -> dict:
     if not user_id:
         return {"success": False, "error": "请提供用户ID"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.notification import Notification
         query = select(Notification).where(Notification.recipient == int(user_id))
         if unread_only:
@@ -44,7 +44,7 @@ async def mark_notification_read(arguments: dict) -> dict:
     if not notification_id:
         return {"success": False, "error": "请提供通知ID"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.notification import Notification
         notification = await db.scalar(select(Notification).where(Notification.id == int(notification_id)))
         if not notification:
@@ -81,7 +81,7 @@ async def send_bulk_notification(arguments: dict) -> dict:
     if not title or not message:
         return {"success": False, "error": "请提供通知标题和内容"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.user import User
         from shared.models.notification import Notification
         from datetime import datetime

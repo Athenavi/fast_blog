@@ -6,7 +6,7 @@ from sqlalchemy import select
 
 from shared.models.media import Media
 from src.mcp._context import get_user_ctx
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 
 def _require_auth():
@@ -22,7 +22,7 @@ async def list_media(arguments: dict) -> dict:
     limit = min(arguments.get("limit", 20), 50)
     media_type = arguments.get("media_type", "").strip().lower()
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         q = select(Media).order_by(Media.created_at.desc()).limit(limit)
         if media_type:
             prefix = {"image": "image", "video": "video", "audio": "audio", "document": "application"}.get(media_type, media_type)
@@ -45,7 +45,7 @@ async def delete_media(arguments: dict) -> dict:
     if not media_id:
         raise ValueError("媒体ID不能为空")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         media = await db.scalar(select(Media).where(Media.id == int(media_id)))
         if not media:
             raise ValueError(f"媒体 #{media_id} 不存在")

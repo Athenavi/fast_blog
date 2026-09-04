@@ -7,4 +7,4 @@ V3 共享依赖
 from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User as UserModel
 from src.auth.auth_deps import get_current_user, jwt_optional_dependency as get_optional_user
-from src.utils.database.main import get_async_session as get_db
+from src.utils.database.unified_manager import get_db_session as get_db

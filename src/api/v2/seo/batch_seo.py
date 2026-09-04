@@ -15,7 +15,7 @@ from shared.models import User
 from shared.models.article import Article, ArticleSEO
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import admin_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["batch-seo"])
 
@@ -49,7 +49,7 @@ async def batch_update_seo(
         db: AsyncSession = Depends(get_async_db),
         current_user: User = Depends(admin_required)
 ):
-    """批量更新多个文章的SEO元数据"""
+    """批量更新多个文章的SEO元数�?""
     if not request.article_ids:
         raise HTTPException(status_code=400, detail="文章ID列表不能为空")
 
@@ -60,7 +60,7 @@ async def batch_update_seo(
     if len(articles) != len(request.article_ids):
         raise HTTPException(
             status_code=404,
-            detail=f"部分文章不存在，找到{len(articles)}个，请求{len(request.article_ids)}个"
+            detail=f"部分文章不存在，找到{len(articles)}个，请求{len(request.article_ids)}�?
         )
 
     updated_count = 0
@@ -114,7 +114,7 @@ async def batch_update_seo(
 
     await db.commit()
     return ok(data={"updated_count": updated_count, "total_requested": len(request.article_ids)},
-              message=f"成功更新{updated_count}个文章的SEO元数据")
+              message=f"成功更新{updated_count}个文章的SEO元数�?)
 
 
 @router.post("/export", summary="批量导出SEO数据")
@@ -189,7 +189,7 @@ async def batch_import_seo(
 
     headers = [h.strip().strip('"').lower() for h in lines[0].split(',')]
     if 'article_id' not in headers:
-        raise HTTPException(status_code=400, detail="CSV必须包含article_id列")
+        raise HTTPException(status_code=400, detail="CSV必须包含article_id�?)
 
     imported_count = 0
     error_count = 0
@@ -200,7 +200,7 @@ async def batch_import_seo(
         try:
             values = [v.strip().strip('"') for v in line.split(',')]
             if len(values) != len(headers):
-                errors.append(f"第{i}行：列数不匹配")
+                errors.append(f"第{i}行：列数不匹�?)
                 error_count += 1
                 continue
 
@@ -215,7 +215,7 @@ async def batch_import_seo(
             result = await db.execute(stmt)
             article = result.scalar_one_or_none()
             if not article:
-                errors.append(f"第{i}行：文章ID {article_id} 不存在")
+                errors.append(f"第{i}行：文章ID {article_id} 不存�?)
                 error_count += 1
                 continue
 
@@ -265,7 +265,7 @@ async def batch_import_seo(
         "imported_count": imported_count,
         "error_count": error_count,
         "errors": errors[:10]
-    }, message=f"导入完成：成功{imported_count}个，失败{error_count}个")
+    }, message=f"导入完成：成功{imported_count}个，失败{error_count}�?)
 
 
 @router.get("/stats", summary="获取SEO统计信息")

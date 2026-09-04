@@ -15,7 +15,7 @@ from shared.models.user import User
 from src.api.v2._base import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency
 from src.unified_logger import default_logger as logger
-from src.utils.database.main import get_async_session
+from src.utils.database.unified_manager import get_db_session as get_async_session
 
 # 简单内存去重：记录 (article_id, client_ip) 组合，60 秒内不重复计数
 _view_cooldown: dict[tuple[int, str], float] = {}

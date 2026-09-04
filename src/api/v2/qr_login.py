@@ -1,10 +1,7 @@
 """
-FastBlog API v2 二维码登录
-
-在 v2 注册表中注册本模块即可启用 QR 登录。
-
-注册方式（在 src/api/v2/__init__.py 的 ROUTE_REGISTRY_V2 中添加）：
-    ("src.api.v2.qr_login", "/api/v2/auth/qr", ["qr-login"], False),
+FastBlog API v2 二维码登�?
+�?v2 注册表中注册本模块即可启�?QR 登录�?
+注册方式（在 src/api/v2/__init__.py �?ROUTE_REGISTRY_V2 中添加）�?    ("src.api.v2.qr_login", "/api/v2/auth/qr", ["qr-login"], False),
 """
 
 import asyncio
@@ -19,11 +16,11 @@ from src.api.v2._base import ApiResponse
 from src.api.v2.user_utils.qrlogin_utils import qr_login, check_qr_login_back, phone_scan_back
 from src.auth import get_current_user
 from src.extensions import cache
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["qr-login"])
 
-# ── 手机扫码确认页（自包含 HTML，无需前端构建产物） ──
+# ── 手机扫码确认页（自包�?HTML，无需前端构建产物�?──
 _MOBILE_LOGIN_HTML = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -53,13 +50,13 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;
 <body>
 <div class="card">
   <div class="icon-box">📱</div>
-  <div id="checking"><div class="spinner"></div><p class="msg">检查登录状态...</p></div>
-  <div id="confirming" class="hidden"><div class="spinner"></div><p class="msg">确认登录中...</p></div>
+  <div id="checking"><div class="spinner"></div><p class="msg">检查登录状�?..</p></div>
+  <div id="confirming" class="hidden"><div class="spinner"></div><p class="msg">确认登录�?..</p></div>
   <div id="success" class="hidden"><div class="success-icon"></div><p class="msg" id="successMsg"></p></div>
   <div id="error" class="hidden"><div class="error-icon"></div><p class="msg" id="errorMsg"></p></div>
   <div id="loginPrompt" class="hidden">
     <p class="msg">请先登录后再扫码确认</p>
-    <button class="btn" onclick="window.location.href='{{FRONTEND_ORIGIN}}/login?next='+encodeURIComponent(window.location.href)">去登录</button>
+    <button class="btn" onclick="window.location.href='{{FRONTEND_ORIGIN}}/login?next='+encodeURIComponent(window.location.href)">去登�?/button>
   </div>
 </div>
 <script>
@@ -73,7 +70,7 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;
     method:'POST',headers:{'Content-Type':'application/json'},
     credentials:'include',body:JSON.stringify({login_token:token})
   }).then(function(r){return r.json();}).then(function(d){
-    if(d.success){show('success','登录确认成功，请返回电脑端继续');}
+    if(d.success){show('success','登录确认成功，请返回电脑端继�?);}
     else if(d.requires_auth){
       show('loginPrompt');
     }else{show('error',d.message||d.error||'确认失败');}
@@ -93,13 +90,14 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;
 
 @router.get("/mobile-login-page", response_class=HTMLResponse)
 async def mobile_login_page(request: Request):
-    """手机扫码确认页面（独立于前端构建产物，供后端直接提供）"""
+    """手机扫码确认页面（独立于前端构建产物，供后端直接提供�?""
     return HTMLResponse(content=_MOBILE_LOGIN_HTML)
 
 
 @router.get("/generate")
 async def v2_generate_qr(request: Request):
-    """生成登录二维码"""
+    """
+    生成登录二维�?""
     try:
         sys_version = "2.0"
         global_encoding = app_config.global_encoding
@@ -116,42 +114,44 @@ async def v2_generate_qr(request: Request):
                     "expires_at": result.get("expires_at"),
                 }
             )
-        return ApiResponse(success=False, error=result.get("message", "登录二维码生成失败"))
+        return ApiResponse(success=False, error=result.get("message", "登录二维码生成失�?))
     except Exception as e:
         logger.error(f"QR generation failed: {e}")
-        return ApiResponse(success=False, error="生成二维码失败")
+        return ApiResponse(success=False, error="生成二维码失�?)
 
 
 @router.get("/status")
 async def v2_check_qr_status(request: Request):
-    """PC 端轮询检查扫码状态"""
-    try:
-        result = await check_qr_login_back(request, cache)
-        # v2 响应格式：将 check_qr_login_back 返回的顶层字段包装到 data 中
-        if result.get("success"):
-            resp = ApiResponse(
-                success=True,
-                data={
-                    "status": result.get("status", "pending"),
-                    "refresh_token": result.get("refresh_token"),
-                    "next_url": result.get("next_url"),
-                }
-            )
-            logger.info(
-                f"[QR Status] token={request.query_params.get('token', '')[:8]}... status={resp.data['status']}")
-            return resp
-        logger.warning(f"[QR Status] check_qr_login_back returned success=False: {result}")
-        return ApiResponse(success=False, error=result.get("message", "二维码状态检查失败"))
-    except Exception as e:
-        logger.error(f"QR status check failed: {e}")
-        return ApiResponse(success=False, error="检查二维码状态失败")
+        """PC 端轮询检查扫码状�?""
+        try:
+            result = await check_qr_login_back(request, cache)
+            # v2 响应格式：将 check_qr_login_back 返回的顶层字段包装到 data �?        if result.get("success"):
+                resp = ApiResponse(
+                    success=True,
+                    data={
+                        "status": result.get("status", "pending"),
+                        "refresh_token": result.get("refresh_token"),
+                        "next_url": result.get("next_url"),
+                    }
+                )
+                logger.info(
+                    f"[QR Status] token={request.query_params.get('token', '')[:8]}... status={resp.data['status']}")
+                return resp
+            logger.warning(f"[QR Status] check_qr_login_back returned success=False: {result}")
+            return ApiResponse(success=False, error=result.get("message", "二维码状态检查失�?))
+        except Exception as e:
+            logger.error(f"QR status check failed: {e}")
+            return ApiResponse(success=False, error="检查二维码状态失�?)
 
 
-@router.post("/confirm")
-async def v2_phone_confirm(request: Request, db: AsyncSession = Depends(get_async_db)):
-    """手机端扫码后确认登录（支持 JSON body 或 query params）"""
+    @router.post("/confirm")
+    async def v2_phone_confirm(request: Request, db: AsyncSession = Depends(get_async_db)):
+        """
+        手机端扫码后确认登录（支�?JSON
+        body �?query
+        params�?""
 
-    # 读取 login_token：优先从 JSON body，其次 query params
+        # 读取 login_token：优先从 JSON body，其�?query params
     login_token = None
     content_type = request.headers.get('content-type', '')
     if 'application/json' in content_type:

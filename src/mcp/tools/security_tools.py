@@ -2,7 +2,7 @@
 MCP 安全管理工具处理器 — 审计日志/敏感词/IP封禁/2FA
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 from src.mcp.tools._perms import require_superuser, require_role
 
 
@@ -15,7 +15,7 @@ async def query_audit_log(arguments: dict) -> dict:
     action = arguments.get("action")
     level = arguments.get("level")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import AuditLog
         query = select(AuditLog)
         if user_id:
@@ -45,7 +45,7 @@ async def export_audit_log(arguments: dict) -> dict:
     import csv, io
     days = arguments.get("days", 7)
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import AuditLog
         from datetime import datetime, timedelta
         cutoff = datetime.utcnow() - timedelta(days=days)
@@ -74,7 +74,7 @@ async def scan_sensitive_words(arguments: dict) -> dict:
     if not text:
         return {"success": False, "error": "请提供要扫描的文本"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.security import SensitiveWord
         words = (await db.execute(select(SensitiveWord).where(SensitiveWord.is_active == True))).scalars().all()
 
@@ -96,7 +96,7 @@ async def manage_sensitive_word(arguments: dict) -> dict:
     if not word:
         return {"success": False, "error": "请提供敏感词"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.security import SensitiveWord
         if action == "add":
             existing = await db.scalar(select(SensitiveWord).where(SensitiveWord.word == word))
@@ -133,7 +133,7 @@ async def list_rate_limits(arguments: dict) -> dict:
 @require_superuser
 async def get_security_report(arguments: dict) -> dict:
     """生成安全报告摘要"""
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.security import SensitiveWord
         from shared.models.system import AuditLog
         from sqlalchemy import func

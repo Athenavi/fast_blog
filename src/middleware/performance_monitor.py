@@ -75,6 +75,10 @@ class PerformanceMonitor:
 
         uptime = time.time() - self.start_time
 
+        # cpu_percent() 不带 interval 参数：非阻塞模式，返回自上次调用以来的 CPU 占比
+        # 首次调用可能为 0，这是预期行为
+        cpu_percent = process.cpu_percent()
+
         return {
             "uptime_seconds": round(uptime, 2),
             "memory": {
@@ -83,7 +87,7 @@ class PerformanceMonitor:
                 "percent": process.memory_percent(),
             },
             "cpu": {
-                "percent": process.cpu_percent(interval=0.1),
+                "percent": round(cpu_percent, 1),
                 "count": psutil.cpu_count(),
             },
             "slow_requests": {

@@ -9,7 +9,7 @@ from shared.models.notification import Notification
 from shared.models.user import User
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.notification import mark_notification_as_read, get_user_notifications, mark_all_notifications_as_read
 
 router = APIRouter(tags=["notifications"])
@@ -25,7 +25,7 @@ async def read_notification_api(
     result = await mark_notification_as_read(nid, current_user.id)
     if result:
         return ok(msg="通知已标记为已读")
-    return fail("无法标记通知为已读")
+    return fail("无法标记通知为已�?)
 
 
 @router.get("/messages")
@@ -85,7 +85,7 @@ async def mark_notification_as_read_api(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    标记通知为已读API (新格式)
+    标记通知为已读API (新格�?
     """
     from src.notification import mark_notification_as_read
     # 注意：mark_notification_as_read 函数的参数顺序是 (notification_id, user_id)
@@ -93,7 +93,7 @@ async def mark_notification_as_read_api(
     if success:
         return ok(msg="通知已标记为已读")
     else:
-        return fail("无法标记通知为已读")
+        return fail("无法标记通知为已�?)
 
 
 @router.delete("/{notification_id}")
@@ -109,7 +109,7 @@ async def delete_notification_api(
     from src.notification import delete_notification
     success = await delete_notification(notification_id, current_user.id)
     if success:
-        return ok(msg="通知已删除")
+        return ok(msg="通知已删�?)
     else:
         return fail("无法删除通知")
 

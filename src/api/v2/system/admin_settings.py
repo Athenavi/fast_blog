@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import SystemSettings, MenuItems, Pages, Menus
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_page_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["admin-settings"])
 
@@ -36,8 +36,7 @@ async def get_system_settings_dict(db: AsyncSession) -> Dict[str, str]:
 
 async def update_system_setting(key: str, value: Any, db: AsyncSession) -> None:
     """
-    更新或创建系统设置
-    """
+    更新或创建系统设�?    """
     if isinstance(value, (str, int, float)):
         serialized_value = str(value)
     elif isinstance(value, bool):
@@ -81,31 +80,31 @@ def get_setting_description(key: str) -> str:
         'site_img': '站点图像URL',
         'site_description': '站点描述',
         'site_domain': '站点域名',
-        'site_beian': '备案号',
-        'site_keywords': '站点关键词',
+        'site_beian': '备案�?,
+                      'site_keywords': '站点关键�?,
         'user_registration': '允许用户注册',
-        'menu_slug': '当前使用的菜单标识',
+    'menu_slug': '当前使用的菜单标�?,
         'home_hero_title': '首页英雄区域标题',
-        'home_hero_subtitle': '首页英雄区域副标题',
+    'home_hero_subtitle': '首页英雄区域副标�?,
         'home_hero_cta_text': '首页英雄区域CTA按钮文本',
         'home_hero_cta_link': '首页英雄区域CTA按钮链接',
         'home_cta_target': '首页CTA按钮跳转方式',
         'home_featured_count': '首页特色文章数量',
         'home_hero_background_image': '首页英雄区域背景图片',
         'home_featured_title': '首页特色文章区域标题',
-        'home_featured_empty_title': '首页特色文章区域空状态标题',
+    'home_featured_empty_title': '首页特色文章区域空状态标�?,
         'home_featured_empty_subtitle': '首页特色文章区域空状态副标题',
         'home_main_title': '首页主要内容区域标题',
         'home_main_filter_buttons': '首页主要内容区域过滤按钮',
-        'home_main_empty_title': '首页主要内容区域空状态标题',
+    'home_main_empty_title': '首页主要内容区域空状态标�?,
         'home_main_empty_subtitle': '首页主要内容区域空状态副标题',
         'home_newsletter_title': '首页新闻通讯区域标题',
-        'home_newsletter_subtitle': '首页新闻通讯区域副标题',
+    'home_newsletter_subtitle': '首页新闻通讯区域副标�?,
         'home_newsletter_placeholder': '首页新闻通讯区域输入框占位符',
         'home_newsletter_button_text': '首页新闻通讯区域按钮文本',
-        'home_no_category_msg': '首页无分类消息',
-        'home_unknown_author_msg': '首页未知作者消息',
-        'home_no_summary_msg': '首页无摘要消息',
+    'home_no_category_msg': '首页无分类消�?,
+                            'home_unknown_author_msg': '首页未知作者消�?,
+                                                       'home_no_summary_msg': '首页无摘要消�?,
     }
     return descriptions.get(key, f'{key} 设置')
 
@@ -118,9 +117,8 @@ async def get_settings(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有系统设置
-    """
-    # 检查用户权限 - 只有超级用户才能访问
+    获取所有系统设�?    """
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -202,7 +200,7 @@ async def update_settings(
     """
     更新系统设置
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -235,7 +233,7 @@ async def create_menu(
     """
     创建菜单
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -251,7 +249,7 @@ async def create_menu(
     description = data.get('description', '')
 
     if not name or not slug:
-        return fail('菜单名称和标识不能为空')
+        return fail('菜单名称和标识不能为�?)
 
     from datetime import datetime
 
@@ -260,7 +258,7 @@ async def create_menu(
     existing_menu_result = await db.execute(existing_menu_query)
     existing_menu = existing_menu_result.scalar_one_or_none()
     if existing_menu:
-        return fail('菜单标识已存在')
+            return fail('菜单标识已存�?)
 
     menu = Menus(
         name=name,
@@ -295,7 +293,7 @@ async def update_menu(
     """
     更新菜单
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -314,7 +312,7 @@ async def update_menu(
     menu_result = await db.execute(menu_query)
     menu = menu_result.scalar_one_or_none()
     if not menu:
-        return fail('菜单不存在')
+        return fail('菜单不存�?)
 
     menu.name = data.get('name', menu.name)
     menu.slug = data.get('slug', menu.slug)
@@ -347,7 +345,7 @@ async def delete_menu(
     """
     删除菜单
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -363,7 +361,7 @@ async def delete_menu(
     menu_result = await db.execute(menu_query)
     menu = menu_result.scalar_one_or_none()
     if not menu:
-        return fail('菜单不存在')
+        return fail('菜单不存�?)
 
     # 检查菜单项
     menu_items_query = select(MenuItems).where(MenuItems.menu_id == menu_id)
@@ -388,7 +386,7 @@ async def create_page(
     """
     创建页面
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -403,7 +401,7 @@ async def create_page(
     slug = data.get('slug')
 
     if not title or not slug:
-        return fail('页面标题和别名不能为空')
+        return fail('页面标题和别名不能为�?)
 
     from datetime import datetime
 
@@ -412,7 +410,7 @@ async def create_page(
     existing_page_result = await db.execute(existing_page_query)
     existing_page = existing_page_result.scalar_one_or_none()
     if existing_page:
-        return fail('页面别名已存在')
+            return fail('页面别名已存�?)
 
     page = Pages(
         title=title,
@@ -466,7 +464,7 @@ async def update_page(
     """
     更新页面
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -485,7 +483,7 @@ async def update_page(
     page_result = await db.execute(page_query)
     page = page_result.scalar_one_or_none()
     if not page:
-        return fail('页面不存在')
+        return fail('页面不存�?)
 
     page.title = data.get('title', page.title)
     page.slug = data.get('slug', page.slug)
@@ -535,7 +533,7 @@ async def delete_page(
     """
     删除页面
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -550,7 +548,7 @@ async def delete_page(
     page_result = await db.execute(page_query)
     page = page_result.scalar_one_or_none()
     if not page:
-        return fail('页面不存在')
+        return fail('页面不存�?)
 
     await db.delete(page)
     await db.commit()
@@ -566,9 +564,8 @@ async def create_menu_item(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    创建菜单项
-    """
-    # 检查用户权限 - 只有超级用户才能访问
+    创建菜单�?    """
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -623,9 +620,8 @@ async def update_menu_item(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    更新菜单项
-    """
-    # 检查用户权限 - 只有超级用户才能访问
+    更新菜单�?    """
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -678,9 +674,8 @@ async def delete_menu_item(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    删除菜单项
-    """
-    # 检查用户权限 - 只有超级用户才能访问
+    删除菜单�?    """
+    # 检查用户权�?- 只有超级用户才能访问
     from starlette.responses import RedirectResponse
     if isinstance(current_user, RedirectResponse):
         return current_user
@@ -697,14 +692,13 @@ async def delete_menu_item(
     if not menu_item:
         return fail('菜单项不存在')
 
-    # 检查是否有子菜单项关联到此菜单项
-    child_items_query = select(MenuItems).where(MenuItems.parent_id == menu_item_id)
+    # 检查是否有子菜单项关联到此菜单�?    child_items_query = select(MenuItems).where(MenuItems.parent_id == menu_item_id)
     child_items_result = await db.execute(child_items_query)
     child_items = child_items_result.scalars().all()
     if child_items:
-        return fail('菜单项下还有子菜单项，无法删除')
+        return fail('菜单项下还有子菜单项，无法删�?)
 
     await db.delete(menu_item)
     await db.commit()
 
-    return ok(data={"message": "菜单项删除成功"})
+    return ok(data={"message": "菜单项删除成�?})

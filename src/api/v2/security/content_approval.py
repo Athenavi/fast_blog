@@ -13,7 +13,7 @@ from shared.models import ApprovalRecord
 from shared.services.security.content_approval_service import content_approval_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user, admin_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["approval"])
 logger = logging.getLogger(__name__)
@@ -22,23 +22,21 @@ logger = logging.getLogger(__name__)
 async def create_approval_request(
         content_type: str = Body(..., description="内容类型 (article/comment)"),
         content_id: int = Body(..., description="内容ID"),
-        max_level: int = Body(1, ge=1, le=3, description="最大审批级别 (1-3)"),
+    max_level: int = Body(1, ge=1, le=3, description="最大审批级�?(1-3)"),
         approvers: List[int] = Body(None, description="各级审批人ID列表"),
         current_user=Depends(get_current_user),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     创建内容审批请求
-    
+
     Args:
         content_type: 内容类型
         content_id: 内容ID
-        max_level: 最大审批级别
-        approvers: 各级审批人ID列表
-        
+        max_level: 最大审批级�?        approvers: 各级审批人ID列表
+
     Returns:
-        创建的审批请求
-    """
+        创建的审批请�?    """
     record = await content_approval_service.create_approval_request(
         db=db,
         content_type=content_type,
@@ -69,11 +67,11 @@ async def approve_step(
 ):
     """
     审批通过当前级别
-    
+
     Args:
         record_id: 审批记录ID
         comment: 审批意见
-        
+
     Returns:
         更新后的审批记录
     """
@@ -102,11 +100,11 @@ async def reject_step(
 ):
     """
     审批拒绝
-    
+
     Args:
         record_id: 审批记录ID
         comment: 拒绝意见
-        
+
     Returns:
         更新后的审批记录
     """
@@ -133,10 +131,10 @@ async def cancel_approval(
 ):
     """
     取消审批请求（仅申请人）
-    
+
     Args:
         record_id: 审批记录ID
-        
+
     Returns:
         更新后的审批记录
     """
@@ -164,19 +162,19 @@ async def get_approval_history(
 ):
     """
     获取审批历史记录
-    
+
     Args:
         record_id: 审批记录ID
-        
+
     Returns:
         审批历史
     """
     history = await content_approval_service.get_approval_history(db, record_id)
-    
+
     return ok(data=history)
 
 
-@router.get("/pending", summary="获取待审批列表")
+@router.get("/pending", summary="获取待审批列�?)
 @_catch
 async def get_pending_approvals(
         content_type: Optional[str] = Query(None, description="内容类型过滤"),
@@ -187,12 +185,12 @@ async def get_pending_approvals(
 ):
     """
     获取当前用户的待审批列表
-    
+
     Args:
         content_type: 内容类型过滤
         page: 页码
         per_page: 每页数量
-        
+
     Returns:
         待审批列表和分页信息
     """
@@ -207,7 +205,7 @@ async def get_pending_approvals(
     return ok(data=result)
 
 
-@router.get("/status/{content_type}/{content_id}", summary="检查审批状态")
+@router.get("/status/{content_type}/{content_id}", summary="检查审批状�?)
 @_catch
 async def check_approval_status(
         content_type: str,
@@ -216,15 +214,13 @@ async def check_approval_status(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    检查内容的审批状态
-    
+    检查内容的审批状�?
     Args:
         content_type: 内容类型
         content_id: 内容ID
-        
+
     Returns:
-        审批状态信息
-    """
+        审批状态信�?    """
     status = await content_approval_service.check_approval_status(
         db=db,
         content_type=content_type,
@@ -240,7 +236,7 @@ async def check_approval_status(
 @router.get("/my-requests", summary="获取我的审批请求")
 @_catch
 async def get_my_requests(
-        status: Optional[str] = Query(None, description="状态过滤 (pending/approved/rejected/cancelled)"),
+    status: Optional[str] = Query(None, description="状态过�?(pending/approved/rejected/cancelled)"),
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
         current_user=Depends(get_current_user),
@@ -248,15 +244,13 @@ async def get_my_requests(
 ):
     """
     获取我提交的审批请求列表
-    
+
     Args:
-        status: 状态过滤
-        page: 页码
+        status: 状态过�?        page: 页码
         per_page: 每页数量
-        
+
     Returns:
-        审批请求列表和分页信息
-    """
+        审批请求列表和分页信�?    """
     from sqlalchemy import select, func
     from shared.models.user import User
 
@@ -320,10 +314,10 @@ async def get_approval_stats(
 ):
     """
     获取审批统计数据
-    
+
     Args:
         days: 统计天数
-        
+
     Returns:
         统计数据
     """
@@ -339,8 +333,7 @@ async def get_approval_stats(
     total_result = await db.execute(total_query)
     total_count = total_result.scalar()
 
-    # 按状态统计
-    status_query = select(
+    # 按状态统�?    status_query = select(
         ApprovalRecord.status,
         func.count().label('count')
     ).where(
@@ -353,8 +346,7 @@ async def get_approval_stats(
         for row in status_result.all()
     ]
 
-    # 按内容类型统计
-    type_query = select(
+# 按内容类型统�?    type_query = select(
         ApprovalRecord.content_type,
         func.count().label('count')
     ).where(

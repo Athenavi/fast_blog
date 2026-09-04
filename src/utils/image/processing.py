@@ -158,11 +158,11 @@ async def get_file_mime_type(file_hash: str, db=None) -> str:
         
         # 如果没有提供数据库会话，创建一个新的
         if db is None:
-            from src.extensions import get_async_db_session
+            from src.utils.database.unified_manager import db_manager
             from sqlalchemy import select
 
             # 使用 async with 正确管理数据库会话
-            async with get_async_db_session()() as session:
+            async with db_manager.get_session() as session:
                 result_query = select(FileHash.mime_type).where(FileHash.hash == file_hash)
                 result_result = await session.execute(result_query)
                 result = result_result.first()

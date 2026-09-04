@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +23,13 @@ async def get_media_exif(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
-    """获取媒体文件的 EXIF 信息"""
+    """获取媒体文件�?EXIF 信息"""
     query = select(Media).where(Media.id == media_id)
     result = await db.execute(query)
     media = result.scalar_one_or_none()
 
     if not media:
-        return fail("媒体文件不存在")
+        return fail("媒体文件不存�?)
 
     # 校验所有权：仅文件所有者或管理员可查看 EXIF
     if media.user != current_user.id and not getattr(current_user, 'is_superuser', False):
@@ -37,8 +37,7 @@ async def get_media_exif(
 
     file_path = Path(media.file_path) if media.file_path else None
     if not file_path or not file_path.exists():
-        # 尝试带 storage 前缀（防御路径遍历：标准化并验证前缀）
-        if media.file_path:
+        # 尝试�?storage 前缀（防御路径遍历：标准化并验证前缀�?        if media.file_path:
             storage_path = (Path('storage') / media.file_path.lstrip('/')).resolve()
             if not str(storage_path).startswith(str(Path('storage').resolve())):
                 return ok(data={})  # 路径逃逸被拒绝
@@ -87,7 +86,7 @@ async def remove_exif(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
-    """移除图片的EXIF元数据"""
+    """移除图片的EXIF元数�?""
     from PIL import Image
     from pathlib import Path
     import io
@@ -98,23 +97,22 @@ async def remove_exif(
     media = result.scalar_one_or_none()
 
     if not media:
-        return fail("媒体文件不存在")
+        return fail("媒体文件不存�?)
 
     # 校验所有权
     if media.user != current_user.id and not getattr(current_user, 'is_superuser', False):
-        return fail("无权操作此文件")
+        return fail("无权操作此文�?)
 
-    # 只处理图片
-    if not media.mime_type or not media.mime_type.startswith('image/'):
+    # 只处理图�?    if not media.mime_type or not media.mime_type.startswith('image/'):
         return fail("只能处理图片文件")
 
     # 获取文件路径（防御路径遍历）
     file_path = Path(media.file_path).resolve()
     safe_storage = Path('storage').resolve()
     if not str(file_path).startswith(str(safe_storage)):
-        return fail("非法的文件路径")
+        return fail("非法的文件路�?)
     if not file_path.exists():
-        return fail("文件不存在")
+        return fail("文件不存�?)
 
     # 打开图片
     img = Image.open(file_path)
@@ -124,8 +122,7 @@ async def remove_exif(
     image_without_exif = Image.new(img.mode, img.size)
     image_without_exif.putdata(data)
 
-    # 保存不含EXIF的图片
-    output = io.BytesIO()
+    # 保存不含EXIF的图�?    output = io.BytesIO()
 
     if media.mime_type == 'image/jpeg':
         image_without_exif.save(output, format='JPEG', quality=95)
@@ -138,7 +135,7 @@ async def remove_exif(
     with open(file_path, 'wb') as f:
         f.write(output.getvalue())
 
-    logger.info(f"EXIF已移除: {media.original_filename}")
+    logger.info(f"EXIF已移�? {media.original_filename}")
 
     return ok(
         message="EXIF元数据已移除",
@@ -155,38 +152,35 @@ async def update_media_tags(
         current_user=Depends(jwt_required)
 ):
     """
-    更新媒体的标签
-    支持 mode 参数：
-    - add: 追加标签（默认）
+    更新媒体的标�?    支持
+    mode
+    参数�?    - add: 追加标签（默认）
     - replace: 替换全部标签
 
-    注意：每个媒体最多支持5个标签
-    """
+    注意：每个媒体最多支�?个标�?    """
     body = await request.json()
     tags = body.get('tags', [])
-    mode = body.get('mode', 'add')  # 'add' 或 'replace'
+    mode = body.get('mode', 'add')  # 'add' �?'replace'
 
     query = select(Media).where(Media.id == media_id)
     result = await db.execute(query)
     media = result.scalar_one_or_none()
     if not media:
-        return fail("媒体文件不存在")
+        return fail("媒体文件不存�?)
 
     if mode == 'replace':
-        # 完全替换 - 检查标签数量限制
-        if len(tags) > 5:
-            return fail("最多只能设置5个标签")
+        # 完全替换 - 检查标签数量限�?        if len(tags) > 5:
+            return fail("最多只能设�?个标�?)
         media.tags = ','.join(tags) if tags else None
     else:
-        # 追加（默认行为）- 检查标签数量限制
-        existing_tags = set()
+        # 追加（默认行为）- 检查标签数量限�?        existing_tags = set()
         if media.tags:
             existing_tags = set(t.strip() for t in media.tags.split(',') if t.strip())
         existing_tags.update(tags)
 
         if len(existing_tags) > 5:
             return fail(
-                f"最多只能设置5个标签，当前已有{len(existing_tags) - len(tags)}个，尝试添加{len(tags)}个")
+                f"最多只能设�?个标签，当前已有{len(existing_tags) - len(tags)}个，尝试添加{len(tags)}�?)
 
         media.tags = ','.join(existing_tags) if existing_tags else None
 
@@ -208,7 +202,7 @@ async def remove_tags(
     result = await db.execute(query)
     media = result.scalar_one_or_none()
     if not media:
-        return fail("媒体文件不存在")
+        return fail("媒体文件不存�?)
     if media.tags:
         existing_tags = [t.strip() for t in media.tags.split(',')]
         new_tags = [t for t in existing_tags if t not in tags_to_remove]

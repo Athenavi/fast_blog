@@ -14,7 +14,7 @@ from shared.models.system import SystemSettings
 from shared.models.user import User
 from src.api.v2._helpers import ok, _catch
 from src.unified_logger import default_logger as logger
-from src.utils.database.main import get_async_session
+from src.utils.database.unified_manager import get_db_session as get_async_session
 
 router = APIRouter(tags=["home"])
 
@@ -368,7 +368,7 @@ async def get_home_menus(request: Request = None):
     获取首页菜单配置
     从数据库获取所有已激活的菜单及其菜单项
     """
-    from src.utils.database.main import get_async_session as get_async_db_session
+    from src.utils.database.unified_manager import get_db_session as get_async_db_session
     from src.utils.menu_builder import get_all_menus_with_items_async
 
     # 获取数据库会话

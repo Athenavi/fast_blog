@@ -1,7 +1,6 @@
 """
 打赏系统 API
-提供文章打赏、统计、排行榜等功能
-"""
+提供文章打赏、统计、排行榜等功�?"""
 
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy import select
@@ -12,7 +11,7 @@ from shared.models.user import User as UserModel
 from shared.services.ecommerce.tipping_system import tipping_system
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["tips"])
 
@@ -22,20 +21,19 @@ router = APIRouter(tags=["tips"])
 async def tip_article(
         article_id: int = Body(..., description="文章ID"),
         amount: float = Body(..., ge=1, le=10000, description="打赏金额"),
-        message: str = Body('', description="留言(可选)"),
+    message: str = Body('', description="留言(可�?"),
         payment_method: str = Body('balance', enum=['balance', 'wechat', 'alipay'], description="支付方式"),
     current_user: UserModel = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """对文章进行打赏"""
-    # 从数据库查询文章的实际作者
-    article_query = select(Article.user_id).where(Article.id == article_id)
+    """对文章进行打�?""
+    # 从数据库查询文章的实际作�?    article_query = select(Article.user_id).where(Article.id == article_id)
     article_result = await db.execute(article_query)
     article_author_id = article_result.scalar_one_or_none()
     if article_author_id is None:
-        return fail('文章不存在')
+        return fail('文章不存�?)
     if article_author_id == current_user.id:
-        return fail('不能打赏自己的文章')
+        return fail('不能打赏自己的文�?)
 
     tip = tipping_system.create_tip(
         from_user_id=current_user.id, to_user_id=article_author_id,
@@ -53,7 +51,8 @@ async def get_article_tips(
     limit: int = Query(50, ge=1, le=200, description="返回数量"),
     current_user=Depends(jwt_required)
 ):
-    """获取文章的打赏记录列表（需登录）"""
+    """
+    获取文章的打赏记录列表（需登录�?""
     tips = tipping_system.get_article_tips(article_id, limit=limit)
     stats = tipping_system.get_article_tip_stats(article_id)
     return ok(data={'tips': tips, 'stats': stats, 'count': len(tips)})
@@ -65,7 +64,7 @@ async def get_my_received_tips(
         limit: int = Query(100, ge=1, le=500, description="返回数量"),
     current_user: UserModel = Depends(jwt_required)
 ):
-    """获取当前用户收到的打赏记录"""
+    """获取当前用户收到的打赏记�?""
     tips = tipping_system.get_user_received_tips(current_user.id, limit=limit)
     stats = tipping_system.get_user_tip_stats(current_user.id)
     return ok(data={'tips': tips, 'stats': stats, 'count': len(tips)})
@@ -74,19 +73,20 @@ async def get_my_received_tips(
 @router.get("/my-stats", summary="获取我的打赏统计")
 @_catch
 async def get_my_tip_stats(current_user: UserModel = Depends(jwt_required)):
-    """获取当前用户的打赏统计数据"""
+    """
+    获取当前用户的打赏统计数�?""
     stats = tipping_system.get_user_tip_stats(current_user.id)
     return ok(data=stats)
 
 
-@router.get("/leaderboard", summary="获取打赏排行榜")
+@router.get("/leaderboard", summary="获取打赏排行�?)
 @_catch
 async def get_tipping_leaderboard(
         period: str = Query('all', enum=['all', 'month', 'week'], description="时间周期"),
     limit: int = Query(100, ge=1, le=500, description="返回数量"),
     current_user=Depends(jwt_required)
 ):
-    """获取打赏排行榜（需登录）"""
+    """获取打赏排行榜（需登录�?""
     leaderboard = tipping_system.get_tipping_leaderboard(period=period, limit=limit)
     return ok(data={'leaderboard': leaderboard, 'count': len(leaderboard), 'period': period})
 
@@ -94,35 +94,37 @@ async def get_tipping_leaderboard(
 @router.get("/preset-amounts", summary="获取预设打赏金额")
 @_catch
 async def get_preset_amounts(current_user=Depends(jwt_required)):
-    """获取系统预设的打赏金额选项（需登录）"""
+    """
+    获取系统预设的打赏金额选项（需登录�?""
     amounts = tipping_system.get_preset_amounts()
     return ok(data={'amounts': amounts, 'min_amount': tipping_system.min_amount, 'max_amount': tipping_system.max_amount})
 
 
-@router.get("/recent", summary="获取最近打赏记录")
+@router.get("/recent", summary="获取最近打赏记�?)
 @_catch
 async def get_recent_tips(limit: int = Query(20, ge=1, le=100, description="返回数量"),
                           current_user=Depends(jwt_required)):
-    """获取全站最近的打赏记录（需登录）"""
+    """获取全站最近的打赏记录（需登录�?""
     tips = tipping_system.get_recent_tips(limit=limit)
     return ok(data={'tips': tips, 'count': len(tips)})
 
 
-@router.post("/refund", summary="退款打赏")
+@router.post("/refund", summary="退款打�?)
 @_catch
 async def refund_tip(
         tip_id: str = Body(..., description="打赏ID"),
-        reason: str = Body('', description="退款原因"),
+        reason: str = Body('', description="退款原�?),
     current_user: UserModel = Depends(jwt_required)
 ):
-    """申请退款打赏"""
+    """
+    申请退款打�?""
     success = tipping_system.refund_tip(tip_id, from_user_id=current_user.id, reason=reason)
     if success:
-        return ok(data={'tip_id': tip_id}, message='退款成功')
-    return fail('退款失败(打赏不存在或已退款)')
+        return ok(data={'tip_id': tip_id}, message='退款成�?)
+    return fail('退款失�?打赏不存在或已退�?')
 
 
-@router.get("/balance", summary="获取可提现余额")
+@router.get("/balance", summary="获取可提现余�?)
 @_catch
 async def get_available_balance(current_user: UserModel = Depends(jwt_required)):
     """获取当前用户的可提现余额信息"""
@@ -147,7 +149,7 @@ async def request_withdrawal(
         'withdrawal_id': withdrawal['withdrawal_id'], 'amount': withdrawal['amount'],
         'fee': withdrawal['fee'], 'actual_amount': withdrawal['actual_amount'],
         'status': withdrawal['status'],
-    }, message='提现申请已提交')
+    }, message='提现申请已提�?)
 
 
 @router.get("/my-withdrawals", summary="获取我的提现记录")
@@ -156,33 +158,34 @@ async def get_my_withdrawals(
         limit: int = Query(50, ge=1, le=200, description="返回数量"),
     current_user: UserModel = Depends(jwt_required)
 ):
-    """获取当前用户的提现记录"""
-    withdrawals = tipping_system.get_user_withdrawals(current_user.id, limit=limit)
-    return ok(data={'withdrawals': withdrawals, 'count': len(withdrawals)})
+        """获取当前用户的提现记�?""
+        withdrawals = tipping_system.get_user_withdrawals(current_user.id, limit=limit)
+        return ok(data={'withdrawals': withdrawals, 'count': len(withdrawals)})
 
 
-@router.post("/cancel-withdrawal/{withdrawal_id}", summary="取消提现申请")
-@_catch
-async def cancel_withdrawal(
-        withdrawal_id: str,
-    current_user: UserModel = Depends(jwt_required)
-):
-    """取消提现申请（仅限pending状态）"""
+    @router.post("/cancel-withdrawal/{withdrawal_id}", summary="取消提现申请")
+    @_catch
+    async def cancel_withdrawal(
+            withdrawal_id: str,
+        current_user: UserModel = Depends(jwt_required)
+    ):
+        """取消提现申请（仅限pending状态）"""
     success = tipping_system.cancel_withdrawal(withdrawal_id, current_user.id)
     if success:
-        return ok(data=None, message='提现申请已取消')
+        return ok(data=None, message='提现申请已取�?)
     return fail('取消失败(提现不存在或状态不允许取消)')
 
 
-@router.post("/admin/process-withdrawal", summary="处理提现申请（管理员）")
+@router.post("/admin/process-withdrawal", summary="处理提现申请（管理员�?)
 @_catch
 async def admin_process_withdrawal(
         withdrawal_id: str = Body(..., description="提现ID"),
         status: str = Body('completed', enum=['completed', 'rejected'], description="处理结果"),
-        admin_note: str = Body('', description="管理员备注"),
+        admin_note: str = Body('', description="管理员备�?),
     current_user: UserModel = Depends(jwt_required)
 ):
-    """管理员处理提现申请"""
+    """
+        管理员处理提现申�?""
     if not current_user.is_superuser:
         return fail('需要管理员权限')
     success = tipping_system.process_withdrawal(

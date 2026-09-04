@@ -15,7 +15,7 @@ from shared.models.article import Article
 from shared.models.social import ShareStat
 from src.api.v2._base import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session
+from src.utils.database.unified_manager import get_db_session as get_async_session
 
 _router = None
 

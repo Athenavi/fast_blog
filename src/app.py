@@ -364,7 +364,7 @@ async def _warm_permission_cache():
         from src.api.v3._permission import _memory_cache
         from src.utils.database.unified_manager import db_manager
 
-        async with db_manager.get_async_session() as db:
+        async with db_manager.get_session() as db:
             # 找出所有 superuser
             result = await db.execute(
                 select(User.id).where(User.is_superuser == True, User.is_active == True)
@@ -858,7 +858,7 @@ def create_app(config=None):
     from fastapi.responses import FileResponse as _FileResponse
     from sqlalchemy import select as _select
     from src.auth import jwt_optional_dependency as _jwt_optional
-    from src.extensions import get_async_db_session as _get_async_db
+    from src.utils.database.unified_manager import get_db_session as _get_async_db
 
     async def _serve_storage_asset(
         asset_path: str,

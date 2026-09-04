@@ -10,7 +10,7 @@ from shared.models.article import Article
 from shared.models.category import Category, CategorySubscription
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from shared.services.plugins.event_bus import event_bus
 
 router = APIRouter(tags=["category-management"])
@@ -24,7 +24,7 @@ async def create_category_api(
     """
     创建分类API
     """
-    # 检查用户权限 - 只有超级用户才能创建分类
+    # 检查用户权�?- 只有超级用户才能创建分类
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -40,8 +40,7 @@ async def create_category_api(
         return fail('分类名称不能为空')
 
     if parent_id is not None:
-        # 验证父分类存在且不构成循环引用
-        parent = await db.scalar(select(Category.id).where(Category.id == parent_id))
+        # 验证父分类存在且不构成循环引�?        parent = await db.scalar(select(Category.id).where(Category.id == parent_id))
         if not parent:
             return fail(f'父分类不存在: parent_id={parent_id}')
 
@@ -49,10 +48,9 @@ async def create_category_api(
     existing_category_result = await db.execute(select(Category).filter_by(name=name))
     existing_category = existing_category_result.scalar_one_or_none()
     if existing_category:
-        return fail('分类名称已存在')
+        return fail('分类名称已存�?)
 
-    # 创建新分类
-    category = Category(
+        # 创建新分�?    category = Category(
         name=name,
         description=description,
         parent_id=parent_id
@@ -82,7 +80,7 @@ async def update_category_api(
     """
     更新分类API
     """
-    # 检查用户权限 - 只有超级用户才能更新分类
+    # 检查用户权�?- 只有超级用户才能更新分类
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -92,7 +90,7 @@ async def update_category_api(
     category_result = await db.execute(select(Category).filter_by(id=category_id))
     category = category_result.scalar_one_or_none()
     if not category:
-        return fail("分类不存在")
+        return fail("分类不存�?)
 
     form_data = await request.json()
     name = form_data.get('name')
@@ -103,19 +101,17 @@ async def update_category_api(
         return fail('分类名称不能为空')
 
     if parent_id is not None:
-        # 验证父分类存在且不构成循环引用
-        if parent_id == category_id:
+        # 验证父分类存在且不构成循环引�?        if parent_id == category_id:
             return fail('分类不能将自身设为父分类')
         parent = await db.scalar(select(Category.id).where(Category.id == parent_id))
         if not parent:
             return fail(f'父分类不存在: parent_id={parent_id}')
 
-    # 检查新名称是否与其他分类冲突
-    existing_category_result = await db.execute(
+    # 检查新名称是否与其他分类冲�?    existing_category_result = await db.execute(
         select(Category).filter_by(name=name).filter(Category.id != category_id))
     existing_category = existing_category_result.scalar_one_or_none()
     if existing_category:
-        return fail('分类名称已存在')
+        return fail('分类名称已存�?)
 
     # 更新分类
     category.name = name
@@ -145,18 +141,16 @@ async def get_categories_with_stats_api(
     """
     获取分类列表及统计信息API
     """
-    # 检查用户权限 - 只有超级用户才能访问
+    # 检查用户权�?- 只有超级用户才能访问
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="The user doesn't have enough privileges"
         )
 
-    # 计算偏移量
-    offset = (page - 1) * per_page
+        # 计算偏移�?    offset = (page - 1) * per_page
 
-    # 查询分类及其关联的统计信息
-    category_stats_query = (
+        # 查询分类及其关联的统计信�?    category_stats_query = (
         select(
             Category,
             func.coalesce(func.count(func.distinct(Article.id)), 0).label('article_count'),
@@ -222,7 +216,7 @@ async def delete_category_api(
     """
     删除分类API
     """
-    # 检查用户权限 - 只有超级用户才能删除分类
+    # 检查用户权�?- 只有超级用户才能删除分类
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -232,14 +226,14 @@ async def delete_category_api(
     category_result = await db.execute(select(Category).filter_by(id=category_id))
     category = category_result.scalar_one_or_none()
     if not category:
-        return fail("分类不存在")
+        return fail("分类不存�?)
 
     # 检查是否有文章属于这个分类
     articles_count_query = await db.execute(
         select(func.count()).select_from(Article).filter_by(category=category_id))
     articles_count = articles_count_query.scalar()
     if articles_count > 0:
-        return fail("无法删除：该分类下还有文章")
+            return fail("无法删除：该分类下还有文�?)
 
     # 删除分类
     await db.delete(category)
@@ -268,7 +262,7 @@ async def reorder_categories_api(
         ]
     }
     """
-    # 检查用户权限 - 只有超级用户才能排序分类
+    # 检查用户权�?- 只有超级用户才能排序分类
     if not current_user.is_superuser:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -284,8 +278,7 @@ async def reorder_categories_api(
     # 提取分类ID列表
     category_ids = [item['id'] for item in categories_data]
 
-    # 查询所有分类
-    query = select(Category).where(Category.id.in_(category_ids))
+    # 查询所有分�?    query = select(Category).where(Category.id.in_(category_ids))
     result = await db.execute(query)
     categories = {category.id: category for category in result.scalars().all()}
 

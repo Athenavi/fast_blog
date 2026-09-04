@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.config.settings import settings
 from shared.services.chat.yjs_collaboration import yjs_collaboration_service
 from src.api.v2._helpers import ok, _catch
-from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 logger = logging.getLogger(__name__)
 

@@ -9,7 +9,7 @@ from sqlalchemy import select, func
 
 from shared.models.article import Article
 from src.extensions import cache
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 from src.utils.filters import f2list
 
 logger = logging.getLogger('tags')
@@ -42,7 +42,7 @@ def _build_router():
 async def _load_unique_tags():
     """从数据库加载去重后的标签列表（仅缓存未命中时执行）"""
     logger.info("标签缓存未命中，重新加载...")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         result = await db.execute(
             select(Article.tags_list).where(
                 Article.tags_list.isnot(None),

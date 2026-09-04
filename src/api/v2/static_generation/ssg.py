@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.static_generation.static_site_generator import ssg_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import admin_required
-from src.utils.database.main import get_async_session
+from src.utils.database.unified_manager import get_db_session as get_async_session
 
 router = APIRouter(tags=["Static Site Generation"], dependencies=[Depends(admin_required)])
 

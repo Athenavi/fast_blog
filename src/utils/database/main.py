@@ -273,7 +273,7 @@ async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
     不应用于 FastAPI 的 Depends() 依赖注入。
 
     使用示例：
-        async with get_async_session_context() as session:
+        async with db_manager.get_session() as session:
             result = await session.execute(query)
     """
     # 委托给统一管理器

@@ -8,7 +8,7 @@ from sqlalchemy import select
 
 from shared.models.article import Article, ArticleContent
 from src.mcp._context import get_user_ctx
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 
 def _require_auth():
@@ -33,7 +33,7 @@ async def create_article(arguments: dict) -> dict:
     slug = title.lower().replace(" ", "-")[:200]
     status_str = arguments.get("status", "draft")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         try:
             article = Article(
                 title=title, slug=slug, excerpt=content[:200], user=ctx.id,
@@ -61,7 +61,7 @@ async def update_article(arguments: dict) -> dict:
         raise ValueError("文章ID不能为空")
 
     now = datetime.utcnow()
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
             raise ValueError(f"文章 #{article_id} 不存在")
@@ -93,7 +93,7 @@ async def delete_article(arguments: dict) -> dict:
     if not article_id:
         raise ValueError("文章ID不能为空")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
             raise ValueError(f"文章 #{article_id} 不存在")
@@ -126,7 +126,7 @@ async def search_articles(arguments: dict) -> list:
     except Exception:
         pass
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         pattern = f"%{query_text}%"
         articles = (await db.execute(
             select(Article).where(Article.status == 1)

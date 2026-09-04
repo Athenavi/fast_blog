@@ -1,8 +1,7 @@
 """
 百度统计集成 API
 
-提供百度统计配置管理和追踪代码生成功能
-"""
+提供百度统计配置管理和追踪代码生成功�?"""
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -12,22 +11,22 @@ from shared.services.analytics.baidu_analytics_service import baidu_analytics_se
 from src.api.v2._helpers import ok, fail, _catch
 from src.api.v2.system.multisite import check_admin_permission
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["baidu-analytics"])
 
 
 async def get_baidu_config(
-        site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置）"),
+    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取百度统计配置
-    
+
     Args:
         site_id: 站点 ID（可选）
-        
+
     Returns:
         百度统计配置
     """
@@ -66,12 +65,10 @@ async def create_baidu_config(
 ):
     """
     创建百度统计配置
-    
+
     Returns:
-        创建的配置
-    """
-    # 检查权限
-    has_permission = await check_admin_permission(db, current_user.id)
+        创建的配�?    """
+    # 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -103,16 +100,15 @@ async def update_baidu_config(
 ):
     """
     更新百度统计配置
-    
+
     Args:
         config_id: 配置 ID
         updates: 更新字段
-        
+
     Returns:
         更新后的配置
     """
-    # 检查权限
-    has_permission = await check_admin_permission(db, current_user.id)
+    # 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -136,15 +132,14 @@ async def deactivate_baidu_config(
 ):
     """
     停用百度统计配置
-    
+
     Args:
         config_id: 配置 ID
-        
+
     Returns:
         操作结果
     """
-    # 检查权限
-    has_permission = await check_admin_permission(db, current_user.id)
+    # 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -158,16 +153,16 @@ async def deactivate_baidu_config(
 @router.get("/tracking-code", summary="获取百度统计追踪代码")
 @_catch
 async def get_tracking_code(
-        site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置）"),
+    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取百度统计追踪代码（用于前端嵌入）
-    
+
     Args:
         site_id: 站点 ID（可选）
-        
+
     Returns:
         HTML/JavaScript 追踪代码
     """
@@ -192,24 +187,21 @@ async def get_tracking_code(
     )
 
 
-@router.get("/configs", summary="获取所有百度统计配置")
+@router.get("/configs", summary="获取所有百度统计配�?)
 @_catch
 async def get_all_configs(
-        include_inactive: bool = Query(False, description="是否包含非活动配置"),
+    include_inactive: bool = Query(False, description="是否包含非活动配�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有百度统计配置（管理员用）
-    
+    获取所有百度统计配置（管理员用�?
     Args:
-        include_inactive: 是否包含非活动配置
-        
+        include_inactive: 是否包含非活动配�?
     Returns:
         配置列表
     """
-    # 检查权限
-    has_permission = await check_admin_permission(db, current_user.id)
+# 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 

@@ -1,6 +1,6 @@
 """
 WordPress 迁移 API - V2 版本
-提供完整的 WordPress 内容迁移功能
+提供完整�?WordPress 内容迁移功能
 """
 import json
 import os
@@ -14,7 +14,7 @@ from shared.models.user import User
 from shared.services.integrations.wordpress_import import WordPressImportService
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
 
 router = APIRouter(prefix="/wordpress", tags=["WordPress Migration"])
@@ -25,26 +25,22 @@ async def parse_wordpress_xml(
         current_user: User = Depends(jwt_required)
 ):
     """
-    解析 WordPress XML 文件并返回预览信息
-
-    支持的文件格式:
+    解析 WordPress XML 文件并返回预览信�?
+    支持的文件格�?
     - WordPress WXR (WordPress eXtended RSS) XML 文件
 
     返回内容:
     - 站点基本信息
-    - 作者列表
-    - 分类和标签
-    - 文章统计
+    - 作者列�?    - 分类和标�?    - 文章统计
     - 媒体文件列表
     """
     if not file.filename.endswith('.xml'):
-        return fail("只支持 .xml 格式的 WordPress 导出文件")
+        return fail("只支�?.xml 格式�?WordPress 导出文件")
 
-    # 限制文件大小（最大 100MB）
-    MAX_FILE_SIZE = 100 * 1024 * 1024
+    # 限制文件大小（最�?100MB�?    MAX_FILE_SIZE = 100 * 1024 * 1024
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支持 100MB")
+        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支�?100MB")
 
     tmp_path = None
     try:
@@ -76,35 +72,31 @@ async def parse_wordpress_xml(
 async def import_wordpress_data(
         background_tasks: BackgroundTasks,
         file: UploadFile = File(..., description="WordPress WXR 导出文件"),
-        user_mapping: Optional[str] = Form(None, description="作者映射 JSON {\"wp_author\": system_user_id}"),
+    user_mapping: Optional[str] = Form(None, description="作者映�?JSON {\"wp_author\": system_user_id}"),
         download_media: bool = Form(False, description="是否下载媒体文件"),
-        create_redirects: bool = Form(True, description="是否创建 URL 重定向规则"),
+    create_redirects: bool = Form(True, description="是否创建 URL 重定向规�?),
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    导入 WordPress 数据到 FastBlog
+    导入 WordPress 数据�?FastBlog
 
     参数说明:
-    - file: WordPress 导出的 WXR XML 文件
+    - file: WordPress 导出�?WXR XML 文件
     - user_mapping: 作者映射，JSON 格式 {"wordpress_author_login": system_user_id}
-    - download_media: 是否下载媒体文件（会异步执行）
-    - create_redirects: 是否自动创建旧 URL 到新 URL 的 301 重定向
-
+    - download_media: 是否下载媒体文件（会异步执行�?    - create_redirects: 是否自动创建�?URL 到新 URL �?301 重定�?
     导入内容:
-    - 文章和页面
-    - 分类
+    - 文章和页�?    - 分类
     - 评论
     - 媒体文件引用（可选下载）
     """
     if not file.filename.endswith('.xml'):
-        return fail("只支持 .xml 格式的 WordPress 导出文件")
+    return fail("只支�?.xml 格式�?WordPress 导出文件")
 
-    # 限制文件大小（最大 100MB）
-    MAX_FILE_SIZE = 100 * 1024 * 1024
+# 限制文件大小（最�?100MB�?    MAX_FILE_SIZE = 100 * 1024 * 1024
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支持 100MB")
+        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支�?100MB")
 
     tmp_path = None
     try:
@@ -126,7 +118,7 @@ async def import_wordpress_data(
             try:
                 mapping_dict = json.loads(user_mapping)
             except json.JSONDecodeError:
-                return fail("用户映射格式错误，请使用有效的 JSON 格式")
+                return fail("用户映射格式错误，请使用有效�?JSON 格式")
 
         # 导入到数据库
         import_result = await importer.import_to_database(
@@ -160,14 +152,13 @@ async def import_wordpress_data(
             'media_download': media_download_task
         }
 
-        # 如果创建了重定向规则，添加到响应中
-        if create_redirects and import_result['results'].get('redirects'):
+        # 如果创建了重定向规则，添加到响应�?        if create_redirects and import_result['results'].get('redirects'):
             response_data['redirects_count'] = len(import_result['results']['redirects'])
             response_data['redirects_sample'] = import_result['results']['redirects'][:5]
 
         return ok(
             data=response_data,
-            msg=f"成功导入 {import_result['results']['imported_articles']} 篇文章"
+            msg=f"成功导入 {import_result['results']['imported_articles']} 篇文�?
         )
 
     finally:
@@ -191,62 +182,60 @@ async def _download_media_background(media_list: list, user_id: int):
         logger.error(f"媒体下载失败: {str(e)}")
 
 
-@router.get("/template", summary="获取导入模板和指南")
+@router.get("/template", summary="获取导入模板和指�?)
 async def get_import_template():
     """
-    获取 WordPress 导入指南和模板说明
-
-    返回详细的导入步骤、支持的内容类型和注意事项
-    """
+    获取 WordPress 导入指南和模板说�?
+    返回详细的导入步骤、支持的内容类型和注意事�?    """
     return ok(
         data={
             'title': 'WordPress 迁移指南',
             'steps': [
                 {
                     'step': 1,
-                    'title': '从 WordPress 导出数据',
-                    'description': '在 WordPress 后台进入 工具 > 导出，选择 "所有内容" 并下载导出文件'
+                    'title': '�?WordPress 导出数据',
+                    'description': '�?WordPress 后台进入 工具 > 导出，选择 "所有内�? 并下载导出文�?
                 },
                 {
                     'step': 2,
-                    'title': '上传并预览',
-                    'description': '上传下载的 .xml 文件，系统会解析并显示可导入的内容统计'
+                    'title': '上传并预�?,
+                             'description': '上传下载�?.xml 文件，系统会解析并显示可导入的内容统�?
                 },
                 {
                     'step': 3,
-                    'title': '配置作者映射',
-                    'description': '将 WordPress 作者映射到 FastBlog 系统中的用户（可选）'
+                    'title': '配置作者映�?,
+                             'description': '�?WordPress 作者映射到 FastBlog 系统中的用户（可选）'
                 },
                 {
                     'step': 4,
                     'title': '选择选项',
-                    'description': '选择是否下载媒体文件、是否创建 URL 重定向规则'
+                    'description': '选择是否下载媒体文件、是否创�?URL 重定向规�?
                 },
                 {
                     'step': 5,
-                    'title': '开始导入',
+                    'title': '开始导�?,
                     'description': '确认配置后开始导入，系统会显示导入进度和结果报告'
                 }
             ],
             'supported_content': [
                 {'type': 'article', 'name': '文章', 'description': '包括标题、内容、摘要、状态等'},
-                {'type': 'page', 'name': '页面', 'description': '静态页面内容'},
+                {'type': 'page', 'name': '页面', 'description': '静态页面内�?},
                 {'type': 'category', 'name': '分类', 'description': '文章分类结构'},
-                {'type': 'comment', 'name': '评论', 'description': '文章评论及回复'},
-                {'type': 'media', 'name': '媒体', 'description': '媒体文件引用（可选下载原文件）'}
+                {'type': 'comment', 'name': '评论', 'description': '文章评论及回�?},
+                 {'type': 'media', 'name': '媒体', 'description': '媒体文件引用（可选下载原文件�?}
             ],
             'not_supported': [
-                {'type': 'plugin_data', 'name': '插件数据', 'reason': 'WordPress 插件数据格式不兼容'},
-                {'type': 'theme_settings', 'name': '主题设置', 'reason': '主题配置需要手动重新配置'},
-                {'type': 'widgets', 'name': '小工具', 'reason': '小工具配置需要手动重新设置'}
+                {'type': 'plugin_data', 'name': '插件数据', 'reason': 'WordPress 插件数据格式不兼�?},
+                 {'type': 'theme_settings', 'name': '主题设置', 'reason': '主题配置需要手动重新配�?},
+                  {'type': 'widgets', 'name': '小工�?, 'reason': '小工具配置需要手动重新设�?}
             ],
             'important_notes': [
                 '导入前建议备份当前数据库',
-                '重复的文章（slug 相同）会被自动跳过',
-                '媒体文件默认只保留引用链接，可选择下载原文件',
-                'URL 重定向规则会自动创建，帮助 SEO 保持连续性',
+                '重复的文章（slug 相同）会被自动跳�?,
+                '媒体文件默认只保留引用链接，可选择下载原文�?,
+                'URL 重定向规则会自动创建，帮�?SEO 保持连续�?,
                 '大型文件导入可能需要较长时间，请耐心等待',
-                '导入过程中可以随时查看日志了解进度'
+                '导入过程中可以随时查看日志了解进�?
             ],
             'example_user_mapping': {
                 'admin': 1,
@@ -255,10 +244,10 @@ async def get_import_template():
             },
             'tips': [
                 '建议在测试环境先进行导入测试',
-                '检查导入后的文章格式是否正确',
-                '验证分类和标签是否正确关联',
-                '测试 URL 重定向是否正常工作',
-                '检查媒体文件链接是否有效'
+                '检查导入后的文章格式是否正�?,
+                '验证分类和标签是否正确关�?,
+                '测试 URL 重定向是否正常工�?,
+                '检查媒体文件链接是否有�?
             ]
         }
     )
@@ -270,18 +259,15 @@ async def validate_wordpress_file(
         file: UploadFile = File(..., description="WordPress WXR 导出文件")
 ):
     """
-    验证 WordPress 导出文件的有效性
-
-    检查文件格式、必需字段和数据结构完整性
-    """
+    验证 WordPress 导出文件的有效�?
+    检查文件格式、必需字段和数据结构完整�?    """
     if not file.filename.endswith('.xml'):
-        return fail("只支持 .xml 格式的文件")
+        return fail("只支�?.xml 格式的文�?)
 
-    # 限制文件大小（最大 100MB）
-    MAX_FILE_SIZE = 100 * 1024 * 1024
+        # 限制文件大小（最�?100MB�?    MAX_FILE_SIZE = 100 * 1024 * 1024
     content = await file.read()
     if len(content) > MAX_FILE_SIZE:
-        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支持 100MB")
+            return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支�?100MB")
 
     tmp_path = None
     try:
@@ -300,10 +286,10 @@ async def validate_wordpress_file(
         warnings = []
 
         if stats['total_articles'] == 0:
-            warnings.append("文件中没有找到文章")
+            warnings.append("文件中没有找到文�?)
 
         if stats['total_categories'] == 0:
-            warnings.append("文件中没有找到分类")
+            warnings.append("文件中没有找到分�?)
 
         return ok(
             data={
@@ -320,20 +306,17 @@ async def validate_wordpress_file(
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
 
-
-@router.get("/status/{task_id}", summary="查询导入任务状态")
+    @router.get("/status/{task_id}", summary="查询导入任务状�?)
 @_catch
 async def get_import_status(
         task_id: str,
         current_user: User = Depends(jwt_required)
 ):
     """
-    查询异步导入任务的状态
-
+    查询异步导入任务的状�?
     用于跟踪大型文件导入或媒体下载的进度
     """
-    # 通过 Redis 查询任务状态
-    task_data = None
+    # 通过 Redis 查询任务状�?    task_data = None
     try:
         from src.services.redis_service import redis_service
         task_data = await redis_service.get(f"wordpress_migration:{task_id}")
@@ -351,12 +334,11 @@ async def get_import_status(
             }
         )
 
-    # 如果 Redis 中没有数据，返回默认状态
-    return ok(
+        # 如果 Redis 中没有数据，返回默认状�?    return ok(
         data={
             'task_id': task_id,
             'status': 'completed',
             'progress': 100,
-            'message': '导入已完成'
+            'message': '导入已完�?
         }
     )

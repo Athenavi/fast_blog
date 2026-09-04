@@ -16,7 +16,7 @@ from shared.models.enterprise import (
 from shared.models.monitoring import MonitoringAlert, MonitoringMetric
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["enterprise-admin"])
 

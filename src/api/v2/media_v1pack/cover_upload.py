@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.upload.public_upload import FileProcessor, process_single_file
 
 router = APIRouter(tags=["media-cover"])
@@ -26,11 +26,11 @@ async def upload_cover(
     logger.info(f"[cover] handler entered, user={getattr(current_user_obj, 'id', 'N/A')}")
     form = await request.form()
     if 'cover_image' not in form:
-        return JSONResponse({'code': 400, 'msg': '未上传文件'}, status_code=400)
+        return JSONResponse({'code': 400, 'msg': '未上传文�?}, status_code=400)
 
     file: UploadFile = form['cover_image']
     if not file or not file.filename:
-        return JSONResponse({'code': 400, 'msg': '文件名为空'}, status_code=400)
+            return JSONResponse({'code': 400, 'msg': '文件名为�?}, status_code=400)
 
     file_data = await file.read()
 

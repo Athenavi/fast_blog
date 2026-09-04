@@ -2,7 +2,7 @@
 MCP 工作流/协作工具处理器 — 审批/协作/发布
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 from src.mcp.tools._perms import require_superuser, require_role
 
 
@@ -12,7 +12,7 @@ async def list_pending_reviews(arguments: dict) -> dict:
     page = arguments.get("page", 1)
     limit = min(arguments.get("limit", 20), 50)
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.collaboration import ApprovalRecord
         query = select(ApprovalRecord).where(ApprovalRecord.status == "pending")
         total = await db.scalar(select(func.count()).select_from(query.subquery())) or 0
@@ -39,7 +39,7 @@ async def approve_content(arguments: dict) -> dict:
     if not review_id:
         return {"success": False, "error": "请提供审批记录ID"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.collaboration import ApprovalRecord
         record = await db.scalar(select(ApprovalRecord).where(ApprovalRecord.id == int(review_id)))
         if not record:
@@ -59,7 +59,7 @@ async def reject_content(arguments: dict) -> dict:
     if not reason:
         return {"success": False, "error": "请填写驳回原因"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.collaboration import ApprovalRecord
         record = await db.scalar(select(ApprovalRecord).where(ApprovalRecord.id == int(review_id)))
         if not record:
@@ -72,7 +72,7 @@ async def reject_content(arguments: dict) -> dict:
 @require_role("editor")
 async def get_workflow_stats(arguments: dict) -> dict:
     """获取工作流统计"""
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.collaboration import ApprovalRecord
         total = await db.scalar(select(func.count(ApprovalRecord.id))) or 0
         pending = await db.scalar(
@@ -95,7 +95,7 @@ async def get_workflow_stats(arguments: dict) -> dict:
 async def list_collaborators(arguments: dict) -> dict:
     """列出协作成员"""
     workspace_id = arguments.get("workspace_id")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.collaboration import WorkspaceMember
         query = select(WorkspaceMember)
         if workspace_id:
@@ -115,7 +115,7 @@ async def batch_publish_articles(arguments: dict) -> dict:
     if not article_ids:
         return {"success": False, "error": "请提供文章ID列表"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.article import Article
         from datetime import datetime
         published = 0

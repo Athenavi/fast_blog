@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent
 from shared.services.articles.draft_preview_service import draft_preview_service
-from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["preview-view"])
 

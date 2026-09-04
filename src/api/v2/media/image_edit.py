@@ -1,6 +1,5 @@
 """
-图片编辑 API — 裁剪、旋转、滤镜
-"""
+图片编辑 API �?裁剪、旋转、滤�?"""
 
 import asyncio
 import os
@@ -14,7 +13,7 @@ from shared.models.media import Media
 from shared.services.media.image_tool.image_editor import ImageEditor
 from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["image-edit"])
@@ -23,16 +22,16 @@ STORAGE_ROOT = Path("storage").resolve()
 
 
 def _validate_file_path(file_path: str) -> Path:
-    """验证文件路径是否在允许的 storage 目录范围内"""
+    """验证文件路径是否在允许的 storage 目录范围�?""
     if not file_path:
         raise ValueError("文件路径为空")
     resolved = Path(file_path).resolve()
     try:
         resolved.relative_to(STORAGE_ROOT)
     except ValueError:
-        raise ValueError(f"文件路径不在允许的 storage 目录范围内")
+        raise ValueError(f"文件路径不在允许�?storage 目录范围�?)
     if not resolved.exists():
-        raise ValueError("文件不存在")
+        raise ValueError("文件不存�?)
     return resolved
 
 
@@ -42,12 +41,13 @@ async def get_image_info(
     db: AsyncSession = Depends(get_async_db),
     _=Depends(jwt_required),
 ):
-    """获取图片元数据信息"""
+    """
+    获取图片元数据信�?""
     try:
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media:
-            return fail("媒体不存在")
+            return fail("媒体不存�?)
 
         file_path = media.file_path or media.url or ""
         if not file_path:
@@ -77,7 +77,7 @@ async def crop_image(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存在")
+            return fail("媒体不存�?)
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "crop", "x": x, "y": y, "width": width, "height": height}])
@@ -102,7 +102,7 @@ async def rotate_image(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存在")
+            return fail("媒体不存�?)
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "rotate", "degrees": degrees}])
@@ -127,11 +127,11 @@ async def filter_image(
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存在")
+            return fail("媒体不存�?)
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "filter", "filter": filter_type}])
-        return ok(data={"message": f"滤镜 {filter_type} 已应用"})
+        return ok(data={"message": f"滤镜 {filter_type} 已应�?})
     except ValueError as e:
         logger.error(f"滤镜失败: {e}")
         return fail("滤镜应用失败")
@@ -146,12 +146,12 @@ async def grayscale_image(
     db: AsyncSession = Depends(get_async_db),
     _=Depends(jwt_required),
 ):
-    """转为灰度图"""
+    """转为灰度�?""
     try:
         result = await db.execute(select(Media).where(Media.id == media_id))
         media = result.scalar_one_or_none()
         if not media or not media.file_path:
-            return fail("媒体不存在")
+            return fail("媒体不存�?)
 
         validated_path = _validate_file_path(media.file_path)
         await asyncio.to_thread(editor.process_image, str(validated_path), [{"type": "grayscale"}])

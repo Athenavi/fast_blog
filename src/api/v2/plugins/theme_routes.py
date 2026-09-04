@@ -1,9 +1,6 @@
 """
-主题管理 API 端点（V2）
-
-主题以 category="theme" 的插件形式存在，同时只能有一个启用。
-前端 AdminThemeMarketplace.tsx 调用这些端点。
-"""
+主题管理 API 端点（V2�?
+主题�?category="theme" 的插件形式存在，同时只能有一个启用�?前端 AdminThemeMarketplace.tsx 调用这些端点�?"""
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -14,13 +11,13 @@ from shared.services.plugins.plugin_manager.core import plugin_manager
 from shared.services.plugins.plugin_manager.theme_plugin import ThemePlugin
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["themes"])
 
 
 def _get_theme_plugins() -> list[ThemePlugin]:
-    """获取所有 category='theme' 的插件实例"""
+    """获取所�?category='theme' 的插件实�?""
     themes = []
     for plugin in plugin_manager.plugins.values():
         plugin.load_metadata()
@@ -30,26 +27,30 @@ def _get_theme_plugins() -> list[ThemePlugin]:
 
 
 def _get_theme_plugin(slug: str) -> ThemePlugin:
-    """根据 slug 获取主题插件，不存在则抛出 404"""
-    plugin = plugin_manager.get_plugin(slug)
-    if not plugin:
-        raise HTTPException(status_code=404, detail=f"主题未找到: {slug}")
-    plugin.load_metadata()
-    if not plugin.manifest or plugin.manifest.category != "theme":
-        raise HTTPException(status_code=404, detail=f"不是主题插件: {slug}")
-    return plugin
-
-
-# ─── 主题市场 ──────────────────────────
-
-@router.get("/themes/marketplace")
-@_catch
-async def list_marketplace_themes(
-        request: Request,
-        category: str = "all",
-        current_user: User = Depends(jwt_required),
-):
     """
+    根据
+    slug
+    获取主题插件，不存在则抛�?404
+    """
+        plugin = plugin_manager.get_plugin(slug)
+        if not plugin:
+            raise HTTPException(status_code=404, detail=f"主题未找�? {slug}")
+        plugin.load_metadata()
+        if not plugin.manifest or plugin.manifest.category != "theme":
+            raise HTTPException(status_code=404, detail=f"不是主题插件: {slug}")
+        return plugin
+
+
+    # ─── 主题市场 ──────────────────────────
+
+    @router.get("/themes/marketplace")
+    @_catch
+    async def list_marketplace_themes(
+            request: Request,
+            category: str = "all",
+            current_user: User = Depends(jwt_required),
+    ):
+        """
     获取主题市场列表
     当前返回本地主题，未来可扩展为从远程市场获取
     """
@@ -97,7 +98,7 @@ async def list_theme_categories(
     return ok(data=sorted(categories))
 
 
-# ─── 已安装主题 ──────────────────────────
+# ─── 已安装主�?──────────────────────────
 
 @router.get("/themes/installed")
 @_catch
@@ -137,7 +138,10 @@ async def install_theme(
         request: Request,
         current_user: User = Depends(jwt_required),
 ):
-    """安装主题（通过 slug 安装本地主题）"""
+    """
+    安装主题（通过
+    slug
+    安装本地主题�?""
     body = await request.json()
     slug = body.get("slug", "")
     if not slug:
@@ -145,7 +149,7 @@ async def install_theme(
 
     plugin = plugin_manager.get_plugin(slug)
     if not plugin:
-        return fail(f"主题未找到: {slug}")
+        return fail(f"主题未找�? {slug}")
 
     plugin.load_metadata()
     if not plugin.manifest or plugin.manifest.category != "theme":
@@ -162,14 +166,13 @@ async def activate_theme(
         current_user: User = Depends(jwt_required),
 ):
     """
-    激活主题
-    激活新主题时自动停用其他已激活的主题（单例逻辑在 PluginManager 中）
+    激活主�?    激活新主题时自动停用其他已激活的主题（单例逻辑�?PluginManager 中）
     """
     plugin = _get_theme_plugin(slug)
 
     success = plugin_manager.activate_plugin(slug)
     if not success:
-        return fail(f"主题激活失败: {slug}")
+        return fail(f"主题激活失�? {slug}")
 
     return ok(data={
         "slug": slug,
@@ -202,7 +205,7 @@ async def get_theme_config(
         slug: str,
         current_user: User = Depends(jwt_required),
 ):
-    """获取主题配置（设置值 + 设置架构）"""
+    """获取主题配置（设置�?+ 设置架构�?""
     plugin = _get_theme_plugin(slug)
 
     config = plugin.get_theme_config() if hasattr(plugin, 'get_theme_config') else {}
@@ -239,8 +242,7 @@ async def update_theme_config(
         plugin.save_settings()
         success = True
 
-    # 组件槽位覆盖（持久化到 settings._componentSlots）
-    if component_slots and isinstance(component_slots, dict):
+    # 组件槽位覆盖（持久化�?settings._componentSlots�?    if component_slots and isinstance(component_slots, dict):
         plugin.settings["_componentSlots"] = component_slots
         plugin.save_settings()
 
@@ -258,7 +260,10 @@ async def update_theme_config(
 
 @router.get("/themes/active/css")
 async def get_active_theme_css():
-    """返回激活主题的 CSS 内容（无认证，公开端点）"""
+    """
+    返回激活主题的
+    CSS
+    内容（无认证，公开端点�?""
     active_theme = plugin_manager.get_active_theme_plugin()
     if not active_theme:
         return ok(data={"css": ""})

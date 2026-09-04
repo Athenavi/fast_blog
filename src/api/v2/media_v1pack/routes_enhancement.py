@@ -12,7 +12,7 @@ from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["media-enhancement"])
 from src.unified_logger import default_logger as logger
@@ -43,10 +43,9 @@ async def optimize_media_file(
     # 获取文件路径
     file_path = Path(media.file_path)
     if not file_path.exists():
-        return fail("文件不存在")
+        return fail("文件不存�?)
 
-    # 只处理图片
-    if not media.mime_type or not media.mime_type.startswith('image/'):
+        # 只处理图�?    if not media.mime_type or not media.mime_type.startswith('image/'):
         return fail("只能优化图片文件")
 
     # 打开图片
@@ -82,10 +81,10 @@ async def optimize_media_file(
         file_hash.file_size = new_size
         await db.commit()
 
-    logger.info(f"图片优化完成: {media.original_filename}, 原始: {original_size}, 新大小: {new_size} bytes")
+    logger.info(f"图片优化完成: {media.original_filename}, 原始: {original_size}, 新大�? {new_size} bytes")
 
     return ok(
-        message=f"图片优化成功，大小: {_format_file_size(new_size)}",
+        message=f"图片优化成功，大�? {_format_file_size(new_size)}",
         data={'original_size': original_size, 'new_size': new_size}
     )
 
@@ -118,7 +117,7 @@ async def convert_to_webp_endpoint(
     # 获取文件路径
     original_path = Path(media.file_path)
     if not original_path.exists():
-        return fail("文件不存在")
+        return fail("文件不存�?)
 
     # 打开图片
     img = Image.open(original_path)
@@ -156,7 +155,7 @@ async def convert_to_webp_endpoint(
             await db.commit()
 
     return ok(
-        message=f"WebP转换成功，大小: {_format_file_size(webp_size)}",
+        message=f"WebP转换成功，大�? {_format_file_size(webp_size)}",
         data={
             'original_size': original_size,
             'webp_size': webp_size,

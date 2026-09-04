@@ -1,5 +1,5 @@
 """
-OAuth 第三方登录 API 端点
+OAuth 第三方登�?API 端点
 """
 import logging
 
@@ -10,7 +10,7 @@ from shared.services.integrations.oauth_service import oauth_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import create_access_token
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,9 @@ router = APIRouter(tags=["oauth"])
 
 
 async def list_oauth_providers():
-    """获取支持的OAuth提供商列表"""
+    """获取支持的OAuth提供商列�?""
     providers = oauth_service.get_supported_providers()
-    
+
     return ok(data={"providers": providers})
 
 
@@ -32,24 +32,24 @@ async def authorize(
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required)
 ):
-    """生成OAuth授权URL（服务端生成 state 防 CSRF）"""
+    """
+    生成OAuth授权URL（服务端生成
+    state �?CSRF�?""
     import os
     import uuid
     from src.extensions import cache
 
-    # 验证 provider 是否受支持
-    supported = oauth_service.get_supported_providers()
+    # 验证 provider 是否受支�?    supported = oauth_service.get_supported_providers()
     if provider not in supported:
-        return fail(f"不支持的 OAuth 提供商: {provider}，支持: {', '.join(supported)}")
+        return fail(f"不支持的 OAuth 提供�? {provider}，支�? {', '.join(supported)}")
 
     client_id = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_ID", "")
     redirect_uri = request.url_for("oauth_callback", provider=provider).__str__()
 
     if not client_id:
-        return fail(f"未配置 {provider} 的 Client ID")
+        return fail(f"未配�?{provider} �?Client ID")
 
-    # 服务端生成 state（防 CSRF）
-    state = str(uuid.uuid4())
+    # 服务端生�?state（防 CSRF�?    state = str(uuid.uuid4())
     cache.set(f"oauth_state:{state}", str(current_user.id), ex=600)
 
     auth_url = oauth_service.get_authorization_url(
@@ -67,48 +67,43 @@ async def authorize(
 async def oauth_callback(
     provider: str,
     request: Request,
-    code: str = Query(..., description="授权码"),
-    state: str = Query(..., description="CSRF状态"),
+    code: str = Query(..., description="授权�?),
+    state: str = Query(..., description="CSRF状�?),
     db: AsyncSession = Depends(get_async_db)
 ):
     """
     OAuth回调处理
-    
+
     Args:
-        provider: 提供商名称
-        code: 授权码
-        state: CSRF状态
-        
+        provider: 提供商名�?        code: 授权�?        state: CSRF状�?
     Returns:
         用户信息和JWT令牌
     """
     import os
     from src.extensions import cache
 
-    # 验证 provider 是否受支持
-    supported = oauth_service.get_supported_providers()
+# 验证 provider 是否受支�?    supported = oauth_service.get_supported_providers()
     if provider not in supported:
-        return fail(f"不支持的 OAuth 提供商: {provider}")
+    return fail(f"不支持的 OAuth 提供�? {provider}")
 
-    # 验证state（防止CSRF攻击）
-    if not state:
+# 验证state（防止CSRF攻击�?    if not state:
         return fail("缺少state参数")
-    
-    # 从 Redis 获取存储的 state
+
+# �?Redis 获取存储�?state
     stored_state = cache.get(f"oauth_state:{state}")
     if not stored_state:
         return fail("state已过期或无效")
-    
-    # 验证后删除state(一次性使用)
+
+# 验证后删除state(一次性使�?
     cache.delete(f"oauth_state:{state}")
-    
+
     # 获取配置
     client_id = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_ID", "")
     client_secret = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_SECRET", "")
     redirect_uri = request.url_for("oauth_callback", provider=provider).__str__()
-    
+
     if not client_id or not client_secret:
-        return fail(f"未配置 {provider} 的 Client ID/Secret")
+        return fail(f"未配�?{provider} �?Client ID/Secret")
 
     # 1. 用授权码交换访问令牌
     token_result = await oauth_service.exchange_code_for_token(
@@ -135,8 +130,7 @@ async def oauth_callback(
 
     user_info = user_info_result["user"]
 
-    # 3. 查找或创建用户
-    from shared.models.user import User
+# 3. 查找或创建用�?    from shared.models.user import User
     from shared.models.o_auth_account import OAuthAccount
     from sqlalchemy import select
     from datetime import datetime
@@ -152,8 +146,7 @@ async def oauth_callback(
     user = None
 
     if oauth_account:
-        # OAuth账号已存在，直接获取关联的用户
-        user_query = select(User).where(User.id == oauth_account.user_id)
+        # OAuth账号已存在，直接获取关联的用�?        user_query = select(User).where(User.id == oauth_account.user_id)
         user_result = await db.execute(user_query)
         user = user_result.scalar_one_or_none()
 
@@ -187,15 +180,12 @@ async def oauth_callback(
             db.add(oauth_account)
 
         else:
-            # 创建新用户
-            logger.info(f"[OAuth] Creating new user from {provider}")
+            # 创建新用�?            logger.info(f"[OAuth] Creating new user from {provider}")
 
-            # 生成唯一用户名
-            username = user_info.get('username') or user_info.get(
+            # 生成唯一用户�?            username = user_info.get('username') or user_info.get(
                 'name') or f"{provider}_{user_info.get('provider_id')}"
 
-            # 检查用户名是否已存在
-            existing_username = await db.execute(
+            # 检查用户名是否已存�?            existing_username = await db.execute(
                 select(User).where(User.username == username)
             )
             if existing_username.scalar_one_or_none():
@@ -250,20 +240,17 @@ async def oauth_callback(
 @_catch
 async def bind_oauth_account(
         request: Request,
-        provider: str = Query(..., description="OAuth提供商"),
-        code: str = Query(..., description="授权码"),
+    provider: str = Query(..., description="OAuth提供�?),
+    code: str = Query(..., description="授权�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    绑定OAuth账号到当前登录用户
-    
+    绑定OAuth账号到当前登录用�?
     用于将第三方账号绑定到现有账户，实现统一账号管理
-    
+
     Args:
-        provider: OAuth提供商
-        code: 授权码
-        
+        provider: OAuth提供�?        code: 授权�?
     Returns:
         绑定结果
     """
@@ -278,7 +265,7 @@ async def bind_oauth_account(
     redirect_uri = str(request.base_url) + f"api/v1/oauth/callback/{provider}"
 
     if not client_id or not client_secret:
-        return fail(f"未配置 {provider} 的 Client ID/Secret")
+    return fail(f"未配�?{provider} �?Client ID/Secret")
 
     # 1. 用授权码交换访问令牌
     token_result = await oauth_service.exchange_code_for_token(
@@ -317,19 +304,18 @@ async def bind_oauth_account(
 
     if existing:
         if existing.user_id == current_user.id:
-            return fail(f"此{provider}账号已经绑定到您的账户")
+            return fail(f"此{provider}账号已经绑定到您的账�?)
         else:
             return fail(f"此{provider}账号已绑定到其他账户")
 
-    # 4. 检查当前用户是否已绑定该提供商的账号
-    existing_binding = await db.execute(
+        # 4. 检查当前用户是否已绑定该提供商的账�?    existing_binding = await db.execute(
         select(OAuthAccount).where(
             (OAuthAccount.user_id == current_user.id) &
             (OAuthAccount.provider == provider)
         )
     )
     if existing_binding.scalar_one_or_none():
-        return fail(f"您的账户已绑定{provider}账号，请先解绑")
+    return fail(f"您的账户已绑定{provider}账号，请先解�?)
 
     # 5. 创建绑定关系
     new_oauth = OAuthAccount(
@@ -355,16 +341,15 @@ async def bind_oauth_account(
 @router.post("/unbind-account")
 @_catch
 async def unbind_oauth_account(
-        provider: str = Query(..., description="OAuth提供商"),
+    provider: str = Query(..., description="OAuth提供�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     解绑OAuth账号
-    
+
     Args:
-        provider: OAuth提供商
-        
+        provider: OAuth提供�?
     Returns:
         解绑结果
     """
@@ -400,10 +385,9 @@ async def get_linked_accounts(
 ):
     """
     获取当前用户绑定的所有OAuth账号
-    
+
     Returns:
-        绑定的账号列表
-    """
+        绑定的账号列�?    """
     from shared.models.o_auth_account import OAuthAccount
     from sqlalchemy import select
 
@@ -438,16 +422,15 @@ async def unlink_oauth_account(
 ):
     """
     解绑OAuth账号
-    
+
     Args:
-        provider: 提供商名称
-        
+        provider: 提供商名�?
     Returns:
         解绑结果
     """
     from shared.models import OAuthAccount, User
     from sqlalchemy import select, func
-    
+
     # 1. 从数据库中删除用户的OAuth关联
     stmt = select(OAuthAccount).where(
         OAuthAccount.user_id == current_user.id,
@@ -455,31 +438,28 @@ async def unlink_oauth_account(
     )
     result = await db.execute(stmt)
     oauth_account = result.scalar_one_or_none()
-    
+
     if not oauth_account:
-        return fail(f"未绑定 {provider} 账号")
-    
-    # 2. 确保用户至少有一个登录方式
-    # 检查是否还有其他OAuth账号或密码
-    stmt = select(func.count(OAuthAccount.id)).where(
+        return fail(f"未绑�?{provider} 账号")
+
+        # 2. 确保用户至少有一个登录方�?    # 检查是否还有其他OAuth账号或密�?    stmt = select(func.count(OAuthAccount.id)).where(
         OAuthAccount.user_id == current_user.id
     )
     result = await db.execute(stmt)
     oauth_count = result.scalar() or 0
-    
+
     # 检查是否有密码
     user_stmt = select(User).where(User.id == current_user.id)
     user_result = await db.execute(user_stmt)
     user = user_result.scalar_one_or_none()
-    
+
     has_password = user and user.password
-    
-    # 如果只有这一个OAuth账号且没有密码，不允许解绑
-    if oauth_count <= 1 and not has_password:
+
+    # 如果只有这一个OAuth账号且没有密码，不允许解�?    if oauth_count <= 1 and not has_password:
         return fail("至少需要保留一个登录方式，请先设置密码")
-    
+
     # 删除OAuth关联
     await db.delete(oauth_account)
     await db.commit()
-    
-    return ok(msg=f"已解绑 {provider} 账号")
+
+    return ok(msg=f"已解�?{provider} 账号")

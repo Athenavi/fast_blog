@@ -4,14 +4,14 @@ MCP 系统管理工具处理器 — 设置/备份/Webhook/迁移
 from sqlalchemy import select
 
 from src.mcp.tools._perms import require_superuser
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 
 @require_superuser
 async def get_settings(arguments: dict) -> dict:
     """获取系统设置"""
     key = arguments.get("key", "")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         query = select(SystemSettings)
         if key:
@@ -28,7 +28,7 @@ async def update_settings(arguments: dict) -> dict:
     if not isinstance(settings, dict) or not settings:
         return {"success": False, "error": "请提供要更新的设置键值对"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         from sqlalchemy import select
         updated = 0
@@ -93,7 +93,7 @@ async def get_system_info(arguments: dict) -> dict:
 @require_superuser
 async def list_webhooks(arguments: dict) -> dict:
     """列出所有 Webhook 配置"""
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from sqlalchemy import select
         from shared.models.system import WebhookConfig
         hooks = (await db.execute(select(WebhookConfig).limit(50))).scalars().all()
@@ -119,7 +119,7 @@ async def run_migration(arguments: dict) -> dict:
 @require_superuser
 async def get_maintenance_mode(arguments: dict) -> dict:
     """查看维护模式状态"""
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         from sqlalchemy import select
         setting = (await db.execute(
@@ -133,7 +133,7 @@ async def get_maintenance_mode(arguments: dict) -> dict:
 async def set_maintenance_mode(arguments: dict) -> dict:
     """设置维护模式开/关"""
     enabled = arguments.get("enabled", False)
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         from sqlalchemy import select
         setting = (await db.execute(

@@ -9,14 +9,14 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
 from src.utils.upload.public_upload import FileProcessor, process_single_file
 from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["media-settings"])
 
-# 允许的 MIME 类型
+# 允许�?MIME 类型
 ALLOWED_MIMES = {
     'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff', 'image/avif',
     'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
@@ -37,8 +37,8 @@ ALLOWED_MIMES = {
     'application/octet-stream',
 }
 
-# 最大文件大小：50MB（视频文件通常较大）
-MAX_FILE_SIZE = 50 * 1024 * 1024
+
+# 最大文件大小：50MB（视频文件通常较大�?MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
 async def upload_settings_media(
@@ -49,22 +49,20 @@ async def upload_settings_media(
     """
     设置页面专用媒体上传接口
 
-    支持图片和视频类型文件上传，用于管理后台设置页面的媒体资源管理。
-
+    支持图片和视频类型文件上传，用于管理后台设置页面的媒体资源管理�?
     支持的图片格式：JPEG, PNG, GIF, BMP, WebP, SVG, TIFF
     支持的视频格式：MP4, MPEG, QuickTime, AVI, WebM, MKV
 
     最大文件大小：50MB
 
     Returns:
-        上传成功返回文件 URL 和媒体信息
-    """
+        上传成功返回文件 URL 和媒体信�?    """
     form = await request.form()
     file = form.get('file')
 
     if not file or not hasattr(file, 'filename') or not file.filename:
         return JSONResponse(
-            {'success': False, 'message': '未上传文件或文件名为空'},
+            {'success': False, 'message': '未上传文件或文件名为�?},
             status_code=400
         )
 
@@ -85,8 +83,7 @@ async def upload_settings_media(
             status_code=400
         )
 
-    # 处理文件并创建数据库记录（保留带 db rollback 的 inner try/except）
-    try:
+        # 处理文件并创建数据库记录（保留带 db rollback �?inner try/except�?    try:
         result = await process_single_file(processor, file_data, file.filename, db)
     except Exception as e:
         await db.rollback()

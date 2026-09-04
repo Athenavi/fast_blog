@@ -20,7 +20,7 @@ from shared.models.system import SystemSettings
 from src.mcp.tools import register_all as register_all_tools
 from src.mcp._context import set_user_ctx, get_user_ctx, UserCtx
 from src.mcp.tools._perms import require_superuser
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 logger = logging.getLogger('mcp_server')
 
@@ -60,7 +60,7 @@ class MCPServer:
     @require_superuser
     async def _get_articles_resource(self, params: Dict) -> List[Dict]:
         limit = params.get("limit", 20)
-        async with get_async_session_context() as db:
+        async with db_manager.get_session() as db:
             articles = (await db.execute(
                 select(Article).where(Article.status == 1).order_by(Article.created_at.desc()).limit(limit)
             )).scalars().all()
@@ -68,7 +68,7 @@ class MCPServer:
 
     @require_superuser
     async def _get_categories_resource(self, params: Dict) -> List[Dict]:
-        async with get_async_session_context() as db:
+        async with db_manager.get_session() as db:
             cats = (await db.execute(
                 select(Category).order_by(Category.sort_order.asc(), Category.id.asc())
             )).scalars().all()
@@ -76,7 +76,7 @@ class MCPServer:
 
     @require_superuser
     async def _get_users_resource(self, params: Dict) -> List[Dict]:
-        async with get_async_session_context() as db:
+        async with db_manager.get_session() as db:
             users = (await db.execute(select(User).limit(50))).scalars().all()
             return [{"id": u.id, "username": u.username, "email": u.email,
                      "role": "admin" if getattr(u, 'is_superuser', False) else "user",
@@ -84,7 +84,7 @@ class MCPServer:
 
     @require_superuser
     async def _get_media_resource(self, params: Dict) -> List[Dict]:
-        async with get_async_session_context() as db:
+        async with db_manager.get_session() as db:
             try:
                 media_list = (await db.execute(
                     select(Media).order_by(Media.created_at.desc()).limit(50)
@@ -103,7 +103,7 @@ class MCPServer:
 
     @require_superuser
     async def _get_settings_resource(self, params: Dict) -> Dict:
-        async with get_async_session_context() as db:
+        async with db_manager.get_session() as db:
             try:
                 settings = (await db.execute(select(SystemSettings).limit(50))).scalars().all()
                 site = {s.setting_key: s.setting_value for s in settings if hasattr(s, 'setting_key')}

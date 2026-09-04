@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User as UserModel
 from src.api.v2._base import ApiResponse
 from src.api.v2.auth_v1pack import create_jwt_token
-from src.utils.database.main import get_async_session
+from src.utils.database.unified_manager import get_db_session as get_async_session
 from src.utils.security.password_validator import verify_password, hash_password
 
 router = APIRouter(tags=["mobile-auth"])

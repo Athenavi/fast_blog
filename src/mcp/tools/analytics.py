@@ -10,7 +10,7 @@ from shared.models.category import Category
 from shared.models.comment import Comment
 from shared.models.user import User
 from src.mcp._context import get_user_ctx
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 
 def _require_auth():
@@ -24,7 +24,7 @@ def _require_auth():
 async def get_analytics(arguments: dict) -> dict:
     """获取博客分析概况（需登录）"""
     _require_auth()
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         published = await db.scalar(select(func.count(Article.id)).where(Article.status == 1)) or 0
         draft = await db.scalar(select(func.count(Article.id)).where(Article.status == 0)) or 0
         users = await db.scalar(select(func.count(User.id))) or 0
@@ -47,7 +47,7 @@ async def get_trending_articles(arguments: dict) -> dict:
     days = arguments.get("days", 7)
     cutoff = datetime.utcnow() - timedelta(days=days)
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         articles = (await db.execute(
             select(Article).where(Article.status == 1, Article.created_at >= cutoff)
             .order_by(Article.views.desc()).limit(limit)
@@ -63,7 +63,7 @@ async def get_trending_articles(arguments: dict) -> dict:
 async def get_system_stats(arguments: dict) -> dict:
     """获取系统统计信息（需登录）"""
     _require_auth()
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         published = await db.scalar(select(func.count(Article.id)).where(Article.status == 1)) or 0
         draft = await db.scalar(select(func.count(Article.id)).where(Article.status == 0)) or 0
         users = await db.scalar(select(func.count(User.id))) or 0
@@ -82,7 +82,7 @@ async def generate_seo_description(arguments: dict) -> dict:
     if not article_id:
         raise ValueError("文章ID不能为空")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
             raise ValueError(f"文章 #{article_id} 不存在")

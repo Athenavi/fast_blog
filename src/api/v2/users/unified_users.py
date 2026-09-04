@@ -27,7 +27,7 @@ from src.api.v2.user_utils.user_entities import check_user_conflict_async, chang
     save_uploaded_avatar
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
-from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.security.forms import ChangePasswordForm
 from src.utils.security.safe import is_valid_iso_language_code
 
@@ -232,8 +232,8 @@ async def update_avatar_api(file: UploadFile = File(...),
         return fail("文件大小不能超过 5MB")
     await file.seek(0)
 
-    from src.utils.database.main import get_async_session_context
-    async with get_async_session_context() as db:
+    from src.utils.database.unified_manager import db_manager
+    async with db_manager.get_session() as db:
         result = await save_uploaded_avatar(file, current_user.id, db)
 
     return ok({"avatar_url": f"/api/v2/static/avatar/{result}.webp"}, "头像更新成功")

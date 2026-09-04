@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.comments.comment_enhanced import comment_enhanced_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["comments-enhanced"])
 
@@ -141,8 +141,7 @@ async def notify_comment_reply(
         db: AsyncSession = Depends(get_async_db),
 ):
     """
-    通知评论被回复（通常在创建回复评论后调用）
-    
+    通知评论被回复（通常在创建回复评论后调用�?    
     Args:
         comment_id: 新评论ID
         

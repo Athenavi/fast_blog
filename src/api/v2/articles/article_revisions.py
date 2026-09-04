@@ -16,7 +16,7 @@ from shared.services.articles.article_manager import compare_revisions, get_arti
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 
 def _is_admin(user) -> bool:

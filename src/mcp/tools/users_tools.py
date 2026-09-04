@@ -2,7 +2,7 @@
 MCP 用户管理工具处理器 — CRUD / 角色 / 状态
 """
 from sqlalchemy import select, func
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 from src.mcp.tools._perms import require_superuser, require_self_or_admin
 
 
@@ -13,7 +13,7 @@ async def list_users(arguments: dict) -> dict:
     limit = min(arguments.get("limit", 20), 100)
     offset = (page - 1) * limit
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.user import User
         total = await db.scalar(select(func.count(User.id))) or 0
         users = (await db.execute(
@@ -41,7 +41,7 @@ async def create_user(arguments: dict) -> dict:
     if not username or not password:
         return {"success": False, "error": "用户名和密码不能为空"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.user import User
         from shared.services.users.user_manager.user_service import create_user_account
 
@@ -67,7 +67,7 @@ async def update_user_role(arguments: dict) -> dict:
     if not user_id:
         return {"success": False, "error": "用户ID不能为空"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.user import User
         user = await db.scalar(select(User).where(User.id == int(user_id)))
         if not user:
@@ -88,7 +88,7 @@ async def ban_user(arguments: dict) -> dict:
     if not user_id:
         return {"success": False, "error": "用户ID不能为空"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.user import User
         user = await db.scalar(select(User).where(User.id == int(user_id)))
         if not user:
@@ -103,7 +103,7 @@ async def ban_user(arguments: dict) -> dict:
 async def get_user_stats(arguments: dict) -> dict:
     """获取用户统计数据"""
     user_id = arguments.get("user_id")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.article import Article
         from shared.models.comment import Comment
         from shared.models.media import Media
@@ -125,7 +125,7 @@ async def list_user_activity(arguments: dict) -> dict:
     user_id = arguments.get("user_id")
     limit = min(arguments.get("limit", 10), 50)
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import AuditLog
         from sqlalchemy import desc
 

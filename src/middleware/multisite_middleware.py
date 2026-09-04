@@ -28,10 +28,10 @@ class MultiSiteMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # 获取数据库会话
-        from src.extensions import get_async_db_session
+        from src.utils.database.unified_manager import db_manager
 
         try:
-            async with get_async_db_session()() as db:
+            async with db_manager.get_session() as db:
                 current_site = await self._resolve_site(request, db)
                 request.state.current_site = current_site
         except Exception as e:

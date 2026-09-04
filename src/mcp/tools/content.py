@@ -11,7 +11,7 @@ from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.comment import Comment
 from src.mcp._context import get_user_ctx
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 
 def _require_auth():
@@ -33,7 +33,7 @@ def _require_superuser():
 async def list_categories(arguments: dict) -> list:
     """获取分类列表（所有用户可读）"""
     _require_auth()
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         cats = (await db.execute(
             select(Category).order_by(Category.sort_order.asc(), Category.id.asc())
         )).scalars().all()
@@ -49,7 +49,7 @@ async def create_category(arguments: dict) -> dict:
     if not name:
         raise ValueError("分类名称不能为空")
     slug = arguments.get("slug") or name.lower().replace(" ", "-")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         try:
             cat = Category(name=name, slug=slug, description=arguments.get("description", ""),
                            created_at=datetime.utcnow(), updated_at=datetime.utcnow())
@@ -67,7 +67,7 @@ async def update_category(arguments: dict) -> dict:
     cid = arguments.get("category_id")
     if not cid:
         raise ValueError("分类ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         cat = await db.scalar(select(Category).where(Category.id == int(cid)))
         if not cat:
             raise ValueError(f"分类 #{cid} 不存在")
@@ -86,7 +86,7 @@ async def delete_category(arguments: dict) -> dict:
     cid = arguments.get("category_id")
     if not cid:
         raise ValueError("分类ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         cat = await db.scalar(select(Category).where(Category.id == int(cid)))
         if not cat:
             raise ValueError(f"分类 #{cid} 不存在")
@@ -101,7 +101,7 @@ async def delete_category(arguments: dict) -> dict:
 async def list_tags(arguments: dict) -> dict:
     """聚合获取所有标签（所有用户可读）"""
     _require_auth()
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         rows = (await db.execute(
             select(Article.tags_list).where(Article.tags_list.isnot(None))
         )).scalars().all()
@@ -117,7 +117,7 @@ async def list_comments(arguments: dict) -> dict:
     _require_auth()
     status = arguments.get("status", "").strip().lower()
     limit = min(arguments.get("limit", 20), 50)
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         q = select(Comment).order_by(Comment.created_at.desc()).limit(limit)
         if status == "pending":
             q = q.where(Comment.is_approved == False)
@@ -139,7 +139,7 @@ async def approve_comment(arguments: dict) -> dict:
     cid = arguments.get("comment_id")
     if not cid:
         raise ValueError("评论ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         comment = await db.scalar(select(Comment).where(Comment.id == int(cid)))
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
@@ -155,7 +155,7 @@ async def reject_comment(arguments: dict) -> dict:
     cid = arguments.get("comment_id")
     if not cid:
         raise ValueError("评论ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         comment = await db.scalar(select(Comment).where(Comment.id == int(cid)))
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
@@ -171,7 +171,7 @@ async def delete_comment(arguments: dict) -> dict:
     cid = arguments.get("comment_id")
     if not cid:
         raise ValueError("评论ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         comment = await db.scalar(select(Comment).where(Comment.id == int(cid)))
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")

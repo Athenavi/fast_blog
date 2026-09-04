@@ -1,8 +1,7 @@
 """
 Google Analytics 集成 API
 
-提供 Google Analytics 配置管理和追踪代码生成功能
-"""
+提供 Google Analytics 配置管理和追踪代码生成功�?"""
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -12,22 +11,22 @@ from shared.services.analytics.google_analytics_service import google_analytics_
 from src.api.v2._helpers import ok, fail, _catch
 from src.api.v2.system.multisite import check_admin_permission
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["google-analytics"])
 
 
 async def get_ga_config(
-        site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置）"),
+    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取 Google Analytics 配置
-    
+
     Args:
         site_id: 站点 ID（可选）
-        
+
     Returns:
         Google Analytics 配置
     """
@@ -60,26 +59,24 @@ async def get_ga_config(
 @router.post("/config", summary="创建 Google Analytics 配置")
 @_catch
 async def create_ga_config(
-        tracking_id: str = Body(..., description="Tracking ID (如 G-XXXXXXXXXX)"),
+    tracking_id: str = Body(..., description="Tracking ID (�?G-XXXXXXXXXX)"),
         measurement_id: Optional[str] = Body(None, description="GA4 Measurement ID"),
         api_secret: Optional[str] = Body(None, description="API Secret"),
         site_id: Optional[int] = Body(None, description="站点 ID（可选）"),
         enable_page_view_tracking: bool = Body(True, description="是否启用页面浏览追踪"),
         enable_event_tracking: bool = Body(True, description="是否启用事件追踪"),
         enable_user_behavior_analysis: bool = Body(False, description="是否启用用户行为分析"),
-        anonymize_ip: bool = Body(True, description="是否匿名化 IP"),
-        sample_rate: float = Body(100.0, description="采样率（0-100）"),
+    anonymize_ip: bool = Body(True, description="是否匿名�?IP"),
+    sample_rate: float = Body(100.0, description="采样率（0-100�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     创建 Google Analytics 配置
-    
+
     Returns:
-        创建的配置
-    """
-    # 检查权限（需要admin权限）
-    has_permission = await check_admin_permission(db, current_user.id)
+        创建的配�?    """
+# 检查权限（需要admin权限�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -116,16 +113,15 @@ async def update_ga_config(
 ):
     """
     更新 Google Analytics 配置
-    
+
     Args:
         config_id: 配置 ID
         updates: 更新字段
-        
+
     Returns:
         更新后的配置
     """
-    # 检查权限
-    has_permission = await check_admin_permission(db, current_user.id)
+    # 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -149,15 +145,14 @@ async def deactivate_ga_config(
 ):
     """
     停用 Google Analytics 配置
-    
+
     Args:
         config_id: 配置 ID
-        
+
     Returns:
         操作结果
     """
-    # 检查权限
-    has_permission = await check_admin_permission(db, current_user.id)
+    # 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -171,16 +166,16 @@ async def deactivate_ga_config(
 @router.get("/tracking-code", summary="获取 Google Analytics 追踪代码")
 @_catch
 async def get_tracking_code(
-        site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置）"),
+    site_id: Optional[int] = Query(None, description="站点 ID（为空则获取全局配置�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取 Google Analytics 追踪代码（用于前端嵌入）
-    
+
     Args:
         site_id: 站点 ID（可选）
-        
+
     Returns:
         HTML/JavaScript 追踪代码
     """
@@ -217,11 +212,11 @@ async def generate_event_code(
 ):
     """
     生成 Google Analytics 事件追踪代码
-    
+
     Args:
         event_name: 事件名称
         event_params: 事件参数
-        
+
     Returns:
         JavaScript 事件追踪代码
     """
@@ -235,24 +230,22 @@ async def generate_event_code(
     )
 
 
-@router.get("/configs", summary="获取所有 Google Analytics 配置")
+@router.get("/configs", summary="获取所�?Google Analytics 配置")
 @_catch
 async def get_all_configs(
-        include_inactive: bool = Query(False, description="是否包含非活动配置"),
+    include_inactive: bool = Query(False, description="是否包含非活动配�?),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有 Google Analytics 配置（管理员用）
-    
+    获取所�?Google Analytics 配置（管理员用）
+
     Args:
-        include_inactive: 是否包含非活动配置
-        
+        include_inactive: 是否包含非活动配�?
     Returns:
         配置列表
     """
-    # 检查权限
-    has_permission = await check_admin_permission(db, current_user.id)
+# 检查权�?    has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
 

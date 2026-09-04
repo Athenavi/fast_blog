@@ -1,5 +1,5 @@
 """
-仪表板相关 API
+仪表板相�?API
 """
 
 from typing import Optional
@@ -14,13 +14,11 @@ from shared.models.analytics import UserActivity
 from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User
-# 导入 SQLAlchemy 模型和服务
-from shared.models.vip import VIPSubscription
-# 注意：避免在此处直接导入 article_service，防止循环依赖
-# article_service 的导入已移至使用位置
+# 导入 SQLAlchemy 模型和服�?from shared.models.vip import VIPSubscription
+# 注意：避免在此处直接导入 article_service，防止循环依�?# article_service 的导入已移至使用位置
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter()
 
@@ -32,7 +30,7 @@ async def get_activities(
     current_user: User = Depends(admin_required_api),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """获取最近用户活动列表"""
+    """获取最近用户活动列�?""
     offset = (page - 1) * per_page
     query = select(UserActivity).order_by(desc(UserActivity.created_at)).offset(offset).limit(per_page)
     result = await db.execute(query)
@@ -57,8 +55,7 @@ async def get_dashboard_stats(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取仪表板统计数据
-    """
+    获取仪表板统计数�?    """
     from datetime import datetime, timedelta
 
     # 计算总用户数
@@ -81,15 +78,13 @@ async def get_dashboard_stats(
     total_views_result = await db.execute(total_views_query)
     total_views = total_views_result.scalar() or 0
 
-    # 获取最近一周的用户注册数
-    week_ago = datetime.now() - timedelta(days=7)
+    # 获取最近一周的用户注册�?    week_ago = datetime.now() - timedelta(days=7)
     new_users_query = select(func.count()).select_from(User).where(User.date_joined >= week_ago)
     new_users_result = await db.execute(new_users_query)
     new_users = new_users_result.scalar()
 
     stats_data = {
-        "visitors": total_views,  # 使用真实浏览量
-        "articles": total_articles,
+        "visitors": total_views,  # 使用真实浏览�?        "articles": total_articles,
         "comments": 0,  # 暂时设为0，因为评论模型未定义
         "likes": total_likes,
         "users": total_users,
@@ -118,8 +113,7 @@ async def __get_recent_articles(
 
     articles_data = []
     for article in recent_articles:
-        # 获取作者信息（由于 author 关系已注释，使用 user_id）
-        author_username = "Unknown"  # 暂时显示 Unknown
+        # 获取作者信息（由于 author 关系已注释，使用 user_id�?        author_username = "Unknown"  # 暂时显示 Unknown
         articles_data.append({
             "id": article.id,
             "title": article.title,
@@ -128,7 +122,7 @@ async def __get_recent_articles(
             "comments": 0,  # 暂时设为 0，因为评论模型未定义
             "created_at": article.created_at.isoformat() if hasattr(article.created_at, 'isoformat') else str(
                 article.created_at),
-            "status": "published" if getattr(article, 'status', 0) == 1 else "draft"  # status 为 1 表示 published
+            "status": "published" if getattr(article, 'status', 0) == 1 else "draft"  # status �?1 表示 published
         })
 
     return ok(data=articles_data)
@@ -150,8 +144,7 @@ async def get_traffic_data(
     end_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     start_date = end_date - timedelta(days=6)
 
-    # 一次性查询过去7天每天的文章浏览量
-    daily_views_query = select(
+    # 一次性查询过�?天每天的文章浏览�?    daily_views_query = select(
         func.date(Article.created_at),
         func.coalesce(func.sum(Article.views), 0)
     ).where(
@@ -163,7 +156,7 @@ async def get_traffic_data(
     daily_views_result = await db.execute(daily_views_query)
     daily_views_dict = dict(daily_views_result.all())
 
-    # 按日期填充7天的数据
+    # 按日期填�?天的数据
     traffic_data = []
     for i in range(7):
         date_start = end_date - timedelta(days=6-i)
@@ -194,24 +187,19 @@ async def get_blog_management_articles(
     获取博客管理文章列表
     """
     # 使用SQLAlchemy异步查询语法
-    # 构建基础查询（category 是外键字段，不是 relationship，不能直接使用 selectinload）
-    query = select(Article)
+    # 构建基础查询（category 是外键字段，不是 relationship，不能直接使�?selectinload�?    query = select(Article)
 
-    # 根据状态过滤
-    if status:
+    # 根据状态过�?    if status:
         # 转换为小写以匹配映射
         status_lower = status.lower()
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
             if status_lower == 'deleted':
-                # deleted 由 status=-1 或 deleted_at 标记（删除时两者同时写入）；
-                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数据
-                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
+                # deleted �?status=-1 �?deleted_at 标记（删除时两者同时写入）�?                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数�?                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
             else:
                 query = query.where(Article.status == status_map[status_lower])
 
-    # 根据搜索词过滤
-    if search:
+    # 根据搜索词过�?    if search:
         query = query.where(Article.title.contains(search))
 
     # 根据分类ID过滤
@@ -247,8 +235,7 @@ async def get_blog_management_articles(
     for article in articles:
         article_dict = article.to_dict()
 
-        # 确定文章状态（转换为字符串）
-        article_status = 'draft'
+        # 确定文章状态（转换为字符串�?        article_status = 'draft'
         if article.status == 1:
             article_status = 'published'
         elif article.status == 0:
@@ -256,7 +243,7 @@ async def get_blog_management_articles(
         elif article.status == -1 or article.deleted_at is not None:
             article_status = 'deleted'
 
-        # 作者信息（从 batch 查询的 dict 中获取）
+        # 作者信息（�?batch 查询�?dict 中获取）
         author = users.get(article.user)
         author_info = {
             "id": author.id if author else article.user,
@@ -264,7 +251,7 @@ async def get_blog_management_articles(
             "email": getattr(author, 'email', '') if author else ''
         }
 
-        # 分类信息（从 batch 查询的 dict 中获取）
+        # 分类信息（从 batch 查询�?dict 中获取）
         category_info = None
         if article.category:
             category = categories.get(article.category)
@@ -275,18 +262,13 @@ async def get_blog_management_articles(
                     "description": category.description
                 }
 
-        # 处理标签（tags_list 已经是 JSON 数组）
-        tags_list = article_dict.get('tags_list') or []
+        # 处理标签（tags_list 已经�?JSON 数组�?        tags_list = article_dict.get('tags_list') or []
 
-        # 构建响应数据，在 to_dict() 基础上添加关联数据
-        articles_data.append({
+        # 构建响应数据，在 to_dict() 基础上添加关联数�?        articles_data.append({
             **article_dict,  # 展开模型的基础字段
-            "summary": article_dict.get('excerpt', ''),  # summary 是 excerpt 的别名
-            "tags": tags_list,  # 转换后的标签数组
+            "summary": article_dict.get('excerpt', ''),  # summary �?excerpt 的别�?            "tags": tags_list,  # 转换后的标签数组
             "views_count": article_dict.get('views', 0),  # 前端期望的字段名
-            "status": article_status,  # 覆盖为字符串状态
-            "author": author_info,  # 添加作者信息
-            "category": category_info,  # 添加分类信息
+            "status": article_status,  # 覆盖为字符串状�?            "author": author_info,  # 添加作者信�?            "category": category_info,  # 添加分类信息
         })
 
     return ok(
@@ -303,33 +285,28 @@ async def get_my_articles(
         status: Optional[str] = Query(None),
         search: Optional[str] = Query(None),
         hidden: Optional[bool] = Query(None),
-        category_id: Optional[int] = Query(None, description="按分类 ID 筛选"),
-        tag: Optional[str] = Query(None, description="按标签筛选"),
+        category_id: Optional[int] = Query(None, description="按分�?ID 筛�?),
+        tag: Optional[str] = Query(None, description="按标签筛�?),
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取我的文章列表
     """
-    # 构建基础查询，预加载关联的作者信息
-    query = select(Article).join(User, Article.user == User.id).where(
+    # 构建基础查询，预加载关联的作者信�?    query = select(Article).join(User, Article.user == User.id).where(
         Article.user == current_user.id)
 
-    # 根据状态过滤
-    if status:
+    # 根据状态过�?    if status:
         # 转换为小写以匹配映射
         status_lower = status.lower()
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
             if status_lower == 'deleted':
-                # deleted 由 status=-1 或 deleted_at 标记（删除时两者同时写入）；
-                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数据
-                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
+                # deleted �?status=-1 �?deleted_at 标记（删除时两者同时写入）�?                # 过滤与展示逻辑保持一致，兼容历史仅设 deleted_at 的数�?                query = query.where(or_(Article.status == -1, Article.deleted_at.isnot(None)))
             else:
                 query = query.where(Article.status == status_map[status_lower])
 
-    # 根据隐藏状态过滤
-    if hidden is not None:
+    # 根据隐藏状态过�?    if hidden is not None:
         query = query.where(Article.hidden == hidden)
 
     # 根据分类过滤
@@ -340,13 +317,11 @@ async def get_my_articles(
     if tag:
         query = query.where(Article.tags_list.any(tag))
 
-    # 根据搜索词过滤
-    if search:
+    # 根据搜索词过�?    if search:
         # 支持按标题搜索，也可以按内容搜索（但内容表不同，此处仅搜索标题）
         query = query.where(Article.title.contains(search))
 
-    # 按创建时间降序排列
-    query = query.order_by(desc(Article.created_at))
+    # 按创建时间降序排�?    query = query.order_by(desc(Article.created_at))
 
     # 计算总数
     total_query = select(func.count()).select_from(query.subquery())
@@ -359,8 +334,7 @@ async def get_my_articles(
     paginated_result = await db.execute(paginated_query)
     articles = paginated_result.scalars().all()
 
-    # 批量加载分类，避免循环内逐条查询（N+1）
-    cat_ids = {a.category for a in articles if a.category}
+    # 批量加载分类，避免循环内逐条查询（N+1�?    cat_ids = {a.category for a in articles if a.category}
     if cat_ids:
         cats = {c.id: c for c in (await db.execute(select(Category).where(Category.id.in_(cat_ids)))).scalars().all()}
     else:
@@ -371,15 +345,13 @@ async def get_my_articles(
     for article in articles:
         article_obj = article.to_dict()
 
-        # 处理状态
-        article_status = 'draft'
+        # 处理状�?        article_status = 'draft'
         if article.status == 1:
             article_status = 'published'
         elif article.status == -1 or article.deleted_at is not None:
             article_status = 'deleted'
 
-        # 处理标签（tags_list 已经是 JSON 数组）
-        tags_list = article_obj.get('tags_list') or []
+        # 处理标签（tags_list 已经�?JSON 数组�?        tags_list = article_obj.get('tags_list') or []
 
         # 获取分类名（从批量查询的 dict 中获取）
         category_name = None
@@ -432,8 +404,7 @@ async def get_vip_management_data(
     )
     monthly_new = monthly_result.scalar() or 0
 
-    # 查询订阅（含用户和套餐信息），限制返回条数避免全量加载
-    subscriptions_query = (
+    # 查询订阅（含用户和套餐信息），限制返回条数避免全量加�?    subscriptions_query = (
         select(VIPSubscription, User, VIPPlan)
         .join(User, VIPSubscription.user == User.id, isouter=True)
         .join(VIPPlan, VIPSubscription.plan == VIPPlan.id, isouter=True)
@@ -455,7 +426,7 @@ async def get_vip_management_data(
         level = plan_obj.level if plan_obj else 0
         members_data.append({
             "id": sub.id,
-            "user_id": sub.user,  # FK 列名是 user
+            "user_id": sub.user,  # FK 列名�?user
             "username": username,
             "plan_name": plan_name,
             "level": level,
@@ -470,12 +441,10 @@ async def get_vip_management_data(
     active_members = sum(1 for m in members_data if m['is_active'])
     renewal_rate = round(active_members / total_count * 100, 1) if total_count > 0 else 0
 
-    # 所有计划
-    plans_result = await db.execute(select(VIPPlan).order_by(VIPPlan.level))
+    # 所有计�?    plans_result = await db.execute(select(VIPPlan).order_by(VIPPlan.level))
     plans = plans_result.scalars().all()
 
-    # 所有功能
-    features_result = await db.execute(select(VIPFeature).order_by(VIPFeature.required_level))
+    # 所有功�?    features_result = await db.execute(select(VIPFeature).order_by(VIPFeature.required_level))
     features = features_result.scalars().all()
 
     return ok(data={
@@ -512,8 +481,7 @@ async def get_blog_management_articles_stats(
     published_articles_result = await db.execute(published_articles_query)
     published_articles = published_articles_result.scalar()
 
-    # 计算草稿文章数
-    draft_articles_query = select(func.count(Article.id)).where(Article.status == 0)
+    # 计算草稿文章�?    draft_articles_query = select(func.count(Article.id)).where(Article.status == 0)
     draft_articles_result = await db.execute(draft_articles_query)
     draft_articles = draft_articles_result.scalar()
 
@@ -553,12 +521,10 @@ async def delete_blog_management_article(
     if not article:
         return fail("Article not found")
 
-    # 检查权限 - 只有超级用户或文章作者可以删除
-    if not current_user.is_superuser and article.user != current_user.id:
+    # 检查权�?- 只有超级用户或文章作者可以删�?    if not current_user.is_superuser and article.user != current_user.id:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # 级联删除评论投票（先于评论删除，避免孤立记录）
-    from shared.models.comment import Comment
+    # 级联删除评论投票（先于评论删除，避免孤立记录�?    from shared.models.comment import Comment
     from shared.models.comment_vote import CommentVote
     from shared.models.comment_subscription import CommentSubscription
 
@@ -682,10 +648,10 @@ async def admin_delete_vip_plan(
     result = await db.execute(select(VIPPlan).where(VIPPlan.id == plan_id))
     plan = result.scalar_one_or_none()
     if not plan:
-        return fail("套餐不存在")
+        return fail("套餐不存�?)
     await db.delete(plan)
     await db.flush()
-    return ok(data={"message": "已删除"})
+    return ok(data={"message": "已删�?})
 
 
 # ====== VIP 功能管理 (Admin) ======
@@ -758,23 +724,21 @@ async def admin_delete_vip_feature(
     result = await db.execute(select(VIPFeature).where(VIPFeature.id == feature_id))
     feature = result.scalar_one_or_none()
     if not feature:
-        return fail("功能不存在")
+        return fail("功能不存�?)
     await db.delete(feature)
     await db.commit()
-    return ok(data={"message": "已删除"})
+    return ok(data={"message": "已删�?})
 
 
 @router.get("/admin/dashboard")
 async def admin_dashboard(current_user: User = Depends(admin_required_api)):
     """
-    管理员面板入口
-
+    管理员面板入�?
     Returns:
-        管理员面板信息
-    """
+    管理员面板信�?    """
     return {
         'success': True,
-        'message': '管理员面板',
+        'message': '管理员面�?,
         'user': {
             'id': current_user.id,
             'username': current_user.username,

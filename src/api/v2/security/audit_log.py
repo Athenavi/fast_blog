@@ -13,7 +13,7 @@ from shared.models.system import AuditLog as AuditLogModel
 from shared.services.security.audit_log_service import AuditLogAction, AuditLogLevel, audit_log_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["audit-log"])
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ async def get_audit_logs(
         resource_type: Optional[str] = Query(None, description="资源类型过滤"),
         resource_id: Optional[str] = Query(None, description="资源ID过滤"),
         ip_address: Optional[str] = Query(None, description="IP地址过滤"),
-        start_date: Optional[str] = Query(None, description="开始日期 (ISO格式)"),
+    start_date: Optional[str] = Query(None, description="开始日�?(ISO格式)"),
         end_date: Optional[str] = Query(None, description="结束日期 (ISO格式)"),
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(50, ge=1, le=200, description="每页数量"),
@@ -38,19 +38,18 @@ async def get_audit_logs(
 
     Args:
         user_id: 用户ID过滤
-        action: 操作类型 (login, logout, create, update, delete等)
+        action: 操作类型 (login, logout, create, update, delete�?
         level: 日志级别 (info, warning, error, critical)
-        resource_type: 资源类型 (article, user, category等)
+        resource_type: 资源类型 (article, user, category�?
         resource_id: 资源ID
         ip_address: IP地址
-        start_date: 开始日期 (ISO格式字符串)
-        end_date: 结束日期 (ISO格式字符串)
+        start_date: 开始日�?(ISO格式字符�?
+        end_date: 结束日期 (ISO格式字符�?
         page: 页码
         per_page: 每页数量
 
     Returns:
-        审计日志列表和分页信息
-    """
+        审计日志列表和分页信�?    """
     # 解析日期
     start_dt = None
     end_dt = None
@@ -67,8 +66,7 @@ async def get_audit_logs(
         except ValueError:
             return fail("Invalid end_date format")
 
-    # 解析枚举值
-    action_enum = None
+    # 解析枚举�?    action_enum = None
     if action:
         try:
             action_enum = AuditLogAction(action)
@@ -110,7 +108,7 @@ async def export_audit_logs(
         resource_type: Optional[str] = Query(None, description="资源类型过滤"),
         resource_id: Optional[str] = Query(None, description="资源ID过滤"),
         ip_address: Optional[str] = Query(None, description="IP地址过滤"),
-        start_date: Optional[str] = Query(None, description="开始日期 (ISO格式)"),
+    start_date: Optional[str] = Query(None, description="开始日�?(ISO格式)"),
         end_date: Optional[str] = Query(None, description="结束日期 (ISO格式)"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
@@ -126,12 +124,11 @@ async def export_audit_logs(
         resource_type: 资源类型
         resource_id: 资源ID
         ip_address: IP地址
-        start_date: 开始日期 (ISO格式字符串)
-        end_date: 结束日期 (ISO格式字符串)
+        start_date: 开始日�?(ISO格式字符�?
+        end_date: 结束日期 (ISO格式字符�?
 
     Returns:
-        导出的数据（JSON或CSV格式）
-    """
+        导出的数据（JSON或CSV格式�?    """
     # 解析日期
     filters = {}
 
@@ -212,8 +209,7 @@ async def get_audit_log_stats(
     total_result = await db.execute(total_query)
     total_count = total_result.scalar()
 
-    # 按操作类型统计
-    action_query = select(
+    # 按操作类型统�?    action_query = select(
         AuditLogModel.action,
         func.count().label('count')
     ).where(
@@ -226,8 +222,7 @@ async def get_audit_log_stats(
         for row in action_result.all()
     ]
 
-    # 按日志级别统计
-    level_query = select(
+# 按日志级别统�?    level_query = select(
         AuditLogModel.level,
         func.count().label('count')
     ).where(
@@ -240,8 +235,7 @@ async def get_audit_log_stats(
         for row in level_result.all()
     ]
 
-    # 活跃用户数
-    users_query = select(
+# 活跃用户�?    users_query = select(
         func.count(func.distinct(AuditLogModel.user_id))
     ).where(
         AuditLogModel.created_at >= cutoff_date
@@ -258,7 +252,7 @@ async def get_audit_log_stats(
     })
 
 
-@router.post("/cleanup", summary="清理旧日志")
+@router.post("/cleanup", summary="清理旧日�?)
 @_catch
 async def cleanup_old_logs(
         days: int = Query(90, ge=1, description="保留天数"),
@@ -269,11 +263,10 @@ async def cleanup_old_logs(
     清理旧的审计日志
 
     Args:
-        days: 保留天数，超过此天数的日志将被删除
-
+        days: 保留天数，超过此天数的日志将被删�?
     Returns:
         清理结果
     """
     await audit_log_service.cleanup_old_logs(db, days)
 
-    return ok(msg=f"已清理{days}天前的审计日志")
+    return ok(msg=f"已清理{days}天前的审计日�?)

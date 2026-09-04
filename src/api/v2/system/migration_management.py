@@ -1,7 +1,7 @@
 """
 迁移系统管理 API
 
-提供迁移任务(MigrationTask)和迁移日志(MigrationLog)的 CRUD 管理接口
+提供迁移任务(MigrationTask)和迁移日�?MigrationLog)�?CRUD 管理接口
 """
 import json
 from datetime import datetime
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import MigrationTask, MigrationLog
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["migration-management"])
 
@@ -23,16 +23,15 @@ async def list_tasks(
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量"),
     search: Optional[str] = Query(None, description="搜索任务名称"),
-    status: Optional[str] = Query(None, description="任务状态"),
-    source_platform: Optional[str] = Query(None, description="源平台"),
+    status: Optional[str] = Query(None, description="任务状�?),
+    source_platform: Optional[str] = Query(None, description="源平�?),
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required),
 ):
     """
     获取迁移任务列表
 
-    支持分页、搜索、按状态和源平台筛选
-    """
+    支持分页、搜索、按状态和源平台筛�?    """
     is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
     if not is_admin:
         raise HTTPException(status_code=403, detail="需要管理员权限")
@@ -88,7 +87,7 @@ async def get_task(
     task = result.scalar_one_or_none()
 
     if not task:
-        return fail("迁移任务不存在")
+        return fail("迁移任务不存�?)
 
     return ok(data=task.to_dict())
 
@@ -110,7 +109,7 @@ async def create_task(
     task_name = data.get("task_name")
     source_platform = data.get("source_platform")
     if not task_name or not source_platform:
-        return fail("task_name 和 source_platform 为必填字段")
+        return fail("task_name �?source_platform 为必填字�?)
 
     config = data.get("config")
     if isinstance(config, dict):
@@ -155,7 +154,7 @@ async def update_task(
     task = result.scalar_one_or_none()
 
     if not task:
-        return fail("迁移任务不存在")
+        return fail("迁移任务不存�?)
 
     data = await request.json()
 
@@ -179,7 +178,7 @@ async def update_task(
         ca = data["completed_at"]
         task.completed_at = datetime.fromisoformat(ca.replace("Z", "+00:00")) if isinstance(ca, str) else ca
 
-    # 自动设置开始/完成时间
+        # 自动设置开�?完成时间
     if "status" in data:
         if data["status"] == "running" and task.started_at is None:
             task.started_at = datetime.utcnow()
@@ -211,7 +210,7 @@ async def delete_task(
     task = result.scalar_one_or_none()
 
     if not task:
-        return fail("迁移任务不存在")
+        return fail("迁移任务不存�?)
 
     # 正在运行的任务不允许删除
     if task.status == "running":
@@ -298,13 +297,12 @@ async def create_log(
     task_id = data.get("task_id")
     message = data.get("message")
     if not task_id or not message:
-        return fail("task_id 和 message 为必填字段")
+        return fail("task_id �?message 为必填字�?)
 
-    # 验证任务存在性
-    task_query = select(MigrationTask).where(MigrationTask.id == task_id)
+        # 验证任务存在�?    task_query = select(MigrationTask).where(MigrationTask.id == task_id)
     task_result = await db.execute(task_query)
     if not task_result.scalar_one_or_none():
-        return fail(f"迁移任务 ID={task_id} 不存在")
+            return fail(f"迁移任务 ID={task_id} 不存�?)
 
     now = datetime.utcnow()
     log = MigrationLog(
@@ -340,7 +338,7 @@ async def delete_log(
     log = result.scalar_one_or_none()
 
     if not log:
-        return fail("迁移日志不存在")
+        return fail("迁移日志不存�?)
 
     await db.delete(log)
     await db.commit()

@@ -1,6 +1,5 @@
 """
-媒体列表、统计、分类、标签查询
-"""
+媒体列表、统计、分类、标签查�?"""
 from decimal import Decimal
 from pathlib import Path
 from typing import Optional
@@ -13,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from .dependencies import get_user_storage_used, get_user_storage_limit
 from .utils import convert_storage_size
 
@@ -30,11 +29,13 @@ async def list_media(
         db: AsyncSession = Depends(get_async_db),
         page: int = Query(1, ge=1),
         per_page: int = Query(20, ge=1, le=100),
-        q: Optional[str] = Query(None, description="搜索关键词"),
+    q: Optional[str] = Query(None, description="搜索关键�?),
         media_type: str = Query("all", description="媒体类型: all, image, video, audio, document"),
-        category: Optional[str] = Query(None, description="分类筛选"),
-        folder_name: Optional[str] = Query(None, description="文件夹名称"),
-        folder_id: Optional[int] = Query(None, description="文件夹 ID（直接指定）"),
+        category
+
+: Optional[str] = Query(None, description="分类筛�?),
+folder_name: Optional[str] = Query(None, description="文件夹名�?),
+folder_id: Optional[int] = Query(None, description="文件�?ID（直接指定）"),
         sort_by: str = Query("created_at_desc", description="排序方式"),
         date_from: Optional[str] = Query(None),
         date_to: Optional[str] = Query(None),
@@ -265,7 +266,7 @@ async def get_categories(
     return ok(data={"categories": categories})
 
 
-# ---------- 标签汇总 ----------
+# ---------- 标签汇�?----------
 @router.get("/tags")
 @_catch
 async def get_all_tags(
@@ -291,7 +292,7 @@ async def get_all_tags(
     return ok(data={"tags": tags})
 
 
-# ---------- 视频缩略图 ----------
+# ---------- 视频缩略�?----------
 @router.get("/thumbnail/{media_id}")
 @_catch
 async def get_video_thumbnail(
@@ -300,8 +301,7 @@ async def get_video_thumbnail(
         current_user=Depends(jwt_required)
 ):
     """
-    获取视频缩略图
-
+    获取视频缩略�?
     Args:
         media_id: 媒体文件ID
 
@@ -314,7 +314,7 @@ async def get_video_thumbnail(
 
     if not media:
         return JSONResponse(
-            content={"success": False, "error": "媒体文件不存在"},
+            content={"success": False, "error": "媒体文件不存�?},
             status_code=404
         )
 
@@ -326,7 +326,7 @@ async def get_video_thumbnail(
 
     if media.user != current_user.id:
         return JSONResponse(
-            content={"success": False, "error": "无权访问该媒体文件"},
+            content={"success": False, "error": "无权访问该媒体文�?},
             status_code=403
         )
 
@@ -335,7 +335,7 @@ async def get_video_thumbnail(
 
     if not thumbnail_data:
         return JSONResponse(
-            content={"success": False, "error": "无法读取缩略图"},
+            content={"success": False, "error": "无法读取缩略�?},
             status_code=404
         )
 

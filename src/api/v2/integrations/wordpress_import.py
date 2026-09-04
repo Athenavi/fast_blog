@@ -14,7 +14,7 @@ from shared.models import User
 from shared.services.integrations.wordpress_import import WordPressImportService
 from src.api.v2._helpers import _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["wordpress-import"])
 
@@ -27,11 +27,10 @@ async def parse_wordpress_xml(
     解析 WordPress XML 文件
 
     Args:
-        file: 上传的 WXR 文件
+        file: 上传�?WXR 文件
 
     Returns:
-        解析结果和统计信息
-    """
+        解析结果和统计信�?    """
     # 保存临时文件
     with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
         content = await file.read()
@@ -78,8 +77,8 @@ async def import_wordpress_data(
     导入 WordPress 数据到数据库
 
     Args:
-        file: 上传的 WXR 文件
-        user_mapping: 作者映射 JSON 字符串 {"wp_author_id": system_user_id}
+        file: 上传�?WXR 文件
+        user_mapping: 作者映�?JSON 字符�?{"wp_author_id": system_user_id}
         download_media: 是否下载媒体文件
 
     Returns:
@@ -144,8 +143,7 @@ async def import_wordpress_data(
 @router.get("/template")
 async def get_import_template():
     """
-    获取导入模板和说明
-
+    获取导入模板和说�?
     Returns:
         导入指南
     """
@@ -153,12 +151,12 @@ async def get_import_template():
         'success': True,
         'data': {
             'instructions': [
-                '1. 在 WordPress 后台进入 工具 > 导出',
-                '2. 选择 "所有内容" 并下载导出文件',
-                '3. 上传下载的 .xml 文件到这里',
+                '1. �?WordPress 后台进入 工具 > 导出',
+                '2. 选择 "所有内�? 并下载导出文�?,
+                '3. 上传下载�?.xml 文件到这�?,
                 '4. 预览导入内容',
-                '5. 配置作者映射(可选)',
-                '6. 开始导入'
+                '5. 配置作者映�?可�?',
+                '6. 开始导�?
             ],
             'supported_content': [
                 '文章(Post)',
@@ -169,10 +167,10 @@ async def get_import_template():
                 '媒体引用(Media references)'
             ],
             'notes': [
-                '媒体文件不会自动下载,仅保留引用链接',
+                '媒体文件不会自动下载,仅保留引用链�?,
                 '需要手动重新上传媒体文件或使用媒体迁移工具',
-                '导入前建议备份当前数据',
-                '重复的文章(slug相同)会被跳过'
+                '导入前建议备份当前数�?,
+                '重复的文�?slug相同)会被跳过'
             ]
         }
     }

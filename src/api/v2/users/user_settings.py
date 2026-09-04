@@ -15,7 +15,7 @@ from shared.models.user import User
 from src.api.v2.user_utils.user_entities import check_user_conflict, change_username, bind_email, db_save_bio, \
     save_uploaded_avatar
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.security.safe import valid_language_codes
 from src.utils.send_email import request_email_change
 
@@ -120,8 +120,8 @@ async def update_avatar_api(file: UploadFile = File(...), current_user=Depends(j
         return JSONResponse(content={"success": False, "error": "文件大小不能超过5MB"}, status_code=400)
 
     await file.seek(0)
-    from src.utils.database.main import get_async_session_context
-    async with get_async_session_context() as db:
+    from src.utils.database.unified_manager import db_manager
+    async with db_manager.get_session() as db:
         result = await save_uploaded_avatar(file, current_user.id, db)
 
     avatar_url = f"/api/v2/static/avatar/{result}.webp"
