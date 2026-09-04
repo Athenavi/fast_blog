@@ -20,8 +20,8 @@ router = APIRouter(tags=["wordpress-import"])
 
 
 async def parse_wordpress_xml(
-        file: UploadFile = File(...),
-        current_user: User = Depends(jwt_required)
+    file: UploadFile = File(...),
+    current_user: User = Depends(jwt_required)
 ):
     """
     解析 WordPress XML 文件
@@ -68,23 +68,12 @@ async def parse_wordpress_xml(
 @router.post("/import")
 @_catch
 async def import_wordpress_data(
-        file: UploadFile = File(...),
-        user_mapping: Optional[str] = Form(None),
-        download_media: bool = Form(False),
-        current_user: User = Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+    file: UploadFile = File(...),
+    user_mapping: Optional[str] = Form(None),
+    download_media: bool = Form(False),
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    导入 WordPress 数据到数据库
-
-    Args:
-        file: 上传�?WXR 文件
-        user_mapping: 作者映�?JSON 字符�?{"wp_author_id": system_user_id}
-        download_media: 是否下载媒体文件
-
-    Returns:
-        导入结果
-    """
     import json
 
     # 保存临时文件
@@ -139,39 +128,3 @@ async def import_wordpress_data(
         # 清理临时文件
         if os.path.exists(tmp_path):
             os.unlink(tmp_path)
-
-
-@router.get("/template")
-async def get_import_template():
-    """
-    获取导入模板和说�?
-    Returns:
-        导入指南
-    """
-    return {
-        'success': True,
-        'data': {
-            'instructions': [
-                '1. �?WordPress 后台进入 工具 > 导出',
-                '2. 选择 "所有内�? 并下载导出文�?,
-                '3. 上传下载�?.xml 文件到这�?,
-                '4. 预览导入内容',
-                '5. 配置作者映�?可�?',
-                '6. 开始导�?
-            ],
-            'supported_content': [
-                '文章(Post)',
-                '页面(Page)',
-                '分类(Categories)',
-                '标签(Tags)',
-                '评论(Comments)',
-                '媒体引用(Media references)'
-            ],
-            'notes': [
-                '媒体文件不会自动下载,仅保留引用链�?,
-                '需要手动重新上传媒体文件或使用媒体迁移工具',
-                '导入前建议备份当前数�?,
-                '重复的文�?slug相同)会被跳过'
-            ]
-        }
-    }

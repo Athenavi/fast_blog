@@ -14,8 +14,8 @@ from shared.models.chat import ChatGroupMember, ChatGroup, ChatGroupInvite
 from shared.models.user import User
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["chat-groups"])
 
@@ -278,7 +278,7 @@ async def add_group_members(
             "added_count": added_count,
             "new_member_count": group.member_count
         },
-        msg=f"成功添加 {added_count} 名成�?
+        msg=f"成功添加 {added_count} 名成员"
     )
 
 
@@ -484,7 +484,7 @@ async def create_invite_link(
             "max_uses": new_invite.max_uses,
             "created_at": new_invite.created_at.isoformat()
         },
-        msg="邀请链接创建成�?
+        msg="邀请链接创建成功"
     )
 
 

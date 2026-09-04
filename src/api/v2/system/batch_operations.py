@@ -1,6 +1,3 @@
-"""
-批量操作 API
-提供文章、评论、商品等资源的批量操作功�?"""
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -9,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.batch_operations import create_batch_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
@@ -22,25 +19,22 @@ class BatchDeleteRequest(BaseModel):
 
 
 class BatchUpdateStatusRequest(BaseModel):
-    """批量更新状态请�?""
+    """批量更新状态请求"""
     ids: List[int]
     status: str
 
 
 class BatchMoveCategoryRequest(BaseModel):
-    """批量移动分类请求"""
     ids: List[int]
     category_id: int
 
 
 class BatchAddTagsRequest(BaseModel):
-    """批量添加标签请求"""
     ids: List[int]
     tags: List[str]
 
 
 class BatchUpdatePriceRequest(BaseModel):
-    """批量更新价格请求"""
     ids: List[int]
     price: float
     original_price: Optional[float] = None
@@ -65,18 +59,6 @@ async def batch_delete_articles(
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    批量删除文章
-
-    **权限要求**: 需要登录，只能删除自己的文章或管理员可删除任意文章
-
-    Args:
-        request: 删除请求，包含文章ID列表
-        current_user: 当前用户
-    db: 数据库会�?
-    Returns:
-        操作结果，包含成功数量和消息
-    """
     service = create_batch_service(db)
     result = await service.batch_delete_articles(
         article_ids=request.ids,
@@ -90,15 +72,13 @@ async def batch_delete_articles(
     return result
 
 
-@router.post("/articles/update-status", summary="批量更新文章状...")
+@router.post("/articles/update-status", summary="批量更新文章状态")
 @_catch
 async def batch_update_article_status(
         request: BatchUpdateStatusRequest,
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-批量更新文章状�?""
     service = create_batch_service(db)
     result = await service.batch_update_article_status(
         article_ids=request.ids,
@@ -113,14 +93,14 @@ async def batch_update_article_status(
     return result
 
 
-@router.post("/articles/move-category", summary="批量移动文章到分...")
+@router.post("/articles/move-category", summary="批量移动文章到分类")
 @_catch
 async def batch_move_to_category(
         request: BatchMoveCategoryRequest,
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """批量移动文章到指定分�?""
+    """批量移动文章到指定分类"""
     service = create_batch_service(db)
     result = await service.batch_move_to_category(
         article_ids=request.ids,
@@ -178,7 +158,7 @@ async def batch_delete_comments(
     return result
 
 
-@router.post("/comments/update-status", summary="批量更新评论状...")
+@router.post("/comments/update-status", summary="批量更新评论状态")
 @_catch
 async def batch_update_comment_status(
         request: BatchUpdateStatusRequest,
@@ -186,7 +166,8 @@ async def batch_update_comment_status(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    批量更新评论状�?""
+    批量更新评论状态
+    """
     service = create_batch_service(db)
     result = await service.batch_update_comment_status(
         comment_ids=request.ids,
@@ -204,6 +185,7 @@ async def batch_update_comment_status(
 # ============================================================================
 # 商品批量操作
 # ============================================================================
+
 
 @router.post("/products/delete", summary="批量删除商品")
 @_catch
@@ -272,14 +254,14 @@ async def batch_update_product_stock(
     return result
 
 
-@router.post("/products/update-status", summary="批量更新商品状...")
+@router.post("/products/update-status", summary="批量更新商品状态")
 @_catch
 async def batch_update_product_status(
         request: BatchUpdateStatusRequest,
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """批量更新商品状�?""
+    """批量更新商品状态"""
     service = create_batch_service(db)
     result = await service.batch_update_product_status(
         product_ids=request.ids,

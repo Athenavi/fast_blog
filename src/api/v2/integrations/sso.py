@@ -4,32 +4,27 @@ SSO单点登录 API
 """
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, Body, Request
+from fastapi import APIRouter, HTTPException, Query, Body, Request, Depends
+from fastapi.responses import RedirectResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.integrations.sso_service import sso_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
+from src.auth import jwt_required_dependency as jwt_required
+from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["sso"])
 
 
+@router.get("/oauth/{provider}/authorize", summary="OAuth2授权")
+@_catch
 async def oauth_authorize(
         provider: str,
         redirect_uri: str = Query(..., description="回调URL"),
-    state: Optional[str] = Query(None, description="状态参..."),
+    state: Optional[str] = Query(None, description="状态参数"),
         request: Request = None,
 ):
-    """
-    获取OAuth2授权URL并重定向
-
-    Args:
-        provider: OAuth提供�?(google/github/microsoft)
-        redirect_uri: 回调URL
-        state: 状态参�?
-    Returns:
-        重定向到OAuth提供...
-    """
-    # SECURITY: Validate redirect_uri against the app's own callback URL
-    # to prevent open-redirect attacks (Fix 2).
     if request:
         base_url = str(request.base_url).rstrip('/')
         expected_callback = f"{base_url}/api/v2/sso/oauth/{provider}/callback"
@@ -49,25 +44,12 @@ async def oauth_authorize(
 @_catch
 async def oauth_callback(
         provider: str,
-    code: str = Body(..., description="授权..."),
+    code: str = Body(..., description="授权码"),
         redirect_uri: str = Body(..., description="回调URL"),
-        state
-
-: Optional[str] = Body(None, description="状态参..."),
+    state: Optional[str] = Body(None, description="状态参数"),
         request: Request = None,
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    处理OAuth2回调
-
-    Args:
-        provider: OAuth提供...
-            code: 授权...
-            redirect_uri: 回调URL
-        state: 状态参�?
-    Returns:
-        用户信息和令...
-    """
     # SECURITY: Validate state parameter to prevent CSRF account takeover.
     if not state:
         raise HTTPException(status_code=400, detail="Missing or empty 'state' parameter (CSRF protection)")
@@ -113,13 +95,13 @@ async def oauth_callback(
     )
 
 
-@router.get("/oauth/providers", summary="获取支持的OAuth提供...")
+@router.get("/oauth/providers", summary="获取支持的OAuth提供商")
 @_catch
 async def get_oauth_providers():
     """
-    获取所有支持的OAuth提供商列�?
+    获取所有支持的OAuth提供商列表
     Returns:
-        提供商列...
+        提供商列表
     """
     providers = []
     for name, config in sso_service.oauth_providers.items():
@@ -149,7 +131,7 @@ async def get_oauth_providers():
 @router.post("/ldap/authenticate", summary="LDAP认证")
 @_catch
 async def ldap_authenticate(
-    username: str = Body(..., description="用户..."),
+    username: str = Body(..., description="用户名"),
         password: str = Body(..., description="密码"),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -157,8 +139,8 @@ async def ldap_authenticate(
     LDAP认证
 
     Args:
-        username: 用户...
-            password: 密码
+        username: 用户名
+        password: 密码
 
     Returns:
         认证结果
@@ -168,7 +150,7 @@ async def ldap_authenticate(
     if not userinfo:
         return fail("Invalid credentials")
 
-# 查找或创建用...
+    # 查找或创建用户
     from sqlalchemy import select
     from shared.models.user import User
 
@@ -177,12 +159,12 @@ async def ldap_authenticate(
     user = result.scalar_one_or_none()
 
     if not user:
-        # 创建新用...
-            user = User(
+        # 创建新用户
+        user = User(
             username=userinfo['username'],
             email=userinfo.get('email') or f"{userinfo['username']}@company.com",
-        password = '',  # LDAP用户不需要本地密...
-                is_active=True,
+            password='',  # LDAP用户不需要本地密码
+            is_active=True,
             auth_method='ldap',
         )
 
@@ -210,7 +192,7 @@ async def ldap_authenticate(
 
 
 # ==================== SAML ====================
-# SAML endpoints disabled �?requires python3-saml/signxml integration.
+# SAML endpoints disabled - requires python3-saml/signxml integration.
 # Route definitions are commented out to avoid returning 501.
 
 # ==================== SSO会话管理 ====================
@@ -225,7 +207,7 @@ async def create_sso_session(
     """
     创建SSO会话（仅管理员或本人可操作）
     """
-    # 仅允许管理员或自...
+    # 仅允许管理员或自己
     is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
     if current_user.id != user_id and not is_admin:
         return fail("无权为此用户创建SSO会话")
@@ -269,13 +251,13 @@ async def validate_sso_token(
 
 # ==================== 配置管理 ====================
 
-@router.get("/config", summary="获取SSO配置状...")
+@router.get("/config", summary="获取SSO配置状态")
 @_catch
 async def get_sso_config(current_user=Depends(jwt_required)):
     """
-    获取SSO配置状�?
+    获取SSO配置状态
     Returns:
-        配置状...
+        配置状态
     """
     config = {
         'oauth': {
@@ -288,7 +270,3 @@ async def get_sso_config(current_user=Depends(jwt_required)):
     }
 
     return ok(data=config)
-
-
-# 导入logger
-

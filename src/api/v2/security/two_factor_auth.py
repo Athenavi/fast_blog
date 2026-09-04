@@ -31,6 +31,7 @@ class Enable2FARequest(BaseModel):
     """启用2FA请求"""
     totp_token: str  # TOTP验证码用于验�?
 
+
 class Verify2FALoginRequest(BaseModel):
     """2FA登录验证请求"""
     user_id: int
@@ -40,10 +41,10 @@ class Verify2FALoginRequest(BaseModel):
 @router.get("/setup")
 @_catch
 async def setup_2fa(
-        request: Request,
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
-):
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
+    , _setup_secrets=None):
     """
     设置2FA - 生成密钥和QR�?
     返回QR码供用户扫描,以及手动输入的密...
@@ -60,12 +61,12 @@ async def setup_2fa(
         return fail("用户不存...")
 
     if user.is_2fa_enabled:
-            return fail("2FA已启...")
+        return fail("2FA已启...")
 
     # 生成新的TOTP密钥
     secret = two_factor_auth.generate_totp_secret()
 
-        # 临时存储到session或缓�?不保存到数据�?直到验证成功)
+    # 临时存储到session或缓�?不保存到数据�?直到验证成功)
     # 注意: cache.set() 是同步调用，在异步上下文中会阻塞事件循环
     # 使用简单的内存 dict 作为可靠后备
     from src.extensions import cache as maybe_cache
@@ -87,9 +88,9 @@ async def setup_2fa(
         "qr_code": qr_data['qr_code'],
         "secret": qr_data['manual_entry_key'],
         "instructions": [
-            "1. 下载Google Authenticator或类似应�?,
+            "1. 下载Google Authenticator或类似应用",
             "2. 扫描二维码或手动输入密钥",
-            "3. 输入应用生成�?位验证码以完成设�?
+            "3. 输入应用生成的6位验证码以完成设",
         ]
     }, msg="请扫描二维码或手动输入密...")
 
@@ -97,9 +98,9 @@ async def setup_2fa(
 @router.post("/enable")
 @_catch
 async def enable_2fa(
-        request_data: Enable2FARequest,
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    request_data: Enable2FARequest,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """
     启用2FA
@@ -117,18 +118,18 @@ async def enable_2fa(
 
     # 验证TOTP令牌
     if not two_factor_auth.verify_totp(secret, request_data.totp_token):
-            return fail("验证码错...")
+        return fail("验证码错...")
 
-        # 生成备用...
+    # 生成备用...
     backup_codes = two_factor_auth.generate_backup_codes()
 
-        # 在数据库中启�?FA
+    # 在数据库中启�?FA
     query = select(User).where(User.id == current_user.id)
     result = await db.execute(query)
     user = result.scalar_one_or_none()
 
     if not user:
-            return fail("用户不存...")
+        return fail("用户不存...")
 
     user.is_2fa_enabled = True
     user.totp_secret = secret
@@ -154,9 +155,9 @@ async def enable_2fa(
 @router.post("/disable")
 @_catch
 async def disable_2fa(
-        password: str = Body(..., description="当前密码验证"),
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    password: str = Body(..., description="当前密码验证"),
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """
     禁用2FA（需验证当前密码...
@@ -194,9 +195,9 @@ async def disable_2fa(
 @router.post("/verify-login")
 @_catch
 async def verify_2fa_login(
-        request: Request,
-        request_data: Verify2FALoginRequest,
-        db: AsyncSession = Depends(get_async_db)
+    request: Request,
+    request_data: Verify2FALoginRequest,
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
     验证2FA登录
@@ -220,7 +221,7 @@ async def verify_2fa_login(
         return fail("用户不存...")
 
     if not user.is_2fa_enabled:
-            return fail("2FA未启...")
+        return fail("2FA未启...")
 
     # 验证TOTP或备用码
     verification_method = None
@@ -309,8 +310,8 @@ async def verify_2fa_login(
 @router.post("/backup-codes/regenerate")
 @_catch
 async def regenerate_backup_codes(
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """
     重新生成备用...
@@ -327,9 +328,9 @@ async def regenerate_backup_codes(
         return fail("用户不存...")
 
     if not user.is_2fa_enabled:
-            return fail("2FA未启...")
+        return fail("2FA未启...")
 
-        # 生成新的备用...
+    # 生成新的备用...
     new_codes = two_factor_auth.generate_backup_codes()
     user.backup_codes = two_factor_auth.hash_backup_codes(new_codes)
 
@@ -349,8 +350,8 @@ async def regenerate_backup_codes(
 @router.get("/status")
 @_catch
 async def get_2fa_status(
-        db: AsyncSession = Depends(get_async_db),
-        current_user=Depends(jwt_required)
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
     """
     获取2FA状...

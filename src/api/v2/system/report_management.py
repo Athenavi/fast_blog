@@ -5,7 +5,7 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, Body, HTTPException
+from fastapi import APIRouter, Depends, Query, Body
 
 from shared.services.analytics.scheduled_report_service import create_scheduled_report_service
 from shared.services.system.report_generator import report_generator, ReportGenerator
@@ -145,13 +145,13 @@ async def get_report_templates(current_user=Depends(admin_required_api)):
         {
             'id': 'traffic-analysis',
             'name': '流量分析',
-            'description': '访问量、来源渠道、页面表�?,
+            'description': '访问量、来源渠道、页面表单',
             'metrics': ['traffic'],
             'default_days': 30,
         },
         {
             'id': 'engagement-metrics',
-            'name': '参与度分�?,
+            'name': '参与度指标',
             'description': '用户互动、停留时间、跳出率',
             'metrics': ['engagement'],
             'default_days': 30,

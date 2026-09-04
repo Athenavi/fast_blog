@@ -5,10 +5,12 @@ import os
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
+from sqlalchemy import select
 
 from shared.services.seo.seo_service import seo_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
+from src.utils.database.unified_manager import db_manager
 
 router = APIRouter(tags=["seo"])
 
@@ -46,7 +48,6 @@ async def get_sitemap():
     from shared.services.seo.seo_service import SEOService
     from shared.models.article import Article
     from shared.models.category import Category
-    from src.utils.database.unified_manager import db_manager
 
     async with db_manager.get_session() as db:
         stmt = select(Article).where(Article.status == 'published')
@@ -72,13 +73,18 @@ async def get_sitemap():
             for c in categories
         ]
 
-        result = await db.execute(stmt)
-        pages = result.scalars().all()
-
-        page_list = [
-            {'id': p.id, 'slug': p.slug, 'title': p.title}
-            for p in pages
-        ]
+        # 获取页面列表（如果有Page模型）
+        try:
+            from shared.models.page import Page
+            stmt = select(Page)
+            result = await db.execute(stmt)
+            pages = result.scalars().all()
+            page_list = [
+                {'id': p.id, 'slug': p.slug, 'title': p.title}
+                for p in pages
+            ]
+        except ImportError:
+            page_list = []
 
         seo_svc = SEOService()
         sitemap_xml = seo_svc.generate_sitemap(article_list, category_list, page_list)
@@ -95,19 +101,59 @@ async def generate_sitemap(
         current_user=Depends(jwt_required)
 ):
     """手动生成站点地图"""
-
-    from src.utils.database.unified_manager import db_manager
+    from shared.services.seo.seo_service import SEOService
+    from shared.models.article import Article
+    from shared.models.category import Category
 
     async with db_manager.get_session() as db:
+        stmt = select(Article).where(Article.status == 'published')
+        result = await db.execute(stmt)
+        articles = result.scalars().all()
 
-    sitemap_path = os.path.join('static', 'sitemap.xml')
-    os.makedirs(os.path.dirname(sitemap_path), exist_ok=True)
-    with open(sitemap_path, 'w', encoding='utf-8') as f:
-        f.write(sitemap_xml)
+        article_list = [
+            {
+                'id': a.id, 'slug': a.slug, 'title': a.title,
+                'excerpt': a.excerpt, 'cover_image': a.cover_image,
+                'created_at': a.created_at.isoformat() if a.created_at else None,
+                'updated_at': a.updated_at.isoformat() if a.updated_at else None,
+                'is_featured': a.is_featured
+            } for a in articles
+        ]
 
-    return ok(data={"message": "站点地图已生�?, "path": sitemap_path})
+        stmt = select(Category)
+        result = await db.execute(stmt)
+        categories = result.scalars().all()
 
-                                                     # ==================== 结构化数�?====================
+        category_list = [
+            {'id': c.id, 'slug': c.slug, 'name': c.name}
+            for c in categories
+        ]
+
+        # 获取页面列表
+        try:
+            from shared.models.page import Page
+            stmt = select(Page)
+            result = await db.execute(stmt)
+            pages = result.scalars().all()
+            page_list = [
+                {'id': p.id, 'slug': p.slug, 'title': p.title}
+                for p in pages
+            ]
+        except ImportError:
+            page_list = []
+
+        seo_svc = SEOService()
+        sitemap_xml = seo_svc.generate_sitemap(article_list, category_list, page_list)
+
+        sitemap_path = os.path.join('static', 'sitemap.xml')
+        os.makedirs(os.path.dirname(sitemap_path), exist_ok=True)
+        with open(sitemap_path, 'w', encoding='utf-8') as f:
+            f.write(sitemap_xml)
+
+    return ok(data={"message": "站点地图已生成", "path": sitemap_path})
+
+
+# ==================== 结构化数据 ====================
 
 @router.get("/schema/article/{article_id}")
 @_catch
@@ -115,35 +161,40 @@ async def get_article_schema(
         article_id: int,
         current_user=Depends(jwt_required)
 ):
-    """获取文章结构化数�?""
+    """获取文章结构化数据"""
     from shared.services.seo.seo_service import SEOService
     from shared.models.article import Article
-    from sqlalchemy import select
 
     async with db_manager.get_session() as db:
+        stmt = select(Article).where(Article.id == article_id)
+        result = await db.execute(stmt)
+        article = result.scalar_one_or_none()
 
-    stmt = select(Article).where(Article.id == article_id)
-    result = await db.execute(stmt)
-    article = result.scalar_one_or_none()
+        if not article:
+            return fail("文章不存在")
 
-    if not article:
-        return fail("文章不存...")
+        # 获取作者信息
+        author_name = ''
+        if article.author:
+            author_name = article.author.nickname or article.author.username
 
-    article_data = {
-        'title': article.title, 'excerpt': article.excerpt,
-        'cover_image': article.cover_image,
-        'created_at': article.created_at.isoformat() if article.created_at else None,
-        'updated_at': article.updated_at.isoformat() if article.updated_at else None,
-        'author_name': article.author.nickname if article.author else '',
-        'slug': article.slug, 'id': article.id
-    }
+        article_data = {
+            'title': article.title,
+            'excerpt': article.excerpt,
+            'cover_image': article.cover_image,
+            'created_at': article.created_at.isoformat() if article.created_at else None,
+            'updated_at': article.updated_at.isoformat() if article.updated_at else None,
+            'author_name': author_name,
+            'slug': article.slug,
+            'id': article.id
+        }
 
-    seo_svc = SEOService(base_url="https://example.com")
-    schema = seo_svc.generate_article_schema(article_data)
-    return ok(data={"schema": schema})
+        seo_svc = SEOService(base_url="https://example.com")
+        schema = seo_svc.generate_article_schema(article_data)
+        return ok(data={"schema": schema})
 
 
-@router.get("/schema/breadcrumb")
+@router.post("/schema/breadcrumb")
 @_catch
 async def get_breadcrumb_schema(
         request: Request,
@@ -156,7 +207,7 @@ async def get_breadcrumb_schema(
     return ok(data={"schema": schema})
 
 
-# ==================== 面包屑导�?====================
+# ==================== 面包屑导航 ====================
 
 @router.get("/breadcrumbs/article/{article_id}")
 @_catch
@@ -165,31 +216,31 @@ async def get_article_breadcrumbs(
         current_user=Depends(jwt_required)
 ):
     """
-    获取文章面包�?""
+    获取文章面包屑
+    """
     from shared.models.article import Article
-    from sqlalchemy import select
+    from shared.models.category import Category
 
     async with db_manager.get_session() as db:
-
-    stmt = select(Article).where(Article.id == article_id)
-    result = await db.execute(stmt)
-    article = result.scalar_one_or_none()
-
-    if not article:
-        return fail("文章不存...")
-
-    category = None
-    if article.category_id:
-        stmt = select(Category).where(Category.id == article.category_id)
+        stmt = select(Article).where(Article.id == article_id)
         result = await db.execute(stmt)
-        category = result.scalar_one_or_none()
+        article = result.scalar_one_or_none()
 
-    article_data = {'title': article.title, 'slug': article.slug, 'id': article.id}
-    category_data = {'name': category.name, 'slug': category.slug, 'id': category.id} if category else {}
+        if not article:
+            return fail("文章不存在")
 
-    seo_svc = SEOService(base_url="https://example.com")
-    breadcrumbs = seo_svc.generate_breadcrumbs(article=article_data, category=category_data)
-    return ok(data={"breadcrumbs": breadcrumbs})
+        category = None
+        if article.category_id:
+            stmt = select(Category).where(Category.id == article.category_id)
+            result = await db.execute(stmt)
+            category = result.scalar_one_or_none()
+
+        article_data = {'title': article.title, 'slug': article.slug, 'id': article.id}
+        category_data = {'name': category.name, 'slug': category.slug, 'id': category.id} if category else {}
+
+        seo_svc = SEOService(base_url="https://example.com")
+        breadcrumbs = seo_svc.generate_breadcrumbs(article=article_data, category=category_data)
+        return ok(data={"breadcrumbs": breadcrumbs})
 
 
 @router.get("/breadcrumbs/category/{category_id}")
@@ -198,25 +249,23 @@ async def get_category_breadcrumbs(
         category_id: int,
         current_user=Depends(jwt_required)
 ):
-    """获取分类面包�?""
+    """获取分类面包屑"""
     from shared.services.seo.seo_service import SEOService
     from shared.models.category import Category
-    from sqlalchemy import select
 
     async with db_manager.get_session() as db:
+        stmt = select(Category).where(Category.id == category_id)
+        result = await db.execute(stmt)
+        category = result.scalar_one_or_none()
 
-    stmt = select(Category).where(Category.id == category_id)
-    result = await db.execute(stmt)
-    category = result.scalar_one_or_none()
+        if not category:
+            return fail("分类不存在")
 
-    if not category:
-        return fail("分类不存...")
+        category_data = {'name': category.name, 'slug': category.slug, 'id': category.id}
 
-    category_data = {'name': category.name, 'slug': category.slug, 'id': category.id}
-
-    seo_svc = SEOService(base_url="https://example.com")
-    breadcrumbs = seo_svc.generate_breadcrumbs(category=category_data)
-    return ok(data={"breadcrumbs": breadcrumbs})
+        seo_svc = SEOService(base_url="https://example.com")
+        breadcrumbs = seo_svc.generate_breadcrumbs(category=category_data)
+        return ok(data={"breadcrumbs": breadcrumbs})
 
 
 # ==================== Canonical URL ====================
@@ -241,24 +290,25 @@ async def normalize_url(
         current_user=Depends(jwt_required)
 ):
     """
-    URL规范�?- 统一URL格式
+    URL规范化 - 统一URL格式
     """
-        body = await request.json()
-        url = body.get('url', '')
-        if not url:
-            return fail("URL不能为空")
-        normalized = seo_service.normalize_url(url)
-        return ok(data={"original_url": url, "normalized_url": normalized})
+    body = await request.json()
+    url = body.get('url', '')
+    if not url:
+        return fail("URL不能为空")
+    normalized = seo_service.normalize_url(url)
+    return ok(data={"original_url": url, "normalized_url": normalized})
 
 
-    @router.post("/canonical/detect-duplicates")
-    @_catch
-    async def detect_duplicate_content(
-            request: Request,
-            current_user=Depends(jwt_required)
-    ):
-        """
-    检测重复内�?""
+@router.post("/canonical/detect-duplicates")
+@_catch
+async def detect_duplicate_content(
+    request: Request,
+    current_user=Depends(jwt_required)
+):
+    """
+    检测重复内容
+    """
     body = await request.json()
     urls = body.get('urls', [])
     content_hash = body.get('content_hash')
@@ -273,7 +323,7 @@ async def normalize_url(
 async def get_pagination_tags(
         path: str = Query(..., description="基础路径"),
         current_page: int = Query(..., description="当前页码", ge=1),
-    total_pages: int = Query(..., description="总页�?, ge=1),
+    total_pages: int = Query(..., description="总页数", ge=1),
         current_user=Depends(jwt_required)
 ):
     """生成分页相关标签 (rel=prev/next)"""

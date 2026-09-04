@@ -5,7 +5,7 @@
 import asyncio
 from typing import Dict, Any
 
-from fastapi import APIRouter, Depends, Request, Body, HTTPException
+from fastapi import APIRouter, Depends, Request, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
@@ -14,9 +14,11 @@ from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
-router = APIRouter()
+router = APIRouter(tags=["migrations"])
 
 
+@router.get("/status", summary="迁移状态", description="获取当前数据库迁移状态(仅管理员)")
+@_catch
 async def migration_status_api(
         request: Request,
         current_user: User = Depends(admin_required_api)
@@ -25,7 +27,6 @@ async def migration_status_api(
     迁移状态API
     """
     status = migration_manager.get_migration_status()
-
     return ok(data=status)
 
 
@@ -45,8 +46,8 @@ async def apply_migrations_api(
     result = await asyncio.to_thread(migration_manager.apply_all_migrations, db)
 
     if result['success']:
-        # 更新 version.txt 中的迁移版本...
-            try:
+        # 更新 version.txt 中的迁移版本
+        try:
             import configparser
             from pathlib import Path
             vf = Path(__file__).parent.parent.parent.parent / 'version.txt'
@@ -116,7 +117,7 @@ async def create_migration_api(
 
 @router.post("/rollback",
              summary="回滚迁移",
-             description="回滚指定步数的迁�?仅管理员)",
+             description="回滚指定步数的迁移(仅管理员)",
              response_description="返回回滚结果")
 @_catch
 async def rollback_migration_api(
@@ -144,7 +145,7 @@ async def rollback_migration_api(
 
 @router.get("/info",
             summary="迁移系统信息",
-            description="获取 Alembic 迁移系统配置和功能说�?,
+            description="获取 Alembic 迁移系统配置和功能说明",
             response_description="返回系统信息")
 @_catch
 async def migration_info_api(request: Request):
@@ -155,7 +156,7 @@ async def migration_info_api(request: Request):
         'enabled': True,
         'backend': 'alembic',
         'features': [
-            '自动迁移检�?,
+            '自动迁移检查',
             '版本管理',
             '迁移文件生成',
             '回滚支持',
@@ -168,21 +169,21 @@ async def migration_info_api(request: Request):
         },
         'usage': {
             'apply': 'POST /api/v1/migrations/apply - 执行所有待处理迁移 (alembic upgrade head)',
-            'status': 'GET /api/v1/migrations/status - 查看迁移状�?,
+            'status': 'GET /api/v1/migrations/status - 查看迁移状态',
             'create': 'POST /api/v1/migrations/create - 创建迁移文件',
             'rollback': 'POST /api/v1/migrations/rollback - 回滚迁移 (指定步数)',
             'cli_upgrade': 'alembic upgrade head - CLI执行迁移',
-    'cli_downgrade': 'alembic downgrade -1 - CLI回滚一�?,
+            'cli_downgrade': 'alembic downgrade -1 - CLI回滚一步',
             'cli_history': 'alembic history - 查看迁移历史',
             'cli_current': 'alembic current - 查看当前版本',
         },
         'environment_variables': {
             'DATABASE_URL': '完整数据库URL (最高优先级)',
-            'DB_ENGINE': '数据库引�?(postgresql/sqlite)',
-            'DB_NAME': '数据库名�?,
+            'DB_ENGINE': '数据库引擎 (postgresql/sqlite)',
+            'DB_NAME': '数据库名称',
             'DB_USER': '数据库用户名',
-    'DB_PASSWORD': '数据库密�?,
-                   'DB_HOST': '数据库主�?,
-                              'DB_PORT': '数据库端�?,
+            'DB_PASSWORD': '数据库密码',
+            'DB_HOST': '数据库主机',
+            'DB_PORT': '数据库端口',
         },
     })
