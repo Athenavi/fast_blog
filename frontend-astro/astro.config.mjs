@@ -134,7 +134,7 @@ export default defineConfig({
     },
       // 性能优化: 移动端启动时间优化
       build: {
-          target: ['es2022', 'chrome110', 'firefox116', 'safari16.5'],
+          target: 'es2022',
           // 代码分割优化 - 移动端友好
           rollupOptions: {
               output: {
@@ -173,7 +173,6 @@ export default defineConfig({
           // Tree shaking
           treeShake: true,
           // 移动端优化: 减小 gzip 大小
-          cssTarget: ['safari16.5', 'IOS_SAFARI_15_3'],
       },
       esbuild: {
           // 生产环境自动移除 console.log 和 debugger

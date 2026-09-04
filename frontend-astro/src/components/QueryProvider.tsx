@@ -40,10 +40,13 @@ export function QueryProvider({children}: {children: React.ReactNode}) {
     perfMeasure('query-client:creation', 'query-client:create', 'query-client:created');
 
     // 性能优化: 仅在页面聚焦时重新获取数据
-    focusManager.setEventListener((onFocus) => {
-      window.addEventListener('focus', onFocus);
-      return () => window.removeEventListener('focus', onFocus);
-    });
+    // SSR 兼容: 只在浏览器端设置 event listener
+    if (typeof window !== 'undefined') {
+      focusManager.setEventListener((onFocus) => {
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+      });
+    }
 
     return client;
   });

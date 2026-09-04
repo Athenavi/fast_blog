@@ -7,7 +7,7 @@
 'use client';
 
 import {memo, useCallback} from 'react';
-import {RefreshCw, WiFi, X} from 'lucide-react';
+import {RefreshCw, Wifi, X} from 'lucide-react';
 import {useNetworkState} from '@/lib/hooks/useNetworkState';
 
 const OfflineBanner = memo(() => {
@@ -48,7 +48,7 @@ const OfflineBanner = memo(() => {
           </>
         ) : (
           <>
-            <WiFi className="w-4 h-4 flex-shrink-0"/>
+            <Wifi className="w-4 h-4 flex-shrink-0"/>
             <span className="truncate">网络连接已断开，您已离线</span>
           </>
         )}
