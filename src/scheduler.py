@@ -63,8 +63,7 @@ class SessionScheduler:
 
             except Exception as e:
                 logger.error(f"同步文章浏览量时出错：{e}")
-                import traceback
-                traceback.print_exc()
+                logger.exception("同步文章浏览量详细错误")
 
         # 添加定时任务（AsyncIOScheduler 直接支持异步函数）
 
@@ -138,8 +137,7 @@ class SessionScheduler:
                         pass  # 无到期文章，不记录日志
             except Exception as e:
                 logger.error(f"检查定时发布时出错：{e}")
-                import traceback
-                traceback.print_exc()
+                logger.exception("检查定时发布详细错误")
 
         self.scheduler.add_job(
             check_due_scheduled_articles,
@@ -164,8 +162,7 @@ class SessionScheduler:
                         logger.info(f"已处理 {count} 个过期 VIP 订阅")
             except Exception as e:
                 logger.error(f"检查 VIP 过期时出错：{e}")
-                import traceback
-                traceback.print_exc()
+                logger.exception("检查 VIP 过期详细错误")
 
         self.scheduler.add_job(
             check_expired_vip_subscriptions,

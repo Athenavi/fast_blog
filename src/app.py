@@ -269,15 +269,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await safe_run_async("数据库管理器", _init_database)
         logger.info(f"[lifespan] 数据库初始化耗时: {_time.monotonic() - step_start:.2f}s")
 
-    # 2.5 懒加载系统初始化
-    try:
-        from src.utils.lazy_loader import init_lazy_loading
-        step_start = _time.monotonic()
-        safe_run("懒加载系统", init_lazy_loading)
-        logger.info(f"[lifespan] 懒加载系统耗时: {_time.monotonic() - step_start:.2f}s")
-    except ImportError as e:
-        logger.warning(f"[懒加载系统] 跳过: {e}")
-
     # 3. 扩展、调度器
     try:
         from src.extensions import init_extensions

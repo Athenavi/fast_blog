@@ -44,6 +44,6 @@ async def get_mobile_categories(
             data={"categories": categories_data}
         )
     except Exception as e:
-        import traceback
-        logger.error(f"Error in get_mobile_categories: {e}\n{traceback.format_exc()}")
+        logger.error("Error in get_mobile_categories")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))

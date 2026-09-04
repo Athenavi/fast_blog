@@ -171,7 +171,7 @@ ROUTE_REGISTRY_V2 = [
     # ("src.api.v1.social.share_stats", "/api/v2/social/share-stats", ["share-stats"], False),
 
     # ==================== 示例和工具端点（集中管理）====================
-    ("src.api.v2.examples_tools", "/api/v2/examples", ["examples-tools"], False),
+    # 已移除：examples_tools 模块，已转换为 docs/API_EXAMPLES.md 文档
 
     # ==================== 企业管理（V2 聚合路由器）====================
     # V2 Enterprise 模块整合许可证、工单、部署脚本、监控告警
@@ -214,13 +214,10 @@ def is_module_enabled(module_path: str) -> bool:
     判断模块是否注册（内置插件开关）。
 
     规则：
-    1. examples_tools（示例/文档端点）仅在 DEBUG 环境暴露。
-    2. 核心模块（不在 OPTIONAL_PLUGIN_MODULES）始终启用。
-    3. DISABLED_MODULES 中列出的可选模块被关闭。
-    4. 可选模块默认启用。
+    1. 核心模块（不在 OPTIONAL_PLUGIN_MODULES）始终启用。
+    2. DISABLED_MODULES 中列出的可选模块被关闭。
+    3. 可选模块默认启用。
     """
-    if module_path == 'src.api.v2.examples_tools':
-        return os.environ.get('DEBUG', '').lower() in ('1', 'true', 'yes')
     if module_path not in OPTIONAL_PLUGIN_MODULES:
         return True
     disabled = {x.strip() for x in os.environ.get('DISABLED_MODULES', '').split(',') if x.strip()}

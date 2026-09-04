@@ -99,8 +99,8 @@ async def get_mobile_article_comments(
             }
         )
     except Exception as e:
-        import traceback
-        logger.error(f"Error in get_mobile_article_comments: {e}\n{traceback.format_exc()}")
+        logger.error("Error in get_mobile_article_comments")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -155,8 +155,8 @@ async def create_mobile_comment(
         )
     except Exception as e:
         await db.rollback()
-        import traceback
-        logger.error(f"Error in create_mobile_comment: {e}\n{traceback.format_exc()}")
+        logger.error("Error in create_mobile_comment")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -224,6 +224,6 @@ async def like_mobile_comment(
         )
     except Exception as e:
         await db.rollback()
-        import traceback
-        logger.error(f"Error in like_mobile_comment: {e}\n{traceback.format_exc()}")
+        logger.error("Error in like_mobile_comment")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))

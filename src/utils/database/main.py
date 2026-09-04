@@ -67,8 +67,7 @@ def _import_models_once():
         logger.error(f"无法导入settings模块: {e}")
     except Exception as e:
         logger.error(f"导入模型时出错: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
+        logger.exception("导入模型详细错误")
 
 
 class DatabaseManager:

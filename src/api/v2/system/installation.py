@@ -350,9 +350,8 @@ async def create_admin_user_api(
             else:
                 return fail('数据库连接池初始化失败。请确认已完成"确认数据库配置并执行迁移"步骤。')
         except Exception as init_err:
-            import traceback
             logger.error(f"数据库管理器初始化失败: {init_err}")
-            logger.error(traceback.format_exc())
+            logger.exception("数据库管理器初始化详细错误")
             return fail(f'数据库管理器初始化失败: {str(init_err)}')
 
     async with unified_db_manager.get_session_no_auto_commit() as session:

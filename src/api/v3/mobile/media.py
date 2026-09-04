@@ -118,8 +118,8 @@ async def upload_mobile_image(
             }
         )
     except Exception as e:
-        import traceback
-        logger.error(f"Error in upload_mobile_image: {e}\n{traceback.format_exc()}")
+        logger.error("Error in upload_mobile_image")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -176,6 +176,6 @@ async def upload_article_cover(
             }
         )
     except Exception as e:
-        import traceback
-        logger.error(f"Error in upload_article_cover: {e}\n{traceback.format_exc()}")
+        logger.error("Error in upload_article_cover")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))

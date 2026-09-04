@@ -50,8 +50,8 @@ async def get_mobile_user_profile(
             }
         )
     except Exception as e:
-        import traceback
-        logger.error(f"Error in get_mobile_user_profile: {e}\n{traceback.format_exc()}")
+        logger.error("Error in get_mobile_user_profile")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -91,8 +91,8 @@ async def update_mobile_user_profile(
         )
     except Exception as e:
         await db.rollback()
-        import traceback
-        logger.error(f"Error in update_mobile_user_profile: {e}\n{traceback.format_exc()}")
+        logger.error("Error in update_mobile_user_profile")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -130,6 +130,6 @@ async def get_mobile_user_stats(
             }
         )
     except Exception as e:
-        import traceback
-        logger.error(f"Error in get_mobile_user_stats: {e}\n{traceback.format_exc()}")
+        logger.error("Error in get_mobile_user_stats")
+        logger.exception("")
         return ApiResponse(success=False, error=str(e))

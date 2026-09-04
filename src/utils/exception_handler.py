@@ -3,8 +3,6 @@
 提供安全的异常处理机制，避免暴露内部敏感信息
 """
 
-import traceback
-
 from src.unified_logger import default_logger as logger
 
 
@@ -29,7 +27,7 @@ def handle_api_exception(e: Exception, default_message: str = "操作失败，�
     """
     # 记录详细的错误日志（仅在后端日志中）
     logger.error(f"API 错误：{str(e)}")
-    logger.error(traceback.format_exc())
+    logger.exception("API 错误详细堆栈")
     
     # 如果是 SafeException，返回具体消息
     if isinstance(e, SafeException):

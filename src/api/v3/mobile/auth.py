@@ -15,9 +15,7 @@ from src.utils.database.main import get_async_session
 from src.utils.security.password_validator import verify_password, hash_password
 
 router = APIRouter(tags=["mobile-auth"])
-import logging
-
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 @router.post("/login")
