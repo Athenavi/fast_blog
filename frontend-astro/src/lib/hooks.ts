@@ -353,24 +353,6 @@ export function useAsyncInit<T>(
   return {data, loading, error, retry: execute};
 }
 
-// �══ useMediaQuery - 响应式查询 hook ═══
-
-export function useMediaQuery(query: string): boolean {
-  const [matches, setMatches] = useState(false);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mql = window.matchMedia(query);
-    setMatches(mql.matches);
-
-    const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
-    mql.addEventListener('change', listener, {passive: true});
-    return () => mql.removeEventListener('change', listener);
-  }, [query]);
-
-  return matches;
-}
-
 // 常用设备检测 shortcuts
 export function useIsMobile(): boolean {
   return useMediaQuery('(max-width: 768px)');

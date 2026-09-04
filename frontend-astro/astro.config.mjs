@@ -138,79 +138,26 @@ export default defineConfig({
           // 代码分割优化 - 移动端友好
           rollupOptions: {
               output: {
-                  manualChunks: {
-                      // 核心运行时 - 最小体积
-                      'vendor-react': ['react', 'react-dom'],
-                      // 数据层 - 单独分割
-                      'vendor-query': ['@tanstack/react-query'],
-                      // UI 动画 - 延迟加载
-                      'vendor-motion': ['framer-motion'],
-                      // 图标库 - 可 tree-shaking
-                      'vendor-icons': ['lucide-react'],
-                      // Radix UI 组件
-                      'vendor-radix': [
-                          '@radix-ui/react-dialog',
-                          '@radix-ui/react-dropdown-menu',
-                          '@radix-ui/react-select',
-                          '@radix-ui/react-tabs',
-                          '@radix-ui/react-toast',
-                          '@radix-ui/react-accordion',
-                          '@radix-ui/react-avatar',
-                          '@radix-ui/react-popover',
-                          '@radix-ui/react-switch',
-                          '@radix-ui/react-checkbox',
-                      ],
-                      // 3D 渲染 - 仅按需页面加载
-                      'vendor-three': [
-                          'three',
-                          '@react-three/fiber',
-                          '@react-three/drei',
-                      ],
-                      // 编辑器 - 仅编辑页面加载
-                      'vendor-editor': [
-                          '@tiptap/react',
-                          '@tiptap/starter-kit',
-                          '@tiptap/pm',
-                          '@tiptap/extension-link',
-                          '@tiptap/extension-image',
-                          '@tiptap/extension-placeholder',
-                          '@tiptap/extension-code-block-lowlight',
-                          '@tiptap/extension-table',
-                          '@tiptap/extension-table-cell',
-                          '@tiptap/extension-table-header',
-                          '@tiptap/extension-table-row',
-                          '@tiptap/extension-task-list',
-                          '@tiptap/extension-task-item',
-                          '@tiptap/extension-text-align',
-                          '@tiptap/extension-underline',
-                          '@tiptap/extension-highlight',
-                          '@tiptap/extension-typography',
-                          '@tiptap/extension-floating-menu',
-                          '@tiptap/extension-text-style',
-                          '@tiptap/extension-color',
-                          '@tiptap/extension-font-family',
-                      ],
-                      // 协作者 - 仅协作页面加载
-                      'vendor-collab': [
-                          'yjs',
-                          'y-websocket',
-                          'y-prosemirror',
-                          '@tiptap/extension-collaboration',
-                          '@tiptap/extension-collaboration-cursor',
-                      ],
-                      // 图表库 - 按需加载
-                      'vendor-chart': ['chart.js', 'react-chartjs-2', 'recharts'],
-                      // 安全库
-                      'vendor-security': ['dompurify'],
-                      // Markdown 渲染
-                      'vendor-markdown': ['react-markdown', 'remark-gfm', 'marked', 'lowlight'],
+                  manualChunks(id) {
+                      if (id.includes('node_modules')) {
+                          if (id.includes('react') && !id.includes('react-dom')) return 'vendor-react';
+                          if (id.includes('react-dom')) return 'vendor-react';
+                          if (id.includes('@tanstack/react-query')) return 'vendor-query';
+                          if (id.includes('framer-motion')) return 'vendor-motion';
+                          if (id.includes('lucide-react')) return 'vendor-icons';
+                          if (id.includes('@radix-ui')) return 'vendor-radix';
+                          if (id.includes('three') || id.includes('@react-three')) return 'vendor-three';
+                          if (id.includes('@tiptap')) return 'vendor-editor';
+                          if (id.includes('yjs') || id.includes('y-websocket') || id.includes('y-prosemirror')) return 'vendor-collab';
+                          if (id.includes('chart.js') || id.includes('react-chartjs') || id.includes('recharts')) return 'vendor-chart';
+                          if (id.includes('dompurify')) return 'vendor-security';
+                          if (id.includes('react-markdown') || id.includes('remark-gfm') || id.includes('marked') || id.includes('lowlight')) return 'vendor-markdown';
+                      }
                   },
                   // 性能优化: 高级压缩
                   chunkFileNames: 'js/[name]-[hash].js',
                   entryFileNames: 'js/[name]-[hash].js',
                   assetFileNames: 'assets/[name]-[hash].[ext]',
-                  // 移动端优化: 控制 chunk 大小
-                  maxChunkFileHints: 500,
               },
           },
           // 启用 CSS 代码分割
