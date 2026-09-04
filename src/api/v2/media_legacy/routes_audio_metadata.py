@@ -51,7 +51,7 @@ async def get_audio_metadata(
 
     result = {
         "cover_image": None,  # base64编码的封面图...
-            "lyrics": [],  # 歌词数组 [{time: �? text: 文本}]
+        "lyrics": [],  # 歌词数组 [{time: �? text: 文本}]
         "title": media.original_filename,
         "duration": media.duration
     }
@@ -62,7 +62,7 @@ async def get_audio_metadata(
         # 转换为base64
         cover_base64 = base64.b64encode(cover_data).decode('utf-8')
         # 检测图片格...
-            mime_type = detect_image_mime_type(cover_data)
+        mime_type = detect_image_mime_type(cover_data)
         result["cover_image"] = f"data:{mime_type};base64,{cover_base64}"
         logger.info(f"成功提取音频封面: media_id={media_id}")
 
@@ -87,34 +87,33 @@ def extract_cover_from_audio(media: Media) -> Optional[bytes]:
 
             # 如果是S3路径，需要先下载到临时文...
             if file_path.startswith('s3://'):
-            try:
-                import tempfile
-                import boto3
-                from src.config import settings
+        try:
+            import tempfile
+            import boto3
+            from src.config import settings
 
-                # 解析 S3 路径 (s3://bucket/key)
-                parts = file_path.replace('s3://', '').split('/', 1)
-                bucket = parts[0]
-                key = parts[1] if len(parts) > 1 else ''
+            # 解析 S3 路径 (s3://bucket/key)
+            parts = file_path.replace('s3://', '').split('/', 1)
+            bucket = parts[0]
+            key = parts[1] if len(parts) > 1 else ''
 
-                # 从配置获�?AWS 凭据
-                s3_client = boto3.client(
-                    's3',
-                    aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', None),
-                    aws_secret_access_key=getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
-                    region_name=getattr(settings, 'AWS_REGION', 'us-east-1'),
-                )
+            s3_client = boto3.client(
+                's3',
+                aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', None),
+                aws_secret_access_key=getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
+                region_name=getattr(settings, 'AWS_REGION', 'us-east-1'),
+            )
 
-                with tempfile.NamedTemporaryFile(suffix='.tmp', delete=False) as tmp_file:
-                    s3_client.download_file(bucket, key, tmp_file.name)
-                    result = extract_audio_cover(tmp_file.name)
+            with tempfile.NamedTemporaryFile(suffix='.tmp', delete=False) as tmp_file:
+                s3_client.download_file(bucket, key, tmp_file.name)
+                result = extract_audio_cover(tmp_file.name)
 
-                    import os
-                    os.unlink(tmp_file.name)
-                    return result
-            except Exception as e:
-                logger.error(f"S3文件下载失败: {e}")
-                return None
+                import os
+                os.unlink(tmp_file.name)
+                return result
+        except Exception as e:
+            logger.error(f"S3文件下载失败: {e}")
+            return None
 
         # 本地文件直接提取（防御路径遍历）
         candidate_path = (Path('storage') / file_path.lstrip('/')).resolve()
@@ -142,44 +141,46 @@ def extract_lyrics_from_audio(media: Media) -> list:
 
     try:
         # 方法2: 从音频元数据中提取USLT帧（同步歌词...
-            lyrics = extract_lyrics_from_id3(media)
-        if lyrics:
-            all_lyrics.extend(lyrics)
+        lyrics = extract_lyrics_from_id3(media)
+    if lyrics:
+        all_lyrics.extend(lyrics)
     except Exception as e:
-        logger.error(f"从ID3提取歌词失败: {e}")
+    logger.error(f"从ID3提取歌词失败: {e}")
 
-    try:
-        import os
-        # 尝试加载同名�?.lrc 文件
-        file_path = media.file_path
-        if file_path and not file_path.startswith('s3://'):
-            file_path_actual = str(Path('storage/' + file_path))
-            if os.path.exists(file_path_actual):
-                lrc_path = os.path.splitext(file_path_actual)[0] + '.lrc'
-                if os.path.exists(lrc_path):
-                    with open(lrc_path, 'r', encoding='utf-8') as f:
-                        lrc_content = f.read()
-                    for line in lrc_content.split('\n'):
-                        line = line.strip()
-                        if not line:
-                            continue
-                        match = re.match(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)', line)
-                        if match:
-                            minutes = int(match.group(1))
-                            seconds = int(match.group(2))
-                            millis = int(match.group(3))
-                            time_in_seconds = minutes * 60 + seconds + millis / 1000
-                            text = match.group(4).strip()
-                            if text:
-                                all_lyrics.append({'time': time_in_seconds, 'text': text})
-    except Exception as e:
-        logger.warning(f"加载LRC歌词文件失败: {e}")
 
-        # 按时间排...
-    if all_lyrics:
-        all_lyrics.sort(key=lambda x: x["time"])
+try:
+    import os
 
-    return all_lyrics
+    # 尝试加载同名�?.lrc 文件
+    file_path = media.file_path
+    if file_path and not file_path.startswith('s3://'):
+        file_path_actual = str(Path('storage/' + file_path))
+        if os.path.exists(file_path_actual):
+            lrc_path = os.path.splitext(file_path_actual)[0] + '.lrc'
+            if os.path.exists(lrc_path):
+                with open(lrc_path, 'r', encoding='utf-8') as f:
+                    lrc_content = f.read()
+                for line in lrc_content.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    match = re.match(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)', line)
+                    if match:
+                        minutes = int(match.group(1))
+                        seconds = int(match.group(2))
+                        millis = int(match.group(3))
+                        time_in_seconds = minutes * 60 + seconds + millis / 1000
+                        text = match.group(4).strip()
+                        if text:
+                            all_lyrics.append({'time': time_in_seconds, 'text': text})
+except Exception as e:
+    logger.warning(f"加载LRC歌词文件失败: {e}")
+
+    # 按时间排...
+if all_lyrics:
+    all_lyrics.sort(key=lambda x: x["time"])
+
+return all_lyrics
 
 
 def extract_lyrics_from_id3(media: Media) -> list:
@@ -383,23 +384,23 @@ def parse_lrc_text(text: str) -> list:
                     minutes = int(match[0])
                     seconds = int(match[1])
                     milliseconds = int(match[2].ljust(3, '0'))  # 补齐3...
-                        text = match[3].strip()
+                    text = match[3].strip()
 
-                    if text:  # 只添加有文本的行
-                        time_in_seconds = minutes * 60 + seconds + milliseconds / 1000
-                        lyrics.append({
-                            "time": round(time_in_seconds, 2),
-                            "text": text
-                        })
+                if text:  # 只添加有文本的行
+                    time_in_seconds = minutes * 60 + seconds + milliseconds / 1000
+                    lyrics.append({
+                        "time": round(time_in_seconds, 2),
+                        "text": text
+                    })
 
         # 按时间排...
-            lyrics.sort(key=lambda x: x["time"])
+        lyrics.sort(key=lambda x: x["time"])
 
-        return lyrics
+    return lyrics
 
-    except Exception as e:
-        logger.error(f"解析LRC文件失败: {lrc_path}, 错误: {e}")
-        return []
+except Exception as e:
+logger.error(f"解析LRC文件失败: {lrc_path}, 错误: {e}")
+return []
 
 
 def detect_image_mime_type(image_data: bytes) -> str:

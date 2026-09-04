@@ -19,7 +19,6 @@ async def get_offline_download_limits(
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """获取当前用户�?VIP 离线下载配额与限�?""
     service = OfflineDownloadService(db, current_user)
     limits = await service.get_user_limits()
     return ok(data=limits)
@@ -32,27 +31,6 @@ async def create_offline_download_task(
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """
-    创建
-    VIP
-    离线下载任务（需�?VIP
-    会员权限�?
-    - 基础
-    VIP：最�?2
-    个并发，单文�?�?0
-    MB，最�?5
-    个待处理
-    - 高级
-    VIP：最�?5
-    个并发，单文�?�?00
-    MB，最�?20
-    个待处理
-    - Pro
-    VIP：最�?10
-    个并发，单文�?�?00
-    MB，最�?50
-    个待处理
-    """
     url = body.get("url")
     resource_type = body.get("resource_type", "image")
     filename = body.get("filename")
@@ -72,21 +50,21 @@ async def create_offline_download_task(
     return ok(data={
         "task_id": task.id,
         "status": task.status,
-        "message": "离线下载任务已创�?,
+        "message": "离线下载任务已创建",
     })
 
 
 @router.get("/tasks", summary="获取离线下载任务列表")
 @_catch
 async def list_offline_download_tasks(
-    status: Optional[str] = Query(None, description="状态筛�? pending/downloading/completed/failed/cancelled"),
+    status: Optional[str] = Query(None, description="状态 pending/downloading/completed/failed/cancelled"),
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量"),
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),
 ):
     """
-    获取当前用户的离线下载任务列�?""
+    获取当前用户的离线下载任务列表"""
     service = OfflineDownloadService(db, current_user)
     result = await service.get_user_tasks(status=status, page=page, per_page=per_page)
     return ok(data=result)
@@ -99,7 +77,7 @@ async def get_offline_download_task_detail(
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """获取单个离线下载任务的详细信�?""
+    """获取单个离线下载任务的详细信息"""
     service = OfflineDownloadService(db, current_user)
     task_data, error = await service.get_task_detail(task_id)
     if error:
@@ -114,8 +92,6 @@ async def cancel_offline_download_task(
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """
-    取消正在进行的离线下载任�?""
     service = OfflineDownloadService(db, current_user)
     success, error = await service.cancel_task(task_id)
     if not success:
@@ -130,7 +106,11 @@ async def retry_offline_download_task(
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),
 ):
-    """重试失败的离线下载任�?""
+    service = OfflineDownloadService(db, current_user)
+    success, error = await service.retry_task(task_id)
+    if not success:
+        raise HTTPException(status_code=400, detail=error or "重试失败")
+    return ok(msg="任务已重新加入队列")
     service = OfflineDownloadService(db, current_user)
     success, error = await service.retry_task(task_id)
     if not success:

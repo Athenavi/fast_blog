@@ -1,12 +1,12 @@
 """
 表单构建器API
-提供动态表单的创建、管理、提交等功能
+提供动态表单创建、管理、提交等功能
 """
 
 import json
-from typing import List, Optional, Dict, Any
+from typing import Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +14,8 @@ from shared.models.form import Form, FormField, FormSubmission
 from shared.services.content_management.form_builder import form_builder
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["form-builder"])
 
@@ -54,12 +54,11 @@ async def send_form_notification_email(
         html_content += "</ul>"
 
         # 纯文本内...
-            text_content = f"新表单提�? {form_title}\n\n" + "\n".join(
+        text_content = f"新表单提交: {form_title}\n\n" + "\n".join(
             [f"{k}: {v}" for k, v in submission_data.items()]
         )
 
-    # 发送邮...
-            email_service.send_email(
+        email_service.send_email(
             to_email=notification_email,
             subject=subject,
             html_content=html_content,

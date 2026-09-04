@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config.settings import app_config
 from shared.services.notifications.webhook_service import webhook_service
-from src.api.v2.media_legacy.allowed_mimes import ALLOWED_MIMES_LIST
+from src.api.v2.media_legacy.allowed_mimes import ALLOWED_MIMES_LIST, ALLOWED_MIMES_SET
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor, process_single_file
@@ -136,10 +136,7 @@ async def chunked_upload_chunk(
         return JSONResponse({'success': False, 'error': '缺少必要参数'}, status_code=400)
     try:
         chunk_index = int(chunk_index_str)
-    except (ValueError, TypeError):
-        return JSONResponse({'success': False, 'error': 'chunk_index必须是数�?}, status_code=400)
-
-                             chunk_data = None
+        chunk_data = None
         if 'chunk' in form:
             chunk_item = form.get('chunk')
         if hasattr(chunk_item, 'read'):
@@ -152,6 +149,8 @@ async def chunked_upload_chunk(
             chunk_data = await request.body()
         if not chunk_data:
             return JSONResponse({'success': False, 'error': '分块数据为空'}, status_code=400)
+    except (ValueError, TypeError):
+        return JSONResponse({'success': False, 'error': 'chunk_index必须是数字'}, status_code=400)
 
     if hashlib.sha256(chunk_data).hexdigest() != chunk_hash:
         return JSONResponse({'success': False, 'error': '分块哈希验证失败'}, status_code=400)

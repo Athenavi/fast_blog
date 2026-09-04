@@ -5,7 +5,7 @@
 import os
 from threading import Thread
 
-from fastapi import APIRouter, Depends, Body, Query
+from fastapi import APIRouter, Depends, Body, Query, Request, UploadFile, File
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,12 +18,15 @@ from src.api.v2._storage_utils import async_file_cleanup
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
-router = APIRouter()
+router = APIRouter(tags=["media-editor"])
 from src.unified_logger import default_logger as logger
 
 from src.api.v2._helpers import ok, fail, _catch
 
 
+# ---------- 删除媒体（GET方式，兼容旧版）----------
+@router.get("/delete")
+@_catch
 async def delete_user_media_api(
     current_user_obj=Depends(jwt_required),
     file_id_list: str = Query(..., alias="file-id-list"),
@@ -45,17 +48,16 @@ async def delete_user_media_api(
     cleanup_data = []
     media_hashes = [mf.hash for mf in target_files if mf.hash]
     if not media_hashes:
-        return JSONResponse({'success': False, 'message': '没有有效的媒体记�?}, status_code=400)
+        return JSONResponse({'success': False, 'message': '没有有效的媒体记录'}, status_code=400)
 
-                             fh_query = select(FileHash).where(FileHash.hash.in_(media_hashes))
-        fh_result = await db.execute(fh_query)
-        file_hashes = fh_result.scalars().all()
-        fh_map = {fh.hash: fh for fh in file_hashes}
+    fh_query = select(FileHash).where(FileHash.hash.in_(media_hashes))
+    fh_result = await db.execute(fh_query)
+    file_hashes = fh_result.scalars().all()
+    fh_map = {fh.hash: fh for fh in file_hashes}
 
-        for media in target_files:
-            if
-        not media.hash:
-        continue
+    for media in target_files:
+        if not media.hash:
+            continue
         await db.delete(media)
         fh = fh_map.get(media.hash)
         if fh:
@@ -70,7 +72,7 @@ async def delete_user_media_api(
     return ok(data={'deleted_count': len(target_files)}, msg="删除成功")
 
 
-# ---------- 批量删除（JSON�?----------
+# ---------- 批量删除（JSON）----------
 @router.post("/batch-delete")
 @_catch
 async def batch_delete_media(
@@ -80,7 +82,7 @@ async def batch_delete_media(
 ):
     result = await media_library_service.batch_delete_media(db, media_ids, user_id=current_user.id)
     if result["success"]:
-        return ok(data=result, msg=f"成功删除 {result['deleted_count']} 个文...")
+        return ok(data=result, msg=f"成功删除 {result['deleted_count']} 个文件")
     return fail(result.get("error"))
 
 
@@ -93,7 +95,7 @@ async def batch_categorize_media(
     current_user=Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """批量为媒体设置分�?""
+    """批量为媒体设置分类"""
     try:
         from sqlalchemy import update as sql_update
         stmt = (
@@ -104,7 +106,7 @@ async def batch_categorize_media(
         )
         result = await db.execute(stmt)
         await db.commit()
-        return ok(data={"updated_count": result.rowcount}, msg=f"成功�?{result.rowcount} 个文件设置分...")
+        return ok(data={"updated_count": result.rowcount}, msg=f"成功为 {result.rowcount} 个文件设置分类")
     except Exception:
         await db.rollback()
         raise
@@ -121,9 +123,10 @@ async def batch_update_tags(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    批量为媒体设置标签（每个媒体最�?个标签）"""
+    批量为媒体设置标签（每个媒体最多5个标签）
+    """
     if len(tags) > 5:
-        return fail("最多只能设�?个标...")
+        return fail("最多只能设置5个标签")
 
     query = select(Media).where(Media.id.in_(media_ids), Media.user == current_user.id)
     result = await db.execute(query)
@@ -144,7 +147,7 @@ async def batch_update_tags(
         updated_count += 1
 
     await db.commit()
-    return ok(data={"updated_count": updated_count}, msg=f"成功�?{updated_count} 个文件更新标...")
+    return ok(data={"updated_count": updated_count}, msg=f"成功为 {updated_count} 个文件更新标签")
 
 
 # ---------- 详情 ----------
@@ -190,7 +193,7 @@ async def update_media(
         else:
             tags_list = []
         if len(tags_list) > 5:
-            return fail("最多只能设�?个标...")
+            return fail("最多只能设置5个标签")
         media.tags = ','.join(tags_list) if tags_list else None
     if 'category' in body:
         media.category = body['category']
@@ -277,7 +280,7 @@ async def batch_optimize_images(
     return ok(data={"total": len(media_files), "optimized": optimized_count, "results": results})
 
 
-# ---------- 批量更新元数�?----------
+# ---------- 批量更新元数据 ----------
 @router.post("/batch-update")
 @_catch
 async def batch_update_metadata(
@@ -287,7 +290,7 @@ async def batch_update_metadata(
 ):
     result = await media_library_service.batch_update_metadata(db, updates, user_id=current_user.id)
     if result["success"]:
-        return ok(data=result, msg=f"成功更新 {result['updated_count']} 个文...")
+        return ok(data=result, msg=f"成功更新 {result['updated_count']} 个文件")
     return fail(result.get("error"))
 
 
@@ -342,7 +345,7 @@ async def edit_image(
     image_path = body.get('image_path')
     operations = body.get('operations', [])
     if not image_path:
-        return fail("请指定图片路...")
+        return fail("请指定图片路径")
     success, message, data = image_editor.process_image(image_path, operations)
     if not success:
         return fail(message)
@@ -359,7 +362,8 @@ async def upload_edited_image(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    上传编辑后的图片并更新媒体记�?""
+    上传编辑后的图片并更新媒体记录
+    """
     try:
         from src.utils.storage.s3_storage import s3_storage
         import hashlib
@@ -380,7 +384,7 @@ async def upload_edited_image(
         validation = image_processor.validate_image(file_data)
         if not validation['valid']:
             return JSONResponse(
-                content={"success": False, "error": f"无效的图�? {', '.join(validation['errors'])}"},
+                content={"success": False, "error": f"无效的图片: {', '.join(validation['errors'])}"},
                 status_code=400
             )
 
@@ -395,7 +399,7 @@ async def upload_edited_image(
             s3_storage.save_raw_file(storage_path, file_data)
             file_url = f"/storage/{storage_path}"
         except Exception as e:
-            logger.warning(f"S3 存储失败，使用本地存�? {e}")
+            logger.warning(f"S3 存储失败，使用本地存储: {e}")
             local_path = f"storage/{storage_path}"
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             with open(local_path, 'wb') as f:
@@ -416,7 +420,7 @@ async def upload_edited_image(
                 thumbnail_path = f"thumbnails/{file_hash[:2]}/{file_hash}.jpg"
                 thumbnail_url = f"/api/v2/assets/storage/{thumbnail_path}"
         except Exception as e:
-            logger.warning(f"生成缩略图失�? {e}")
+            logger.warning(f"生成缩略图失败: {e}")
 
         media.hash = file_hash
         media.filename = filename

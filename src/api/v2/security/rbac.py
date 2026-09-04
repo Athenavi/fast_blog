@@ -3,13 +3,14 @@
 提供细粒度权限控制、自定义角色、权限继承和审计功能
 """
 import logging
+from datetime import datetime, timezone
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, Body
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, Body, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.rbac import Role, Capability
+from shared.models.rbac import Role, Capability, UserRole
 from shared.services.security.rbac_service import rbac_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.api.v3._permission import invalidate_permission_cache
@@ -29,7 +30,6 @@ async def create_role(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """创建自定义角�?""
     # 权限检...
     if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
@@ -78,7 +78,6 @@ async def get_roles(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取所有角色列表（含用户计数）"""
     query = select(Role)
     if not include_system:
         query = query.where(Role.is_system == False)
@@ -197,8 +196,6 @@ async def get_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    获取所有权限列�?""
     query = select(Capability).where(Capability.is_active == True)
     if resource_type:
         query = query.where(Capability.resource_type == resource_type)
@@ -228,7 +225,6 @@ async def assign_role_to_user(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """为用户分配角�?""
     if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
@@ -284,7 +280,6 @@ async def get_user_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取用户的所有权限代码列�?""
     codes = await rbac_service.get_user_permission_codes(db, user_id)
 
     return ok(data={
