@@ -399,6 +399,7 @@ export async function cachedFetch<T>(
     );
 }
 
+/** 根据 ETag 判断是否需要重新请求 */
 export function clearCacheByPattern(pattern: string): void {
     const keysToDelete: string[] = [];
     for (const key of apiCache['cache'].keys()) {
@@ -407,4 +408,194 @@ export function clearCacheByPattern(pattern: string): void {
         }
     }
     keysToDelete.forEach(key => apiCache.delete(key));
+}
+
+/**
+ * 批量获取缓存数据
+ * 将多个独立的缓存查询合并处理，减少内存遍历次数
+ */
+export async function cachedFetchBatch<T extends Record<string, any>>(
+    entries: Array<{ key: string; url: string; options?: RequestInit; ttl?: number }>,
+    parallel = true
+): Promise<Record<string, T[keyof T] | null>> {
+    const results: Record<string, T[keyof T] | null> = {};
+
+    if (parallel) {
+        await Promise.allSettled(entries.map(async ({key, url, options, ttl}) => {
+            try {
+                results[key] = await cachedFetch<T[keyof T]>(url, options, ttl);
+            } catch {
+                results[key] = null;
+            }
+        }));
+    } else {
+        for (const {key, url, options, ttl} of entries) {
+            try {
+                results[key] = await cachedFetch<T[keyof T]>(url, options, ttl);
+            } catch {
+                results[key] = null;
+            }
+        }
+    }
+
+    return results;
+}
+
+/**
+ * 带 ETag 支持的缓存请求
+ * 服务器返回 304 时自动使用本地缓存
+ */
+export async function cachedFetchWithETag<T>(
+    url: string,
+    options?: RequestInit,
+    ttl?: number
+): Promise<T> {
+    const cacheKey = `etag:${url}:${JSON.stringify(options || {})}`;
+    const etagKey = `etag-value:${url}`;
+
+    // 获取本地存储的 ETag
+    const localETag = apiCache.get<string>(etagKey, true);
+
+    const fetchWithETag = async () => {
+        const headers = new Headers(options?.headers);
+        if (localETag) {
+            headers.set('If-None-Match', localETag);
+        }
+
+        const response = await fetch(url, {
+            ...options,
+            headers,
+        });
+
+        // 304 Not Modified - 使用缓存
+        if (response.status === 304) {
+            const cachedData = apiCache.get<T>(cacheKey);
+            if (cachedData !== null) return cachedData;
+            throw new Error('304 Not Modified but no cached data available');
+        }
+
+        // 保存新的 ETag
+        const serverETag = response.headers.get('etag');
+        if (serverETag) {
+            apiCache.set(etagKey, serverETag, ttl || apiCache.defaultTTL);
+        }
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const text = await response.text();
+        if (!text) throw new Error('Empty response from server');
+
+        return JSON.parse(text) as T;
+    };
+
+    return apiCache.getOrFetch(
+        cacheKey,
+        fetchWithETag,
+        ttl,
+        { dedupe: true, staleWhileRevalidate: true }
+    );
+}
+
+/**
+ * 缓存组管理
+ * 将相关的缓存键分组，支持批量失效
+ */
+class CacheGroupManager {
+    private groups: Map<string, Set<string>> = new Map();
+
+    /** 将缓存键添加到组 */
+    register(group: string, key: string): void {
+        if (!this.groups.has(group)) {
+            this.groups.set(group, new Set());
+        }
+        this.groups.get(group)!.add(key);
+    }
+
+    /** 失效整个组 */
+    invalidate(group: string): number {
+        const keys = this.groups.get(group);
+        if (!keys) return 0;
+        let count = 0;
+        for (const key of keys) {
+            apiCache.delete(key);
+            count++;
+        }
+        this.groups.delete(group);
+        return count;
+    }
+
+    /** 获取组信息 */
+    getGroup(group: string): string[] {
+        return Array.from(this.groups.get(group) || []);
+    }
+
+    /** 获取所有组 */
+    getAllGroups(): Record<string, string[]> {
+        const result: Record<string, string[]> = {};
+        for (const [group, keys] of this.groups.entries()) {
+            result[group] = Array.from(keys);
+        }
+        return result;
+    }
+
+    /** 清理空的组 */
+    cleanup(): void {
+        for (const [group, keys] of this.groups.entries()) {
+            const validKeys = Array.from(keys).filter(k => apiCache.has(k));
+            if (validKeys.length === 0) {
+                this.groups.delete(group);
+            } else {
+                this.groups.set(group, new Set(validKeys));
+            }
+        }
+    }
+}
+
+export const cacheGroupManager = new CacheGroupManager();
+
+/**
+ * 网络感知批量请求
+ * 在弱网络下自动串行化请求，减少并发连接数
+ */
+export async function networkAwareBatchFetch<T extends Record<string, any>>(
+    entries: Array<{ key: string; url: string; options?: RequestInit; ttl?: number }>,
+    network?: { isSlow?: boolean; isOnline?: boolean }
+): Promise<Record<string, T[keyof T] | null>> {
+    const results: Record<string, T[keyof T] | null> = {};
+    const isSlow = network?.isSlow ?? false;
+    const isOnline = network?.isOnline ?? true;
+
+    if (!isOnline) {
+        // 离线模式：只从缓存读取
+        for (const {key, url, options, ttl} of entries) {
+            const cacheKey = `${url}:${JSON.stringify(options || {})}`;
+            const cached = apiCache.get<T[keyof T]>(cacheKey, true);
+            results[key] = cached ?? null;
+        }
+        return results;
+    }
+
+    if (isSlow) {
+        // 弱网络：串行请求，避免并发导致超时
+        for (const {key, url, options, ttl} of entries) {
+            try {
+                results[key] = await cachedFetch<T[keyof T]>(url, options, ttl);
+            } catch {
+                results[key] = null;
+            }
+        }
+    } else {
+        // 正常网络：并行请求
+        await Promise.allSettled(entries.map(async ({key, url, options, ttl}) => {
+            try {
+                results[key] = await cachedFetch<T[keyof T]>(url, options, ttl);
+            } catch {
+                results[key] = null;
+            }
+        }));
+    }
+
+    return results;
 }
