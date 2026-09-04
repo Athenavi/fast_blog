@@ -1,8 +1,8 @@
 """
 认证 API - V2 原生实现
 
-整合 JWT 登录/注册/验证�?登出/token刷新
-优化: _catch 统一处理 13 处重�?try/except
+整合 JWT 登录/注册/验证/登出/token刷新
+优化: _catch 统一处理 13 处重复 try/except
 """
 import re
 import uuid
@@ -101,7 +101,7 @@ def extract_token_from_request(request: Request) -> Optional[str]:
     return request.cookies.get("access_token") or request.cookies.get("access_token_cookie")
 
 
-# ─── 用户�?邮箱检�?───
+# ─── 用户/邮箱检查 ───
 
 @router.get("/check-username")
 @_catch
@@ -155,7 +155,8 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     ip = request.client.host if request.client else "unknown"
     ua = request.headers.get("user-agent", "")
 
-    # IP 维度速率限制：每 IP 每分钟最�?20 次登录尝�?    ip_limited, ip_info = await rate_limiter.check_ip_limit(ip)
+    # IP 维度速率限制：每 IP 每分钟最多 20 次登录尝试
+    ip_limited, ip_info = await rate_limiter.check_ip_limit(ip)
     if ip_limited:
         return fail("登录尝试过于频繁，请稍后再试")
 
@@ -171,8 +172,8 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
         await audit_log_service.log_action(
             db=db, user_id=None, user_name=username,
             action=AuditLogAction.LOGIN, level=AuditLogLevel.WARNING,
-            resource_type="user", description="登录失败：用户名或密码错�?,
-        ip_address = ip, user_agent = ua
+            resource_type="user", description="登录失败：用户名或密码错误",
+            ip_address=ip, user_agent=ua
         )
         await event_bus.emit("user.login_failed", {"user_id": None, "username": username, "ip_address": ip})
         return fail("用户名或密码错误")
@@ -181,18 +182,18 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     await login_security_service.clear_failed_attempts_async(username, db)
 
     if not user.is_active:
-        return fail("账户已停�?)
+        return fail("账户已停用")
 
-        # 2FA 检查：如果用户启用了双因素认证，返回临�?token
-        if user.is_2fa_enabled:
-            temp_token = create_jwt_token(subject=str(user.id), token_type="temp_2fa",
-                                          expires_delta=timedelta(minutes=5))
+    # 2FA 检查：如果用户启用了双因素认证，返回临时 token
+    if user.is_2fa_enabled:
+        temp_token = create_jwt_token(subject=str(user.id), token_type="temp_2fa",
+                                      expires_delta=timedelta(minutes=5))
         return JSONResponse(content={
             "success": True,
             "data": {
                 "requires_2fa": True,
                 "temp_token": temp_token,
-                "message": "请输入双因素验证�?,
+                "message": "请输入双因素验证码",
             }
         })
 
@@ -234,9 +235,9 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
 @_catch
 async def register_api(data: RegisterRequest, request: Request, db: AsyncSession = Depends(get_async_db)):
     if not re.match(r'^[a-zA-Z0-9_]+$', data.username):
-        return fail("用户名只能包含字母、数字和下划�?)
-        if len(data.username) < 3 or len(data.username) > 30:
-            return fail("用户名长度需�?3-30 字符之间")
+        return fail("用户名只能包含字母、数字和下划线")
+    if len(data.username) < 3 or len(data.username) > 30:
+        return fail("用户名长度需在 3-30 字符之间")
 
     # 验证密码强度（与前端 Zod schema 规则一致）
     from src.utils.security.password_validator import validate_password_strength
@@ -244,7 +245,8 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
     if not pw_valid:
         return fail(pw_err)
 
-    # IP 维度速率限制：每 IP 每分钟最�?5 次注�?    ip = request.client.host if request.client else "unknown"
+    # IP 维度速率限制：每 IP 每分钟最多 5 次注册
+    ip = request.client.host if request.client else "unknown"
     ip_limited, _ = await rate_limiter.check_ip_limit(ip)
     if ip_limited:
         return fail("注册尝试过于频繁，请稍后再试")
@@ -272,7 +274,8 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
 
     await event_bus.emit("user.registered", {"user_id": user.id, "username": user.username, "email": data.email})
 
-    # 注册成功后直接登录（自动发放令牌�?    # 注意：生产环境建议先验证邮箱后再发放令牌
+    # 注册成功后直接登录（自动发放令牌）
+    # 注意：生产环境建议先验证邮箱后再发放令牌
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
@@ -286,7 +289,7 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
     return resp
 
 
-# ─── 邮箱验证�?───
+# ─── 邮箱验证 ───
 
 @router.post("/email/send-code")
 @_catch
@@ -295,76 +298,71 @@ async def send_email_verification_code(data: dict, current_user=Depends(jwt_requ
     if not email:
         return fail('邮箱不能为空')
     result = await email_verification_service.send_verification_code(email)
-    return ok(data=result, msg="验证码已发�?)
-
-                               @ router.post("/email/send-verification")
-                               @ _catch
-    async
-
-    def send_verification_email(data: dict, db: AsyncSession = Depends(get_async_db),
-                                current_user=Depends(jwt_required)):
-        """发送注册验证邮件（需登录�?""
-        email = data.get('email', '')
-        if not email:
-            return fail("邮箱地址不能为空")
-        # Stub: 实际发送逻辑�?email_verification_service 实现
-        logger.info(f"[Email Verification] Sending verification email to {email}")
-        # 这里可以调用 email_verification_service.send_verification_code �?    # 其他邮件发送服�?    return ok(msg=f"验证邮件已发送到 {email}，请查收")
+    return ok(data=result, msg="验证码已发送")
 
 
-    @router.post("/email/verify-code")
-    @_catch
-    async def verify_email_code(data: dict, current_user=Depends(jwt_required)):
-        email = data.get('email', '')
-        if not email:
-            return fail('邮箱不能为空')
-        result = email_verification_service.verify_code(email, data.get('code', ''))
-        if not result:
-            return fail("验证码无效或已过�?)
-        return ok(msg="邮箱验证成功")
+@router.post("/email/send-verification")
+@_catch
+async def send_verification_email(data: dict, db: AsyncSession = Depends(get_async_db),
+                                  current_user=Depends(jwt_required)):
+    """发送注册验证邮件（需登录）"""
+    email = data.get('email', '')
+    if not email:
+        return fail("邮箱地址不能为空")
+    # Stub: 实际发送逻辑由 email_verification_service 实现
+    logger.info(f"[Email Verification] Sending verification email to {email}")
+    # 这里可以调用 email_verification_service.send_verification_code 或其他邮件发送服务
+    return ok(msg=f"验证邮件已发送到 {email}，请查收")
 
 
-    # ─── 短信验证�?───
-
-    @router.post("/sms/send-code")
-    @_catch
-    async def send_sms_verification_code(data: dict, current_user=Depends(jwt_required)):
-        phone = data.get('phone', '')
-        if not phone:
-            return fail('手机号不能为�?)
-        result = await sms_verification_service.send_verification_code(phone)
-        return ok(data=result, msg="验证码已发�?)
-
-
-    @router.post("/sms/verify-code")
-    @_catch
-    async def verify_sms_code(data: dict, current_user=Depends(jwt_required)):
-        result = sms_verification_service.verify_code(current_user.id, data.get('code', ''))
-        if not result:
-            return fail("验证码无效或已过�?)
-        return ok(msg="验证成功")
+@router.post("/email/verify-code")
+@_catch
+async def verify_email_code(data: dict, current_user=Depends(jwt_required)):
+    email = data.get('email', '')
+    if not email:
+        return fail('邮箱不能为空')
+    result = email_verification_service.verify_code(email, data.get('code', ''))
+    if not result:
+        return fail("验证码无效或已过期")
+    return ok(msg="邮箱验证成功")
 
 
-    # ─── 双因素认�?(2FA) ───
+# ─── 短信验证 ───
 
-    @router.post("/2fa/verify")
-    @_catch
-    async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_async_db)):
-        """
-        验证
-        2
-        FA
-        并完成登�?
-        客户端先调用 / login
-        获取
-        temp_token，然后通过此端点提�?TOTP
-        码�?    """
+@router.post("/sms/send-code")
+@_catch
+async def send_sms_verification_code(data: dict, current_user=Depends(jwt_required)):
+    phone = data.get('phone', '')
+    if not phone:
+        return fail('手机号不能为空')
+    result = await sms_verification_service.send_verification_code(phone)
+    return ok(data=result, msg="验证码已发送")
+
+
+@router.post("/sms/verify-code")
+@_catch
+async def verify_sms_code(data: dict, current_user=Depends(jwt_required)):
+    result = sms_verification_service.verify_code(current_user.id, data.get('code', ''))
+    if not result:
+        return fail("验证码无效或已过期")
+    return ok(msg="验证成功")
+
+
+# ─── 双因素认证 (2FA) ───
+
+@router.post("/2fa/verify")
+@_catch
+async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_async_db)):
+    """
+    验证 2FA 并完成登录
+    客户端先调用 /login 获取 temp_token，然后通过此端点提交 TOTP 码
+    """
     body = await request.json()
     temp_token = body.get("temp_token")
     code = body.get("code")
 
     if not temp_token or not code:
-        return fail("缺少 temp_token �?code")
+        return fail("缺少 temp_token 和 code")
 
     from shared.services.security.two_factor_service import two_factor_service
 
@@ -375,13 +373,14 @@ async def send_email_verification_code(data: dict, current_user=Depends(jwt_requ
         return fail("临时 token 无效或已过期")
 
     if payload.get("type") != "temp_2fa":
-        return fail("无效�?token 类型")
+        return fail("无效的 token 类型")
 
     user_id = int(payload["sub"])
 
-    # 验证 2FA �?    result = await two_factor_service.verify(db, user_id, code)
+    # 验证 2FA 码
+    result = await two_factor_service.verify(db, user_id, code)
     if not result["success"]:
-        return fail("验证码无�?)
+        return fail("验证码无效")
 
     # 发放正式 token
     ip = request.client.host if request.client else "unknown"
@@ -393,7 +392,7 @@ async def send_email_verification_code(data: dict, current_user=Depends(jwt_requ
         db=db, user_id=user_id, user_name=user.username if user else None,
         action=AuditLogAction.LOGIN, level=AuditLogLevel.INFO,
         resource_type="user", resource_id=str(user_id),
-        description="2FA 验证通过，登录成�?,
+        description="2FA 验证通过，登录成功",
         ip_address=ip, user_agent=ua
     )
     await event_bus.emit("user.login", {"user_id": user_id, "username": user.username if user else None})
@@ -427,8 +426,8 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
             tb.blacklist(payload['jti'], payload['exp'])
             await session_management_service.revoke_all_sessions(current_user.id)
         except Exception:
-            logger.exception("登出�?token 黑名�?会话撤销失败")
-    resp = JSONResponse(content={"success": True, "message": "已登�?})
+            logger.exception("登出时 token 黑名单/会话撤销失败")
+    resp = JSONResponse(content={"success": True, "message": "已登出"})
     resp.delete_cookie("access_token")
     resp.delete_cookie("refresh_token")
     ip = request.client.host if request.client else "unknown"
@@ -441,16 +440,18 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
 @router.post("/token/refresh")
 @_catch
 async def refresh_token_api(request: Request):
-    # 优先使用 HttpOnly Cookie 中的 refresh token（最安全�?    refresh_token = request.cookies.get("refresh_token")
+    # 优先使用 HttpOnly Cookie 中的 refresh token（最安全）
+    refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
-        # 降级方案：从请求体获取（兼容前端 localStorage 场景�?        try:
+        # 降级方案：从请求体获取（兼容前端 localStorage 场景）
+        try:
             body = await request.json()
             refresh_token = body.get("refresh_token", "")
         except Exception:
             refresh_token = ""
-    # 禁止�?Authorization header 读取 refresh token（避免混淆）
+    # 禁止从 Authorization header 读取 refresh token（避免混淆）
     if not refresh_token:
-        return fail("未提供刷新令�?)
+        return fail("未提供刷新令牌")
 
     try:
         payload = decode_jwt_token(refresh_token)
@@ -475,9 +476,7 @@ async def refresh_token_api(request: Request):
 @router.post("/password/forgot")
 @_catch
 async def forgot_password(data: dict, request: Request, db: AsyncSession = Depends(get_async_db)):
-    """
-        发送密码重置邮�?""
-
+    """发送密码重置邮件"""
     email = data.get('email', '')
     if not email:
         return fail("邮箱不能为空")
@@ -488,19 +487,20 @@ async def forgot_password(data: dict, request: Request, db: AsyncSession = Depen
     user = await db.scalar(select(UserModel).where(UserModel.email == email))
     if not user:
         # 统一响应防止邮箱枚举
-        return ok(msg="如果该邮箱已注册，重置链接已发�?)
-        # 生成重置令牌�?5分钟有效期）
-        reset_token = create_jwt_token(subject=str(user.id), token_type="reset", expires_delta=timedelta(minutes=15))
-        # 发送重置邮�?    try:
+        return ok(msg="如果该邮箱已注册，重置链接已发送")
+    # 生成重置令牌（15分钟有效期）
+    reset_token = create_jwt_token(subject=str(user.id), token_type="reset", expires_delta=timedelta(minutes=15))
+    # 发送重置邮件
+    try:
         from shared.services.notifications.email_service import email_service
         site_url = getattr(settings, 'domain', 'http://localhost:9421').rstrip('/')
         reset_link = f"{site_url}/password/reset?token={reset_token}"
         html_content = f"""
         <h2>密码重置</h2>
-        <p>您好�?/p>
-        <p>请点击以下链接重置您的密码（15分钟内有效）�?/p>
+        <p>您好：</p>
+        <p>请点击以下链接重置您的密码（15分钟内有效）：</p>
         <p><a href="{reset_link}">{reset_link}</a></p>
-        <p>如果这不是您本人操作，请忽略此邮件�?/p>
+        <p>如果这不是您本人操作，请忽略此邮件。</p>
         """
         email_service.send_email(
             email,
@@ -508,20 +508,18 @@ async def forgot_password(data: dict, request: Request, db: AsyncSession = Depen
             html_content=html_content,
             text_content=f"请点击以下链接重置密码：{reset_link}"
         )
-        logger.info(f"[Password Reset] 重置邮件已发�? user_id={user.id}, email={email}")
+        logger.info(f"[Password Reset] 重置邮件已发送 user_id={user.id}, email={email}")
     except Exception as e:
-    logger.error(f"[Password Reset] 发送重置邮件失�? user_id={user.id}, error={e}")
+        logger.error(f"[Password Reset] 发送重置邮件失败 user_id={user.id}, error={e}")
+        return fail("发送重置邮件失败，请稍后重试")
+
+    return ok(msg="如果该邮箱已注册，重置链接已发送")
 
 
-return ok(msg="如果该邮箱已注册，重置链接已发�?)
-
-              @ router.post("/password/reset")
-              @ _catch
-          async
-
-
-def reset_password(data: dict, db: AsyncSession = Depends(get_async_db)):
-    """使用重置令牌设置新密�?""
+@router.post("/password/reset")
+@_catch
+async def reset_password(data: dict, db: AsyncSession = Depends(get_async_db)):
+    """使用重置令牌设置新密码"""
     token = data.get('token', '')
     new_password = data.get('password', '')
     if not token or not new_password:
@@ -539,11 +537,12 @@ def reset_password(data: dict, db: AsyncSession = Depends(get_async_db)):
     user_id = int(payload['sub'])
     user = await db.get(UserModel, user_id)
     if not user:
-        return fail("用户不存�?)
+        return fail("用户不存在")
     user.password = hash_password(new_password)
     user.updated_at = datetime.now()
     await db.commit()
-    # 撤销所有会话强制重新登�?    await session_management_service.revoke_all_sessions(user.id)
+    # 撤销所有会话强制重新登录
+    await session_management_service.revoke_all_sessions(user.id)
     return ok(msg="密码重置成功，请重新登录")
 
 
@@ -553,9 +552,9 @@ def reset_password(data: dict, db: AsyncSession = Depends(get_async_db)):
 @_catch
 async def oauth_login(provider: str, data: dict):
     """
-    第三�?OAuth
-    登录（存根）
-    provider: google / github / wechat �?    """
+    第三方 OAuth 登录（存根）
+    provider: google / github / wechat 等
+    """
     return fail(f"OAuth provider '{provider}' 暂未实现")
 
 
@@ -563,6 +562,6 @@ async def oauth_login(provider: str, data: dict):
 @_catch
 async def oauth_callback(provider: str, data: dict):
     """
-    OAuth
-    回调处理（存根）"""
+    OAuth 回调处理（存根）
+    """
     return fail(f"OAuth provider '{provider}' callback 暂未实现")

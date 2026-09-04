@@ -1,6 +1,4 @@
 # 导入时不直接使用可能引发错误的模块
-
-# 导入时不直接使用可能引发错误的模块
 from sqlalchemy.orm import Session
 
 from shared.models.notification import Notification
@@ -9,6 +7,22 @@ from src.unified_logger import default_logger as logger
 # 延迟初始化密码上下文
 # 导入统一的密码验证函数
 from src.utils.security.password_validator import verify_password as _verify_password
+
+
+# Compatibility shim: extensions.py imports pwd_context from here
+# The project uses argon2, not passlib, so we provide a compatible wrapper
+class _PwdContextShim:
+    """兼容性包装器，使 argon2 兼容 passlib.pwd_context 接口"""
+
+    def hash(self, secret: str) -> str:
+        from src.utils.security.password_validator import hash_password
+        return hash_password(secret)
+
+    def verify(self, password: str, hashed: str) -> bool:
+        return _verify_password(password, hashed)
+
+
+pwd_context = _PwdContextShim()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
