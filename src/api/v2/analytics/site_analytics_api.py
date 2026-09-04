@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from shared.services.analytics.site_analytics import site_analytics
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.auth import jwt_required_dependency as jwt_required
 from src.utils.security.ip_utils import get_client_ip
 
 router = APIRouter(prefix="/site-analytics", tags=["Site Analytics"])

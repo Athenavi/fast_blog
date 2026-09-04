@@ -1,17 +1,11 @@
 """
 查询优化 API
 提供查询分析、性能监控和优化建议功�?"""
-from functools import wraps
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query
 
-from shared.services.performance.query_monitor import query_monitor_service
-from shared.services.performance.query_optimizer import query_optimizer
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 
@@ -58,8 +52,7 @@ async def optimize_article_query(
 ):
     """
 优化的文章查询示�?""
-    from shared.models.article import Article
-    filters = {}
+filters = {}
     if category_id is not None:
         filters['category'] = category_id
     if status is not None:

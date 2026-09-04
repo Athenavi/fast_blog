@@ -2,14 +2,13 @@
 性能监控 API
 提供系统性能指标的实时监控和报告
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.performance.performance_monitor import performance_monitor
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 

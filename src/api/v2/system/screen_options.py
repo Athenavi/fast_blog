@@ -4,13 +4,13 @@
 """
 from typing import Dict, Any, Optional
 
-from fastapi import APIRouter, Depends, Query, Request, Body, HTTPException
+from fastapi import APIRouter, Depends, Query, Request, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.screen_options_service import screen_options_service
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter()
@@ -48,7 +48,7 @@ async def save_screen_option_api(
 ):
     """
     保存屏幕选项API
-    
+
     Request Body:
     {
         "page_name": "articles",
@@ -61,7 +61,7 @@ async def save_screen_option_api(
     value = data.get('value')
 
     if not page_name or not option_key:
-        return fail('缺少必需参数: page_name �?option_key')
+        return fail('缺少必需参数: page_name �?option_key')
 
     await screen_options_service.set_option(
         db, current_user.id, page_name, option_key, value
@@ -69,7 +69,7 @@ async def save_screen_option_api(
     await db.commit()
 
     return ok(
-        msg='选项已保�?,
+        msg='选项已保�?,
         data={
             'page_name': page_name,
             'option_key': option_key,
@@ -99,9 +99,9 @@ async def delete_screen_option_api(
     await db.commit()
 
     if success:
-        return ok(msg='选项已删�?)
+        return ok(msg='选项已删�?)
     else:
-        return fail('选项不存�?)
+        return fail('选项不存�?)
 
 
 @router.post("/options/batch",
@@ -117,7 +117,7 @@ async def batch_save_screen_options_api(
 ):
     """
     批量保存屏幕选项API
-    
+
     Request Body:
     {
         "page_name": "articles",

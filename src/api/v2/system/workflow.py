@@ -2,12 +2,13 @@
 工作流 API
 提供工作流定义、实例管理和执行监控的RESTful接口
 """
-from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Body
+from typing import Dict, Any
 
-from src.api.v2._helpers import ok, fail, _catch
+from fastapi import APIRouter, Depends, Body
+
 from shared.services.system.workflow_engine import workflow_engine
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, fail, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["workflows"])
 
@@ -19,11 +20,11 @@ async def register_workflow(
 ):
     """
     注册工作流定义
-    
+
     Args:
         workflow_id: 工作流唯一标识
         definition: 工作流定义，包含节点和边的配置
-        
+
     Returns:
         注册结果
     """
@@ -40,10 +41,10 @@ async def get_workflow_definition(
 ):
     """
     获取工作流定义
-    
+
     Args:
         workflow_id: 工作流ID
-        
+
     Returns:
         工作流定义
     """
@@ -67,11 +68,11 @@ async def create_workflow_instance(
 ):
     """
     创建工作流实例
-    
+
     Args:
         workflow_id: 工作流ID
         context: 初始上下文数据
-        
+
     Returns:
         创建的实例ID
     """
@@ -94,10 +95,10 @@ async def execute_workflow_instance(
 ):
     """
     执行工作流实例
-    
+
     Args:
         instance_id: 实例ID
-        
+
     Returns:
         执行结果
     """
@@ -122,10 +123,10 @@ async def get_workflow_instance(
 ):
     """
     获取工作流实例详情
-    
+
     Args:
         instance_id: 实例ID
-        
+
     Returns:
         实例详情
     """
@@ -145,10 +146,10 @@ async def cancel_workflow_instance(
 ):
     """
     取消工作流实例
-    
+
     Args:
         instance_id: 实例ID
-        
+
     Returns:
         取消结果
     """
@@ -169,11 +170,11 @@ async def get_execution_history(
 ):
     """
     获取工作流执行历史
-    
+
     Args:
         instance_id: 实例ID
         limit: 返回数量限制
-        
+
     Returns:
         执行历史记录
     """
@@ -191,7 +192,7 @@ async def get_execution_history(
 async def get_workflow_examples(current_user=Depends(jwt_required)):
     """
     获取工作流示例模板
-    
+
     Returns:
         示例列表
     """

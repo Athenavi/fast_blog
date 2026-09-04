@@ -1,15 +1,15 @@
 """
 邮件服务集成 API（SendGrid/Mailgun/SMTP�?
 提供邮件服务配置管理和邮件发送功�?"""
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.notifications.email_service_integration import email_service_integration
 from src.api.v2._helpers import ok, fail, _catch
 from src.api.v2.system.multisite import check_admin_permission
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["email-service"])

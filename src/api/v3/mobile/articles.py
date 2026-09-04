@@ -13,7 +13,7 @@ from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User
 from src.api.v2._base import ApiResponse
-from src.auth.auth_deps import jwt_optional_dependency
+from src.auth import jwt_optional_dependency
 from src.unified_logger import default_logger as logger
 from src.utils.database.unified_manager import get_db_session as get_async_session
 

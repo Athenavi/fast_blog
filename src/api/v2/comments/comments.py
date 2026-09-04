@@ -1,7 +1,6 @@
 """
 评论管理API - 包含垃圾评论过滤
 """
-import html
 from datetime import datetime
 from typing import Optional
 
@@ -16,10 +15,10 @@ from shared.services.plugins.event_bus import event_bus
 from shared.services.security.spam_filter_manager import spam_filter
 from shared.services.users.user_manager import gravatar_service
 from src.api.v2._helpers import ok, fail, _catch
+from src.auth import jwt_optional_dependency
 from src.auth import jwt_required_dependency as jwt_required
-from src.auth.auth_deps import jwt_optional_dependency
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 
 # ─── 插件管道处理 ────────────────────────────
@@ -585,7 +584,6 @@ async def delete_comment(
     删除评论(管理员或评论作者可�?
     """
     from sqlalchemy import select
-    from datetime import datetime
 
     query = select(Comment).where(Comment.id == comment_id)
     result = await db.execute(query)
@@ -670,8 +668,6 @@ async def like_comment(
     Args:
         comment_id: 评论ID
     """
-    from sqlalchemy import select
-    from datetime import datetime
 
     # 检查评论是否存�?    stmt = select(Comment).where(Comment.id == comment_id)
     result = await db.execute(stmt)
@@ -744,8 +740,6 @@ async def dislike_comment(
         comment_id: 评论ID
     """
     from shared.models.comment_vote import CommentVote
-    from sqlalchemy import select
-    from datetime import datetime
 
     # 检查评论是否存�?    stmt = select(Comment).where(Comment.id == comment_id)
     result = await db.execute(stmt)
@@ -871,7 +865,6 @@ async def notify_comment_reply(
         通知结果
     """
     from shared.models.notification import Notification
-    from sqlalchemy import select
 
     # 获取新评�?    stmt = select(Comment).where(Comment.id == comment_id)
     result = await db.execute(stmt)

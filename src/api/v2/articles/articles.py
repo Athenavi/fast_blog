@@ -32,7 +32,7 @@ from shared.services.static_generation.isr_service import isr_service
 from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload, ArticleUpdatedPayload, ArticleDeletedPayload
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
+from src.auth import jwt_optional_dependency, jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_session
 from src.utils.field_filter import filter_fields
 from src.utils.filters import markdown_to_html

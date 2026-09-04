@@ -9,8 +9,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.translation.translation_progress import translation_tracker
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 

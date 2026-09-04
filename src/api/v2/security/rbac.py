@@ -2,22 +2,19 @@
 角色权限管理 API
 提供细粒度权限控制、自定义角色、权限继承和审计功能
 """
-import json
 import logging
-from datetime import datetime, timezone
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from sqlalchemy import select, func
+from fastapi import APIRouter, Depends, Body
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import PermissionAuditLog
-from shared.models.rbac import Role, Capability, RoleCapability, UserRole
+from shared.models.rbac import Role, Capability
 from shared.services.security.rbac_service import rbac_service
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.api.v3._permission import invalidate_permission_cache
+from src.auth import jwt_required_dependency as jwt_required
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["rbac"])
 logger = logging.getLogger(__name__)

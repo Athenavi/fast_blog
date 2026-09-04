@@ -4,15 +4,14 @@ Schema.org 结构化数据生成 API
 提供自动生成各种 Schema.org JSON-LD 结构化数据的接口
 支持: Article, Organization, Person, WebSite, FAQPage, BreadcrumbList, ImageObject, VideoObject
 """
-from functools import wraps
 from typing import List, Optional, Dict
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from shared.services.system.schema_generator import schema_generator
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["Schema.org"])
 

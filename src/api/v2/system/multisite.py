@@ -2,15 +2,13 @@
 多站点管�?API
 提供站点配置、域名绑定、用户管理和内容同步功能
 """
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Body
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, Body
 
 from shared.services.system.multisite_service import multisite_service
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
+from src.api.v2._helpers import ok, fail
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["multisite"])
 

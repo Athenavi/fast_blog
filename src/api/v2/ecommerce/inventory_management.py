@@ -5,13 +5,13 @@
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Body, HTTPException
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.ecommerce.inventory_service import create_inventory_service
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
+from src.auth import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["inventory"])
@@ -24,11 +24,11 @@ async def check_product_inventory(
 ):
     """
     检查产品库存
-    
+
     Args:
         product_id: 产品ID
         quantity: 需要检查的数量
-        
+
     Returns:
         库存检查结果
     """
@@ -49,12 +49,12 @@ async def deduct_product_inventory(
 ):
     """
     扣减库存（用于订单支付成功后）
-    
+
     Args:
         product_id: 产品ID
         quantity: 扣减数量
         order_id: 关联订单ID（可选）
-        
+
     Returns:
         扣减结果
     """
@@ -83,12 +83,12 @@ async def restore_product_inventory(
 ):
     """
     恢复库存（用于订单取消或退款时）
-    
+
     Args:
         product_id: 产品ID
         quantity: 恢复数量
         order_id: 关联订单ID（可选）
-        
+
     Returns:
         恢复结果
     """
@@ -117,12 +117,12 @@ async def adjust_product_inventory(
 ):
     """
     手动调整库存（仅管理员）
-    
+
     Args:
         product_id: 产品ID
         new_quantity: 新的库存数量
         reason: 调整原因
-        
+
     Returns:
         调整结果
     """
@@ -149,10 +149,10 @@ async def get_low_stock_products(
 ):
     """
     获取低库存产品列表
-    
+
     Args:
         threshold: 低库存阈值（默认10）
-        
+
     Returns:
         低库存产品列表
     """
@@ -174,7 +174,7 @@ async def get_inventory_report(
 ):
     """
     获取库存报告
-    
+
     Returns:
         库存报告数据
     """

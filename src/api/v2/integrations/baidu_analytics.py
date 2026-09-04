@@ -2,16 +2,13 @@
 百度统计集成 API
 
 提供百度统计配置管理和追踪代码生成功�?"""
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, Query
 
 from shared.services.analytics.baidu_analytics_service import baidu_analytics_service
-from src.api.v2._helpers import ok, fail, _catch
-from src.api.v2.system.multisite import check_admin_permission
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
+from src.api.v2._helpers import ok, fail
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["baidu-analytics"])
 

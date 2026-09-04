@@ -17,7 +17,8 @@ from shared.models.user import User
 # 导入 SQLAlchemy 模型和服�?from shared.models.vip import VIPSubscription
 # 注意：避免在此处直接导入 article_service，防止循环依�?# article_service 的导入已移至使用位置
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required
+from src.auth import jwt_required_dependency as jwt_required
+from src.auth import admin_required as admin_required_api
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter()

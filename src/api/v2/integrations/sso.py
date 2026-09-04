@@ -4,14 +4,10 @@ SSO单点登录 API
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
-from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, Query, Body, Request
 
 from shared.services.integrations.sso_service import sso_service
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter(tags=["sso"])
 
@@ -285,4 +281,3 @@ async def get_sso_config(current_user=Depends(jwt_required)):
 
 # 导入logger
 
-from src.unified_logger import default_logger as logger

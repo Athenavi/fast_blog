@@ -7,15 +7,14 @@ SEO 分析仪表盘 API
 3. 外链分析 - 反向链接监控、域名权威度
 """
 from datetime import datetime
-from functools import wraps
 from typing import List, Optional, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 from pydantic import BaseModel, Field
 
 from shared.services.seo.seo_analyzer import seo_analyzer
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["SEO Dashboard"])
 

@@ -2,14 +2,13 @@
 资源优化管理 API
 提供静态资源的压缩、优化和版本化管理功能
 """
-from functools import wraps
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.performance.resource_optimizer import resource_optimizer
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 

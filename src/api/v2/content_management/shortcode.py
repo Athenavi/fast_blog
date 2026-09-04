@@ -4,12 +4,12 @@ Shortcode短代码API
 """
 
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from shared.services.content_management.shortcode_service import shortcode_service
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["shortcode"])
 

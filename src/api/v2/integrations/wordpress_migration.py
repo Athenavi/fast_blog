@@ -2,19 +2,16 @@
 WordPress 迁移 API - V2 版本
 提供完整�?WordPress 内容迁移功能
 """
-import json
 import os
 import tempfile
 from typing import Optional
 
 from fastapi import APIRouter, UploadFile, File, Depends, Form, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.integrations.wordpress_import import WordPressImportService
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
+from src.auth import jwt_required_dependency as jwt_required
 from src.unified_logger import default_logger as logger
 
 router = APIRouter(prefix="/wordpress", tags=["WordPress Migration"])

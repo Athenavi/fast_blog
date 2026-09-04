@@ -2,13 +2,12 @@
 HTTP/2 和 HTTP/3 配置 API
 提供HTTP/2和HTTP/3的配置管理和优化建议
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
 from shared.services.performance.http2_service import http2_service
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 

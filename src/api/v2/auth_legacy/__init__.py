@@ -27,7 +27,7 @@ from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.user_manager import create_user_account
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.auth import jwt_required_dependency as jwt_required
 from src.unified_logger import default_logger as logger
 from src.utils.database.unified_manager import get_db_session as get_async_db
 

@@ -2,14 +2,13 @@
 缓存管理 API
 提供多级缓存的管理、监控和预热功能
 """
-from functools import wraps
 from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
 from shared.services.core.multi_level_cache import multi_level_cache
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 

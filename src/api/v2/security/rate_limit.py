@@ -3,12 +3,13 @@ API限流管理 API
 提供限流配置、监控和管理功能
 """
 import logging
-from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, Body
 
 from shared.services.security.rate_limiter import rate_limiter
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
+from src.auth import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 
 router = APIRouter(tags=["rate-limit"])
 logger = logging.getLogger(__name__)
@@ -21,11 +22,11 @@ async def get_rate_limit_status(
 ):
     """
     获取当前限流状态
-    
+
     Args:
         user_id: 用户ID（可选）
         ip_address: IP地址（可选）
-        
+
     Returns:
         限流状态信息
     """
@@ -58,13 +59,13 @@ async def set_custom_rate_limit(
 ):
     """
     设置自定义限流配置
-    
+
     Args:
         identifier: 标识符
         limit_type: 限流类型
         requests: 最大请求数
         window: 时间窗口（秒）
-        
+
     Returns:
         设置结果
     """
@@ -101,11 +102,11 @@ async def reset_rate_limit(
 ):
     """
     重置限流计数器
-    
+
     Args:
         identifier: 标识符
         limit_type: 限流类型
-        
+
     Returns:
         重置结果
     """
@@ -122,7 +123,7 @@ async def reset_rate_limit(
 async def get_default_config(current_user=Depends(jwt_required)):
     """
     获取默认限流配置
-    
+
     Returns:
         默认配置
     """
@@ -147,12 +148,12 @@ async def update_default_config(
 ):
     """
     更新默认限流配置（管理员）
-    
+
     Args:
         limit_type: 限流类型
         requests: 最大请求数
         window: 时间窗口（秒）
-        
+
     Returns:
         更新结果
     """
@@ -189,10 +190,10 @@ async def get_monitoring_data(
 ):
     """
     获取限流监控数据
-    
+
     Args:
         period: 统计周期
-        
+
     Returns:
         监控数据
     """
@@ -224,7 +225,7 @@ async def get_monitoring_data(
 async def get_whitelist(current_user=Depends(jwt_required)):
     """
     获取限流白名单
-    
+
     Returns:
         白名单列表
     """
@@ -251,11 +252,11 @@ async def add_to_whitelist(
 ):
     """
     添加IP或用户到白名单
-    
+
     Args:
         item_type: 类型
         value: 值
-        
+
     Returns:
         添加结果
     """
@@ -283,11 +284,11 @@ async def remove_from_whitelist(
 ):
     """
     从白名单移除IP或用户
-    
+
     Args:
         item_type: 类型
         value: 值
-        
+
     Returns:
         移除结果
     """

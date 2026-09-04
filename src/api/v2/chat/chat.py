@@ -3,16 +3,13 @@
 支持群聊和私聊的消息管理
 """
 
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from sqlalchemy import select, desc, func, and_, or_
+from fastapi import APIRouter, Depends
+from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.chat import ChatGroupMember, PrivateMessage, ChatGroup
-from shared.models.user import User
+from shared.models.chat import ChatGroupMember
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required
+from src.auth import jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["chat"])
@@ -265,9 +262,6 @@ async def send_private_message(
 
     Returns:
         发送结�?    """
-    from shared.models.chat import PrivateMessage
-    from shared.models.user import User
-    from datetime import datetime
 
     # 验证接收者存�?    user_query = select(User).where(User.id == user_id)
     user_result = await db.execute(user_query)
@@ -370,7 +364,6 @@ async def mark_message_read(
         操作结果
     """
     from shared.models.chat import PrivateMessage
-    from datetime import datetime
 
     message_query = select(PrivateMessage).where(PrivateMessage.id == message_id)
     message_result = await db.execute(message_query)

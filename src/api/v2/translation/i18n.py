@@ -2,12 +2,13 @@
 多语言 API
 提供翻译管理、语言检测、自动翻译等功能
 """
-from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Query, Body, Header
+from typing import Optional, Dict, List
+
+from fastapi import APIRouter, Depends, Query, Body, Header
 
 from shared.services.translation.translation import translation_service
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["i18n"])
 
@@ -15,12 +16,12 @@ router = APIRouter(tags=["i18n"])
 async def get_supported_languages():
     """
     获取所有支持的语言
-    
+
     Returns:
         语言列表
     """
     languages = translation_service.get_supported_languages()
-    
+
     return ok(data={
         'languages': languages,
         'default_language': translation_service.default_language,
@@ -35,15 +36,15 @@ async def detect_language(
 ):
     """
     根据HTTP头检测用户首选语言
-    
+
     Args:
         accept_language: Accept-Language头
-        
+
     Returns:
         检测到的语言
     """
     detected_lang = translation_service.detect_language(accept_language)
-    
+
     return ok(data={
         'detected_language': detected_lang,
         'accept_language': accept_language,
@@ -61,17 +62,17 @@ async def get_translation(
 ):
     """
     获取指定键的翻译
-    
+
     Args:
         key: 翻译键
         language: 语言代码
         default: 默认值
-        
+
     Returns:
         翻译文本
     """
     translation = translation_service.get_translation(key, language, default)
-    
+
     return ok(data={
         'key': key,
         'translation': translation,
@@ -87,11 +88,11 @@ async def batch_get_translations(
 ):
     """
     批量获取多个翻译键的翻译
-    
+
     Args:
         keys: 翻译键列表
         language: 语言代码
-        
+
     Returns:
         翻译字典
     """
@@ -115,12 +116,12 @@ async def set_translation(
 ):
     """
     设置或更新翻译
-    
+
     Args:
         key: 翻译键
         value: 翻译值
         language: 语言代码
-        
+
     Returns:
         设置结果
     """
@@ -141,17 +142,17 @@ async def bulk_set_translations(
 ):
     """
     批量设置翻译
-    
+
     Args:
         translations: 翻译字典 {key: value}
         language: 语言代码
-        
+
     Returns:
         设置结果
     """
     for key, value in translations.items():
         translation_service.set_translation(key, value, language)
-    
+
     return ok(
         msg=f"Bulk translations set for {language}",
         data={
@@ -174,13 +175,13 @@ async def auto_translate(
 ):
     """
     使用第三方API自动翻译文本
-    
+
     Args:
         text: 要翻译的文本
         from_lang: 源语言
         to_lang: 目标语言
         api_key: API密钥
-        
+
     Returns:
         翻译结果
     """
@@ -209,10 +210,10 @@ async def get_missing_translations(
 ):
     """
     获取指定语言缺失的翻译键
-    
+
     Args:
         language: 语言代码
-        
+
     Returns:
         缺失的翻译键列表
     """
@@ -230,7 +231,7 @@ async def get_missing_translations(
 async def get_translation_stats(current_user=Depends(jwt_required)):
     """
     获取所有语言的翻译统计信息
-    
+
     Returns:
         统计数据
     """
@@ -250,15 +251,15 @@ async def export_translations(
 ):
     """
     导出翻译数据
-    
+
     Args:
         language: 语言代码
-        
+
     Returns:
         翻译数据
     """
     exported_data = translation_service.export_translations(language)
-    
+
     return ok(data=exported_data)
 
 
@@ -272,17 +273,17 @@ async def import_translations(
 ):
     """
     导入翻译数据
-    
+
     Args:
         language: 语言代码
         translations: 翻译数据
         merge: 是否合并
-        
+
     Returns:
         导入结果
     """
     translation_service.import_translations(language, translations, merge)
-    
+
     return ok(
         msg=f"Translations imported for {language}",
         data={
@@ -301,16 +302,16 @@ async def get_all_keys(
 ):
     """
     获取所有翻译键
-    
+
     Args:
         language: 语言代码（None表示默认语言）
-        
+
     Returns:
         翻译键列表
     """
     lang = language or translation_service.default_language
     keys = list(translation_service.translation_cache.get(lang, {}).keys())
-    
+
     return ok(data={
         'language': lang,
         'keys': keys,

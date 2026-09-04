@@ -10,8 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.security.security_alert import security_alert_service, EmailAlertChannel, \
     WebhookAlertChannel
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -2,14 +2,13 @@
 页面性能追踪 API
 提供前端性能数据的收集和查询功能
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.performance.performance_tracker import performance_tracker
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 

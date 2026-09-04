@@ -16,12 +16,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.api.v2._base import ApiResponse
+from src.auth import jwt_required_dependency as jwt_required
+from src.mcp._context import set_user_ctx, UserCtx
 from src.mcp.agent import LLMConfig, run_agent, stream_agent
 from src.mcp.agent.format import format_tool_result
-from src.mcp._context import set_user_ctx, UserCtx
 from src.mcp.server import mcp_server
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.api.v2._base import ApiResponse
 
 logger = logging.getLogger("mcp_proxy")
 router = APIRouter(prefix="/mcp", tags=["MCP AI Agent"])
@@ -69,7 +69,7 @@ def _to_cfg(req: ChatRequest) -> LLMConfig:
 
 def _to_dicts(messages: List[ChatMessage]) -> List[Dict]:
     """Convert pydantic ChatMessage list to plain dicts.
-    
+
     Frontend-generated tool messages (from the client-side ReAct loop)
     may lack ``tool_call_id`` or may not follow an assistant ``tool_calls``
     message. Both cases are handled here to satisfy the OpenAI API contract.

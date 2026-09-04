@@ -9,11 +9,11 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.services.articles.anomaly_detector import anomaly_detector
+from shared.services.security.audit_service import audit_service
 from shared.services.security.security_alert import security_alert_service
 from shared.services.security.security_report import report_generator
-from shared.services.security.audit_service import audit_service
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

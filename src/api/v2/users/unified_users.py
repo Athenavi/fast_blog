@@ -25,7 +25,7 @@ from src.api.v2._helpers import ok, fail
 from src.api.v2.user_utils.password_utils import validate_password_async, update_password
 from src.api.v2.user_utils.user_entities import check_user_conflict_async, change_username, db_save_bio, \
     save_uploaded_avatar
-from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
+from src.auth import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
 from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.security.forms import ChangePasswordForm
