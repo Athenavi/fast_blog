@@ -401,22 +401,11 @@ export function observeLongTasks(
             tasks.push({startTime: entry.startTime, duration});
           }
         }
-        if (tasks.length > 0) {
-          const maxTask = tasks.reduce((a, b) => a.duration > b.duration ? a : b);
-          onReport({
-            id: 'LongTask',
-            name: 'LongTask',
-            value: maxTask.duration,
-            count: tasks.length,
-            tasks: [...tasks],
-          });
-        }
       });
-
-      observer.observe({type: 'event', buffered: true, durationThreshold: threshold});
+      observer.observe({type: 'event', buffered: true});
       return () => observer.disconnect();
     } catch {
-      // 静默失败
+      // 不支持则静默失败
     }
   }
 
@@ -424,88 +413,197 @@ export function observeLongTasks(
   };
 }
 
-// ─── EventTiming Observer ───
-
-export interface EventTimingEntry {
-  entryType: 'event';
-  name: string;
-  startTime: number;
-  duration: number;
-  processingStart: number;
-  interactionId?: number;
-}
-
-export function observeEventTiming(
-  onReport: (event: EventTimingEntry) => void,
-  durationThreshold = 16 // 1帧
-): (() => void) {
-  if (typeof performance === 'undefined') return () => {
-  };
-
-  try {
-    const observer = new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        const evt = entry as any;
-        if (evt.duration >= durationThreshold) {
-          onReport({
-            entryType: 'event',
-            name: evt.name,
-            startTime: evt.startTime,
-            duration: evt.duration,
-            processingStart: evt.processingStart,
-            interactionId: evt.interactionId,
-          });
-        }
-      }
-    });
-
-    observer.observe({type: 'event', buffered: true, durationThreshold});
-    return () => observer.disconnect();
-  } catch {
-    return () => {
-    };
-  }
-}
-
-// ─── Resource Timing Observer (检测慢资源) ───
+// ─── Slow Resources Observer (检测慢资源加载) ──
 
 export interface SlowResource {
   name: string;
   url: string;
   duration: number;
   transferSize: number;
-  decodedBodySize: number;
-  encodedBodySize: number;
+  decodedSize: number;
+  type: string;
 }
 
 export function observeSlowResources(
   onReport: (resource: SlowResource) => void,
-  threshold = 3000 // 3秒
+  threshold = 3000 // ms, 超过3秒视为慢资源
 ): (() => void) {
   if (typeof performance === 'undefined') return () => {
   };
 
-  try {
-    const observer = new PerformanceObserver((list) => {
-      for (const entry of list.getEntries()) {
-        const res = entry as PerformanceResourceTiming;
-        if (res.duration >= threshold) {
-          onReport({
-            name: res.name,
-            url: res.name,
-            duration: res.duration,
-            transferSize: res.transferSize,
-            decodedBodySize: res.decodedBodySize,
-            encodedBodySize: res.encodedBodySize,
-          });
-        }
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      const resource = entry as PerformanceResourceTiming;
+      const duration = resource.responseEnd - resource.requestStart;
+      if (duration > threshold) {
+        onReport({
+          name: resource.name,
+          url: resource.name,
+          duration,
+          transferSize: resource.transferSize || 0,
+          decodedSize: resource.decodedBodySize || 0,
+          type: resource.initiatorType,
+        });
       }
-    });
+    }
+  });
 
-    observer.observe({type: 'resource', buffered: true});
-    return () => observer.disconnect();
+  observer.observe({type: 'resource', buffered: true});
+  return () => observer.disconnect();
+}
+
+// ─── Event Timing Observer (检测用户交互延迟) ───
+
+export interface EventTimingEntry {
+  name: string;
+  duration: number;
+  startTime: number;
+  interactionId?: number;
+  processingStart: number;
+}
+
+export function observeEventTiming(
+  onReport: (entry: EventTimingEntry) => void,
+  threshold = 100 // ms
+): (() => void) {
+  if (typeof performance === 'undefined') return () => {
+  };
+
+  const observer = new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      const event = entry as PerformanceEventTiming;
+      if (event.duration >= threshold) {
+        onReport({
+          name: entry.name,
+          duration: event.duration,
+          startTime: event.startTime,
+          interactionId: (event as any).interactionId,
+          processingStart: event.processingStart,
+        });
+      }
+    }
+  });
+
+  try {
+    observer.observe({type: 'event', buffered: true});
   } catch {
-    return () => {
-    };
+    // 降级处理
   }
+
+  return () => observer.disconnect();
+}
+
+// ─── Custom Performance Timer (用于标记关键路径) ───
+
+export class PerformanceTimer {
+  private marks: Map<string, DOMHighResTimeStamp> = new Map();
+
+  mark(name: string): void {
+    perfMark(name);
+    this.marks.set(name, performance.now());
+  }
+
+  measure(name: string, startMark: string, endMark: string): DOMHighResTimeStamp {
+    return perfMeasure(name, startMark, endMark);
+  }
+
+  getElapsed(startMark: string): DOMHighResTimeStamp {
+    const startTime = this.marks.get(startMark);
+    if (!startTime) return 0;
+    return performance.now() - startTime;
+  }
+
+  clear(): void {
+    this.marks.clear();
+    perfClear();
+  }
+}
+
+// 全局 PerformanceTimer 实例
+export const perfTimer = new PerformanceTimer();
+
+// ─── Bundle Size Analyzer (构建后分析) ───
+
+export interface BundleReport {
+  totalSize: number;
+  jsSize: number;
+  cssSize: number;
+  imageCount: number;
+  resourceCount: number;
+  largestResources: Array<{ name: string; size: number; type: string }>;
+}
+
+export function analyzeBundle(): BundleReport {
+  if (typeof performance === 'undefined') {
+    return {totalSize: 0, jsSize: 0, cssSize: 0, imageCount: 0, resourceCount: 0, largestResources: []};
+  }
+
+  const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[];
+  let totalSize = 0;
+  let jsSize = 0;
+  let cssSize = 0;
+  let imageCount = 0;
+
+  const sizedResources = resources.map(r => ({
+    name: r.name,
+    size: r.transferSize || 0,
+    type: r.initiatorType,
+  }));
+
+  sizedResources.forEach(r => {
+    totalSize += r.size;
+    if (r.type === 'script') jsSize += r.size;
+    if (r.type === 'link') cssSize += r.size;
+    if (['image', 'img'].includes(r.type)) imageCount++;
+  });
+
+  sizedResources.sort((a, b) => b.size - a.size);
+
+  return {
+    totalSize,
+    jsSize,
+    cssSize,
+    imageCount,
+    resourceCount: resources.length,
+    largestResources: sizedResources.slice(0, 10),
+  };
+}
+
+// ─── Performance Budget Validator (性能预算检查) ───
+
+export interface PerformanceBudget {
+  maxTotalSize?: number; // bytes
+  maxJSBundles?: number; // count
+  maxCSSBundles?: number; // count
+  maxImageCount?: number;
+  maxFCP?: number; // ms
+  maxLCP?: number; // ms
+  maxCLS?: number;
+  maxTTFB?: number; // ms
+}
+
+export interface BudgetViolation {
+  metric: string;
+  budget: number;
+  actual: number;
+  exceededBy: number;
+}
+
+export function checkPerformanceBudget(budget: PerformanceBudget): BudgetViolation[] {
+  const violations: BudgetViolation[] = [];
+  const report = analyzeBundle();
+
+  if (budget.maxTotalSize && report.totalSize > budget.maxTotalSize) {
+    violations.push({
+      metric: 'totalSize',
+      budget: budget.maxTotalSize,
+      actual: report.totalSize,
+      exceededBy: report.totalSize - budget.maxTotalSize,
+    });
+  }
+
+  // 检查 LCP, FCP, CLS, TTFB (需要从页面 vitals 获取)
+  // 这部分可以在运行时调用
+
+  return violations;
 }

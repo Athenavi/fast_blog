@@ -15,7 +15,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "test:e2e:report": "playwright show-report"
+    "test:e2e:report": "playwright show-report",
+    "lighthouse:ci": "lighthouse ci --preset=desktop",
+    "lighthouse:ci:mobile": "lighthouse ci --preset=mobile",
+    "lighthouse:audit": "lighthouse http://localhost:4321 --output=html --output-path=./lighthouse-results/report.html",
+    "perf:analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {
     "@astrojs/node": "^9.0.0",
@@ -127,6 +131,8 @@
     "tailwindcss": "^4",
     "typescript": "^5.8.3",
     "vite-plugin-pwa": "^1.0.0",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.7",
+    "lighthouse": "^12.0.0",
+    "lighthouse-ci": "^11.0.1"
   }
 }

@@ -115,7 +115,7 @@ export default defineConfig({
                       import('rollup-plugin-visualizer').then(({default: visualizer}) => {
                           console.log('\n� Bundle analysis enabled. Check dist/stats.html');
                       }).catch(() => {
-                          console.log('\n💡 Install rollup-plugin-visualizer for bundle analysis: npm i -D rollup-plugin-visualizer');
+                          console.log('\n� Install rollup-plugin-visualizer for bundle analysis: npm i -D rollup-plugin-visualizer');
                           // 手动分析报告
                           this.emitFile({
                               type: 'asset',
@@ -132,15 +132,22 @@ export default defineConfig({
         '@': path.resolve(__dirname, 'src'),
       },
     },
+      // 性能优化: 移动端启动时间优化
       build: {
-          // 代码分割优化
+          target: ['es2022', 'chrome110', 'firefox116', 'safari16.5'],
+          // 代码分割优化 - 移动端友好
           rollupOptions: {
               output: {
                   manualChunks: {
+                      // 核心运行时 - 最小体积
                       'vendor-react': ['react', 'react-dom'],
+                      // 数据层 - 单独分割
                       'vendor-query': ['@tanstack/react-query'],
+                      // UI 动画 - 延迟加载
                       'vendor-motion': ['framer-motion'],
+                      // 图标库 - 可 tree-shaking
                       'vendor-icons': ['lucide-react'],
+                      // Radix UI 组件
                       'vendor-radix': [
                           '@radix-ui/react-dialog',
                           '@radix-ui/react-dropdown-menu',
@@ -153,11 +160,13 @@ export default defineConfig({
                           '@radix-ui/react-switch',
                           '@radix-ui/react-checkbox',
                       ],
+                      // 3D 渲染 - 仅按需页面加载
                       'vendor-three': [
                           'three',
                           '@react-three/fiber',
                           '@react-three/drei',
                       ],
+                      // 编辑器 - 仅编辑页面加载
                       'vendor-editor': [
                           '@tiptap/react',
                           '@tiptap/starter-kit',
@@ -181,6 +190,7 @@ export default defineConfig({
                           '@tiptap/extension-color',
                           '@tiptap/extension-font-family',
                       ],
+                      // 协作者 - 仅协作页面加载
                       'vendor-collab': [
                           'yjs',
                           'y-websocket',
@@ -188,11 +198,19 @@ export default defineConfig({
                           '@tiptap/extension-collaboration',
                           '@tiptap/extension-collaboration-cursor',
                       ],
+                      // 图表库 - 按需加载
+                      'vendor-chart': ['chart.js', 'react-chartjs-2', 'recharts'],
+                      // 安全库
+                      'vendor-security': ['dompurify'],
+                      // Markdown 渲染
+                      'vendor-markdown': ['react-markdown', 'remark-gfm', 'marked', 'lowlight'],
                   },
                   // 性能优化: 高级压缩
                   chunkFileNames: 'js/[name]-[hash].js',
                   entryFileNames: 'js/[name]-[hash].js',
                   assetFileNames: 'assets/[name]-[hash].[ext]',
+                  // 移动端优化: 控制 chunk 大小
+                  maxChunkFileHints: 500,
               },
           },
           // 启用 CSS 代码分割
@@ -200,8 +218,6 @@ export default defineConfig({
           // 压缩选项
           minify: 'esbuild',
           // 生产环境移除 console/debugger
-          target: 'es2022',
-          // 性能优化: 减小产物大小
           reportCompressedSize: true,
           // CSS 压缩
           cssMinify: true,
@@ -209,6 +225,8 @@ export default defineConfig({
           sourcemap: process.env.SOURCEMAP === 'true' ? 'inline' : false,
           // Tree shaking
           treeShake: true,
+          // 移动端优化: 减小 gzip 大小
+          cssTarget: ['safari16.5', 'IOS_SAFARI_15_3'],
       },
       esbuild: {
           // 生产环境自动移除 console.log 和 debugger

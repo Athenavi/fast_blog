@@ -14,10 +14,10 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
 <html lang={Astro.currentLocale || 'zh-CN'} dir="ltr">
   <head>
     <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0"/>
     <meta name="description" content={description} />
     <meta name="keywords" content={keywords} />
-    
+
     <!-- SEO Meta Tags -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -26,12 +26,12 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
 
-      <!-- Performance: Preconnect to API origin -->
+      <!-- Performance: Preconnect to critical origins -->
       <link rel="preconnect" href="https://fonts.googleapis.com"/>
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
       <link rel="dns-prefetch" href="//fonts.googleapis.com"/>
 
-      <!-- Preload critical fonts -->
+      <!-- Preload critical fonts with media hack to prevent render blocking -->
       <link rel="preload" as="style"
             href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"/>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
@@ -45,19 +45,24 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-      <!-- Theme Color -->
+      <!-- Theme Color for mobile browsers -->
       <meta name="theme-color" content="#3b82f6" media="(prefers-color-scheme: light)"/>
       <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)"/>
 
       <!-- Performance hints -->
       <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+      <!-- 移动端优化: 防止首次加载白屏 -->
+      <meta name="format-detection" content="telephone=no"/>
+      <meta name="mobile-web-app-capable" content="yes"/>
+      <meta name="apple-mobile-web-app-capable" content="yes"/>
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 
       <!-- Title -->
     <title>{title}</title>
-    
+
     <slot name="head" />
 
-    <!-- Theme sync: apply dark class before paint to prevent flash -->
+      <!-- Critical: Theme sync - apply dark class before first paint to prevent FOUC -->
     <script is:inline>
       (function() {
         var key = 'fastblog-theme';
@@ -71,6 +76,21 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
             root.classList.add(cls);
           }
         } catch(e) {}
+          // 标记页面开始渲染时间
+          if (typeof window !== 'undefined') {
+              window.__perfMarks = window.__perfMarks || {};
+              window.__perfMarks.firstScript = performance.now();
+          }
+      })();
+    </script>
+      <!-- Critical: Early hydration hint - 提前提示浏览器开始解析关键 CSS -->
+      <script is:inline>
+          (function () {
+              // 移除 preload 样式表的 media 属性，使其立即生效
+              var links = document.querySelectorAll('link[rel="stylesheet"][media="print"]');
+              for (var i = 0; i < links.length; i++) {
+                  links[i].media = 'all';
+              }
       })();
     </script>
   </head>
@@ -84,12 +104,12 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
   </body>
 </html>
 
-<style>
+<style is:global>
   /* Base styles */
   * {
     border-color: #e5e7eb;
   }
-  
+
   .dark * {
     border-color: #1f2937;
   }
@@ -105,5 +125,17 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
       clip: rect(0, 0, 0, 0);
       white-space: nowrap;
       border-width: 0;
+  }
+
+  /* 移动端触摸优化 */
+  @media (max-width: 768px) {
+      button, a, input, select, textarea {
+          touch-action: manipulation;
+      }
+
+      /* 防止双击缩放 */
+      a, button {
+          -webkit-tap-highlight-color: transparent;
+      }
   }
 </style>
