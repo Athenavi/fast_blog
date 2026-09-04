@@ -65,7 +65,7 @@ class RateLimiter:
             return
         self._redis_attempted = True
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
             host = getattr(settings, 'REDIS_HOST', 'localhost') or 'localhost'
             port = int(getattr(settings, 'REDIS_PORT', 6379) or 6379)
             db = int(getattr(settings, 'REDIS_DB', 0) or 0)

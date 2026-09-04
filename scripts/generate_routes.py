@@ -110,7 +110,7 @@ class RouteGenerator:
 
         # 导入 settings 以获取表前缀
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
             table_prefix = getattr(settings, 'db_table_prefix', '')
         except ImportError:
             table_prefix = ''
@@ -136,7 +136,7 @@ class RouteGenerator:
 
         # 导入 settings 以获取表前缀
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
         except ImportError:
             settings = type('Settings', (), {'db_table_prefix': ''})()
 
@@ -269,7 +269,7 @@ class RouteGenerator:
         print(f"\n[单模型生成] 指定模型: {model_names}")
 
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
         except ImportError:
             settings = type('Settings', (), {'db_table_prefix': ''})()
 

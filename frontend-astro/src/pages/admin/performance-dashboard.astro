@@ -1,0 +1,227 @@
+---
+/**
+    * Performance Dashboard - 性能监控面板
+    * 集成 Chrome DevTools, Lighthouse, React Profiler 等工具
+    * 需要管理员权限访问
+    */
+---
+import Layout from '@/layouts/Layout.astro';
+
+export const getStaticPaths = () => {
+    return [
+    {
+        params: {},
+        props: {}
+        }
+    ];
+    };
+
+const title = '性能监控面板';
+const description = '实时查看网站性能指标，包括 Web Vitals、内存使用、长任务检测等';
+---
+
+<Layout title={title} description={description}>
+    <section class="min-h-screen bg-background py-8">
+        <div class="container mx-auto px-4">
+            <header class="mb-8">
+                <h1 class="text-3xl font-bold text-foreground">⚡ 性能监控面板</h1>
+                <p class="text-muted-foreground mt-2">{description}</p>
+                <div class="flex items-center gap-2 mt-4">
+                    <span class="text-sm text-muted-foreground">快捷键:</span>
+                    <kbd class="px-2 py-1 bg-muted rounded text-xs">Ctrl</kbd>
+                    <kbd class="px-2 py-1 bg-muted rounded text-xs">Shift</kbd>
+                    <kbd class="px-2 py-1 bg-muted rounded text-xs">P</kbd>
+                    <span class="text-sm text-muted-foreground">- 切换面板可见性</span>
+                </div>
+            </header>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Web Vitals -->
+                <div class="bg-card rounded-lg border p-6">
+                    <h2 class="text-xl font-semibold mb-4">Web Vitals 指标</h2>
+                    <div id="web-vitals-chart" class="h-64 flex items-center justify-center">
+                        <p class="text-muted-foreground">实时指标将在页面加载后显示</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-muted p-3 rounded">
+                            <div class="text-sm text-muted-foreground">LCP (最大内容绘制)</div>
+                            <div id="lcp-value" class="text-2xl font-bold">--</div>
+                        </div>
+                        <div class="bg-muted p-3 rounded">
+                            <div class="text-sm text-muted-foreground">INP (交互延迟)</div>
+                            <div id="inp-value" class="text-2xl font-bold">--</div>
+                        </div>
+                        <div class="bg-muted p-3 rounded">
+                            <div class="text-sm text-muted-foreground">CLS (累积布局偏移)</div>
+                            <div id="cls-value" class="text-2xl font-bold">--</div>
+                        </div>
+                        <div class="bg-muted p-3 rounded">
+                            <div class="text-sm text-muted-foreground">FCP (首次内容绘制)</div>
+                            <div id="fcp-value" class="text-2xl font-bold">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Monitor -->
+                <div class="bg-card rounded-lg border p-6">
+                    <h2 class="text-xl font-semibold mb-4">内存监控</h2>
+                    <div id="memory-chart" class="h-64 flex items-center justify-center">
+                        <p class="text-muted-foreground">内存使用图表</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="bg-muted p-3 rounded">
+                            <div class="text-sm text-muted-foreground">当前堆内存</div>
+                            <div id="current-heap" class="text-2xl font-bold">--</div>
+                        </div>
+                        <div class="bg-muted p-3 rounded">
+                            <div class="text-sm text-muted-foreground">峰值堆内存</div>
+                            <div id="peak-heap" class="text-2xl font-bold">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bundle Analysis -->
+                <div class="bg-card rounded-lg border p-6">
+                    <h2 class="text-xl font-semibold mb-4">Bundle 分析</h2>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span>Total Size:</span>
+                            <span id="bundle-total" class="font-mono">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>JS Size:</span>
+                            <span id="bundle-js" class="font-mono">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>CSS Size:</span>
+                            <span id="bundle-css" class="font-mono">--</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Resources:</span>
+                            <span id="bundle-resources" class="font-mono">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lighthouse Integration -->
+                <div class="bg-card rounded-lg border p-6">
+                    <h2 class="text-xl font-semibold mb-4">Lighthouse CI</h2>
+                    <p class="text-muted-foreground mb-4">
+                        运行 Lighthouse 审计以获取性能评分
+                    </p>
+                    <button id="run-lighthouse"
+                            class="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90">
+                        运行 Lighthouse 审计
+                    </button>
+                    <div id="lighthouse-results" class="mt-4 space-y-2">
+                        <p class="text-sm text-muted-foreground">点击按钮运行审计</p>
+                    </div>
+                </div>
+
+                <!-- React Profiler -->
+                <div class="bg-card rounded-lg border p-6">
+                    <h2 class="text-xl font-semibold mb-4">React Profiler</h2>
+                    <p class="text-muted-foreground mb-4">
+                        React Profiler 仅在开发模式下可用。使用 <code class="bg-muted px-1 rounded">&lt;ProfilerDevWrapper&gt;</code>
+                        包装需要分析的组件。
+                    </p>
+                    <pre class="bg-muted p-4 rounded text-xs overflow-auto">
+{`// 使用示例
+import ProfilerDevWrapper from '@/components/ProfilerDevWrapper';
+
+<ProfilerDevWrapper id="article-list">
+  <ArticleList />
+</ProfilerDevWrapper>`}
+          </pre>
+                </div>
+
+                <!-- Chrome DevTools Guide -->
+                <div class="bg-card rounded-lg border p-6">
+                    <h2 class="text-xl font-semibold mb-4">Chrome DevTools 集成</h2>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-start gap-2">
+                            <span class="text-primary">✓</span>
+                            <div>
+                                <strong>Performance 面板</strong>
+                                <p class="text-muted-foreground">使用 perfMark() 和 perfMeasure() 添加自定义标记</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-primary">✓</span>
+                            <div>
+                                <strong>Memory 面板</strong>
+                                <p class="text-muted-foreground">useMemoryLeakDetection() 会自动检测内存泄漏</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-primary">✓</span>
+                            <div>
+                                <strong>Lighthouse 面板</strong>
+                                <p class="text-muted-foreground">配置已集成，运行 npm run lighthouse:ci 执行审计</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-primary">✓</span>
+                            <div>
+                                <strong>React Profiler</strong>
+                                <p class="text-muted-foreground">开发模式下自动启用 ProfilerDevWrapper</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</Layout>
+
+<script is:inline>
+    import {analyzeBundle, getPerformanceReport} from '@/lib/perf-monitor';
+
+    function formatBytes(bytes: number): string {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+    }
+
+    // 初始化 Bundle 分析
+    const bundleReport = analyzeBundle();
+    const totalEl = document.getElementById('bundle-total');
+    const jsEl = document.getElementById('bundle-js');
+    const cssEl = document.getElementById('bundle-css');
+    const resourcesEl = document.getElementById('bundle-resources');
+
+    if (totalEl) totalEl.textContent = formatBytes(bundleReport.totalSize);
+    if (jsEl) jsEl.textContent = formatBytes(bundleReport.jsSize);
+    if (cssEl) cssEl.textContent = formatBytes(bundleReport.cssSize);
+    if (resourcesEl) resourcesEl.textContent = bundleReport.resourceCount.toString();
+
+    // 导航信息
+    const report = getPerformanceReport();
+    if (report.navigation) {
+        const fcpEl = document.getElementById('fcp-value');
+        if (fcpEl) fcpEl.textContent = `${report.navigation.connectEnd.toFixed(0)}ms`;
+    }
+
+    // Lighthouse 按钮
+    const lighthouseBtn = document.getElementById('run-lighthouse');
+    lighthouseBtn?.addEventListener('click', () => {
+        const results = document.getElementById('lighthouse-results');
+        if (results) {
+            results.innerHTML = `
+      <div class="bg-muted p-4 rounded">
+        <p class="text-sm">Lighthouse CI 需要在构建环境中运行</p>
+        <pre class="text-xs mt-2 overflow-auto">npm run lighthouse:ci</pre>
+      </div>
+    `;
+        }
+    });
+</script>
+
+<style>
+    kbd {
+        @apply inline-flex items-center justify-center;
+        min-width: 1.5rem;
+    }
+</style>

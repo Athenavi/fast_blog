@@ -6,18 +6,18 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import settings
 from shared.models import User
 from shared.models.ai.ai_config import AIConfig
 from shared.utils.crypto import encrypt_api_key, decrypt_api_key
 from src.api.v2._helpers import ok, fail, _catch
-from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_active_user
+from src.auth.auth_deps import get_current_active_user
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["ai-config"])

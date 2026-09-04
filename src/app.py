@@ -400,7 +400,7 @@ async def _warm_permission_cache():
 def _enable_redis_caches():
     """多 worker 场景：将全局缓存后端切换到 Redis（失败静默降级内存）"""
     try:
-        from src.setting import settings as _st
+        from shared.config.settings import settings as _st
         import redis as _redis
 
         host = getattr(_st, 'REDIS_HOST', 'localhost') or 'localhost'
@@ -477,7 +477,7 @@ def _make_lazy_middleware(module_path: str, class_name: str):
 def register_middleware(app: FastAPI):
     """统一注册所有中间件（调试、安全、缓存等）"""
     # 获取 worker 信息（用于日志）
-    from src.setting import _get_worker_info
+    from shared.config.settings import _get_worker_info
     worker_info = _get_worker_info()
     from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -510,7 +510,7 @@ def register_middleware(app: FastAPI):
     )
 
     # 统一调试中间件（仅 DEBUG 环境启用，避免生产环境打印敏感请求头/请求体）
-    from src.setting import app_config as _app_cfg
+    from shared.config.settings import app_config as _app_cfg
     _debug_enabled = bool(getattr(_app_cfg, 'DEBUG', False))
 
     if _debug_enabled:
@@ -813,11 +813,11 @@ def create_app(config=None):
     app_start = _time.monotonic()
 
     if config is None:
-        from src.setting import ProductionConfig
+        from shared.config.settings import ProductionConfig
         config = ProductionConfig()
 
     # 获取 worker 信息（用于日志）
-    from src.setting import _get_worker_info
+    from shared.config.settings import _get_worker_info
     worker_info = _get_worker_info()
 
     # OpenAPI 元数据（精简但保留核心内容）
@@ -855,7 +855,7 @@ def create_app(config=None):
     # 本地存储 - 受控文件下载（替代原先无鉴权的 StaticFiles 挂载，
     # 防止私密媒体 is_public=False 被匿名按路径下载；公开媒体仍可匿名访问）
     try:
-        from src.setting import app_config
+        from shared.config.settings import app_config
         local_storage = getattr(app_config, 'LOCAL_STORAGE_PATH', 'storage')
     except Exception:
         local_storage = 'storage'

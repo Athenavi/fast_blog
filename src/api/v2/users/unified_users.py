@@ -8,14 +8,17 @@ import logging
 import os
 from datetime import datetime
 from functools import wraps
-from typing import Optional, Callable, Any
+from typing import Callable
 
-from fastapi import APIRouter, Depends, Query, Request, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, File
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import app_config
 from shared.models.user import User, UserBlock
+from shared.services.plugins.event_bus import event_bus
+from shared.services.security.rate_limiter import rate_limiter
 from shared.services.users.user_manager import user_csv_service
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
@@ -24,15 +27,9 @@ from src.api.v2.user_utils.user_entities import check_user_conflict_async, chang
     save_uploaded_avatar
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
-from src.extensions import cache
-from shared.services.plugins.event_bus import event_bus
 from src.utils.database.main import get_async_session as get_async_db
-from src.setting import app_config
 from src.utils.security.forms import ChangePasswordForm
-from src.utils.security.ip_utils import get_client_ip
 from src.utils.security.safe import is_valid_iso_language_code
-from src.utils.send_email import request_email_change
-from shared.services.security.rate_limiter import rate_limiter
 
 logger = logging.getLogger(__name__)
 

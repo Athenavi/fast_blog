@@ -2,17 +2,17 @@
 RSS/Atom Feed API
 提供博客内容的 RSS 和 Atom 订阅源
 """
-from src.api.v2._helpers import _catch
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import AppConfig
 from shared.models import User, Article, Category
+from src.api.v2._helpers import _catch
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import AppConfig
 from src.utils.feed_generator import FeedItem, RSSFeedGenerator
 
 router = APIRouter(tags=["feed"])

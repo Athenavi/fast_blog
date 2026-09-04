@@ -334,9 +334,9 @@ async def create_admin_user_api(
             logger.info("   .env 文件已重新加载")
 
             # 重新导入并初始化设置
-            import src.setting
-            importlib.reload(src.setting)
-            from src.setting import settings as new_settings
+            import shared.config.settings
+            importlib.reload(shared.config.settings)
+            from shared.config.settings import settings as new_settings
             logger.info(
                 f"   配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
 

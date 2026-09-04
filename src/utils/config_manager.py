@@ -7,8 +7,8 @@ from typing import Dict, Any
 from sqlalchemy.orm import Session
 
 from shared.models import SystemSettings
-from src.utils.storage.s3_storage import s3_storage
 from src.unified_logger import default_logger as logger
+from src.utils.storage.s3_storage import s3_storage
 
 
 class ConfigManager:
@@ -20,7 +20,7 @@ class ConfigManager:
     @property
     def app_config(self):
         if self._app_config is None:
-            from src.setting import app_config
+            from shared.config.settings import app_config
             self._app_config = app_config
         return self._app_config
 

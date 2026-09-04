@@ -13,9 +13,9 @@ from jwt.exceptions import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import settings
 from shared.models.user import User as UserModel
 from shared.services.security.rbac_service import rbac_service
-from src.setting import settings
 from src.utils.database.main import get_async_session
 
 # token_blacklist 改为惰性导入：避免模块加载时触发 Redis .ping() 导致启动缓慢

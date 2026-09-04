@@ -153,7 +153,7 @@ def get_table_name(model_name: str, all_models: dict) -> str:
     """
     # 从环境变量或配置中获取表前缀
     try:
-        from src.setting import settings
+        from shared.config.settings import settings
         table_prefix = getattr(settings, 'db_table_prefix', '')
     except:
         table_prefix = ''

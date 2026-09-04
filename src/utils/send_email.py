@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
 
-from src.setting import app_config
+from shared.config.settings import app_config
 from src.unified_logger import default_logger as logger
 
 

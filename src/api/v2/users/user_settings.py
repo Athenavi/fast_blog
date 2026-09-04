@@ -12,8 +12,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
-from src.api.v2._base import ApiResponse
-from src.api.v2._helpers import ok, fail
 from src.api.v2.user_utils.user_entities import check_user_conflict, change_username, bind_email, db_save_bio, \
     save_uploaded_avatar
 from src.auth import jwt_required_dependency as jwt_required
@@ -138,7 +136,7 @@ async def update_setting_profiles(
 ):
     """更新设置资料 - 用户名/简介/隐私/语言等"""
     from src.extensions import cache
-    from src.setting import app_config
+    from shared.config.settings import app_config
     return await change_profiles_back(
         request=request, user_id=current_user.id,
         cache_instance=cache, domain=app_config.domain, db=db)

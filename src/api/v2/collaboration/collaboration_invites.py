@@ -60,7 +60,7 @@ async def get_current_user(request: Request) -> dict:
 
     # 解码 JWT token
     import jwt
-    from src.setting import settings
+    from shared.config.settings import settings
 
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])

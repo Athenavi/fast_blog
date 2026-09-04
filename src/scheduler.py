@@ -178,7 +178,7 @@ class SessionScheduler:
         self.scheduler.start()
 
         # 每个 worker 都输出自己的计划任务信息（带 worker 标识，使用环境变量避免重复）
-        from src.setting import _get_worker_info
+        from shared.config.settings import _get_worker_info
         import os
         worker_info = _get_worker_info()
         env_key = f"SCHEDULER_PRINTED_{os.getpid()}"

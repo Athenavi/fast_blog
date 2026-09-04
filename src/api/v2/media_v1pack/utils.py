@@ -12,8 +12,7 @@ from botocore.exceptions import ClientError
 from fastapi import HTTPException
 from fastapi.responses import FileResponse, StreamingResponse, Response
 
-from src.setting import app_config
-
+from shared.config.settings import app_config
 from src.unified_logger import default_logger as logger
 
 PREVIEWABLE_TYPES = {
@@ -36,18 +35,18 @@ async def handle_local_file(
     file_size = file_path.stat().st_size
     if range_header:
         return await handle_range_request(file_path, range_header, file_size, mime_type, headers)
-    
+
     # 创建 FileResponse
     response = FileResponse(
         path=str(file_path),
         media_type=mime_type,
         filename=filename
     )
-    
+
     # 手动设置所有自定义 headers（必须在创建后设置）
     for key, value in headers.items():
         response.headers[key] = value
-    
+
     return response
 
 
@@ -86,11 +85,11 @@ async def handle_range_request(
         status_code=206,
         media_type=mime_type
     )
-        
+
     # 手动设置所有自定义 headers
     for key, value in headers.items():
         response.headers[key] = value
-        
+
     return response
 
 
@@ -148,11 +147,11 @@ async def stream_s3_range(
                 status_code=206,
                 media_type=mime_type
             )
-                        
+
             # 手动设置所有自定义 headers
             for key, value in headers.items():
                 response.headers[key] = value
-                        
+
             return response
     except ClientError as e:
         logger.error(f"S3范围请求失败: {str(e)}")
@@ -208,11 +207,11 @@ async def stream_and_cache_s3(
                 s3_stream_and_cache_iterator(),
                 media_type=mime_type
             )
-                        
+
             # 手动设置所有自定义 headers
             for key, value in headers.items():
                 response.headers[key] = value
-                        
+
             return response
     except Exception as e:
         if temp_path.exists():
@@ -226,7 +225,7 @@ def convert_storage_size(size_bytes):
     from decimal import Decimal
     if isinstance(size_bytes, Decimal):
         size_bytes = float(size_bytes)
-    
+
     for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
         if size_bytes < 1024.0:
             return f"{size_bytes:.1f} {unit}"

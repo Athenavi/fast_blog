@@ -26,7 +26,7 @@ def _import_models_once():
 
     try:
         # 动态导入settings模块，避免循环依赖
-        from src.setting import settings
+        from shared.config.settings import settings
 
         # 尝试从配置中获取模型路径
         if hasattr(settings, 'MODELS_PATH'):
@@ -90,13 +90,13 @@ class DatabaseManager:
     @property
     def database_url(self) -> str:
         """获取数据库URL"""
-        from src.setting import settings
+        from shared.config.settings import settings
         return settings.database_url
 
     @property
     def echo_sql(self) -> bool:
         """是否输出SQL日志"""
-        from src.setting import settings
+        from shared.config.settings import settings
         return getattr(settings, 'database_echo', False)
 
     def _parse_database_url(self, url: str) -> tuple:
@@ -149,7 +149,7 @@ class DatabaseManager:
     def _init_sync_engine(self):
         """初始化同步引擎（PostgreSQL）"""
         # 从环境变量读取连接池配置
-        from src.setting import settings
+        from shared.config.settings import settings
         pool_size = getattr(settings, 'database_pool_size', 20)
         max_overflow = getattr(settings, 'database_pool_overflow', 30)
         pool_timeout = getattr(settings, 'database_pool_timeout', 60)
@@ -199,7 +199,7 @@ class DatabaseManager:
             )
 
         # 从环境变量读取连接池配置
-        from src.setting import settings
+        from shared.config.settings import settings
         pool_size = getattr(settings, 'database_pool_size', 20)
         max_overflow = getattr(settings, 'database_pool_overflow', 30)
         pool_timeout = getattr(settings, 'database_pool_timeout', 60)

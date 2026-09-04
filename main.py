@@ -68,7 +68,7 @@ def main():
     logger.info(f"启动 FastAPI 后端，端口 {args.port}，环境 {args.env}")
 
     # 选择配置并启动
-    from src.setting import get_config_by_env
+    from shared.config.settings import get_config_by_env
     from src.app import create_app
     config = get_config_by_env(args.env)
     global app

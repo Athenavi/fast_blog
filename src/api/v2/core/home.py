@@ -166,7 +166,7 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
     # 获取站点名称
     site_name = config_dict.get('site_name')
     if not site_name:
-        from src.setting import app_config
+        from shared.config.settings import app_config
         site_name = getattr(app_config, "sitename", "FastBlog")
 
     config = {

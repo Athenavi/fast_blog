@@ -2,18 +2,16 @@
 XML 站点地图 API
 提供标准的 Sitemap 协议支持，包括多语言 hreflang 标签
 """
-import re
-from functools import wraps
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import AppConfig
 from shared.models import Article, Category, Media, User, ArticleContent
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import _catch
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import AppConfig
 from src.utils.sitemap_generator import SitemapGenerator, SitemapUrl, SitemapIndex
 
 router = APIRouter(tags=["sitemap"])

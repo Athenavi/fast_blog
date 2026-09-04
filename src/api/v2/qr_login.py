@@ -14,12 +14,12 @@ from fastapi.logger import logger
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import app_config
 from src.api.v2._base import ApiResponse
 from src.api.v2.user_utils.qrlogin_utils import qr_login, check_qr_login_back, phone_scan_back
 from src.auth import get_current_user
 from src.extensions import cache
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import app_config
 
 router = APIRouter(tags=["qr-login"])
 

@@ -8,11 +8,11 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import app_config
 from shared.services.notifications.webhook_service import webhook_service
 from src.api.v2.media_v1pack.allowed_mimes import ALLOWED_MIMES_LIST
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import app_config
 from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor, process_single_file
 
 router = APIRouter()

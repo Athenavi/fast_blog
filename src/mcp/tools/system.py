@@ -2,8 +2,9 @@
 MCP 系统管理工具处理器 — 设置/备份/Webhook/迁移
 """
 from sqlalchemy import select
-from src.utils.database.main import get_async_session_context
+
 from src.mcp.tools._perms import require_superuser
+from src.utils.database.main import get_async_session_context
 
 
 @require_superuser
@@ -45,7 +46,6 @@ async def update_settings(arguments: dict) -> dict:
 @require_superuser
 async def list_backups(arguments: dict) -> dict:
     """列出可用的数据库备份"""
-    import os
     from pathlib import Path
     backup_dir = Path("backups")
     if not backup_dir.exists():
@@ -80,8 +80,8 @@ async def create_backup(arguments: dict) -> dict:
 @require_superuser
 async def get_system_info(arguments: dict) -> dict:
     """获取系统信息（版本/资源/运行时间等）"""
-    import os, platform, time
-    from src.setting import BaseConfig
+    import platform
+    from shared.config.settings import BaseConfig
     return {"success": True, "data": {
         "version": getattr(BaseConfig, 'VERSION', 'unknown'),
         "python_version": platform.python_version(),

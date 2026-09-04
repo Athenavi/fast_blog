@@ -7,9 +7,9 @@ from typing import Optional
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
+from shared.config.settings import settings
 from shared.services.chat.collaboration import collaboration_service, Step
 from src.api.v2.collaboration.collaboration_invites import invitations_db
-from src.setting import settings
 
 logger = logging.getLogger(__name__)
 

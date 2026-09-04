@@ -25,7 +25,7 @@ from src.utils.storage import s3_storage
 from src.utils.image.video_processor import video_processor
 
 from src.unified_logger import default_logger as logger
-from src.setting import app_config
+from shared.config.settings import app_config
 
 # 视频后处理并发上限：限制同时进行的 ffmpeg 任务数（subprocess.run 阻塞最长可达 60s）
 _video_process_semaphore = asyncio.Semaphore(3)

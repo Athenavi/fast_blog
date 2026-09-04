@@ -809,11 +809,9 @@ class InstallationWizardService:
                 load_dotenv(override=True)
                 logger.info(".env 文件已重新加载")
 
-                # 重新导入并初始化设置（先刷新 shared.config，再刷新 src.setting）
+                # 重新导入并初始化设置
                 import shared.config.settings
                 importlib.reload(shared.config.settings)
-                import src.setting
-                importlib.reload(src.setting)
                 from shared.config.settings import settings as new_settings
                 logger.info(f"配置已重新加载，数据库 URL: {new_settings.database_url[:50] if new_settings.database_url else '空'}...")
 

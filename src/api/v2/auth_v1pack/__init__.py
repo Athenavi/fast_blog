@@ -17,6 +17,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import settings
 from shared.models.user import User as UserModel
 from shared.services.plugins.event_bus import event_bus
 from shared.services.security.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
@@ -29,7 +30,6 @@ from shared.services.users.user_manager import create_user_account
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import settings
 from src.unified_logger import default_logger as logger
 
 _tb_instance = None

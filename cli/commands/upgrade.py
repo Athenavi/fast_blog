@@ -122,7 +122,7 @@ def step_backup() -> tuple[bool, str, str]:
     # 数据库备份（pg_dump）
     db_file = str(BACKUP_DIR / f"db_{ts}.sql")
     try:
-        from src.setting import settings
+        from shared.config.settings import settings
         host = getattr(settings, 'DB_HOST', 'localhost')
         port = getattr(settings, 'DB_PORT', '5432')
         user = getattr(settings, 'DB_USER', 'postgres')
@@ -296,7 +296,7 @@ def do_rollback():
             typer.echo("  ⚠️  Alembic 回退失败")
 
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
             env = os.environ.copy()
             if hasattr(settings, 'DB_PASSWORD'):
                 env["PGPASSWORD"] = settings.DB_PASSWORD

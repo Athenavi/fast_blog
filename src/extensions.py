@@ -553,7 +553,7 @@ def init_extensions(app):
 
     # 从设置中获取数据库URL
     try:
-        from src.setting import settings
+        from shared.config.settings import settings
         database_url = settings.database_url
     except ImportError:
         # 如果settings不可用，使用默认配置
