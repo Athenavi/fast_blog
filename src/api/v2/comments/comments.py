@@ -263,8 +263,7 @@ async def create_comment(
 
         except Exception as e:
             logger.error(f"发送评论通知失败: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("发送评论通知详细错误")
             # 通知失败不影响评论创建
 
     # 8. 返回结果

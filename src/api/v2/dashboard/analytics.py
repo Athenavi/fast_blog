@@ -2,33 +2,16 @@
 数据分析 API
 """
 
-from functools import wraps
-
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.articles.analytics import create_analytics_service
+from src.api.v2._helpers import _catch
 from src.auth import admin_required
 from src.extensions import get_async_db_session as get_async_db
 
 # 平台级统计分析仅管理员可访问（含用户数/浏览量/趋势等内部数据）
 router = APIRouter(tags=["analytics"], dependencies=[Depends(admin_required)])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import logging
-            logging.getLogger("fastblog.api").exception(
-                "Unhandled error in %s", getattr(func, '__name__', func)
-            )
-            raise HTTPException(status_code=500, detail="服务器内部错误")
-    return wrapper
 
 
 @router.get("/overview")
@@ -39,11 +22,11 @@ async def get_overview_stats(
 ):
     """
     获取概览统计数据
-    
+
     Args:
         days: 统计天数
         db: 数据库会话
-        
+
     Returns:
         概览数据
     """
@@ -64,11 +47,11 @@ async def get_article_views_trend(
 ):
     """
     获取文章浏览量趋势
-    
+
     Args:
         days: 统计天数
         db: 数据库会话
-        
+
     Returns:
         每日浏览量列表
     """
@@ -90,12 +73,12 @@ async def get_popular_articles(
 ):
     """
     获取热门文章
-    
+
     Args:
         limit: 返回数量
         days: 统计天数
         db: 数据库会话
-        
+
     Returns:
         热门文章列表
     """
@@ -115,10 +98,10 @@ async def get_category_distribution(
 ):
     """
     获取分类分布
-    
+
     Args:
         db: 数据库会话
-        
+
     Returns:
         分类统计列表
     """
@@ -139,11 +122,11 @@ async def get_user_activity(
 ):
     """
     获取用户活动统计
-    
+
     Args:
         days: 统计天数
         db: 数据库会话
-        
+
     Returns:
         用户活动数据
     """
@@ -164,11 +147,11 @@ async def get_content_performance(
 ):
     """
     获取内容表现分析
-    
+
     Args:
         days: 统计天数
         db: 数据库会话
-        
+
     Returns:
         内容表现数据
     """
@@ -189,11 +172,11 @@ async def get_traffic_sources(
 ):
     """
     获取流量来源分析
-    
+
     Args:
         days: 统计天数
         db: 数据库会话
-        
+
     Returns:
         流量来源列表
     """
@@ -214,11 +197,11 @@ async def get_device_stats(
 ):
     """
     获取设备统计
-    
+
     Args:
         days: 统计天数
         db: 数据库会话
-        
+
     Returns:
         设备分布数据
     """

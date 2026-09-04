@@ -4,7 +4,7 @@
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, Body
 
 from shared.models.user import User
 from shared.services.compliance.compliance_service import ComplianceService
@@ -22,7 +22,7 @@ async def check_gdpr_compliance(
 ):
     """
     执行 GDPR 合规性检查
-    
+
     返回详细的合规性要求清单和实施建议
     """
     if not current_user.is_superuser:
@@ -40,7 +40,7 @@ async def check_ccpa_compliance(
 ):
     """
     执行 CCPA 合规性检查
-    
+
     返回加州消费者隐私法案的合规要求和实施指南
     """
     if not current_user.is_superuser:
@@ -58,7 +58,7 @@ async def check_china_cybersecurity_compliance(
 ):
     """
     执行中国网络安全法合规性检查
-    
+
     包括网络安全法、数据安全法、个人信息保护法的要求
     """
     if not current_user.is_superuser:
@@ -77,10 +77,10 @@ async def get_compliance_checklist(
 ):
     """
     获取特定地区的合规性检查清单
-    
+
     参数:
     - region: 地区代码 (eu, california, china, global)
-    
+
     返回该地区的完整合规要求和实施步骤
     """
     if not current_user.is_superuser:
@@ -101,12 +101,12 @@ async def generate_privacy_policy(
 ):
     """
     生成隐私政策模板
-    
+
     参数:
     - company_name: 公司名称
     - company_email: 联系邮箱
     - company_address: 公司地址
-    
+
     返回可定制的隐私政策模板
     """
     company_info = {}
@@ -133,7 +133,7 @@ async def get_data_retention_recommendations(
 ):
     """
     获取不同类型数据的保留期限建议
-    
+
     基于各法规要求提供最佳实践
     """
     recommendations = compliance_service.get_data_retention_recommendations()
@@ -147,7 +147,7 @@ async def get_compliance_overview(
 ):
     """
     获取所有适用法规的概览信息
-    
+
     快速了解需要遵守的主要法规和要求
     """
     return ok(data={
@@ -257,7 +257,7 @@ async def get_compliance_overview(
 async def compare_regulations():
     """
     对比主要数据隐私法规的异同
-    
+
     帮助理解不同法规的要求和差异
     """
     return ok(data={
@@ -365,83 +365,79 @@ async def generate_compliance_report(
 ):
     """
     生成审计合规报告（需要管理员权限）
-    
+
     从 audit_log 汇总数据，返回 JSON 格式报告
     """
     if not current_user.is_superuser:
         return fail("需要管理员权限")
 
     from sqlalchemy import select, func
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from src.utils.database.main import get_async_session as get_db
+    from src.utils.database.unified_manager import db_manager
 
-    async_db = db or await anext(get_db().__aiter__())
+    async with db_manager.get_session() as async_db:
+        # 总审计日志数
+        total_stmt = select(func.count()).select_from(AuditLog)
+        total_result = await async_db.execute(total_stmt)
+        total_logs = total_result.scalar() or 0
 
-    # 总审计日志数
-    total_stmt = select(func.count()).select_from(AuditLog)
-    total_result = await async_db.execute(total_stmt)
-    total_logs = total_result.scalar() or 0
+        # 最近30天日志数
+        import datetime
+        thirty_days_ago = datetime.datetime.now() - datetime.timedelta(days=30)
+        recent_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.created_at >= thirty_days_ago)
+        recent_result = await async_db.execute(recent_stmt)
+        recent_logs = recent_result.scalar() or 0
 
-    # 最近30天日志数
-    import datetime
-    thirty_days_ago = datetime.datetime.now() - datetime.timedelta(days=30)
-    recent_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.created_at >= thirty_days_ago)
-    recent_result = await async_db.execute(recent_stmt)
-    recent_logs = recent_result.scalar() or 0
+        # CRITICAL 级别事件数
+        critical_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.status == 'failure')
+        critical_result = await async_db.execute(critical_stmt)
+        critical_count = critical_result.scalar() or 0
 
-    # CRITICAL 级别事件数
-    # AuditLog does not have a level/severity field, so we approximate via status=failure
-    # Use action pattern matching for critical
-    critical_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.status == 'failure')
-    critical_result = await async_db.execute(critical_stmt)
-    critical_count = critical_result.scalar() or 0
+        # ERROR 级别事件数 (status=failure entries)
+        error_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.status == 'failure')
+        error_result = await async_db.execute(error_stmt)
+        error_count = error_result.scalar() or 0
 
-    # ERROR 级别事件数 (status=failure entries)
-    error_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.status == 'failure')
-    error_result = await async_db.execute(error_stmt)
-    error_count = error_result.scalar() or 0
+        # 按操作类型分组统计
+        action_group_stmt = select(
+            AuditLog.action, func.count().label('count')
+        ).group_by(AuditLog.action).order_by(func.count().desc())
+        action_result = await async_db.execute(action_group_stmt)
+        action_stats = [{'action': row.action, 'count': row.count} for row in action_result]
 
-    # 按操作类型分组统计
-    action_group_stmt = select(
-        AuditLog.action, func.count().label('count')
-    ).group_by(AuditLog.action).order_by(func.count().desc())
-    action_result = await async_db.execute(action_group_stmt)
-    action_stats = [{'action': row.action, 'count': row.count} for row in action_result]
+        # 按日期分组统计（最近30天）
+        date_group_stmt = select(
+            func.date(AuditLog.created_at).label('date'),
+            func.count().label('count')
+        ).where(AuditLog.created_at >= thirty_days_ago
+                ).group_by(func.date(AuditLog.created_at)).order_by(func.date(AuditLog.created_at))
+        date_result = await async_db.execute(date_group_stmt)
+        date_stats = [{'date': str(row.date), 'count': row.count} for row in date_result]
 
-    # 按日期分组统计（最近30天）
-    date_group_stmt = select(
-        func.date(AuditLog.created_at).label('date'),
-        func.count().label('count')
-    ).where(AuditLog.created_at >= thirty_days_ago
-    ).group_by(func.date(AuditLog.created_at)).order_by(func.date(AuditLog.created_at))
-    date_result = await async_db.execute(date_group_stmt)
-    date_stats = [{'date': str(row.date), 'count': row.count} for row in date_result]
+        # 敏感词总数
+        from shared.models.security.sensitive_word import SensitiveWord
+        sw_stmt = select(func.count()).select_from(SensitiveWord)
+        sw_result = await async_db.execute(sw_stmt)
+        sensitive_word_count = sw_result.scalar() or 0
 
-    # 敏感词总数
-    from shared.models.security.sensitive_word import SensitiveWord
-    sw_stmt = select(func.count()).select_from(SensitiveWord)
-    sw_result = await async_db.execute(sw_stmt)
-    sensitive_word_count = sw_result.scalar() or 0
+        # 待审核评论数
+        from shared.models.comment.comment import Comment
+        pending_stmt = select(func.count()).select_from(Comment).where(Comment.is_approved == False)
+        pending_result = await async_db.execute(pending_stmt)
+        pending_comment_count = pending_result.scalar() or 0
 
-    # 待审核评论数
-    from shared.models.comment.comment import Comment
-    pending_stmt = select(func.count()).select_from(Comment).where(Comment.is_approved == False)
-    pending_result = await async_db.execute(pending_stmt)
-    pending_comment_count = pending_result.scalar() or 0
-
-    report = {
-        'generated_at': datetime.datetime.now().isoformat(),
-        'summary': {
-            'total_audit_logs': total_logs,
-            'recent_30_days_logs': recent_logs,
-            'critical_events': critical_count,
-            'error_events': error_count,
-            'sensitive_word_count': sensitive_word_count,
-            'pending_review_comments': pending_comment_count,
-        },
-        'by_action': action_stats,
-        'by_date': date_stats,
-    }
+        report = {
+            'generated_at': datetime.datetime.now().isoformat(),
+            'summary': {
+                'total_audit_logs': total_logs,
+                'recent_30_days_logs': recent_logs,
+                'critical_events': critical_count,
+                'error_events': error_count,
+                'sensitive_word_count': sensitive_word_count,
+                'pending_review_comments': pending_comment_count,
+            },
+            'by_action': action_stats,
+            'by_date': date_stats,
+        }
 
     return ok(data=report)
 

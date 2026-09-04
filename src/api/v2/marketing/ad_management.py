@@ -2,32 +2,17 @@
 广告管理 API
 """
 from datetime import datetime
-from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from shared.services.marketing.ad_management_service import AdManagementService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.extensions import get_db
 
 router = APIRouter(tags=["广告管理"])
-
-
-def _catch(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
 
 
 # ==================== Pydantic 模型 ====================

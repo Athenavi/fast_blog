@@ -70,8 +70,7 @@ async def send_form_notification_email(
 
     except Exception as e:
         logger.error(f"发送表单通知邮件失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("发送表单通知邮件详细错误")
 
 
 @router.get("/field-types")
@@ -440,7 +439,7 @@ async def get_form_submissions(
     for sub in submissions:
         try:
             data = json.loads(sub.data) if sub.data else {}
-        except:
+        except Exception:
             data = {}
 
         submission_list.append({

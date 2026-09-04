@@ -488,33 +488,8 @@ except (redis.ConnectionError, redis.TimeoutError, redis.RedisError, OSError, Im
 
     cache = SimpleCache()
 
-
-# JWT 密码哈希上下文
-def _get_pwd_context():
-    """获取密码上下文，使用纯 bcrypt 实现以避免 passlib 兼容性问题"""
-    # 直接使用 bcrypt 实现，避免 passlib 的兼容性问题
-    import bcrypt
-    class BcryptContext:
-        def hash(self, secret):
-            # 确保密码不超过 72 字节限制
-            if len(secret.encode('utf-8')) > 72:
-                secret = secret.encode('utf-8')[:72].decode('utf-8', errors='ignore')
-            return bcrypt.hashpw(secret.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-
-        def verify(self, secret, hash):
-            try:
-                return bcrypt.checkpw(secret.encode('utf-8'), hash.encode('utf-8'))
-            except Exception:
-                # 处理各种可能的错误情况
-                try:
-                    return bcrypt.checkpw(secret.encode('utf-8'), hash)
-                except Exception:
-                    return False
-
-    return BcryptContext()
-
-
-pwd_context = _get_pwd_context()
+# JWT 密码哈希上下文 — 使用统一实现
+from src.api.v2.user_utils.password_utils import pwd_context
 
 # 数据库引擎和会话 - 使用统一管理器
 from src.utils.database.unified_manager import (

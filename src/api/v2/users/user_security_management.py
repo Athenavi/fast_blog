@@ -4,20 +4,20 @@
 字段权限 / 会话管理 / 邮件订阅 三个 CRUD 组
 优化: 统一 error decorator, 消除 13 处重复 try/except
 """
-from datetime import datetime
 from functools import wraps
-from typing import Any, Callable
+from typing import Callable
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.notification import EmailSubscription
 from shared.models.security import FieldPermission
 from shared.models.user import UserSession
-from shared.models.notification import EmailSubscription
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import admin_required
+from src.unified_logger import default_logger as logger
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["user-security"])
@@ -30,8 +30,8 @@ def _with_db(func: Callable) -> Callable:
         try:
             return await func(*args, **kwargs)
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            logger.error(f"用户安全管理错误: {e}")
+            logger.exception("用户安全管理详细错误")
             return fail(str(e))
     return wrapper
 

@@ -4,7 +4,7 @@
 """
 from typing import Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, Query, Body, HTTPException
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.multisite_service import multisite_service
@@ -26,14 +26,14 @@ async def create_site(
 ):
     """
     创建新站点
-    
+
     Args:
         name: 站点名称
         slug: 站点标识
         domain: 主域名
         description: 描述
         is_default: 是否为默认站点
-        
+
     Returns:
         创建的站点
     """
@@ -74,10 +74,10 @@ async def get_sites(
 ):
     """
     获取所有站点列表
-    
+
     Args:
         include_inactive: 是否包含非活动站点
-        
+
     Returns:
         站点列表
     """
@@ -117,11 +117,11 @@ async def update_site(
 ):
     """
     更新站点配置
-    
+
     Args:
         site_id: 站点ID
         updates: 更新字段
-        
+
     Returns:
         更新后的站点
     """
@@ -152,10 +152,10 @@ async def delete_site(
 ):
     """
     删除站点
-    
+
     Args:
         site_id: 站点ID
-        
+
     Returns:
         删除结果
     """
@@ -333,7 +333,7 @@ async def get_site_detail(
         try:
             import json
             additional_domains = json.loads(site.additional_domains)
-        except:
+        except Exception:
             pass
 
     # 解析设置
@@ -342,7 +342,7 @@ async def get_site_detail(
         try:
             import json
             settings = json.loads(site.settings)
-        except:
+        except Exception:
             pass
 
     return ok(data={
@@ -492,5 +492,5 @@ async def check_admin_permission(db, user_id: int) -> bool:
     try:
         from shared.services.security.rbac_service import rbac_service
         return await rbac_service.has_permission(db, user_id, 'settings', 'update')
-    except:
+    except Exception:
         return False

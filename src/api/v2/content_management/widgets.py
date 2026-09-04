@@ -3,11 +3,11 @@
 提供小部件的CRUD和渲染功能
 """
 
-from datetime import datetime
 import json
+from datetime import datetime
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.widgets.widget_manager import widget_service
@@ -359,7 +359,7 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
     if widget.config:
         try:
             config = json.loads(widget.config) if isinstance(widget.config, str) else widget.config
-        except:
+        except Exception:
             config = {}
 
     # 构建 widget 数据

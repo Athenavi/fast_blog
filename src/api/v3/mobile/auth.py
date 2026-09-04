@@ -43,7 +43,7 @@ async def mobile_login(
             # 尝试作为JSON解析
             try:
                 body = await request.json()
-            except:
+            except Exception:
                 form_data = await request.form()
                 body = dict(form_data)
 
@@ -92,8 +92,8 @@ async def mobile_login(
             }
         )
     except Exception as e:
-        import traceback
-        logger.error(f"Error in mobile_login: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in mobile_login: {e}")
+        logger.exception("mobile_login detailed error")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -117,7 +117,7 @@ async def mobile_register(
         else:
             try:
                 body = await request.json()
-            except:
+            except Exception:
                 form_data = await request.form()
                 body = dict(form_data)
         username = body.get('username')
@@ -182,6 +182,6 @@ async def mobile_register(
         )
     except Exception as e:
         await db.rollback()
-        import traceback
-        logger.error(f"Error in mobile_register: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in mobile_register: {e}")
+        logger.exception("mobile_register detailed error")
         return ApiResponse(success=False, error=str(e))

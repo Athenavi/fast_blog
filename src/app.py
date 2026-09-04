@@ -5,7 +5,6 @@ import asyncio
 import importlib
 import os
 import time as _time
-import traceback
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -28,7 +27,7 @@ def safe_run(func_name: str, func, *args, **kwargs):
         return result
     except Exception as e:
         logger.error(f"[{func_name}] 失败: {e}")
-        traceback.print_exc()
+        logger.exception(f"[{func_name}] 详细错误")
         return None
 
 
@@ -45,7 +44,7 @@ async def safe_run_async(func_name: str, func, *args, **kwargs):
         return result
     except Exception as e:
         logger.error(f"[{func_name}] 失败: {e}")
-        traceback.print_exc()
+        logger.exception(f"[{func_name}] 详细错误")
         return None
 
 
@@ -902,8 +901,7 @@ def create_app(config=None):
             except HTTPException:
                 raise
             except Exception:
-                import traceback as _tb
-                _tb.print_exc()
+                logger.exception("校验媒体权限失败")
                 raise HTTPException(status_code=500, detail="校验媒体权限失败")
 
         content_type, _ = mimetypes.guess_type(str(target))
@@ -927,5 +925,5 @@ try:
     app = create_app()
 except Exception as e:
     logger.error(f"Failed to create app: {e}")
-    traceback.print_exc()
+    logger.exception("Failed to create app traceback")
     app = None

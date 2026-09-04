@@ -6,15 +6,15 @@ import os
 import tempfile
 from typing import Optional
 
-from fastapi import APIRouter, UploadFile, File, Depends, Form, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, Form
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
 from shared.services.integrations.wordpress_import import WordPressImportService
+from src.api.v2._helpers import _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from src.api.v2._helpers import _catch
 
 router = APIRouter(tags=["wordpress-import"])
 
@@ -25,10 +25,10 @@ async def parse_wordpress_xml(
 ):
     """
     解析 WordPress XML 文件
-    
+
     Args:
         file: 上传的 WXR 文件
-        
+
     Returns:
         解析结果和统计信息
     """
@@ -76,12 +76,12 @@ async def import_wordpress_data(
 ):
     """
     导入 WordPress 数据到数据库
-    
+
     Args:
         file: 上传的 WXR 文件
         user_mapping: 作者映射 JSON 字符串 {"wp_author_id": system_user_id}
         download_media: 是否下载媒体文件
-        
+
     Returns:
         导入结果
     """
@@ -112,7 +112,7 @@ async def import_wordpress_data(
         if user_mapping:
             try:
                 mapping_dict = json.loads(user_mapping)
-            except:
+            except Exception:
                 pass
 
         # 导入到数据库
@@ -145,7 +145,7 @@ async def import_wordpress_data(
 async def get_import_template():
     """
     获取导入模板和说明
-    
+
     Returns:
         导入指南
     """
