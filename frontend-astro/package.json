@@ -132,7 +132,6 @@
     "typescript": "^5.8.3",
     "vite-plugin-pwa": "^1.0.0",
     "vitest": "^4.1.7",
-    "lighthouse": "^12.0.0",
-    "lighthouse-ci": "^10.0.0"
+    "lighthouse": "^12.0.0"
   }
 }
