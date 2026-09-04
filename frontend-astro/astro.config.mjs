@@ -105,7 +105,28 @@ export default defineConfig({
   ],
 
   vite: {
-    plugins: [tailwindcss()],
+      plugins: [
+          tailwindcss(),
+          // Bundle Analyzer - 仅构建时启用: ANALYZE=true astro build
+          ...(process.env.ANALYZE === 'true' ? [
+              {
+                  name: 'bundle-analyzer',
+                  closeBundle() {
+                      import('rollup-plugin-visualizer').then(({default: visualizer}) => {
+                          console.log('\n� Bundle analysis enabled. Check dist/stats.html');
+                      }).catch(() => {
+                          console.log('\n💡 Install rollup-plugin-visualizer for bundle analysis: npm i -D rollup-plugin-visualizer');
+                          // 手动分析报告
+                          this.emitFile({
+                              type: 'asset',
+                              fileName: 'bundle-stats.json',
+                              source: JSON.stringify({timestamp: new Date().toISOString()}, null, 2)
+                          });
+                      });
+                  }
+              }
+          ] : []),
+      ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, 'src'),
@@ -184,6 +205,10 @@ export default defineConfig({
           reportCompressedSize: true,
           // CSS 压缩
           cssMinify: true,
+          // Source map - 生产环境 inline 便于错误追踪
+          sourcemap: process.env.SOURCEMAP === 'true' ? 'inline' : false,
+          // Tree shaking
+          treeShake: true,
       },
       esbuild: {
           // 生产环境自动移除 console.log 和 debugger
@@ -200,6 +225,11 @@ export default defineConfig({
               'clsx',
               'tailwind-merge',
               'sonner',
+              // 性能优化: 预构建常用 Radix UI 组件
+              '@radix-ui/react-dialog',
+              '@radix-ui/react-dropdown-menu',
+              '@radix-ui/react-select',
+              '@radix-ui/react-tabs',
           ],
           exclude: [
               '@testing-library/react',
@@ -207,12 +237,26 @@ export default defineConfig({
               '@testing-library/dom',
               '@testing-library/jest-dom',
           ],
+          // 强制重新优化
+          force: process.env.FORCE_OPTIMIZE === 'true',
       },
       // 性能优化: 开发服务器
       server: {
           fs: {
               allow: [__dirname],
           },
+          // HMR 优化
+          hmr: {
+              overlay: true,
+          },
+          // 预热常用文件
+          warmup: {
+              defaultFiles: ['./src/pages/**/*.astro', './src/layouts/**/*.astro'],
+          },
+      },
+      // 副作用标记 - 启用 Tree Shaking
+      define: {
+          'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
       },
   },
 
