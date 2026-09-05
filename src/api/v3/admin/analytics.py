@@ -12,10 +12,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extensions import get_db
 from shared.models.analytics import PageView
 from shared.models.article import Article
 from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission
 
 logger = logging.getLogger(__name__)

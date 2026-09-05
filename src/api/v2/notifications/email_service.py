@@ -1,7 +1,7 @@
 """
 邮件服务集成 API（SendGrid/Mailgun/SMTP�?
 提供邮件服务配置管理和邮件发送功�?"""
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Any
 
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession

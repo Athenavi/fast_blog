@@ -17,7 +17,7 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from extensions import get_dbr
+from extensions import get_db
 from shared.models.notification import Notification
 from shared.models.user import User as UserModel
 from src.api.v2._base import ApiResponse

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import json
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.system import AuditLog as AuditLogModel

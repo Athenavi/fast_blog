@@ -17,7 +17,7 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from extensions import get_dbr
+from extensions import get_db
 from shared.models.menu.menu_items import MenuItems
 from shared.models.menu.menus import Menus
 from shared.models.page.pages import Pages

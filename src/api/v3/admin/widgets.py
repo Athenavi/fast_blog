@@ -16,9 +16,9 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extensions import get_db
 from shared.models.widget.widget_instance import WidgetInstance
 from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission
 
 logger = logging.getLogger(__name__)

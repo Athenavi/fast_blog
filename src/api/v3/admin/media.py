@@ -83,7 +83,7 @@ async def list_media(
     query = select(Media)
 
     if media_type:
-        query = query.where(Media.media_type == media_type)
+        query = query.where(Media.mime_type == media_type)
 
     total = await db.scalar(
         select(func.count()).select_from(query.subquery())
@@ -208,12 +208,12 @@ async def delete_media(
         return ApiResponse(success=False, error="文件不存在")
 
     # 所有权校验
-    if media.user_id != current_user.id and not current_user.is_superuser:
+    if media.user != current_user.id and not current_user.is_superuser:
         return ApiResponse(success=False, error="无权删除此文件")
 
     # 删除物理文件（校验路径安全性）
     import os
-    filepath = media.filepath
+    filepath = media.file_path
     if filepath:
         # 路径穿越防护：确保路径在 storage 目录下
         safe_path = os.path.normpath(filepath)
@@ -241,9 +241,9 @@ def _media_to_dict(m: Media) -> dict:
         "id": m.id,
         "filename": m.filename,
         "original_filename": getattr(m, 'original_filename', None),
-        "media_type": m.media_type,
+        "media_type": m.mime_type,
         "file_size": m.file_size,
         "mime_type": getattr(m, 'mime_type', None),
-        "url": m.filepath,
+        "url": m.file_path,
         "created_at": m.created_at.isoformat() if m.created_at else None,
     }

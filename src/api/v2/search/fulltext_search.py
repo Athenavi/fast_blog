@@ -119,11 +119,10 @@ async def rebuild_search_index(
         return fail("Permission denied. Admin access required.")
 
     from shared.models.article import Article
-    from shared.models.article_content import ArticleContent
     from shared.models.category import Category
     from shared.models.user import User
     from sqlalchemy import select
-
+    from shared.models.article import ArticleContent
     stmt = (
         select(Article, ArticleContent, Category.name.label('category_name'), User.username.label('author_name'))
         .outerjoin(ArticleContent, Article.id == ArticleContent.article)
