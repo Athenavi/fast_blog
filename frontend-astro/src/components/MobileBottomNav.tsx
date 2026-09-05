@@ -27,7 +27,7 @@ const NavItem = memo(({item, isActive}: { item: typeof navItems[0]; isActive: bo
         isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
       }`}
     >
-      <Icon className="w-6 h-6 mb-1" stroke-width={isActive ? 2.5 : 2}/>
+      <Icon className="w-6 h-6 mb-1" strokeWidth={isActive ? 2.5 : 2}/>
       <span>{item.name}</span>
     </a>
   );

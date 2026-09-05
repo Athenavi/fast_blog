@@ -7,7 +7,7 @@
 3. 订阅管理
 4. 权限检查
 """
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
 from sqlalchemy import select, func
@@ -43,7 +43,8 @@ class MembershipService:
         from shared.models.vip.vip_plan import VIPPlan
 
         # 查询当前有效的订阅
-        now = datetime.now(timezone.utc)
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
         stmt = select(VIPSubscription, VIPPlan).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
@@ -152,7 +153,8 @@ class MembershipService:
             return {'success': False, 'message': '套餐已停用'}
 
         # 创建订阅
-        now = datetime.now(timezone.utc)
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
         expires_at = now + timedelta(days=plan.duration_days)
 
         # 验证支付金额（仅当 price > 0 时检查不足支付）
@@ -233,7 +235,8 @@ class MembershipService:
         subscription.status = 0
 
         # 取消订阅后检查用户是否有其他有效订阅
-        now = datetime.now(timezone.utc)
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
         other_stmt = select(VIPSubscription).where(
             VIPSubscription.user == user_id,
             VIPSubscription.status == 1,
@@ -483,7 +486,8 @@ class MembershipService:
             return {'success': False, 'message': '套餐不存在或已停用'}
 
         # 查找当前有效订阅
-        now = datetime.now(timezone.utc)
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
         stmt = select(VIPSubscription).where(
             VIPSubscription.user == user_id,
             VIPSubscription.status == 1,
@@ -541,7 +545,8 @@ class MembershipService:
         from shared.models.vip.vip_subscription import VIPSubscription
         from shared.models.user import User
 
-        now = datetime.now(timezone.utc)
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
         stmt = select(VIPSubscription).where(
             VIPSubscription.status == 1,
             VIPSubscription.expires_at <= now

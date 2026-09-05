@@ -183,6 +183,7 @@ export default defineConfig({
           include: [
               'react',
               'react-dom',
+              'react-dom/client',
               '@tanstack/react-query',
               'framer-motion',
               'lucide-react',

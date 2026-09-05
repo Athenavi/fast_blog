@@ -40,7 +40,7 @@ def _get_theme_plugin(slug: str) -> ThemePlugin:
 
 # ─── 主题市场 ──────────────────────────
 
-@router.get("/themes/marketplace")
+@router.get("/marketplace")
 @_catch
 async def list_marketplace_themes(
     request: Request,
@@ -79,7 +79,7 @@ async def list_marketplace_themes(
     return ok(data=result)
 
 
-@router.get("/themes/categories")
+@router.get("/categories")
 @_catch
 async def list_theme_categories(
         current_user: User = Depends(jwt_required),
@@ -97,7 +97,7 @@ async def list_theme_categories(
 
 # ─── 已安装主题 ──────────────────────────
 
-@router.get("/themes/installed")
+@router.get("/installed")
 @_catch
 async def list_installed_themes(
         current_user: User = Depends(jwt_required),
@@ -129,7 +129,7 @@ async def list_installed_themes(
     return ok(data=result)
 
 
-@router.post("/themes/install")
+@router.post("/install")
 @_catch
 async def install_theme(
         request: Request,
@@ -155,7 +155,7 @@ async def install_theme(
     return ok(data={"slug": slug, "name": plugin.name})
 
 
-@router.post("/themes/{slug}/activate")
+@router.post("/{slug}/activate")
 @_catch
 async def activate_theme(
         slug: str,
@@ -178,7 +178,7 @@ async def activate_theme(
     })
 
 
-@router.delete("/themes/{slug}/uninstall")
+@router.delete("/{slug}/uninstall")
 @_catch
 async def uninstall_theme(
         slug: str,
@@ -194,9 +194,56 @@ async def uninstall_theme(
     return ok(data={"slug": slug})
 
 
-# ─── 主题配置 ──────────────────────────
+# ─── 主题 CSS（前端核心调用）─────────────
+# 注意：这些路由必须在 /{slug}/config 之前定义，否则 /active 会被匹配为 slug
 
-@router.get("/themes/{slug}/config")
+@router.get("/active/css")
+@_catch
+async def get_active_theme_css():
+    """
+    返回激活主题的 CSS 内容（无认证，公开端点）
+    """
+    active_theme = plugin_manager.get_active_theme_plugin()
+    if not active_theme:
+        return ok(data={"css": ""})
+
+    if hasattr(active_theme, 'get_css_content'):
+        css = active_theme.get_css_content()
+    else:
+        css_path = active_theme.plugin_dir / "styles.css"
+        css = css_path.read_text(encoding="utf-8") if css_path.exists() else ""
+
+    return ok(data={"css": css})
+
+
+@router.get("/active/config")
+@_catch
+async def get_active_theme_config():
+    """返回激活主题的契约与配置（无认证，公开端点，前端据此应用主题）"""
+    active_theme = plugin_manager.get_active_theme_plugin()
+    if not active_theme:
+        return ok(data={"config": {}, "contract": None, "theme": None})
+
+    if hasattr(active_theme, 'get_theme_settings'):
+        settings = active_theme.get_theme_settings()
+    else:
+        settings = active_theme.settings or {}
+
+    contract = active_theme.get_theme_contract() if hasattr(active_theme, 'get_theme_contract') else {}
+
+    return ok(data={
+        "config": settings,
+        "contract": contract,
+        "theme": {
+            "slug": active_theme.slug,
+            "name": active_theme.name,
+        },
+    })
+
+
+# �── 主题配置 ──────────────────────────
+
+@router.get("/{slug}/config")
 @_catch
 async def get_theme_config(
         slug: str,
@@ -219,7 +266,7 @@ async def get_theme_config(
     })
 
 
-@router.put("/themes/{slug}/config")
+@router.put("/{slug}/config")
 @_catch
 async def update_theme_config(
         slug: str,
@@ -251,50 +298,4 @@ async def update_theme_config(
         "slug": slug,
         "settings": plugin.settings,
         "componentSlots": plugin.get_component_slots() if hasattr(plugin, 'get_component_slots') else component_slots,
-    })
-
-
-# ─── 主题 CSS（前端核心调用）─────────────
-
-@router.get("/themes/active/css")
-@_catch
-async def get_active_theme_css():
-    """
-    返回激活主题的 CSS 内容（无认证，公开端点）
-    """
-    active_theme = plugin_manager.get_active_theme_plugin()
-    if not active_theme:
-        return ok(data={"css": ""})
-
-    if hasattr(active_theme, 'get_css_content'):
-        css = active_theme.get_css_content()
-    else:
-        css_path = active_theme.plugin_dir / "styles.css"
-        css = css_path.read_text(encoding="utf-8") if css_path.exists() else ""
-
-    return ok(data={"css": css})
-
-
-@router.get("/themes/active/config")
-@_catch
-async def get_active_theme_config():
-    """返回激活主题的契约与配置（无认证，公开端点，前端据此应用主题）"""
-    active_theme = plugin_manager.get_active_theme_plugin()
-    if not active_theme:
-        return ok(data={"config": {}, "contract": None, "theme": None})
-
-    if hasattr(active_theme, 'get_theme_settings'):
-        settings = active_theme.get_theme_settings()
-    else:
-        settings = active_theme.settings or {}
-
-    contract = active_theme.get_theme_contract() if hasattr(active_theme, 'get_theme_contract') else {}
-
-    return ok(data={
-        "config": settings,
-        "contract": contract,
-        "theme": {
-            "slug": active_theme.slug,
-            "name": active_theme.name,
-        },
     })

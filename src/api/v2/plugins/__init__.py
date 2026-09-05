@@ -16,6 +16,8 @@ def _build_router():
     from src.api.v2.plugins.plugin_management import router as plugin_management_router
 
     router.include_router(plugin_management_router, prefix="")
+    # 注意：主题路由已在 v2/__init__.py 中单独注册为 /api/v2/themes
+    # 不需要在此处重复注册
 
     _router = router
     return _router
