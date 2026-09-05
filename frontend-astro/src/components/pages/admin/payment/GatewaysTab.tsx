@@ -5,10 +5,11 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {ChevronLeft, ChevronRight, CreditCard, Edit3, Plus, Search, Trash2} from 'lucide-react';
-import {Input, Badge} from './shared';
-import type {PaymentGateway, Pagination} from './shared';
+import type {Pagination, PaymentGateway} from './shared';
+import {Badge, Input} from './shared';
 import {useToast} from '@/components/ui/toast-provider';
 import type {ApiResponse} from '@/lib/api/base-types';
+
 const GatewaysTab: React.FC = () => {
   const qc = useQueryClient();
   const toast = useToast();
@@ -39,7 +40,7 @@ const GatewaysTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
-      } else toast.error(r.error || '操作失败');
+      } else toast.error(r.error || 'Create failed');
     },
   });
   const updateMut = useMutation({
@@ -48,7 +49,7 @@ const GatewaysTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
-      } else toast.error(r.error || '操作失败');
+      } else toast.error(r.error || 'Update failed');
     },
   });
   const deleteMut = useMutation({
@@ -57,7 +58,7 @@ const GatewaysTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setDeleteId(null);
-      } else toast.error(r.error || '操作失败');
+      } else toast.error(r.error || 'Delete failed');
     },
   });
 
@@ -79,7 +80,7 @@ const GatewaysTab: React.FC = () => {
   };
   const submit = () => {
     if (!form.name.trim() || !form.provider.trim()) {
-      toast.error('请填写名称和提供商');
+      toast.error('Please enter name and provider');
       return;
     }
     const payload = {...form, is_active: form.is_active === 'true'};
@@ -97,28 +98,30 @@ const GatewaysTab: React.FC = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-                   placeholder="搜索网关..."
+                   placeholder="Search gateways..."
                    className="pl-9 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white w-48"/>
           </div>
         </div>
         <button onClick={openCreate}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl flex items-center gap-1.5">
-          <Plus className="w-4 h-4"/>新建网关
+          <Plus className="w-4 h-4"/>Add Gateway
         </button>
       </div>
       {isLoading ? <div className="animate-pulse space-y-2">{[1, 2, 3].map(i => <div key={i}
                                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl"/>)}</div> :
         items.length === 0 ?
-          <EmptyState icon={CreditCard} title="暂无支付网关" desc="创建第一个支付网关以开始接受支付"/> :
+          <EmptyState icon={CreditCard} title="No payment gateways"
+                      desc="Create a payment gateway to start accepting payments"/> :
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">名称</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">提供商</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">支持货币</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">状态</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">操作</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Name</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Provider</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Currencies
+                </th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Status</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Actions</th>
               </tr>
               </thead>
               <tbody>{items.map(g => (
@@ -127,7 +130,7 @@ const GatewaysTab: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{g.name}</td>
                   <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{g.provider}</td>
                   <td
-                    className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{g.supported_currencies || '—'}</td>
+                    className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{g.supported_currencies || '-'}</td>
                   <td className="py-3 px-4"><Badge active={g.is_active}/></td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => openEdit(g)}
@@ -143,7 +146,7 @@ const GatewaysTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Total {pagination.total} items</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">
@@ -155,32 +158,32 @@ const GatewaysTab: React.FC = () => {
           </div>
         </div>
       )}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '编辑支付网关' : '新建支付网关'}>
-        <Input label="名称 *" value={form.name} onChange={v => setForm({...form, name: v})} placeholder="例如：Stripe"/>
-        <Input label="提供商 *" value={form.provider} onChange={v => setForm({...form, provider: v})}
-               placeholder="例如：stripe"/>
-        <Input label="支持货币" value={form.supported_currencies}
-               onChange={v => setForm({...form, supported_currencies: v})} placeholder="例如：USD,EUR,CNY"/>
-        <Input label="配置数据 (JSON)" value={form.config_data} onChange={v => setForm({...form, config_data: v})}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'Edit Gateway' : 'Add Gateway'}>
+        <Input label="Name *" value={form.name} onChange={v => setForm({...form, name: v})} placeholder="e.g. Stripe"/>
+        <Input label="Provider *" value={form.provider} onChange={v => setForm({...form, provider: v})}
+               placeholder="e.g. stripe"/>
+        <Input label="Currencies" value={form.supported_currencies}
+               onChange={v => setForm({...form, supported_currencies: v})} placeholder="e.g. USD,EUR,CNY"/>
+        <Input label="Config (JSON)" value={form.config_data} onChange={v => setForm({...form, config_data: v})}
                rows={3}/>
         <div className="mb-3">
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">状态</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Status</label>
           <select value={form.is_active} onChange={e => setForm({...form, is_active: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
-            <option value="true">启用</option>
-            <option value="false">禁用</option>
+            <option value="true">Active</option>
+            <option value="false">Disabled</option>
           </select>
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">取消
+                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">Cancel
           </button>
           <button onClick={submit}
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? '更新' : '创建'}</button>
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? 'Save' : 'Create'}</button>
         </div>
       </Modal>
       {deleteId !== null && (
-        <Modal open={true} onClose={() => setDeleteId(null)} title="确认删除">
+        <Modal open={true} onClose={() => setDeleteId(null)} title="Confirm Delete">
           <DeleteConfirm itemName={items.find(g => g.id === deleteId)?.name}
                          onConfirm={() => deleteMut.mutate(deleteId)} onCancel={() => setDeleteId(null)}
                          isPending={deleteMut.isPending}/>
