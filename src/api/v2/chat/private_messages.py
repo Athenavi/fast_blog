@@ -5,7 +5,7 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, and_, or_, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,13 +28,13 @@ async def send_private_message(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    发送私�?
+    发送私信
     Args:
         recipient_id: 接收者用户ID
         content: 消息内容
         message_type: 消息类型(text/image/file)
-        attachment_url: 附件URL(图片或文�?
-        parent_message_id: 如果是回复消�?指定父消息ID
+        attachment_url: 附件URL(图片或文件
+        parent_message_id: 如果是回复消息,指定父消息ID
     """
     # 验证接收者是否存...
     user_query = select(User).where(User.id == recipient_id)
@@ -117,7 +117,7 @@ async def send_private_message(
             "message_id": new_message.id,
             "created_at": new_message.created_at.isoformat()
         },
-        msg="消息发送成�?
+        msg="消息发送成功"
     )
 
 
@@ -130,15 +130,15 @@ async def get_conversations(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取会话列表(按联系人分组,显示最新消�?
+    获取会话列表(按联系人分组,显示最新消息)
 
-    返回与当前用户有过对话的所有用户及其最新消...
+    返回与当前用户有过对话的所有用户及其最新消息
     """
     # 计算偏移...
     offset = (page - 1) * per_page
 
     # 查询所有与当前用户相关的消息的对方用户ID和最新消息时...
-    # 使用子查询获取每个联系人的最新消...
+    # 使用子查询获取每个联系人的最新消息
     subquery = (
         select(
             func.case(
@@ -184,7 +184,7 @@ async def get_conversations(
     count_result = await db.execute(count_query)
     total = count_result.scalar() or 0
 
-    # 获取联系人信息和最新消...
+    # 获取联系人信息和最新消息
     query = (
         select(
             User.id,
@@ -245,7 +245,7 @@ async def get_conversation_messages(
 
     offset = (page - 1) * per_page
 
-    # 查询双方之间的消...
+    # 查询双方之间的消息
     query = (
         select(PrivateMessage)
         .where(
@@ -304,7 +304,7 @@ async def get_conversation_messages(
             msg.read_at = datetime.now()
         await db.commit()
 
-        # 格式化消息列...
+        # 格式化消息列表
     message_list = []
     for msg in messages:
         message_list.append({
@@ -346,7 +346,7 @@ async def delete_message(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    删除消息(软删�?仅对当前用户可见)
+    删除消息(软删除,仅对当前用户可见)
 
     Args:
         message_id: 消息ID
@@ -383,7 +383,7 @@ async def recall_message(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    撤回消息(仅发送者可�?分钟内撤�?
+    撤回消息(仅发送者可以在2分钟内撤回)
 
     Args:
         message_id: 消息ID
@@ -396,12 +396,14 @@ async def recall_message(
     if not message:
         return fail("消息不存...")
 
-        # 只有发送者可以撤...
+        # 只有发送者可以撤回消息
     if message.sender != current_user.id:
         return fail("只有发送者可以撤回消...")
 
-        # 检查是否在2分钟...
+        # 检查是否在2分钟内
     time_diff = (datetime.now() - message.created_at).total_seconds()
+    if time_diff > 120:
+        return fail("超过2分钟,无法撤回消息...")
     if time_diff > 120:
         return fail("超过2分钟,无法撤回消息")
 
