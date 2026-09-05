@@ -1,41 +1,43 @@
 """
-多站点管�?API
+多站点管理 API
 提供站点配置、域名绑定、用户管理和内容同步功能
 """
-from typing import Optional
+from typing import Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.multisite_service import multisite_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["multisite"])
 
 
+@router.post("", summary="创建站点")
+@_catch
 async def create_site(
         name: str = Body(..., description="站点名称"),
         slug: str = Body(..., description="站点标识"),
-    domain: str = Body(..., description="主域..."),
+    domain: str = Body(..., description="主域名"),
         description: Optional[str] = Body(None, description="描述"),
-        is_default
-
-: bool = Body(False, description="是否为默认站..."),
+    is_default: bool = Body(False, description="是否为默认站点"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    创建新站�?
+    创建新站点
     Args:
         name: 站点名称
         slug: 站点标识
-        domain: 主域...
-            description: 描述
-        is_default: 是否为默认站�?
+        domain: 主域名
+        description: 描述
+        is_default: 是否为默认站点
     Returns:
-        创建的站...
+        创建的站点
     """
-# 检查权限（需要admin权限...
+    # 检查权限（需要admin权限）
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -66,14 +68,14 @@ async def create_site(
 @router.get("", summary="获取站点列表")
 @_catch
 async def get_sites(
-    include_inactive: bool = Query(False, description="是否包含非活动站..."),
+    include_inactive: bool = Query(False, description="是否包含非活动站点"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有站点列�?
+    获取所有站点列表
     Args:
-        include_inactive: 是否包含非活动站�?
+        include_inactive: 是否包含非活动站点
     Returns:
         站点列表
     """
@@ -121,7 +123,7 @@ async def update_site(
     Returns:
         更新后的站点
     """
-    # 检查权...
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -155,7 +157,7 @@ async def delete_site(
     Returns:
         删除结果
     """
-    # 检查权...
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -175,8 +177,8 @@ async def add_domain(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """为站点添加附加域�?""
-    # 检查权...
+    """为站点添加附加域名"""
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -195,8 +197,9 @@ async def remove_domain(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    从站点移除附加域�?""
-    # 检查权...
+    从站点移除附加域名
+    """
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -208,7 +211,7 @@ async def remove_domain(
 
 # ==================== 用户管理 ====================
 
-@router.post("/users", summary="添加用户到站...")
+@router.post("/users", summary="添加用户到站点")
 @_catch
 async def add_user_to_site(
         site_id: int,
@@ -217,8 +220,8 @@ async def add_user_to_site(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """添加用户到站点（共享用户体系�?""
-    # 检查权...
+    """添加用户到站点（共享用户体系）"""
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -228,7 +231,7 @@ async def add_user_to_site(
     return ok(msg=f"User {user_id} added to site {site_id}")
 
 
-@router.delete("/users/{user_id}", summary="从站点移除用...")
+@router.delete("/users/{user_id}", summary="从站点移除用户")
 @_catch
 async def remove_user_from_site(
         site_id: int,
@@ -237,8 +240,9 @@ async def remove_user_from_site(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    从站点移除用�?""
-    # 检查权...
+    从站点移除用户
+    """
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -248,14 +252,14 @@ async def remove_user_from_site(
     return ok(msg=f"User {user_id} removed from site {site_id}")
 
 
-@router.get("/users/{user_id}/sites", summary="获取用户的站点列...")
+@router.get("/users/{user_id}/sites", summary="获取用户的站点列表")
 @_catch
 async def get_user_sites(
         user_id: int,
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取用户所属的所有站�?""
+    """获取用户所属的所有站点"""
     sites = await multisite_service.get_user_sites(db, user_id)
 
     return ok(data={
@@ -266,7 +270,7 @@ async def get_user_sites(
 
 # ==================== 内容同步 ====================
 
-@router.post("/sync", summary="同步内容到其他站...")
+@router.post("/sync", summary="同步内容到其他站点")
 @_catch
 async def sync_content(
         source_site_id: int = Body(..., description="源站点ID"),
@@ -278,8 +282,9 @@ async def sync_content(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    同步内容到其他站�?""
-    # 检查权...
+    同步内容到其他站点
+    """
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -364,14 +369,14 @@ async def get_site_detail(
     })
 
 
-@router.get("/{site_id}/users", summary="获取站点的用户列...")
+@router.get("/{site_id}/users", summary="获取站点的用户列表")
 @_catch
 async def get_site_users(
         site_id: int,
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取站点的用户列�?""
+    """获取站点的用户列表"""
     from shared.models.site_user import SiteUser
     from shared.models.user import User
     from sqlalchemy import select
@@ -409,12 +414,12 @@ async def get_site_users(
 async def update_user_role(
         site_id: int,
         user_id: int,
-        role: str = Body(..., description="新角..."),
+    role: str = Body(..., description="新角色"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """更新用户在站点的角色"""
-    # 检查权...
+    # 检查权限
     has_permission = await check_admin_permission(db, current_user.id)
     if not has_permission:
         return fail("Insufficient permissions")
@@ -438,27 +443,28 @@ async def update_user_role(
     return ok(msg=f"User role updated to {role}")
 
 
-@router.get("/{site_id}/content-mappings", summary="获取站点的内容映...")
+@router.get("/{site_id}/content-mappings", summary="获取站点的内容映射")
 @_catch
 async def get_content_mappings(
         site_id: int,
-        direction: str = Query("outgoing", description="方向（outgoing/incoming..."),
+    direction: str = Query("outgoing", description="方向（outgoing/incoming）"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取站点的内容映射记�?""
+    获取站点的内容映射记录
+    """
     from shared.models.content_mapping import ContentMapping
-    from sqlalchemy import select
+    from sqlalchemy import select, desc
 
     if direction == "outgoing":
         stmt = select(ContentMapping).where(
             ContentMapping.source_site_id == site_id
-        ).order_by(ContentMapping.created_at.desc())
+        ).order_by(desc(ContentMapping.created_at))
     else:
         stmt = select(ContentMapping).where(
             ContentMapping.target_site_id == site_id
-        ).order_by(ContentMapping.created_at.desc())
+        ).order_by(desc(ContentMapping.created_at))
 
     result = await db.execute(stmt)
     mappings = result.scalars().all()
@@ -487,7 +493,7 @@ async def get_content_mappings(
 
 async def check_admin_permission(db, user_id: int) -> bool:
     """
-    检查用户是否有管理员权...
+    检查用户是否有管理员权限
     """
     try:
         from shared.services.security.rbac_service import rbac_service

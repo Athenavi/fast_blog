@@ -42,13 +42,15 @@ class CustomPostTypeUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+@router.get("")
+@_catch
 async def list_custom_post_types(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """获取自定义内容类型列�?""
+    """获取自定义内容类型列表"""
     from sqlalchemy import func
 
     # 获取总数
@@ -77,11 +79,13 @@ async def create_custom_post_type(
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    创建自定义内容类�?""
-    # 检�?slug 唯一...
+    创建自定义内容类型
+    """
+    # 检查 slug 唯一性
     existing = await db.scalar(select(CustomPostType).where(CustomPostType.slug == data.slug))
     if existing:
-        return fail(f"Slug '{data.slug}' 已存...")
+        return fail(f"Slug '{data.slug}' 已存在")
+
     cpt = CustomPostType(
         name=data.name,
         slug=data.slug,
@@ -104,18 +108,19 @@ async def create_custom_post_type(
 
 @router.get("/{cpt_id}")
 @_catch
-async def get_custom_post_type(cpt_id: int,
+async def get_custom_post_type(
+    cpt_id: int,
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """获取自定义内容类型详�?""
+    """获取自定义内容类型详情"""
     result = await db.execute(
         select(CustomPostType).where(CustomPostType.id == cpt_id)
     )
     cpt = result.scalar_one_or_none()
 
     if not cpt:
-        return fail("内容类型不存...")
+        return fail("内容类型不存在")
 
     return ok(data=cpt.to_dict())
 
@@ -129,14 +134,15 @@ async def update_custom_post_type(
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    更新自定义内容类�?""
+    更新自定义内容类型
+    """
     result = await db.execute(
         select(CustomPostType).where(CustomPostType.id == cpt_id)
     )
     cpt = result.scalar_one_or_none()
 
     if not cpt:
-        return fail("内容类型不存...")
+        return fail("内容类型不存在")
 
     if data.name is not None:
         cpt.name = data.name
@@ -163,20 +169,21 @@ async def update_custom_post_type(
 
 @router.delete("/{cpt_id}")
 @_catch
-async def delete_custom_post_type(cpt_id: int,
+async def delete_custom_post_type(
+    cpt_id: int,
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """删除自定义内容类�?""
+    """删除自定义内容类型"""
     result = await db.execute(
         select(CustomPostType).where(CustomPostType.id == cpt_id)
     )
     cpt = result.scalar_one_or_none()
 
     if not cpt:
-        return fail("内容类型不存...")
+        return fail("内容类型不存在")
 
-    # 先删除关联的内容记录，避免孤儿数...
+    # 先删除关联的内容记录，避免孤儿数据
     from sqlalchemy import delete as sa_delete
     from shared.models.content import CustomPostContent
     await db.execute(

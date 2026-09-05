@@ -3,17 +3,22 @@
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.comments.comment_manager import comment_subscription_service
-from src.api.v2._helpers import ok, _catch
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required, jwt_optional_dependency
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
-router = APIRouter()
+router = APIRouter(tags=["comment-subscription"])
 
 
+@router.post("/subscribe",
+             summary="订阅文章评论",
+             description="订阅指定文章的评论通知",
+             response_description="返回订阅结果")
+@_catch
 async def subscribe_to_article_api(
         article_id: int = Body(..., embed=True, description="文章ID"),
         email: str = Body(..., embed=True, description="订阅邮箱"),
@@ -68,7 +73,7 @@ async def confirm_subscription_api(
 
 @router.get("/my-subscriptions",
             summary="获取我的订阅列表",
-            description="获取当前用户的所有评论订�?,
+            description="获取当前用户的所有评论订阅",
             response_description="返回订阅列表")
 @_catch
 async def get_my_subscriptions_api(
@@ -87,40 +92,38 @@ async def get_my_subscriptions_api(
 
 
 @router.get("/article/{article_id}/subscribers",
-            summary="获取文章订阅�?,
-
-
-description = "获取指定文章的订阅者列表（用于发送通知�?,
-response_description = "返回订阅者列...")
+            summary="获取文章订阅者",
+            description="获取指定文章的订阅者列表（用于发送通知）",
+            response_description="返回订阅者列表")
 @_catch
 async def get_article_subscribers_api(
         article_id: int,
-    notify_type: Optional[str] = Query(None, description="通知类型筛..."),
+    notify_type: Optional[str] = Query(None, description="通知类型筛选"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-"""获取文章订阅�?""
-# 检查权限：仅管理员或文章作者可查看
-from sqlalchemy import select
-from shared.models.article import Article
+    """获取文章订阅者"""
+    # 检查权限：仅管理员或文章作者可查看
+    from sqlalchemy import select
+    from shared.models.article import Article
 
-article_query = select(Article).where(Article.id == article_id)
-article_result = await db.execute(article_query)
-article = article_result.scalar_one_or_none()
+    article_query = select(Article).where(Article.id == article_id)
+    article_result = await db.execute(article_query)
+    article = article_result.scalar_one_or_none()
 
-if not article:
-    return fail("Article not found")
+    if not article:
+        return fail("Article not found")
 
-if (not getattr(current_user, 'is_staff', False) and
-    not getattr(current_user, 'is_superuser', False) and
-    article.user != current_user.id):
-    raise HTTPException(status_code=403, detail="Permission denied")
+    if (not getattr(current_user, 'is_staff', False) and
+        not getattr(current_user, 'is_superuser', False) and
+        article.user != current_user.id):
+        raise HTTPException(status_code=403, detail="Permission denied")
 
-subscribers = await comment_subscription_service.get_article_subscribers(db, article_id, notify_type)
+    subscribers = await comment_subscription_service.get_article_subscribers(db, article_id, notify_type)
 
-return ok(
-    data={
-        "subscribers": subscribers,
-        "total": len(subscribers)
-    }
-)
+    return ok(
+        data={
+            "subscribers": subscribers,
+            "total": len(subscribers)
+        }
+    )

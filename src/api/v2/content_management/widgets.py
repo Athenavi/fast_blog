@@ -1,6 +1,7 @@
 """
-小部�?Widgets)管理API
-提供小部件的CRUD和渲染功�?"""
+小部件 (Widgets) 管理API
+提供小部件的CRUD和渲染功能
+"""
 
 import json
 from datetime import datetime
@@ -17,6 +18,8 @@ from src.utils.database.unified_manager import get_db_session as get_async_db
 router = APIRouter(tags=["widgets"])
 
 
+@router.get("")
+@_catch
 async def list_all_widgets(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -57,7 +60,7 @@ async def list_all_widgets(
 @router.get("/types")
 @_catch
 async def get_widget_types(category: Optional[str] = Query(None)):
-    """获取小部件类型列�?""
+    """获取小部件类型列表"""
     types = widget_service.get_widget_types(category)
 
     return ok(data={'types': types})
@@ -67,7 +70,8 @@ async def get_widget_types(category: Optional[str] = Query(None)):
 @_catch
 async def get_widget_areas():
     """
-    获取小部件区域列�?""
+    获取小部件区域列表
+    """
     areas = widget_service.get_widget_areas()
 
     return ok(data={'areas': areas})
@@ -89,7 +93,7 @@ async def get_area_widgets(area_id: str, db: AsyncSession = Depends(get_async_db
     result = await db.execute(stmt)
     widgets = result.scalars().all()
 
-    # 转换为字典列...
+    # 转换为字典列表
     widget_list = [w.to_dict() for w in widgets]
 
     return ok(data={'widgets': widget_list})
@@ -108,7 +112,7 @@ async def register_widget(
     result = widget_service.register_widget(area, widget_type, config, position)
 
     if result['success']:
-        return ok(data=result['data'], msg="小部件添加成...")
+        return ok(data=result['data'], msg="小部件添加成功")
     else:
         return fail(result['error'])
 
@@ -120,7 +124,7 @@ async def update_widget_config(
         config: Dict[str, Any] = Body(...),
         current_user=Depends(admin_required_api)
 ):
-    """更新小部件配�?""
+    """更新小部件配置"""
     result = widget_service.update_widget_config(widget_id, config)
 
     if result['success']:
@@ -137,7 +141,8 @@ async def reorder_widgets(
         current_user=Depends(admin_required_api)
 ):
     """
-    重新排序小部�?""
+    重新排序小部件
+    """
     result = widget_service.reorder_widgets(area, widget_order)
 
     if result['success']:
@@ -152,7 +157,7 @@ async def remove_widget(
         widget_id: str,
         current_user=Depends(admin_required_api)
 ):
-    """移除小部�?""
+    """移除小部件"""
     result = widget_service.remove_widget(widget_id)
 
     if result['success']:
@@ -174,18 +179,19 @@ async def create_widget(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    创建小部件实�?""
+    创建小部件实例
+    """
     from shared.models import WidgetInstance
     from sqlalchemy import select, func
 
-    # 获取当前区域的最�?order_index
+    # 获取当前区域的最大 order_index
     stmt = select(func.max(WidgetInstance.order_index)).where(
         WidgetInstance.area == area
     )
     result = await db.execute(stmt)
     max_order = result.scalar() or -1
 
-    # 创建新实...
+    # 创建新实例
     new_widget = WidgetInstance(
         widget_type=widget_type,
         area=area,
@@ -213,7 +219,7 @@ async def update_widget(
         current_user=Depends(admin_required_api),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """更新小部件配�?""
+    """更新小部件配置"""
     from shared.models import WidgetInstance
     from sqlalchemy import select
 
@@ -222,7 +228,7 @@ async def update_widget(
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存...")
+        return fail("Widget 不存在")
 
     if title is not None:
         widget.title = title
@@ -245,7 +251,8 @@ async def toggle_widget(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    切换小部件启用状�?""
+    切换小部件启用状态
+    """
     from shared.models import WidgetInstance
     from sqlalchemy import select
 
@@ -254,7 +261,7 @@ async def toggle_widget(
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存...")
+        return fail("Widget 不存在")
 
     widget.is_active = is_active
     widget.updated_at = datetime.now()
@@ -271,7 +278,7 @@ async def reorder_single_widget(
         current_user=Depends(admin_required_api),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """重新排序单个小部�?""
+    """重新排序单个小部件"""
     from shared.models import WidgetInstance
     from sqlalchemy import select
 
@@ -280,13 +287,13 @@ async def reorder_single_widget(
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存...")
+        return fail("Widget 不存在")
 
     old_order = widget.order_index
     widget.order_index = order_index
     widget.updated_at = datetime.now()
 
-    # 如果有其�?Widget 在同一位置，调整它们的顺序
+    # 如果有其他 Widget 在同一位置，调整它们的顺序
     stmt = select(WidgetInstance).where(
         WidgetInstance.area == widget.area,
         WidgetInstance.id != widget_id
@@ -317,11 +324,12 @@ async def batch_reorder_widgets(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    批量重新排序小部件（用于拖拽排序�?""
+    批量重新排序小部件（用于拖拽排序）
+    """
     from shared.models import WidgetInstance
     from sqlalchemy import select
 
-    # 批量更新所�?widget �?order_index
+    # 批量更新所有 widget 的 order_index
     for update_data in updates:
         widget_id = update_data.get('id')
         new_order = update_data.get('order_index')
@@ -356,7 +364,7 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
     widget = result.scalar_one_or_none()
 
     if not widget:
-        return fail("Widget 不存...")
+        return fail("Widget 不存在")
 
     # 解析配置
     config = {}
@@ -386,19 +394,19 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
 @_catch
 async def get_recent_posts_data(
         count: int = Query(5, description="文章数量"),
-    show_thumbnail: bool = Query(True, description="是否显示缩略..."),
+    show_thumbnail: bool = Query(True, description="是否显示缩略图"),
         show_date: bool = Query(True, description="是否显示日期"),
         db: AsyncSession = Depends(get_async_db)
 ):
-"""获取最新文章数�?""
-posts = await widget_service.get_recent_posts_data(
-    db=db,
-    count=count,
-    show_thumbnail=show_thumbnail,
-    show_date=show_date
-)
+    """获取最新文章数据"""
+    posts = await widget_service.get_recent_posts_data(
+        db=db,
+        count=count,
+        show_thumbnail=show_thumbnail,
+        show_date=show_date
+    )
 
-return ok(data={'posts': posts})
+    return ok(data={'posts': posts})
 
 
 @router.get("/data/recent-comments")
@@ -408,8 +416,9 @@ async def get_recent_comments_data(
     show_avatar: bool = Query(True, description="是否显示头像"),
     db: AsyncSession = Depends(get_async_db)
 ):
-"""
-获取最新评论数�?""
+    """
+    获取最新评论数据
+    """
     comments = await widget_service.get_recent_comments_data(
         db=db,
         count=count,
@@ -423,10 +432,10 @@ async def get_recent_comments_data(
 @_catch
 async def get_tags_cloud_data(
         count: int = Query(20, description="标签数量"),
-    display_type: str = Query('cloud', description="显示类型 (cloud �?list)"),
+    display_type: str = Query('cloud', description="显示类型 (cloud 或 list)"),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取标签云数�?""
+    """获取标签云数据"""
     tags = await widget_service.get_tags_cloud_data(
         db=db,
         count=count,
@@ -439,7 +448,7 @@ async def get_tags_cloud_data(
 @router.get("/data/categories")
 @_catch
 async def get_categories_data(
-        show_count: bool = Query(True, description="是否显示文章..."),
+    show_count: bool = Query(True, description="是否显示文章数"),
         hierarchical: bool = Query(True, description="是否层级显示"),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -456,8 +465,8 @@ async def get_categories_data(
 @router.get("/data/archives")
 @_catch
 async def get_archives_data(
-        archive_type: str = Query('monthly', description="归档类型 (monthly �?yearly)"),
-        show_count: bool = Query(True, description="是否显示文章..."),
+    archive_type: str = Query('monthly', description="归档类型 (monthly 或 yearly)"),
+    show_count: bool = Query(True, description="是否显示文章数"),
         db: AsyncSession = Depends(get_async_db)
 ):
     """获取文章归档数据"""
@@ -503,9 +512,9 @@ async def get_menu_data(
     menu = menu_result.scalar_one_or_none()
 
     if not menu:
-        return fail(f"菜单不存�? {slug}")
+        return fail(f"菜单不存在: {slug}")
 
-    # 查询菜单项（包括层级关系...
+    # 查询菜单项（包括层级关系）
     items_stmt = (
         select(MenuItems)
         .where(MenuItems.menu_id == menu.id)

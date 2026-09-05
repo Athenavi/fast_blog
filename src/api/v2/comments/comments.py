@@ -1,6 +1,8 @@
 """
 评论管理API - 包含垃圾评论过滤
 """
+import html
+import json
 from datetime import datetime
 from typing import Optional
 
@@ -45,8 +47,8 @@ class CreateCommentRequest(BaseModel):
     """创建评论请求"""
     article_id: int
     content: str
-    parent_id: Optional[int] = None  # 回复评论时使�?
-    # 访客信息（未登录用户必填...
+    parent_id: Optional[int] = None  # 回复评论时使用
+    # 访客信息（未登录用户必填）
     author_name: Optional[str] = None
     author_email: Optional[str] = None
     author_url: Optional[str] = None
@@ -56,7 +58,7 @@ class CreateCommentRequest(BaseModel):
     phone_field: Optional[str] = None
     comment_extra: Optional[str] = None
 
-    # 页面加载时间�?用于检测快速提�?
+    # 页面加载时间，用于检测快速提交
     page_load_time: Optional[float] = None
 
 
@@ -76,22 +78,21 @@ async def create_comment(
     """
     创建新评论（支持登录用户和访客）
 
-    自动进行垃圾评论检�?
-    - 低风�? 直接发布
-    - 中风�? 标记为待审核
-    - 高风�? 直接拒绝
+    自动进行垃圾评论检测
+    - 低风险: 直接发布
+    - 中风险: 标记为待审核
+    - 高风险: 直接拒绝
     """
     from sqlalchemy import select
-    import json
 
-    # 1. 检查文章是否存...
+    # 1. 检查文章是否存在
     from shared.models.article import Article
     article_query = select(Article).where(Article.id == comment_data.article_id)
     article_result = await db.execute(article_query)
     article = article_result.scalar_one_or_none()
 
     if not article:
-        return fail("文章不存...")
+        return fail("文章不存在")
 
     # 2. 获取用户IP和User-Agent
     ip_address = request.client.host if request.client else None
@@ -104,7 +105,7 @@ async def create_comment(
         'comment_extra': comment_data.comment_extra or ''
     }
 
-        # 4. 执行垃圾评论检�?增强�?
+    # 4. 执行垃圾评论检测（增强版）
     spam_check = spam_filter.check_spam(
         content=comment_data.content,
         user_id=current_user.id if current_user else None,
@@ -114,45 +115,43 @@ async def create_comment(
         submit_time=comment_data.page_load_time
     )
 
-        # 5. 敏感词过滤检...
+    # 5. 敏感词过滤检测
     from shared.services.security.sensitive_word_service import sensitive_word_service
     sensitive_check = await sensitive_word_service.check_content(comment_data.content)
 
     # 如果包含需要拦截的敏感词，直接拒绝
     if sensitive_check['has_sensitive'] and 'block' in sensitive_check['actions']:
-        return fail(
-            "评论包含违规内容，已拒绝",
-        )
+        return fail("评论包含违规内容，已拒绝")
 
     # 如果有警告级别的敏感词，标记为待审核
     if sensitive_check['has_sensitive'] and 'warn' in sensitive_check['actions']:
-        is_approved = False  # 强制待审...
+        is_approved = False  # 强制待审核
     else:
-        # 根据垃圾检测结果决定审核状...
-            is_approved = spam_check['action'] == 'approve'
+        # 根据垃圾检测结果决定审核状态
+        is_approved = spam_check['action'] == 'approve'
 
-    # 6. 如果内容需要替换敏感词，进行替...
+    # 6. 如果内容需要替换敏感词，进行替换
     filtered_content = comment_data.content
     if sensitive_check['has_sensitive'] and 'replace' in sensitive_check['actions']:
         filtered_content, _ = await sensitive_word_service.filter_content(comment_data.content)
 
-        # 服务器端 HTML 转义（防�?XSS，与前端 DOMPurify 双层保护...
+    # 服务器端 HTML 转义（防止 XSS，与前端 DOMPurify 双层保护）
     filtered_content = html.escape(filtered_content)
 
-        # 5. 根据检测结果决定操...
+    # 5. 根据检测结果决定操作
     if spam_check['action'] == 'reject':
         return fail("评论被识别为垃圾内容，已拒绝")
 
-    # 7. 验证并清�?author_url
+    # 7. 验证并清理 author_url
     from urllib.parse import urlparse
     author_url = comment_data.author_url
     if author_url:
         parsed = urlparse(author_url)
-        # 只允�?http/https 协议
+        # 只允许 http/https 协议
         if parsed.scheme not in ('http', 'https'):
             author_url = None
-            # 拒绝 javascript: �?data: 等危险协...
-            elif parsed.scheme in ('javascript', 'data', 'vbscript'):
+        # 拒绝 javascript: data: vbscript 等危险协议
+        elif parsed.scheme in ('javascript', 'data', 'vbscript'):
             author_url = None
 
     # 8. 创建评论
@@ -169,8 +168,8 @@ async def create_comment(
         author_url=author_url,
         author_ip=ip_address,
         user_agent=user_agent,
-        # 垃圾检测信...
-            spam_score=spam_check['confidence'],
+        # 垃圾检测信息
+        spam_score=spam_check['confidence'],
         spam_reasons=json.dumps(spam_check['reasons']) if spam_check['reasons'] else None
     )
 
@@ -190,8 +189,8 @@ async def create_comment(
             article_result = await db.execute(article_query)
             article = article_result.scalar_one_or_none()
 
-            # 触发关注插件的评论事...
-                try:
+            # 触发关注插件的评论事件
+            try:
                 commenter_id = current_user.id if current_user else None
                 if commenter_id and article:
                     await event_bus.emit('comment.created', {
@@ -203,23 +202,23 @@ async def create_comment(
             except Exception as plugin_err:
                 logger.warning(f"Trigger plugin event failed: {plugin_err}")
 
-                # 获取文章作者信...
-                if article and article.user:
+            # 获取文章作者信息
+            if article and article.user:
                 author_query = select(User).where(User.id == article.user)
                 author_result = await db.execute(author_query)
                 article_author = author_result.scalar_one_or_none()
 
                 if article_author and article_author.email:
-                    # 获取评论者信...
-                        commenter_name = current_user.username if current_user else comment_data.author_name or '访客'
+                    # 获取评论者信息
+                    commenter_name = current_user.username if current_user else comment_data.author_name or '访客'
 
                     # 构建URL
                     base_url = os.getenv('SITE_URL', 'http://localhost:3000')
                     article_url = urljoin(base_url, f"/articles/detail?id={article.id}")
                     comment_url = urljoin(base_url, f"/articles/detail?id={article.id}#comment-{new_comment.id}")
 
-                    # 通知文章作...
-                        comment_notification_service.notify_article_author(
+                    # 通知文章作者
+                    comment_notification_service.notify_article_author(
                         author_email=article_author.email,
                         author_name=article_author.username,
                         article_title=article.title,
@@ -231,39 +230,38 @@ async def create_comment(
                         author_user_id=article_author.id
                     )
 
-                # 如果有父评论，通知被回复...
+                # 如果有父评论，通知被回复者
                 if new_comment.parent_id:
-                parent_query = select(Comment).where(Comment.id == new_comment.parent_id)
-                parent_result = await db.execute(parent_query)
-                parent_comment = parent_result.scalar_one_or_none()
+                    parent_query = select(Comment).where(Comment.id == new_comment.parent_id)
+                    parent_result = await db.execute(parent_query)
+                    parent_comment = parent_result.scalar_one_or_none()
 
-                if parent_comment and parent_comment.author_email:
-                    commenter_name = current_user.username if current_user else comment_data.author_name or '访客'
+                    if parent_comment and parent_comment.author_email:
+                        commenter_name = current_user.username if current_user else comment_data.author_name or '访客'
 
-                    base_url = os.getenv('SITE_URL', 'http://localhost:3000')
-                    article_url = urljoin(base_url, f"/articles/detail?id={comment_data.article_id}")
-                    comment_url = urljoin(base_url,
-                                          f"/articles/detail?id={comment_data.article_id}#comment-{new_comment.id}")
+                        base_url = os.getenv('SITE_URL', 'http://localhost:3000')
+                        article_url = urljoin(base_url, f"/articles/detail?id={comment_data.article_id}")
+                        comment_url = urljoin(base_url,
+                                              f"/articles/detail?id={comment_data.article_id}#comment-{new_comment.id}")
 
-                # 通知被回复...
+                        # 通知被回复者
                         comment_notification_service.notify_comment_reply(
-                        recipient_email=parent_comment.author_email,
-                        recipient_name=parent_comment.author_name or '用户',
-                        article_title=article.title if article else '文章',
-                        article_url=article_url,
-                        replier_name=commenter_name,
-                        reply_content=new_comment.content,
-                        original_comment=parent_comment.content,
-                        comment_url=comment_url,
-                        article_id=comment_data.article_id,
-                        recipient_user_id=parent_comment.user_id
-                    )
+                            recipient_email=parent_comment.author_email,
+                            recipient_name=parent_comment.author_name or '用户',
+                            article_title=article.title if article else '文章',
+                            article_url=article_url,
+                            replier_name=commenter_name,
+                            reply_content=new_comment.content,
+                            original_comment=parent_comment.content,
+                            comment_url=comment_url,
+                            article_id=comment_data.article_id,
+                            recipient_user_id=parent_comment.user_id
+                        )
 
         except Exception as e:
             logger.error(f"发送评论通知失败: {e}")
             logger.exception("发送评论通知详细错误")
-# 通知失败不影响评论创�?
-    # 8. 返回结果
+        # 通知失败不影响评论创建
 
     # 触发 Webhook 事件
     try:
@@ -299,7 +297,7 @@ async def create_comment(
     )
 
 
-@router.get("/comments/{comment_id}")
+@router.get("/{comment_id}")
 @_catch
 async def get_comment(
         comment_id: int,
@@ -313,7 +311,7 @@ async def get_comment(
     comment = result.scalar_one_or_none()
 
     if not comment:
-        return fail("评论不存...")
+        return fail("评论不存在")
 
     return ok(
         data=await _process_comment_content(comment.to_dict())
@@ -327,18 +325,18 @@ async def get_article_comments(
         page: int = 1,
         per_page: int = 20,
         sort_by: str = 'latest',  # latest | oldest | popular
-    order: str = 'desc',  # asc | desc (仅用于兼�?
+    order: str = 'desc',  # asc | desc (仅用于兼容)
         tree: bool = False,  # 是否返回树形结构
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取文章的评�?
+    """获取文章的评论
     Args:
         article_id: 文章ID
         page: 页码
         per_page: 每页数量
-        sort_by: 排序方式 (latest-最�? oldest-最�? popular-最�?
-        order: 排序方向 (asc-升序, desc-降序) - 仅用于向后兼...
-            tree: 是否返回树形结构（嵌套回复）
+        sort_by: 排序方式 (latest-最新, oldest-最旧, popular-最热)
+        order: 排序方向 (asc-升序, desc-降序) - 仅用于向后兼容
+        tree: 是否返回树形结构（嵌套回复）
     """
     from sqlalchemy import select, func
     from shared.models.user import User
@@ -350,7 +348,7 @@ async def get_article_comments(
 
     offset = (page - 1) * per_page
 
-    # 如果要求树形结构: 先分页获取根评论,再递归获取子评...
+    # 如果要求树形结构: 先分页获取根评论,再递归获取子评论
     if tree:
         # 1. 获取根评论总数
         root_count_query = select(func.count()).select_from(
@@ -369,8 +367,8 @@ async def get_article_comments(
         root_query = root_query.offset(offset).limit(per_page)
         root_comments = (await db.execute(root_query)).scalars().all()
 
-    # 3. 一次性查询所有后代评论（避免 N+1...
-            all_comment_ids = set(c.id for c in root_comments)
+        # 3. 一次性查询所有后代评论（避免 N+1）
+        all_comment_ids = set(c.id for c in root_comments)
         parent_ids = [c.id for c in root_comments]
         all_comments = list(root_comments)
         while parent_ids:
@@ -383,8 +381,8 @@ async def get_article_comments(
                 break
             all_comments.extend(children)
             all_comment_ids.update(c.id for c in children)
-            # 下一层继续批量查...
-                parent_ids = [c.id for c in children]
+            # 下一层继续批量查询
+            parent_ids = [c.id for c in children]
 
         # 4. 获取用户信息
         user_ids = [c.user_id for c in all_comments if c.user_id]
@@ -394,8 +392,8 @@ async def get_article_comments(
             user_result = await db.execute(user_query)
             users = {u.id: u for u in user_result.scalars().all()}
 
-    # 5. 格式化评...
-            comments_data = []
+        # 5. 格式化评论
+        comments_data = []
         for comment in all_comments:
             comment_dict = comment.to_dict()
             comment_dict = await _process_comment_content(comment_dict)
@@ -409,8 +407,8 @@ async def get_article_comments(
                 }
             comments_data.append(comment_dict)
 
-    # 6. 构建...
-            tree_data = _build_comment_tree(comments_data)
+        # 6. 构建树
+        tree_data = _build_comment_tree(comments_data)
         result_data = {
             'comments': tree_data,
             'total': total,
@@ -420,7 +418,7 @@ async def get_article_comments(
             'tree': True,
         }
     else:
-# 非树形模�? 平坦分页
+        # 非树形模式，平坦分页
         query = select(Comment).where(Comment.article_id == article_id)
 
         # 获取总数
@@ -441,16 +439,16 @@ async def get_article_comments(
         result = await db.execute(query)
         comments = result.scalars().all()
 
-# 获取所有用户信...
-            user_ids = [c.user_id for c in comments if c.user_id]
+        # 获取所有用户信息
+        user_ids = [c.user_id for c in comments if c.user_id]
         users = {}
         if user_ids:
             user_query = select(User).where(User.id.in_(user_ids))
             user_result = await db.execute(user_query)
             users = {u.id: u for u in user_result.scalars().all()}
 
-# 格式化评...
-            comments_data = []
+        # 格式化评论
+        comments_data = []
         for comment in comments:
             comment_dict = comment.to_dict()
             comment_dict = await _process_comment_content(comment_dict)
@@ -481,7 +479,7 @@ async def get_article_comment_count(
         article_id: int,
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取文章的评论数�?
+    """获取文章的评论数量
     Args:
         article_id: 文章ID
     """
@@ -581,11 +579,11 @@ async def update_comment(
     comment = result.scalar_one_or_none()
 
     if not comment:
-        return fail("评论不存...")
+        return fail("评论不存在")
 
-        # 检查权�?- 只有评论作者或管理员可以编...
+    # 检查权限 - 只有评论作者或管理员可以编辑
     if comment.user_id != current_user.id and not getattr(current_user, 'is_staff', False):
-        return fail("没有权限编辑此评...")
+        return fail("没有权限编辑此评论")
 
     comment.content = comment_data.content
     comment.updated_at = datetime.now()
@@ -594,7 +592,7 @@ async def update_comment(
 
     return ok(
         data=comment.to_dict(),
-        msg="评论已更�?
+        msg="评论已更新"
     )
 
 
@@ -606,7 +604,7 @@ async def delete_comment(
         current_user=Depends(jwt_required)
 ):
     """
-    删除评论(管理员或评论作者可�?
+    删除评论(管理员或评论作者可)
     """
     from sqlalchemy import select
 
@@ -615,11 +613,11 @@ async def delete_comment(
     comment = result.scalar_one_or_none()
 
     if not comment:
-        return fail("评论不存...")
+        return fail("评论不存在")
 
-        # 检查权�?- 只有评论作者或管理员可以删...
+    # 检查权限 - 只有评论作者或管理员可以删除
     if comment.user_id != current_user.id and not getattr(current_user, 'is_staff', False):
-        return fail("没有权限删除此评...")
+        return fail("没有权限删除此评论")
 
     now = datetime.now()
     comment.deleted_at = now
@@ -635,7 +633,7 @@ async def delete_comment(
 
     await db.commit()
 
-    return ok(msg="评论已删...")
+    return ok(msg="评论已删除")
 
 
 @router.get("/spam/config")
@@ -643,7 +641,7 @@ async def delete_comment(
 async def get_spam_config(
         current_user=Depends(jwt_required)
 ):
-    """获取垃圾评论检测配�?""
+    """获取垃圾评论检测配置"""
     if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
         return fail("需要管理员权限")
 
@@ -660,7 +658,8 @@ async def update_spam_config(
         current_user=Depends(jwt_required)
 ):
     """
-    更新垃圾评论检测配�?""
+    更新垃圾评论检测配置
+    """
     if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
         return fail("需要管理员权限")
 
@@ -687,24 +686,25 @@ async def like_comment(
         current_user=Depends(jwt_required)
 ):
     """
-    点赞/取消点赞评论（增强版�?
-    支持...
+    点赞/取消点赞评论（增强版）
+    支持：
     - 首次点赞
     - 取消点赞
-    - 从反对改为点�?
+    - 从反对改为点赞
     Args:
         comment_id: 评论ID
     """
+    from sqlalchemy import select
 
-    # 检查评论是否存...
+    # 检查评论是否存在
     stmt = select(Comment).where(Comment.id == comment_id)
     result = await db.execute(stmt)
     comment = result.scalar_one_or_none()
 
     if not comment:
-        return fail("评论不存...")
+        return fail("评论不存在")
 
-        # 检查是否已经投...
+    # 检查是否已经投票
     stmt = select(CommentVote).where(
         CommentVote.comment_id == comment_id,
         CommentVote.user == current_user.id
@@ -714,11 +714,11 @@ async def like_comment(
 
     if existing_vote:
         if existing_vote.vote_type == 1:
-            # 已经点赞，取消点...
-                await db.delete(existing_vote)
+            # 已经点赞，取消点赞
+            await db.delete(existing_vote)
             comment.likes = max(0, comment.likes - 1)
             action = 'unliked'
-            message = '已取消点�?
+            message = '已取消点赞'
         else:
             # 之前是反对，改为点赞
             existing_vote.vote_type = 1
@@ -763,24 +763,24 @@ async def dislike_comment(
     """
     反对/取消反对评论
 
-    支持...
+    支持：
     - 首次反对
     - 取消反对
-    - 从点赞改为反�?
+    - 从点赞改为反对
     Args:
         comment_id: 评论ID
     """
-    from shared.models.comment_vote import CommentVote
+    from sqlalchemy import select
 
-    # 检查评论是否存...
+    # 检查评论是否存在
     stmt = select(Comment).where(Comment.id == comment_id)
     result = await db.execute(stmt)
     comment = result.scalar_one_or_none()
 
     if not comment:
-        return fail("评论不存...")
+        return fail("评论不存在")
 
-        # 检查是否已经投...
+    # 检查是否已经投票
     stmt = select(CommentVote).where(
         CommentVote.comment_id == comment_id,
         CommentVote.user == current_user.id
@@ -790,16 +790,16 @@ async def dislike_comment(
 
     if existing_vote:
         if existing_vote.vote_type == -1:
-            # 已经反对，取消反...
-                await db.delete(existing_vote)
+            # 已经反对，取消反对
+            await db.delete(existing_vote)
             action = 'undisliked'
-            message = '已取消反�?
+            message = '已取消反对'
         else:
             # 之前是点赞，改为反对
             existing_vote.vote_type = -1
             comment.likes = max(0, comment.likes - 1)
             action = 'disliked'
-            message = '已反�?
+            message = '已反对'
     else:
         # 新建反对
         vote = CommentVote(
@@ -812,7 +812,7 @@ async def dislike_comment(
         db.add(vote)
         comment.likes = max(0, comment.likes - 1)
         action = 'disliked'
-        message = '已反�?
+        message = '已反对'
 
     await db.commit()
     await db.refresh(comment)
@@ -858,14 +858,13 @@ async def get_user_vote(
         current_user=Depends(jwt_required)
 ):
     """
-    获取用户对评论的投票状�?
+    获取用户对评论的投票状态
     Args:
         comment_id: 评论ID
 
     Returns:
-        vote_type: 1 (�? | -1 (�? | null
+        vote_type: 1 (赞) | -1 (踩) | null
     """
-    from shared.models.comment_vote import CommentVote
     from sqlalchemy import select
 
     stmt = select(CommentVote).where(
@@ -891,16 +890,17 @@ async def notify_comment_reply(
         current_user=Depends(jwt_required)
 ):
     """
-    通知评论被回复（通常在创建回复评论后调用�?
+    通知评论被回复（通常在创建回复评论后调用）
     Args:
         comment_id: 新评论ID
 
     Returns:
         通知结果
     """
+    from sqlalchemy import select
     from shared.models.notification import Notification
 
-    # 获取新评...
+    # 获取新评论
     stmt = select(Comment).where(Comment.id == comment_id)
     result = await db.execute(stmt)
     new_comment = result.scalar_one_or_none()
@@ -908,13 +908,13 @@ async def notify_comment_reply(
     if not new_comment or not new_comment.parent_id:
         return fail("不是回复评论")
 
-    # 获取父评...
+    # 获取父评论
     stmt = select(Comment).where(Comment.id == new_comment.parent_id)
     result = await db.execute(stmt)
     parent_comment = result.scalar_one_or_none()
 
     if not parent_comment or not parent_comment.user_id:
-        return fail("父评论没有用...")
+        return fail("父评论没有用户")
 
     # 如果是自己回复自己，不发送通知
     if parent_comment.user_id == new_comment.user_id:
@@ -924,8 +924,8 @@ async def notify_comment_reply(
     notification = Notification(
         recipient=parent_comment.user_id,
         type='comment_reply',
-        title='有人回复了你的评�?,
-    message = f'{new_comment.author_name or "匿名用户"} 回复了你的评�?,
+        title='有人回复了你的评论',
+        message=f'{new_comment.author_name or "匿名用户"} 回复了你的评论',
         is_read=False
     )
 
@@ -936,7 +936,7 @@ async def notify_comment_reply(
         data={
             'notification_id': notification.id
         },
-        msg="通知已发�?
+        msg="通知已发送"
     )
 
 
@@ -950,7 +950,7 @@ def _build_comment_tree(comments: list) -> list:
         comments: 评论列表（字典格式）
 
     Returns:
-        树形结构的评论列...
+        树形结构的评论列表
     """
     # 转换为字典并添加 children 字段
     comment_map = {}
@@ -960,16 +960,16 @@ def _build_comment_tree(comments: list) -> list:
         comment_dict['depth'] = 0
         comment_map[comment_dict['id']] = comment_dict
 
-    # 构建...
+    # 构建树
     root_comments = []
     for comment_dict in comment_map.values():
         parent_id = comment_dict.get('parent_id')
 
         if parent_id is None or parent_id not in comment_map:
-        # 根评...
-                root_comments.append(comment_dict)
+            # 根评论
+            root_comments.append(comment_dict)
         else:
-            # 子评论，添加到父评论�?children
+            # 子评论，添加到父评论的 children
             parent = comment_map[parent_id]
             comment_dict['depth'] = parent['depth'] + 1
             parent['children'].append(comment_dict)
@@ -1035,8 +1035,8 @@ async def update_notification_preferences(
         preferences: 偏好设置字典
             - notify_on_reply: 回复时通知 (bool)
             - notify_on_new_comment: 新评论时通知 (bool)
-            - email_on_reply: 回复时发送邮�?(bool)
-            - email_on_new_comment: 新评论时发送邮�?(bool)
+            - email_on_reply: 回复时发送邮件 (bool)
+            - email_on_new_comment: 新评论时发送邮件 (bool)
     """
     body = await request.json()
     preferences = body.get('preferences', {})
@@ -1048,7 +1048,7 @@ async def update_notification_preferences(
 
     if success:
         return ok(
-            msg="偏好设置已更�?,
+            msg="偏好设置已更新",
             data={
                 "preferences": await comment_notification_service.get_user_preferences(
                     user_id=current_user.id
@@ -1058,7 +1058,8 @@ async def update_notification_preferences(
     else:
         return fail("更新失败")
 
-    # ==================== 评论管理（管理员�?====================
+
+# ==================== 评论管理（管理员） ====================
 
 @router.get("/")
 @_catch
@@ -1112,7 +1113,7 @@ async def list_pending_comments(
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required)
 ):
-    """获取待审核评论列表（管理员用�?""
+    """获取待审核评论列表（管理员用）"""
     from sqlalchemy import select, func, desc
 
     if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
@@ -1124,7 +1125,7 @@ async def list_pending_comments(
     result = await db.execute(query)
     comments = result.scalars().all()
 
-    # 附上文章标题和用户信...
+    # 附上文章标题和用户信息
     from shared.models.article import Article
     from shared.models.user import User
 
@@ -1172,7 +1173,7 @@ async def approve_comment(
     result = await db.execute(select(Comment).where(Comment.id == comment_id))
     comment = result.scalar_one_or_none()
     if not comment:
-        return fail("评论不存...")
+        return fail("评论不存在")
 
     comment.is_approved = True
     await db.flush()
@@ -1195,8 +1196,8 @@ async def reject_comment(
     result = await db.execute(select(Comment).where(Comment.id == comment_id))
     comment = result.scalar_one_or_none()
     if not comment:
-        return fail("评论不存...")
+        return fail("评论不存在")
 
     comment.is_approved = False
     await db.flush()
-    return ok(msg="评论已驳...")
+    return ok(msg="评论已驳回")

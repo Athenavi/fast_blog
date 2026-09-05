@@ -1,6 +1,7 @@
 """
-内容导出 API �?WXR (WordPress eXtended RSS) / JSON 格式
-支持导出文章、页面、分类、标签、媒体、评�?"""
+内容导出 API - WXR (WordPress eXtended RSS) / JSON 格式
+支持导出文章、页面、分类、标签、媒体、评论
+"""
 
 import json
 from datetime import datetime, timezone
@@ -13,9 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.comment import Comment
-from shared.models.media import Media
 from shared.models.user import User
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
@@ -31,7 +31,7 @@ NSMAP = {
 
 
 def _build_wxr(site_title: str, site_url: str, articles: list, categories: list, users: list, comments: list) -> str:
-    """构建 WXR XML 字符�?""
+    """构建 WXR XML 字符串"""
     rss = Element('rss', attrib={'version': '2.0'}, **NSMAP)
     channel = SubElement(rss, 'channel')
 
@@ -65,7 +65,7 @@ def _build_wxr(site_title: str, site_url: str, articles: list, categories: list,
         SubElement(c, 'wp:category_parent').text = ''
         SubElement(c, 'wp:cat_name').text = cat.name or ''
 
-    # Tags �?use category.slug as tag proxy
+    # Tags - use category.slug as tag proxy
     for cat in categories:
         t = SubElement(channel, 'wp:tag')
         SubElement(t, 'wp:tag_slug').text = cat.slug or ''
@@ -140,129 +140,128 @@ def _build_json(site_title: str, site_url: str, articles: list, categories: list
 
 
 @router.get("/export/wxr")
+@_catch
 async def export_wxr(
     db: AsyncSession = Depends(get_async_db),
     _=Depends(jwt_required),
 ):
     """
-    导出全站内容�?WordPress
-    WXR
-    格式
+    导出全站内容为 WordPress WXR 格式
     """
-        try:
-            # 分批加载数据，避免一次性加载全部到内存
-            BATCH_SIZE = 1000
-            articles = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(Article).order_by(Article.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                articles.extend(batch)
-                offset += len(batch)
+    try:
+        # 分批加载数据，避免一次性加载全部到内存
+        BATCH_SIZE = 1000
+        articles = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Article).order_by(Article.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            articles.extend(batch)
+            offset += len(batch)
 
-            categories = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(Category).order_by(Category.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                categories.extend(batch)
-                offset += len(batch)
+        categories = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Category).order_by(Category.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            categories.extend(batch)
+            offset += len(batch)
 
-            users = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(User).order_by(User.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                users.extend(batch)
-                offset += len(batch)
+        users = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(User).order_by(User.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            users.extend(batch)
+            offset += len(batch)
 
-            comments = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(Comment).order_by(Comment.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                comments.extend(batch)
-                offset += len(batch)
+        comments = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Comment).order_by(Comment.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            comments.extend(batch)
+            offset += len(batch)
 
-            wxr = _build_wxr('FastBlog', 'https://fastblog.dev', articles, categories, users, comments)
-            from fastapi.responses import Response
-            return Response(content=wxr, media_type='application/xml',
-                            headers={'Content-Disposition': 'attachment; filename="fastblog-export.xml"'})
-        except Exception as e:
-            return fail(str(e))
+        wxr = _build_wxr('FastBlog', 'https://fastblog.dev', articles, categories, users, comments)
+        from fastapi.responses import Response
+        return Response(content=wxr, media_type='application/xml',
+                        headers={'Content-Disposition': 'attachment; filename="fastblog-export.xml"'})
+    except Exception as e:
+        return fail(str(e))
 
 
-    @router.get("/export/json")
-    async def export_json(
+@router.get("/export/json")
+@_catch
+async def export_json(
         db: AsyncSession = Depends(get_async_db),
         _=Depends(jwt_required),
-    ):
-        """
-    导出全站内容�?JSON
-    格式
+):
     """
-        try:
-            # 分批加载数据，避免一次性加载全部到内存
-            BATCH_SIZE = 1000
-            articles = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(Article).order_by(Article.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                articles.extend(batch)
-                offset += len(batch)
+    导出全站内容为 JSON 格式
+    """
+    try:
+        # 分批加载数据，避免一次性加载全部到内存
+        BATCH_SIZE = 1000
+        articles = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Article).order_by(Article.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            articles.extend(batch)
+            offset += len(batch)
 
-            categories = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(Category).order_by(Category.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                categories.extend(batch)
-                offset += len(batch)
+        categories = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Category).order_by(Category.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            categories.extend(batch)
+            offset += len(batch)
 
-            users = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(User).order_by(User.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                users.extend(batch)
-                offset += len(batch)
+        users = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(User).order_by(User.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            users.extend(batch)
+            offset += len(batch)
 
-            comments = []
-            offset = 0
-            while True:
-                batch = (await db.execute(
-                    select(Comment).order_by(Comment.id).offset(offset).limit(BATCH_SIZE)
-                )).scalars().all()
-                if not batch:
-                    break
-                comments.extend(batch)
-                offset += len(batch)
+        comments = []
+        offset = 0
+        while True:
+            batch = (await db.execute(
+                select(Comment).order_by(Comment.id).offset(offset).limit(BATCH_SIZE)
+            )).scalars().all()
+            if not batch:
+                break
+            comments.extend(batch)
+            offset += len(batch)
 
-            j = _build_json('FastBlog', 'https://fastblog.dev', articles, categories, users, comments)
-            from fastapi.responses import Response
-            return Response(content=j, media_type='application/json',
-                            headers={'Content-Disposition': 'attachment; filename="fastblog-export.json"'})
-        except Exception as e:
-            return fail(str(e))
+        j = _build_json('FastBlog', 'https://fastblog.dev', articles, categories, users, comments)
+        from fastapi.responses import Response
+        return Response(content=j, media_type='application/json',
+                        headers={'Content-Disposition': 'attachment; filename="fastblog-export.json"'})
+    except Exception as e:
+        return fail(str(e))

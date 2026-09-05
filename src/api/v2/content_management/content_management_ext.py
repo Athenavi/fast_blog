@@ -1,7 +1,7 @@
 """
 内容管理扩展 API
 
-提供文章修订注释(ArticleRevisionNote)、菜单位�?MenuLocation)、菜�?位置关联(MenuLocationAssignment) �?CRUD 管理接口
+提供文章修订注释(ArticleRevisionNote)、菜单位置(MenuLocation)、菜单-位置关联(MenuLocationAssignment) 的 CRUD 管理接口
 """
 import json
 from datetime import datetime
@@ -19,6 +19,8 @@ from src.utils.database.unified_manager import get_db_session as get_async_db
 router = APIRouter(tags=["content-management-ext"])
 
 
+@router.get("/revision-notes")
+@_catch
 async def list_revision_notes(
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(20, ge=1, le=100, description="每页数量"),
@@ -76,7 +78,7 @@ async def get_revision_note(
     note = result.scalar_one_or_none()
 
     if not note:
-        return fail("修订注释不存...")
+        return fail("修订注释不存在")
 
     return ok(data=note.to_dict())
 
@@ -94,7 +96,7 @@ async def create_revision_note(
     revision_id = data.get("revision_id")
     note_content = data.get("note_content")
     if not revision_id or not note_content:
-        return fail("revision_id �?note_content 为必填字...")
+        return fail("revision_id 和 note_content 为必填字段")
 
     now = datetime.utcnow()
     note = ArticleRevisionNote(
@@ -129,12 +131,12 @@ async def update_revision_note(
     note = result.scalar_one_or_none()
 
     if not note:
-        return fail("修订注释不存...")
+        return fail("修订注释不存在")
 
-        # 仅允许作者或管理员修...
+    # 仅允许作者或管理员修改
     is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
     if note.user_id != current_user.id and not is_admin:
-            raise HTTPException(status_code=403, detail="无权修改此注...")
+        raise HTTPException(status_code=403, detail="无权修改此注释")
 
     data = await request.json()
     if "note_content" in data:
@@ -163,11 +165,11 @@ async def delete_revision_note(
     note = result.scalar_one_or_none()
 
     if not note:
-        return fail("修订注释不存...")
+        return fail("修订注释不存在")
 
     is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
     if note.user_id != current_user.id and not is_admin:
-            raise HTTPException(status_code=403, detail="无权删除此注...")
+        raise HTTPException(status_code=403, detail="无权删除此注释")
 
     try:
         await db.delete(note)
@@ -188,7 +190,7 @@ async def list_menu_locations(
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required),
 ):
-    """获取所有菜单位�?""
+    """获取所有菜单位置"""
     is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
     if not is_admin:
         raise HTTPException(status_code=403, detail="需要管理员权限")
@@ -217,9 +219,9 @@ async def get_menu_location(
     location = result.scalar_one_or_none()
 
     if not location:
-        return fail("菜单位置不存...")
+        return fail("菜单位置不存在")
 
-    # 获取该位置下分配的菜...
+    # 获取该位置下分配的菜单
     assignment_query = (
         select(MenuLocationAssignment, Menus)
         .join(Menus, MenuLocationAssignment.menu_id == Menus.id)
@@ -259,14 +261,14 @@ async def create_menu_location(
     name = data.get("name")
     slug = data.get("slug")
     if not name or not slug:
-        return fail("name �?slug 为必填字...")
+        return fail("name 和 slug 为必填字段")
 
-    # 检�?slug 唯一...
+    # 检查 slug 唯一性
     existing = await db.execute(
         select(MenuLocation).where(MenuLocation.slug == slug)
     )
     if existing.scalar_one_or_none():
-        return fail(f"菜单位置标识 '{slug}' 已存...")
+        return fail(f"菜单位置标识 '{slug}' 已存在")
 
     theme_supports = data.get("theme_supports")
     if isinstance(theme_supports, list):
@@ -311,7 +313,7 @@ async def update_menu_location(
     location = result.scalar_one_or_none()
 
     if not location:
-        return fail("菜单位置不存...")
+        return fail("菜单位置不存在")
 
     data = await request.json()
 
@@ -362,7 +364,7 @@ async def delete_menu_location(
     location = result.scalar_one_or_none()
 
     if not location:
-        return fail("菜单位置不存...")
+        return fail("菜单位置不存在")
 
     # 级联删除关联分配
     try:
@@ -388,8 +390,8 @@ async def delete_menu_location(
 async def list_assignments(
     page: int = Query(1, ge=1, description="页码"),
     per_page: int = Query(50, ge=1, le=200, description="每页数量"),
-    menu_id: Optional[int] = Query(None, description="按菜单ID筛..."),
-    location_id: Optional[int] = Query(None, description="按位置ID筛..."),
+    menu_id: Optional[int] = Query(None, description="按菜单ID筛选"),
+    location_id: Optional[int] = Query(None, description="按位置ID筛选"),
     db: AsyncSession = Depends(get_async_db),
     current_user=Depends(jwt_required),
 ):
@@ -445,21 +447,21 @@ async def create_assignment(
     menu_id = data.get("menu_id")
     location_id = data.get("location_id")
     if not menu_id or not location_id:
-        return fail("menu_id �?location_id 为必填字...")
+        return fail("menu_id 和 location_id 为必填字段")
 
-    # 验证菜单存在...
+    # 验证菜单存在
     menu_query = select(Menus).where(Menus.id == menu_id)
     menu_result = await db.execute(menu_query)
     if not menu_result.scalar_one_or_none():
-        return fail(f"菜单 ID={menu_id} 不存...")
+        return fail(f"菜单 ID={menu_id} 不存在")
 
-    # 验证位置存在...
+    # 验证位置存在
     loc_query = select(MenuLocation).where(MenuLocation.id == location_id)
     loc_result = await db.execute(loc_query)
     if not loc_result.scalar_one_or_none():
-        return fail(f"菜单位置 ID={location_id} 不存...")
+        return fail(f"菜单位置 ID={location_id} 不存在")
 
-    # 检查唯一...
+    # 检查唯一性
     existing = await db.execute(
         select(MenuLocationAssignment).where(
             MenuLocationAssignment.menu_id == menu_id,
@@ -504,7 +506,7 @@ async def delete_assignment(
     assignment = result.scalar_one_or_none()
 
     if not assignment:
-        return fail("菜单-位置关联不存...")
+        return fail("菜单-位置关联不存在")
 
     try:
         await db.delete(assignment)
