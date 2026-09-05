@@ -20,6 +20,7 @@ from shared.models.media import Media
 from shared.models.user import User
 from src.api.v2._base import ApiResponse
 from src.api.v3._permission import Permission
+from utils.upload.public_upload import process_single_file
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-media"])
@@ -161,7 +162,7 @@ async def upload_media(
     if _detected_mime and _detected_mime not in ALLOWED_MIMES:
         return ApiResponse(success=False, error=f"文件内容与声明类型不符")
 
-    result = save_uploaded_file(
+    result = process_single_file(
         file_content=content,
         filename=file.filename or "untitled",
         content_type=file.content_type or "application/octet-stream",

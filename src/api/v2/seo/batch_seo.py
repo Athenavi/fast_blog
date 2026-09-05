@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import User
 from shared.models.article import Article, ArticleSEO
+from shared.models.user import User as UserModel
 from src.api.v2._helpers import ok, _catch
 from src.auth import admin_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
@@ -46,7 +46,7 @@ class BatchSEOExportRequest(BaseModel):
 async def batch_update_seo(
     request: BatchSEOUpdateRequest,
     db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(admin_required)
+    current_user: UserModel = Depends(admin_required)
 ):
     if not request.article_ids:
         raise HTTPException(status_code=400, detail="文章ID列表不能为空")
@@ -120,7 +120,7 @@ async def batch_update_seo(
 async def batch_export_seo(
     request: BatchSEOExportRequest,
     db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(admin_required)
+    current_user: UserModel = Depends(admin_required)
 ):
     """批量导出文章SEO数据为CSV格式"""
     stmt = select(Article, ArticleSEO).outerjoin(
@@ -178,7 +178,7 @@ async def batch_export_seo(
 async def batch_import_seo(
     csv_content: str,
     db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(admin_required)
+    current_user: UserModel = Depends(admin_required)
 ):
     """从CSV内容批量导入SEO数据"""
     lines = csv_content.strip().split('\n')
@@ -270,7 +270,7 @@ async def batch_import_seo(
 @_catch
 async def get_seo_stats(
     db: AsyncSession = Depends(get_async_db),
-    current_user: User = Depends(admin_required)
+    current_user: UserModel = Depends(admin_required)
 ):
     """获取SEO数据统计信息"""
     stmt = select(func.count(Article.id))
