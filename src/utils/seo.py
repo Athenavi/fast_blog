@@ -2,7 +2,6 @@ t"""
 SEO优化工具模块
 包含sitemap生成、meta标签优化等功能
 """
-import re
 from datetime import datetime
 
 from fastapi import Request

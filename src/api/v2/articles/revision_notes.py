@@ -2,18 +2,16 @@
 文章修订注释 API
 """
 from datetime import datetime, timezone
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select, delete as sa_delete
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import ArticleRevisionNote
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
-
 
 router = APIRouter(tags=["revision-notes"])
 

@@ -1,9 +1,8 @@
 """
 内容质量检测 API 端点
 """
-from functools import wraps
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 
 from shared.services.seo.content_quality import content_quality_service
 from src.api.v2._helpers import ok, fail, _catch

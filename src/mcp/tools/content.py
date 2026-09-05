@@ -2,7 +2,6 @@
 MCP 内容管理工具处理器 — 分类/标签/评论
 权限：创建/修改/删除分类需要管理员权限；评论审核需要管理员权限
 """
-import re
 from datetime import datetime
 
 from sqlalchemy import select, update
@@ -75,7 +74,7 @@ async def update_category(arguments: dict) -> dict:
             cat.name = arguments["name"].strip()
         if "description" in arguments:
             cat.description = arguments["description"].strip()
-        cat.updated_at = datetime.utcnow()
+        cat.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"分类 #{cid} 已更新", "category_id": cid}
 
@@ -144,7 +143,7 @@ async def approve_comment(arguments: dict) -> dict:
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
         comment.is_approved = True
-        comment.updated_at = datetime.utcnow()
+        comment.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"评论 #{cid} 已审核通过", "comment_id": cid}
 
@@ -160,7 +159,7 @@ async def reject_comment(arguments: dict) -> dict:
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
         comment.is_approved = False
-        comment.updated_at = datetime.utcnow()
+        comment.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"评论 #{cid} 已拒绝", "comment_id": cid}
 

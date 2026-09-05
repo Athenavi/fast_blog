@@ -2,13 +2,12 @@
 个性化动态流 API
 提供基于关注的个性化内容推荐和动态流
 """
-from functools import wraps
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 
 from shared.models.user import User as UserModel
 from shared.services.advanced_features.personalized_feed_service import personalized_feed_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import get_current_active_user
 
 router = APIRouter(tags=["feed"])

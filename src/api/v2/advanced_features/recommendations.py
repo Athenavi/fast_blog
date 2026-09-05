@@ -2,13 +2,12 @@
 个性化推荐 API
 提供文章推荐、Trending、Rising Stars等功能
 """
-from functools import wraps
 from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from shared.services.advanced_features.recommendation_service import recommendation_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 
 router = APIRouter(tags=["recommendations"])
 

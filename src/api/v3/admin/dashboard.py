@@ -8,18 +8,17 @@ V3 仪表盘 API
   GET    /dashboard/activities     → settings:view
 """
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.analytics import UserActivity
 from shared.models.article import Article
 from shared.models.comment import Comment
-from shared.models.user import User
 from shared.models.media import Media
-from shared.models.analytics import UserActivity
+from shared.models.user import User
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission
@@ -39,7 +38,7 @@ async def dashboard_stats(
     comment_count = await db.scalar(select(func.count(Comment.id))) or 0
     media_count = await db.scalar(select(func.count(Media.id))) or 0
 
-    today = datetime.utcnow().date()
+    today = datetime.now().date()
     today_articles = await db.scalar(
         select(func.count(Article.id)).where(
             func.date(Article.created_at) == today
@@ -83,7 +82,7 @@ async def traffic_overview(
     _=Depends(Permission("settings:view")),
 ):
     """流量数据概览（日/周/月维度）"""
-    now = datetime.utcnow()
+    now = datetime.now()
     from shared.models.analytics import PageView
 
     day_views = await db.scalar(

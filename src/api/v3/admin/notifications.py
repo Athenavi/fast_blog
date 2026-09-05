@@ -14,14 +14,14 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy import select, func, delete as sa_delete
+from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.notification import Notification
+from shared.models.user import User as UserModel
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db, get_current_user
 from src.api.v3._permission import Permission
-from shared.models.user import User as UserModel
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-notifications"])

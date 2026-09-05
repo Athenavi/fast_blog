@@ -10,11 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent
 from shared.services.articles.draft_preview_service import draft_preview_service
-from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import db_manager, get_db_session as get_async_db
-
 
 router = APIRouter(tags=["draft-preview"])
 

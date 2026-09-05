@@ -1,13 +1,12 @@
 """
 Edge Functions API
 """
-from functools import wraps
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from shared.services.integrations.edge_functions import edge_functions_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 
 router = APIRouter(tags=["edge-functions"])
 

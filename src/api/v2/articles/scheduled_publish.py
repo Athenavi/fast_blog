@@ -11,9 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article
 from shared.services.articles.scheduled_publish import create_scheduled_publish_service
 from src.api.v2._helpers import ok, fail, _catch
-from src.utils.database.unified_manager import get_db_session as get_async_session
 from src.auth import jwt_required_dependency as jwt_required
-
+from src.utils.database.unified_manager import get_db_session as get_async_session
 
 router = APIRouter(tags=["scheduled-publish"])
 

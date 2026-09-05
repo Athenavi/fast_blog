@@ -9,7 +9,6 @@ V3 Widget 管理 API
   PATCH  /widgets/{id}/toggle → settings:edit
   DELETE /widgets/{id}        → settings:edit
 """
-import json
 import logging
 from datetime import datetime, timezone
 

@@ -9,10 +9,9 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
+from shared.services.security.rbac_service import rbac_service
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db, get_current_user
-from src.api.v3._permission import Permission
-from shared.services.security.rbac_service import rbac_service
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-permission"])
@@ -57,7 +56,7 @@ async def permission_health(
     current_user: UserModel = Depends(get_current_user),
 ):
     """检查权限系统的三层缓存和 RBAC 服务状态"""
-    from src.api.v3._permission import _memory_cache, _redis_get_codes, rbac_service
+    from src.api.v3._permission import _memory_cache, _redis_get_codes
 
     # 内存缓存统计
     mem_stats = await _memory_cache.stats()
@@ -98,6 +97,6 @@ async def cache_stats(
     current_user: UserModel = Depends(get_current_user),
 ):
     """查看三层权限缓存的命中率等统计（仅供调试）"""
-    from src.api.v3._permission import get_cache_stats, _memory_cache
+    from src.api.v3._permission import _memory_cache
     stats = await _memory_cache.stats()
     return ApiResponse(success=True, data=stats)

@@ -5,12 +5,11 @@
 import logging
 
 from fastapi import APIRouter, Query
-from sqlalchemy import select, func
+from sqlalchemy import select
 
 from shared.models.article import Article
 from src.extensions import cache
 from src.utils.database.unified_manager import db_manager
-from src.utils.filters import f2list
 
 logger = logging.getLogger('tags')
 

@@ -12,8 +12,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article
 from shared.models.analytics import PageView
+from shared.models.article import Article
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission
@@ -28,7 +28,7 @@ async def analytics_overview(
     db: AsyncSession = Depends(get_db),
     _=Depends(Permission("settings:view")),
 ):
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now() - timedelta(days=days)
 
     article_count = await db.scalar(
         select(func.count(Article.id)).where(Article.created_at >= since)

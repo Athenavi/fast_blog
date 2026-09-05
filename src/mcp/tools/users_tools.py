@@ -2,8 +2,9 @@
 MCP 用户管理工具处理器 — CRUD / 角色 / 状态
 """
 from sqlalchemy import select, func
-from src.utils.database.unified_manager import db_manager
+
 from src.mcp.tools._perms import require_superuser, require_self_or_admin
+from src.utils.database.unified_manager import db_manager
 
 
 @require_superuser

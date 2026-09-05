@@ -2,8 +2,10 @@
 媒体增强 API（单个优化、WebP转换等，无冲突端点）
 """
 
+import io
 from pathlib import Path
 
+from PIL import Image
 from fastapi import APIRouter, Depends, Form
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,6 +20,8 @@ router = APIRouter(tags=["media-enhancement"])
 from src.unified_logger import default_logger as logger
 
 
+@router.post("/optimize/{file_id}")
+@_catch
 async def optimize_media_file(
     file_id: int,
     quality: int = Form(85),
@@ -37,15 +41,12 @@ async def optimize_media_file(
     if not media:
         return fail("文件不存在或无权访问")
 
-    from PIL import Image
-    import io
-
     # 获取文件路径
     file_path = Path(media.file_path)
     if not file_path.exists():
-        return fail("文件不存...")
+        return fail("文件不存在")
 
-        # 只处理图...
+    # 只处理图片
     if not media.mime_type or not media.mime_type.startswith('image/'):
         return fail("只能优化图片文件")
 
@@ -82,10 +83,10 @@ async def optimize_media_file(
         file_hash.file_size = new_size
         await db.commit()
 
-    logger.info(f"图片优化完成: {media.original_filename}, 原始: {original_size}, 新大�? {new_size} bytes")
+    logger.info(f"图片优化完成: {media.original_filename}, 原始: {original_size}, 新大小: {new_size} bytes")
 
     return ok(
-        message=f"图片优化成功，大�? {_format_file_size(new_size)}",
+        message=f"图片优化成功，大小: {_format_file_size(new_size)}",
         data={'original_size': original_size, 'new_size': new_size}
     )
 
@@ -115,46 +116,46 @@ async def convert_to_webp_endpoint(
     # 获取文件路径
     original_path = Path(media.file_path)
     if not original_path.exists():
-        return fail("文件不存...")
+        return fail("文件不存在")
 
-        # 打开图片
-        img = Image.open(original_path)
+    # 打开图片
+    img = Image.open(original_path)
 
-        # 生成WebP文件路径
-        webp_path = original_path.with_suffix('.webp')
+    # 生成WebP文件路径
+    webp_path = original_path.with_suffix('.webp')
 
-        # 转换为WebP
-        output = io.BytesIO()
-        img.save(output, format='WEBP', quality=quality, method=6)
+    # 转换为WebP
+    output = io.BytesIO()
+    img.save(output, format='WEBP', quality=quality, method=6)
 
-        # 保存WebP文件
-        with open(webp_path, 'wb') as f:
-            f.write(output.getvalue())
+    # 保存WebP文件
+    with open(webp_path, 'wb') as f:
+        f.write(output.getvalue())
 
-        webp_size = webp_path.stat().st_size
-        original_size = original_path.stat().st_size
+    webp_size = webp_path.stat().st_size
+    original_size = original_path.stat().st_size
 
-        logger.info(
-            f"WebP转换完成: {media.original_filename}, 原始: {_format_file_size(original_size)}, WebP: {_format_file_size(webp_size)}")
+    logger.info(
+        f"WebP转换完成: {media.original_filename}, 原始: {_format_file_size(original_size)}, WebP: {_format_file_size(webp_size)}")
 
-        # 如果不保留原图，删除原图并更新数据库
-        if not keep_original:
-            original_path.unlink()
-        media.file_path = str(webp_path)
-        media.mime_type = 'image/webp'
+    # 如果不保留原图，删除原图并更新数据库
+    if not keep_original:
+        original_path.unlink()
+    media.file_path = str(webp_path)
+    media.mime_type = 'image/webp'
 
-        # 更新文件大小
-        file_hash_obj = await db.execute(
-            select(FileHash).where(FileHash.hash == media.hash)
-        )
-        file_hash = file_hash_obj.scalar_one_or_none()
-        if file_hash:
-            file_hash.file_size = webp_size
+    # 更新文件大小
+    file_hash_obj = await db.execute(
+        select(FileHash).where(FileHash.hash == media.hash)
+    )
+    file_hash = file_hash_obj.scalar_one_or_none()
+    if file_hash:
+        file_hash.file_size = webp_size
         file_hash.mime_type = 'image/webp'
         await db.commit()
 
     return ok(
-        message=f"WebP转换成功，大�? {_format_file_size(webp_size)}",
+        message=f"WebP转换成功，大小: {_format_file_size(webp_size)}",
         data={
             'original_size': original_size,
             'webp_size': webp_size,
@@ -196,6 +197,9 @@ async def get_media_stats(
 
 
 def _format_file_size(size_bytes: int) -> str:
+    """格式化文件大小"""
+    if size_bytes is None:
+        return "0 B"
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024:
             return f"{size_bytes:.2f} {unit}"

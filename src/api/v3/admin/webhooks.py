@@ -12,7 +12,7 @@ import logging
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v2._base import ApiResponse

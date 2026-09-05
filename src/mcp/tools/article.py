@@ -29,7 +29,7 @@ async def create_article(arguments: dict) -> dict:
     if not content:
         raise ValueError("文章内容不能为空")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     slug = title.lower().replace(" ", "-")[:200]
     status_str = arguments.get("status", "draft")
 
@@ -60,7 +60,7 @@ async def update_article(arguments: dict) -> dict:
     if not article_id:
         raise ValueError("文章ID不能为空")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     async with db_manager.get_session() as db:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
@@ -101,8 +101,8 @@ async def delete_article(arguments: dict) -> dict:
             raise PermissionError("只能删除自己的文章")
 
         article.status = -1
-        article.deleted_at = datetime.utcnow()
-        article.updated_at = datetime.utcnow()
+        article.deleted_at = datetime.now()
+        article.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"文章 #{article_id} 已删除", "article_id": article_id}
 

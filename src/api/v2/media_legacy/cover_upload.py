@@ -8,9 +8,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import jwt_required_dependency as jwt_required
+from src.unified_logger import default_logger as logger
 from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.upload.public_upload import FileProcessor, process_single_file
-from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["media-cover"])
 

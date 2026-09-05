@@ -1,9 +1,8 @@
 """
 重定向管理 API 端点
 """
-from functools import wraps
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from shared.services.seo.redirect_manager import redirect_manager
 from src.api.v2._helpers import ok, fail, _catch

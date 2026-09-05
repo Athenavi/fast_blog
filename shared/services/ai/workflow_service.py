@@ -4,10 +4,9 @@ AI 智能工作流引擎服务
 """
 import json
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.ai.ai_workflow import AIWorkflow
 from src.utils.database.main import get_async_session
@@ -42,7 +41,7 @@ class AIWorkflowService:
                 workflow.output_data = json.dumps(output_data)
                 workflow.model_used = model_used
                 workflow.status = "completed"
-                workflow.completed_at = datetime.utcnow()
+                workflow.completed_at = datetime.now()
                 await db.commit()
 
     @staticmethod
@@ -55,7 +54,7 @@ class AIWorkflowService:
             if workflow:
                 workflow.status = "failed"
                 workflow.error_message = error_message
-                workflow.completed_at = datetime.utcnow()
+                workflow.completed_at = datetime.now()
                 await db.commit()
 
     # --- 具体业务逻辑实现 (P0-3, P0-4, P0-5) ---

@@ -45,7 +45,7 @@ async def get_trending_articles(arguments: dict) -> dict:
     _require_auth()
     limit = min(arguments.get("limit", 10), 30)
     days = arguments.get("days", 7)
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now() - timedelta(days=days)
 
     async with db_manager.get_session() as db:
         articles = (await db.execute(

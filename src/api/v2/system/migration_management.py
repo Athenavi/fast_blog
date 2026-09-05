@@ -116,7 +116,7 @@ async def create_task(
     if isinstance(config, dict):
         config = json.dumps(config, ensure_ascii=False)
 
-    now = datetime.utcnow()
+    now = datetime.now()
     task = MigrationTask(
         task_name=task_name,
         source_platform=source_platform,
@@ -182,11 +182,11 @@ async def update_task(
         # 自动设置开�?完成时间
     if "status" in data:
         if data["status"] == "running" and task.started_at is None:
-            task.started_at = datetime.utcnow()
+            task.started_at = datetime.now()
         elif data["status"] in ("completed", "failed", "cancelled"):
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now()
 
-    task.updated_at = datetime.utcnow()
+    task.updated_at = datetime.now()
 
     await db.commit()
     await db.refresh(task)
@@ -306,7 +306,7 @@ async def create_log(
     if not task_result.scalar_one_or_none():
             return fail(f"迁移任务 ID={task_id} 不存...")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     log = MigrationLog(
         task_id=task_id,
         log_level=data.get("log_level", "info"),

@@ -2,8 +2,9 @@
 MCP 工作流/协作工具处理器 — 审批/协作/发布
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.unified_manager import db_manager
+
 from src.mcp.tools._perms import require_superuser, require_role
+from src.utils.database.unified_manager import db_manager
 
 
 @require_role("editor")
@@ -123,7 +124,7 @@ async def batch_publish_articles(arguments: dict) -> dict:
             article = await db.scalar(select(Article).where(Article.id == int(aid)))
             if article and article.status == 0:
                 article.status = 1
-                article.updated_at = datetime.utcnow()
+                article.updated_at = datetime.now()
                 published += 1
         await db.commit()
         return {"success": True, "message": f"已发布 {published} 篇文章", "published": published}

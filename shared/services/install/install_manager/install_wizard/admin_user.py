@@ -28,7 +28,7 @@ async def create_admin_user(project_root: Path, username: str, email: str, passw
             if existing.scalar_one_or_none():
                 return {"success": False, "message": "用户名已存在"}
 
-            now = datetime.utcnow()
+            now = datetime.now()
             admin = UserModel(
                 username=username,
                 email=email,

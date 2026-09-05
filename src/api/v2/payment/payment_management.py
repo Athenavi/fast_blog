@@ -150,7 +150,7 @@ async def create_gateway(
     if isinstance(config_data, dict):
         config_data = json.dumps(config_data, ensure_ascii=False)
 
-    now = datetime.utcnow()
+    now = datetime.now()
     gateway = PaymentGateway(
         name=name,
         provider=provider,
@@ -202,7 +202,7 @@ async def update_gateway(
         config_data = data["config_data"]
         gateway.config_data = json.dumps(config_data, ensure_ascii=False) if isinstance(config_data, dict) else config_data
 
-    gateway.updated_at = datetime.utcnow()
+    gateway.updated_at = datetime.now()
 
     try:
         await db.commit()
@@ -376,7 +376,7 @@ async def create_transaction(
         if existing.scalar_one_or_none():
             return fail(f"订单ID '{order_id}' 已存在")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     transaction = PaymentTransaction(
         user=user,
         order_id=order_id,
@@ -446,7 +446,7 @@ async def update_transaction(
         meta = data["extra_metadata"]
         transaction.extra_metadata = json.dumps(meta, ensure_ascii=False) if isinstance(meta, dict) else meta
 
-    transaction.updated_at = datetime.utcnow()
+    transaction.updated_at = datetime.now()
 
     try:
         await db.commit()
@@ -706,7 +706,7 @@ async def create_tax_config(
         region_label = f"/{region}" if region else ""
         return fail(f"国家 {country.upper()}{region_label} 的 {tax_type} 税务配置已存在")
 
-    now = datetime.utcnow()
+    now = datetime.now()
 
     effective_from = data.get("effective_from")
     if isinstance(effective_from, str):
@@ -779,7 +779,7 @@ async def update_tax_config(
         et = data["effective_to"]
         config.effective_to = datetime.fromisoformat(et.replace("Z", "+00:00")) if isinstance(et, str) else et
 
-    config.updated_at = datetime.utcnow()
+    config.updated_at = datetime.now()
 
     try:
         await db.commit()

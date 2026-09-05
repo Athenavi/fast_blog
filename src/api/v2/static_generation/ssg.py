@@ -3,7 +3,6 @@
 
 提供静态站点生成的 REST API 接口
 """
-from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession

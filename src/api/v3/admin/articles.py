@@ -20,7 +20,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from shared.models.article import Article, ArticleContent
-from shared.models.category import Category
 from shared.models.user import User
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db, get_current_user

@@ -2,10 +2,9 @@
 用户积分系统 API
 提供积分查询、兑换、排行榜等功能
 """
-from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 
 from shared.models.user import User as UserModel
 from shared.services.advanced_features.points_system import points_system

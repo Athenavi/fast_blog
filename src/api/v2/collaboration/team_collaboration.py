@@ -5,8 +5,8 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Body, HTTPException
-from sqlalchemy import select, func
+from fastapi import APIRouter, Depends, Query, Body
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import WorkspaceMember, Workspace
@@ -28,12 +28,12 @@ async def create_workspace(
 ):
     """
     创建新的团队工作区
-    
+
     Args:
         name: 工作区名称
         slug: 工作区标识（唯一）
         description: 描述
-        
+
     Returns:
         创建的工作区
     """
@@ -66,7 +66,7 @@ async def get_my_workspaces(
 ):
     """
     获取当前用户的所有工作区
-    
+
     Returns:
         工作区列表
     """
@@ -119,10 +119,10 @@ async def get_workspace(
 ):
     """
     获取工作区详情
-    
+
     Args:
         workspace_slug: 工作区标识
-        
+
     Returns:
         工作区详情
     """
@@ -177,12 +177,12 @@ async def add_member(
 ):
     """
     添加成员到工作区
-    
+
     Args:
         workspace_id: 工作区ID
         user_id: 用户ID
         role: 角色 (owner/admin/editor/viewer)
-        
+
     Returns:
         添加结果
     """
@@ -222,11 +222,11 @@ async def remove_member(
 ):
     """
     从工作区移除成员
-    
+
     Args:
         workspace_id: 工作区ID
         user_id: 用户ID
-        
+
     Returns:
         移除结果
     """
@@ -258,12 +258,12 @@ async def update_member_role(
 ):
     """
     更新成员角色
-    
+
     Args:
         workspace_id: 工作区ID
         user_id: 用户ID
         role: 新角色
-        
+
     Returns:
         更新结果
     """
@@ -294,10 +294,10 @@ async def get_members(
 ):
     """
     获取工作区成员列表
-    
+
     Args:
         workspace_id: 工作区ID
-        
+
     Returns:
         成员列表
     """
@@ -333,7 +333,7 @@ async def create_task(
 ):
     """
     创建任务
-    
+
     Args:
         workspace_id: 工作区ID
         title: 任务标题
@@ -341,7 +341,7 @@ async def create_task(
         assigned_to: 分配给的用户ID
         priority: 优先级
         due_date: 截止日期
-        
+
     Returns:
         创建的任务
     """
@@ -392,11 +392,11 @@ async def update_task_status(
 ):
     """
     更新任务状态
-    
+
     Args:
         task_id: 任务ID
         status: 新状态
-        
+
     Returns:
         更新后的任务
     """
@@ -430,14 +430,14 @@ async def get_tasks(
 ):
     """
     获取工作区任务列表
-    
+
     Args:
         workspace_id: 工作区ID
         status: 状态过滤
         assigned_to: 分配给用户过滤
         page: 页码
         per_page: 每页数量
-        
+
     Returns:
         任务列表和分页信息
     """

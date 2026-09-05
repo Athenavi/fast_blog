@@ -4,15 +4,12 @@ RBAC 权限中间件
 """
 
 import re
-from typing import List, Optional, Dict
 
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
 
 from shared.services.security.rbac_service import rbac_service
 from src.unified_logger import default_logger as logger
-
 
 # 路由-权限映射配置
 # 格式: (method_regex, path_regex, resource, action, [exempt_methods])

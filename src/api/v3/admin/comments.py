@@ -11,15 +11,15 @@ V3 评论管理 API
 """
 import logging
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import Comment
+from shared.models.user import User
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db, get_current_user
 from src.api.v3._permission import Permission
-from shared.models.user import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-comments"])

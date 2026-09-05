@@ -10,14 +10,12 @@ RBAC 种子数据脚本
 用法:  python -m scripts.seed_rbac
 """
 import asyncio
-
 from datetime import datetime
 
 from sqlalchemy import select
 
 from shared.models.rbac import Capability, Role, RoleCapability
 from src.utils.database.main import get_async_session_context
-
 
 # ============================================================
 # 预定义权限列表（与已删除的 permission_system.py 一致）
@@ -185,7 +183,7 @@ async def seed_capabilities(db) -> dict:
     result = await db.execute(select(Capability))
     existing = {c.code: c for c in result.scalars().all()}
 
-    now = datetime.utcnow()
+    now = datetime.now()
     code_map = {}
 
     for code, name, resource, action in ALL_CAPABILITIES:
@@ -219,7 +217,7 @@ async def seed_capabilities(db) -> dict:
 
 async def seed_roles(db, capability_map: dict):
     """创建/更新系统角色"""
-    now = datetime.utcnow()
+    now = datetime.now()
 
     result = await db.execute(select(Role))
     existing_roles = {r.slug: r for r in result.scalars().all()}

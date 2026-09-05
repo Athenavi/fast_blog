@@ -12,6 +12,8 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v2.media_legacy.dependencies import get_user_storage_used, get_user_storage_limit
+from api.v2.media_legacy.utils import convert_storage_size
 from shared.models.media import Media
 from shared.models.media.media_folder import MediaFolder as MF
 from src.auth import jwt_required_dependency as jwt_required
@@ -21,8 +23,6 @@ from src.utils.storage.s3_storage import s3_storage
 router = APIRouter(tags=["media-list"])
 
 from src.api.v2._helpers import ok, fail, _catch
-from src.api.v2._dependencies import get_user_storage_used, get_user_storage_limit
-from src.utils.storage.size_utils import convert_storage_size
 
 
 @router.get("/files")

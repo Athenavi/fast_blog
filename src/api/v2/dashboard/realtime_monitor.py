@@ -5,10 +5,10 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from shared.services.analytics.realtime_monitor import realtime_monitor_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter(tags=["monitoring"])
@@ -19,10 +19,10 @@ async def get_monitor_dashboard(
 ):
     """
     获取完整的监控仪表板数据
-    
+
     包括在线用户、访问量、热门文章、系统健康状态等。
     需要管理员权限。
-    
+
     Returns:
         仪表板完整数据
     """
@@ -39,10 +39,10 @@ async def get_online_users(
 ):
     """
     获取当前在线用户列表
-    
+
     Args:
         limit: 返回数量(1-200)
-        
+
     Returns:
         在线用户列表和总数
     """
@@ -64,7 +64,7 @@ async def get_today_visits(
 ):
     """
     获取今日总访问量
-    
+
     Returns:
         今日访问次数
     """
@@ -85,10 +85,10 @@ async def get_realtime_visits(
 ):
     """
     获取最近N分钟的实时访问量
-    
+
     Args:
         window: 时间窗口(1-60分钟)
-        
+
     Returns:
         实时访问次数
     """
@@ -111,11 +111,11 @@ async def get_popular_endpoints(
 ):
     """
     获取热门访问的API端点
-        
+
     Args:
         limit: 返回数量(1-50)
         window: 时间窗口(1-1440分钟)
-        
+
     Returns:
         热门端点列表
     """
@@ -139,7 +139,7 @@ async def get_system_metrics(
 ):
     """
     获取系统性能指标(CPU、内存、磁盘、网络)
-    
+
     Returns:
         系统指标数据
     """
@@ -155,7 +155,7 @@ async def get_health_status(
 ):
     """
     获取系统整体健康状态
-    
+
     Returns:
         健康状态和告警信息
     """
@@ -172,10 +172,10 @@ async def get_trending_articles(
 ):
     """
     获取实时热门文章列表
-    
+
     Args:
         limit: 返回数量(1-50)
-        
+
     Returns:
         热门文章列表
     """
@@ -196,12 +196,12 @@ async def record_user_activity(
 ):
     """
     记录用户活动(用于追踪在线状态)
-    
+
     前端应定期调用此接口以保持在线状态。
-    
+
     Args:
         user_id: 用户ID
-        
+
     Returns:
         操作结果
     """
@@ -218,11 +218,11 @@ async def record_page_view(
 ):
     """
     记录页面访问(用于统计流量)
-    
+
     Args:
         endpoint: 访问的端点路径
         article_id: 文章ID(可选)
-        
+
     Returns:
         操作结果
     """

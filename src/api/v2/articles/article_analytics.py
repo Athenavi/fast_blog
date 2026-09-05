@@ -7,10 +7,8 @@ from fastapi import APIRouter, Depends, Query
 
 from shared.models.user import User as UserModel
 from shared.services.articles.article_analytics_service import article_analytics_service
-from src.api.v2._base import ApiResponse
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import get_current_active_user
-
 
 router = APIRouter(tags=["article-analytics"])
 

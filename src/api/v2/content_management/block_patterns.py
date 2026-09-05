@@ -2,8 +2,7 @@
 块模式（Block Patterns）API 端点
 """
 
-
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from shared.services.content_management.block_pattern_library import block_pattern_library
 from src.api.v2._helpers import ok, fail, _catch

@@ -489,7 +489,6 @@ except (redis.ConnectionError, redis.TimeoutError, redis.RedisError, OSError, Im
     cache = SimpleCache()
 
 # JWT 密码哈希上下文 — 使用统一实现
-from src.api.v2.user_utils.password_utils import pwd_context
 
 # 数据库引擎和会话 - 使用统一管理器
 from src.utils.database.unified_manager import (

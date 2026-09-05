@@ -3,17 +3,15 @@
 """
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent
 from shared.services.articles.article_manager import password_protection_service
-from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
-
 
 router = APIRouter(tags=["article-password"])
 

@@ -2,10 +2,9 @@
 CSS优化API
 提供关键CSS提取和缓存管理功能
 """
-from functools import wraps
 from typing import Dict, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Body
+from fastapi import APIRouter, Depends, Request, Body
 
 from shared.models.user import User
 from shared.services.performance.css_optimizer import css_optimizer_service

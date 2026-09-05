@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
+from shared.services.articles.cover_image_service import cover_image_service
 from shared.utils.logger import get_logger
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
@@ -97,9 +98,6 @@ async def generate_cover_url(
 
     if not image_data:
         raise HTTPException(status_code=404, detail="无法读取原始图片文件")
-
-    # 优化并保存封面
-    from shared.services.media.cover_image_service import cover_image_service
     cover_url = cover_image_service.optimize_and_save_cover(
         media_id=media_id,
         image_data=image_data,
@@ -147,8 +145,6 @@ async def remove_cover(
     if not media:
         raise HTTPException(status_code=404, detail="媒体文件不存在或无权限访问")
 
-    # 删除封面
-    from shared.services.media.cover_image_service import cover_image_service
     success = cover_image_service.delete_cover(media_id, media.hash)
 
     if success:

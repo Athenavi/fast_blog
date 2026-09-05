@@ -2,15 +2,15 @@
 通知相关API - 处理用户通知功能
 """
 
-from fastapi import APIRouter, Request, Depends, HTTPException, Query
+from fastapi import APIRouter, Request, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.notification import Notification
 from shared.models.user import User
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.notification import mark_notification_as_read, get_user_notifications, mark_all_notifications_as_read
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["notifications"])
 

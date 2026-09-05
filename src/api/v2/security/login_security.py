@@ -4,12 +4,12 @@
 """
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
 from shared.services.users.login_security_service import login_security_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 from src.utils.database.unified_manager import get_db_session as get_async_db
 

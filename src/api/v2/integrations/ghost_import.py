@@ -2,9 +2,9 @@
 Ghost 导入器 - 占位（即将支持）
 """
 from fastapi import APIRouter, Depends
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth import jwt_required_dependency as jwt_required
 
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["ghost-import"])
 

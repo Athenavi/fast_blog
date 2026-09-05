@@ -3,7 +3,7 @@
 """
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -75,7 +75,7 @@ async def add_to_cart(
 ):
     """
     添加商品到购物车
-    
+
     Args:
         item_data: {"product_id": 1, "quantity": 2}
     """

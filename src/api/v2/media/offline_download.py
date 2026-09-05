@@ -111,8 +111,3 @@ async def retry_offline_download_task(
     if not success:
         raise HTTPException(status_code=400, detail=error or "重试失败")
     return ok(msg="任务已重新加入队列")
-    service = OfflineDownloadService(db, current_user)
-    success, error = await service.retry_task(task_id)
-    if not success:
-        raise HTTPException(status_code=400, detail=error or "重试失败")
-    return ok(msg="任务已重新加入队...")

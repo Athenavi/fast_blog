@@ -30,7 +30,7 @@ async def popular_searches(
     _=Depends(Permission("settings:view")),
 ):
     """热门搜索关键词排行"""
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now() - timedelta(days=days)
     result = await db.execute(
         select(SearchHistory.keyword, func.count(SearchHistory.id).label("count"))
         .where(SearchHistory.created_at >= since, SearchHistory.keyword.isnot(None))
@@ -52,7 +52,7 @@ async def zero_result_searches(
     _=Depends(Permission("settings:view")),
 ):
     """返回零结果的搜索词（可能需要补充内容）"""
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now() - timedelta(days=days)
     result = await db.execute(
         select(SearchHistory.keyword, func.count(SearchHistory.id).label("count"))
         .where(
@@ -77,7 +77,7 @@ async def search_trend(
     _=Depends(Permission("settings:view")),
 ):
     """每日搜索量趋势"""
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now() - timedelta(days=days)
     result = await db.execute(
         select(
             func.date(SearchHistory.created_at).label("date"),

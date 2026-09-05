@@ -2,8 +2,7 @@
 自定义块模式 API 端点
 """
 
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 
 from shared.services.content_management.custom_block_pattern import custom_block_pattern_service
 from src.api.v2._helpers import ok, fail, _catch

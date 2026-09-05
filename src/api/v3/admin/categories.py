@@ -11,12 +11,12 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, Query
-from sqlalchemy import select, func
+from fastapi import APIRouter, Body, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.category import Category
 from shared.models.article import Article
+from shared.models.category import Category
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission

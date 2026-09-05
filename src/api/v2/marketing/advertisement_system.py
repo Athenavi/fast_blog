@@ -5,7 +5,7 @@
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, Query, Body
 
 from shared.models.user import User as UserModel
 from shared.services.marketing.advertisement_system import advertisement_system
@@ -18,7 +18,7 @@ router = APIRouter(tags=["advertisements"])
 async def get_ad_slots():
     """
     获取所有可用的广告位信息
-    
+
     Returns:
         广告位列表
     """
@@ -48,7 +48,7 @@ async def create_ad(
 ):
     """
     创建新广告
-    
+
     Args:
         title: 广告标题
         slot_id: 广告位ID
@@ -61,7 +61,7 @@ async def create_ad(
         end_date: 结束时间
         priority: 优先级(1-10)
         budget: 预算上限
-        
+
     Returns:
         创建结果
     """
@@ -101,11 +101,11 @@ async def get_ads(
 ):
     """
     获取广告列表
-    
+
     Args:
         slot_id: 广告位ID过滤
         status: 状态过滤
-        
+
     Returns:
         广告列表
     """
@@ -130,10 +130,10 @@ async def pause_ad(
 ):
     """
     暂停指定广告
-    
+
     Args:
         ad_id: 广告ID
-        
+
     Returns:
         操作结果
     """
@@ -153,10 +153,10 @@ async def activate_ad(
 ):
     """
     激活指定广告
-    
+
     Args:
         ad_id: 广告ID
-        
+
     Returns:
         操作结果
     """
@@ -176,10 +176,10 @@ async def delete_ad(
 ):
     """
     删除指定广告
-    
+
     Args:
         ad_id: 广告ID
-        
+
     Returns:
         操作结果
     """
@@ -199,10 +199,10 @@ async def get_ad_stats(
 ):
     """
     获取广告统计数据
-    
+
     Args:
         ad_id: 广告ID
-        
+
     Returns:
         统计数据
     """
@@ -222,11 +222,11 @@ async def configure_ad_network(
 ):
     """
     配置广告联盟（AdSense/百度）
-    
+
     Args:
         network: 广告联盟名称
         config: 配置信息
-        
+
     Returns:
         配置结果
     """
@@ -246,10 +246,10 @@ async def get_ad_network_config(
 ):
     """
     获取广告联盟配置
-    
+
     Args:
         network: 广告联盟名称
-        
+
     Returns:
         配置信息
     """
@@ -267,11 +267,11 @@ async def generate_adsense_code(
 ):
     """
     生成 Google AdSense 广告代码
-    
+
     Args:
         slot_id: 广告位ID
         ad_format: 广告格式
-        
+
     Returns:
         HTML代码
     """
@@ -291,10 +291,10 @@ async def generate_baidu_code(
 ):
     """
     生成百度联盟广告代码
-    
+
     Args:
         slot_id: 广告位ID
-        
+
     Returns:
         HTML代码
     """
@@ -315,11 +315,11 @@ async def get_revenue_report(
 ):
     """
     获取广告收益报表
-    
+
     Args:
         start_date: 开始日期
         end_date: 结束日期
-        
+
     Returns:
         收益统计数据
     """

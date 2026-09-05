@@ -2,8 +2,9 @@
 MCP 安全管理工具处理器 — 审计日志/敏感词/IP封禁/2FA
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.unified_manager import db_manager
+
 from src.mcp.tools._perms import require_superuser, require_role
+from src.utils.database.unified_manager import db_manager
 
 
 @require_superuser
@@ -48,7 +49,7 @@ async def export_audit_log(arguments: dict) -> dict:
     async with db_manager.get_session() as db:
         from shared.models.system import AuditLog
         from datetime import datetime, timedelta
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now() - timedelta(days=days)
         logs = (await db.execute(
             select(AuditLog).where(AuditLog.created_at >= cutoff).order_by(desc(AuditLog.created_at))
         )).scalars().all()

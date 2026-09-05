@@ -1,20 +1,16 @@
 """
 Jekyll 导入器 - 从 Jekyll 站点导入文章
 """
-import os
 import re
-import yaml
-import json
 from datetime import datetime
-from typing import Optional
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Body
+import yaml
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
-
 
 router = APIRouter(tags=["jekyll-import"])
 
@@ -32,7 +28,7 @@ def parse_jekyll_post(content: str, filename: str = "") -> dict:
         "layout": "post",
         "published": True,
     }
-    
+
     # Parse YAML front matter
     fm_match = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL)
     if fm_match:
@@ -44,7 +40,7 @@ def parse_jekyll_post(content: str, filename: str = "") -> dict:
                     result[key] = fm[key]
         except Exception:
             pass
-    
+
     # Parse date from filename (Jekyll convention: YYYY-MM-DD-title.md)
     if not result["date"]:
         date_match = re.match(r'(\d{4}-\d{2}-\d{2})-', filename)
@@ -53,10 +49,10 @@ def parse_jekyll_post(content: str, filename: str = "") -> dict:
                 result["date"] = datetime.strptime(date_match.group(1), "%Y-%m-%d").isoformat()
             except Exception:
                 pass
-    
+
     if isinstance(result["date"], datetime):
         result["date"] = result["date"].isoformat()
-    
+
     return result
 
 
@@ -87,15 +83,15 @@ async def import_jekyll_posts(files: list[UploadFile] = File(...),
     """批量导入 Jekyll 文章"""
     from shared.models.article import Article, ArticleContent
     from datetime import datetime, timezone
-    
+
     imported = 0
     errors = []
-    
+
     for file in files:
         try:
             content = (await file.read()).decode("utf-8", errors="replace")
             post = parse_jekyll_post(content, file.filename or "")
-            
+
             now = datetime.now(timezone.utc).replace(tzinfo=None)
             article = Article(
                 title=post["title"][:255],
@@ -112,13 +108,13 @@ async def import_jekyll_posts(files: list[UploadFile] = File(...),
             )
             db.add(article)
             await db.flush()
-            
+
             content_obj = ArticleContent(article=article.id, content=post["content"],
                                           created_at=now, updated_at=now)
             db.add(content_obj)
             imported += 1
         except Exception as e:
             errors.append({"file": file.filename, "error": str(e)})
-    
+
     await db.commit()
     return ok(data={"imported": imported, "errors": errors, "total": len(files)})

@@ -2,9 +2,8 @@
 Hreflang 标签 API 端点
 """
 import json
-from functools import wraps
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from shared.services.seo.hreflang_generator import hreflang_generator
 from src.api.v2._helpers import ok, fail, _catch

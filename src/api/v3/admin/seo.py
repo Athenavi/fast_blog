@@ -8,9 +8,8 @@ V3 SEO 管理 API
   GET    /seo/orphan-articles  → article:view
 """
 import logging
-from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

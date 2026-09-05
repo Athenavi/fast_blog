@@ -2,8 +2,9 @@
 MCP 通知/邮件工具处理器 — 通知管理/邮件发送/订阅
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.unified_manager import db_manager
+
 from src.mcp.tools._perms import require_superuser, require_role
+from src.utils.database.unified_manager import db_manager
 
 
 @require_role("user")

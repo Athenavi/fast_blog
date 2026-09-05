@@ -76,7 +76,7 @@ class WebhookService:
                 delivery.status = "failed"
                 delivery.error_message = str(e)
 
-            delivery.completed_at = datetime.utcnow()
+            delivery.completed_at = datetime.now()
             await db.commit()
 
 

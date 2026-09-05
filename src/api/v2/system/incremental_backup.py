@@ -2,7 +2,7 @@
 增量备份 API 端点
 """
 
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.incremental_backup_service import incremental_backup_service

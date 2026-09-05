@@ -6,19 +6,17 @@ MCP (Model Context Protocol) Server 核心框架
 """
 import json
 import logging
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Any, List, Callable, Optional
+from typing import Dict, Any, List, Callable
 
 from sqlalchemy import select
 
-from shared.models.article import Article, ArticleContent
+from shared.models.article import Article
 from shared.models.category import Category
-from shared.models.user import User
 from shared.models.media import Media
 from shared.models.system import SystemSettings
+from shared.models.user import User
 from src.mcp.tools import register_all as register_all_tools
-from src.mcp._context import set_user_ctx, get_user_ctx, UserCtx
 from src.mcp.tools._perms import require_superuser
 from src.utils.database.unified_manager import db_manager
 

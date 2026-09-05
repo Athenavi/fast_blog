@@ -5,15 +5,15 @@
 import asyncio
 from typing import Dict, Any
 
-from fastapi import APIRouter, Depends, Request, Body, HTTPException
+from fastapi import APIRouter, Depends, Request, Body
 
-from src.api.v2._helpers import ok, fail, _catch
 from shared.models.user import User
 from shared.utils.translation_api_clients import (
     translation_service_manager,
     GoogleTranslateClient,
     DeepLClient,
 )
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter()
@@ -26,7 +26,7 @@ async def translate_text_api(
 ):
     """
     翻译文本API
-    
+
     Request Body:
     {
         "text": "Hello world",
@@ -39,10 +39,10 @@ async def translate_text_api(
     target_lang = data.get('target_lang', '')
     source_lang = data.get('source_lang', 'auto')
     provider = data.get('provider', None)
-    
+
     if not text or not target_lang:
         return fail('缺少必要参数')
-    
+
     # 转换语言代码
     lang_map = {
         'zh-CN': 'zh',
@@ -52,14 +52,14 @@ async def translate_text_api(
         'ar': 'ar',
         'he': 'he',
     }
-    
+
     target_code = lang_map.get(target_lang, target_lang)
     source_code = lang_map.get(source_lang, source_lang) if source_lang != 'auto' else 'auto'
-    
+
     result = await asyncio.to_thread(
         translation_service_manager.translate, text, target_code, source_code, provider
     )
-    
+
     if result['success']:
         return ok(data={
             'translated_text': result['translated_text'],
@@ -82,7 +82,7 @@ async def detect_language_api(
 ):
     """
     检测语言API
-    
+
     Request Body:
     {
         "text": "Hello world",
@@ -91,15 +91,15 @@ async def detect_language_api(
     """
     text = data.get('text', '')
     provider = data.get('provider', 'google')
-    
+
     if not text:
         return fail('缺少文本')
-    
+
     # 目前只有Google支持语言检测
     if provider == 'google' and 'google' in translation_service_manager.clients:
         client = translation_service_manager.clients['google']
         result = await asyncio.to_thread(client.detect_language, text)
-        
+
         if result['success']:
             return ok(data={
                 'language': result['language'],
@@ -126,7 +126,7 @@ async def get_providers_api(
     """
     providers = translation_service_manager.get_available_providers()
     default = translation_service_manager.default_provider
-    
+
     return ok(data={
         'providers': providers,
         'default_provider': default,
@@ -146,7 +146,7 @@ async def configure_translation_api(
 ):
     """
     配置翻译服务API
-    
+
     Request Body:
     {
         "provider": "google",
@@ -157,10 +157,10 @@ async def configure_translation_api(
     provider = data.get('provider', '')
     api_key = data.get('api_key', '')
     set_as_default = data.get('set_as_default', False)
-    
+
     if not provider or not api_key:
         return fail('缺少必要参数')
-    
+
     # 注册客户端
     if provider == 'google':
         client = GoogleTranslateClient(api_key)
@@ -170,10 +170,10 @@ async def configure_translation_api(
         translation_service_manager.register_client('deepl', client)
     else:
         return fail(f'不支持的提供商: {provider}')
-    
+
     if set_as_default:
         translation_service_manager.set_default_provider(provider)
-    
+
     return ok(msg=f'{provider}翻译服务配置成功')
 
 

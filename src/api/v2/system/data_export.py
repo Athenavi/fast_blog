@@ -5,12 +5,11 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Response, HTTPException
-
-from shared.services.system.data_export_service import data_export_service
-from src.api.v2._helpers import ok, fail, _catch
+from fastapi import APIRouter, Depends, Query, Response
 
 from shared.models.user import User as UserModel
+from shared.services.system.data_export_service import data_export_service
+from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter(tags=["export"])
@@ -23,11 +22,11 @@ async def export_users(
 ):
     """
     导出用户列表为CSV或Excel文件
-    
+
     Args:
         format: 导出格式(csv/excel)
         limit: 导出数量(1-10000)
-        
+
     Returns:
         文件下载
     """
@@ -35,11 +34,11 @@ async def export_users(
     # Example implementation:
     # from shared.models.user import User
     # from sqlalchemy import select, func
-    # 
+    #
     # stmt = select(User).limit(limit)
     # result = await db.execute(stmt)
     # users_db = result.scalars().all()
-    # 
+    #
     # users = [{
     #     'id': user.id,
     #     'username': user.username,
@@ -99,12 +98,12 @@ async def export_articles(
 ):
     """
     导出文章列表为CSV或Excel文件
-    
+
     Args:
         format: 导出格式(csv/excel)
         status: 文章状态过滤(published/draft/archived)
         limit: 导出数量(1-10000)
-        
+
     Returns:
         文件下载
     """
@@ -155,12 +154,12 @@ async def export_comments(
 ):
     """
     导出评论列表为CSV或Excel文件
-    
+
     Args:
         format: 导出格式(csv/excel)
         article_id: 文章ID过滤
         limit: 导出数量(1-10000)
-        
+
     Returns:
         文件下载
     """
@@ -209,13 +208,13 @@ async def export_analytics(
 ):
     """
     导出分析数据报表
-    
+
     Args:
         format: 导出格式(csv/excel)
         report_type: 报表类型(visits/users/articles)
         start_date: 开始日期
         end_date: 结束日期
-        
+
     Returns:
         文件下载
     """
@@ -267,7 +266,7 @@ async def get_export_templates(
 ):
     """
     获取可用的导出模板和字段
-    
+
     Returns:
         模板列表
     """
@@ -289,13 +288,13 @@ async def export_custom_data(
 ):
     """
     自定义数据导出
-    
+
     Args:
         data_type: 数据类型(users/articles/comments/analytics)
         format: 导出格式(csv/excel)
         fields: 导出字段列表
         filters: 过滤条件
-        
+
     Returns:
         文件下载
     """

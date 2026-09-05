@@ -511,7 +511,7 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权删除此文章")
     article.status = -1
-    article.deleted_at = datetime.utcnow()
+    article.deleted_at = datetime.now()
     await db.commit()
 
     try:
@@ -684,7 +684,7 @@ async def batch_article_operation_api(data: dict = Body(...), current_user=Depen
     if action == 'delete':
         for a in (await db.execute(query)).scalars().all():
             a.status = -1
-            a.deleted_at = datetime.utcnow()
+            a.deleted_at = datetime.now()
     elif action == 'publish':
         for a in (await db.execute(query)).scalars().all():
             a.status = 1

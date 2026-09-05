@@ -9,8 +9,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from shared.services.ecommerce.revenue_sharing_service import RevenueSharingService, RevenueType
+from src.api.v2._helpers import ok, _catch
 from src.extensions import get_db
-from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["收益分成"])
 

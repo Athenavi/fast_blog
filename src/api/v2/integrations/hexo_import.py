@@ -1,19 +1,16 @@
 """
 Hexo 导入器 - 从 Hexo 站点导入文章
 """
-import os
 import re
-import yaml
 from datetime import datetime
-from typing import Optional
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Body
+import yaml
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
-
 
 router = APIRouter(tags=["hexo-import"])
 
@@ -28,7 +25,7 @@ def parse_hexo_post(content: str, filename: str = "") -> dict:
         "content": content,
         "slug": "",
     }
-    
+
     fm_match = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)', content, re.DOTALL)
     if fm_match:
         try:
@@ -39,13 +36,13 @@ def parse_hexo_post(content: str, filename: str = "") -> dict:
                     result[key] = fm[key]
         except Exception:
             pass
-    
+
     if isinstance(result["date"], datetime):
         result["date"] = result["date"].isoformat()
     # Handle hexo-style tags
     if isinstance(result.get("tags"), list):
         result["tags"] = [t.get("name", t) if isinstance(t, dict) else t for t in result["tags"]]
-    
+
     return result
 
 
@@ -75,15 +72,15 @@ async def import_hexo_posts(files: list[UploadFile] = File(...),
     """批量导入 Hexo 文章"""
     from shared.models.article import Article, ArticleContent
     from datetime import datetime, timezone
-    
+
     imported = 0
     errors = []
-    
+
     for file in files:
         try:
             content = (await file.read()).decode("utf-8", errors="replace")
             post = parse_hexo_post(content, file.filename or "")
-            
+
             now = datetime.now(timezone.utc).replace(tzinfo=None)
             article = Article(
                 title=post["title"][:255],
@@ -99,13 +96,13 @@ async def import_hexo_posts(files: list[UploadFile] = File(...),
             )
             db.add(article)
             await db.flush()
-            
+
             content_obj = ArticleContent(article=article.id, content=post["content"],
                                           created_at=now, updated_at=now)
             db.add(content_obj)
             imported += 1
         except Exception as e:
             errors.append({"file": file.filename, "error": str(e)})
-    
+
     await db.commit()
     return ok(data={"imported": imported, "errors": errors, "total": len(files)})

@@ -3,10 +3,10 @@
 """
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 
 from shared.services.translation.translation import translation_service
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 
 router = APIRouter(tags=["translations"])
 
@@ -18,12 +18,12 @@ async def get_translation(
 ):
     """
     获取单个翻译
-    
+
     Args:
         locale: 语言代码
         key: 翻译键
         default: 默认值
-        
+
     Returns:
         翻译文本
     """
@@ -45,12 +45,12 @@ async def set_translation(
 ):
     """
     设置翻译
-    
+
     Args:
         locale: 语言代码
         key: 翻译键
         value: 翻译值
-        
+
     Returns:
         操作结果
     """
@@ -64,10 +64,10 @@ async def set_translation(
 async def get_all_translations(locale: str):
     """
     获取所有翻译
-    
+
     Args:
         locale: 语言代码
-        
+
     Returns:
         翻译字典
     """
@@ -83,10 +83,10 @@ async def get_translation_progress(
 ):
     """
     获取翻译进度
-    
+
     Args:
         source_locale: 源语言
-        
+
     Returns:
         各语言的翻译进度
     """
@@ -103,11 +103,11 @@ async def get_missing_translations(
 ):
     """
     获取缺失的翻译
-    
+
     Args:
         locale: 目标语言
         source_locale: 源语言
-        
+
     Returns:
         缺失的翻译键列表
     """
@@ -127,10 +127,10 @@ async def export_translations(
 ):
     """
     导出所有翻译
-    
+
     Args:
         format: 导出格式
-        
+
     Returns:
         导出的文件
     """

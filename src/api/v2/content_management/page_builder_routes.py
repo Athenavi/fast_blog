@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.page import PageBuilder
 from shared.models.user import User
 from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required

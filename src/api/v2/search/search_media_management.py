@@ -119,7 +119,7 @@ async def create_search_index(
     if existing.scalar_one_or_none():
         return fail(f"文章 ID={article_id} 的索引记录已存在")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     index = SearchIndex(
         article_id=article_id,
         indexed=data.get("indexed", False),
@@ -170,9 +170,9 @@ async def update_search_index(
         index.last_indexed_at = datetime.fromisoformat(lia.replace("Z", "+00:00")) if isinstance(lia, str) else lia
 
     if data.get("indexed") is True and index.last_indexed_at is None:
-        index.last_indexed_at = datetime.utcnow()
+        index.last_indexed_at = datetime.now()
 
-    index.updated_at = datetime.utcnow()
+    index.updated_at = datetime.now()
 
     try:
         await db.commit()
@@ -238,7 +238,7 @@ async def batch_reindex(
             if index:
                 index.indexed = False
                 index.index_hash = None
-                index.updated_at = datetime.utcnow()
+                index.updated_at = datetime.now()
                 count += 1
         try:
             await db.commit()
@@ -361,7 +361,7 @@ async def create_media_optimization(
     if existing.scalar_one_or_none():
         return fail(f"媒体 ID={media_id} 的优化配置已存在")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     opt = MediaOptimization(
         media_id=media_id,
         webp_url=data.get("webp_url"),
@@ -416,7 +416,7 @@ async def update_media_optimization(
         sj = data["sizes_json"]
         opt.sizes_json = json.dumps(sj, ensure_ascii=False) if isinstance(sj, dict) else sj
 
-    opt.updated_at = datetime.utcnow()
+    opt.updated_at = datetime.now()
 
     try:
         await db.commit()

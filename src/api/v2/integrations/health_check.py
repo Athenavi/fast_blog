@@ -2,9 +2,9 @@
 集成健康检查 API - 检查所有集成的连接状态
 """
 from fastapi import APIRouter, Depends
-from src.api.v2._helpers import ok, fail, _catch
-from src.auth import jwt_required_dependency as jwt_required
 
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["integration-health"])
 
@@ -30,16 +30,16 @@ async def get_integration_status(current_user=Depends(jwt_required)):
     results = []
     for key, (name, itype, check_func) in _INTEGRATION_CHECKS.items():
         is_configured = check_func()
-        
+
         status = "configured" if is_configured else "not_configured"
         if itype == "internal":
             status = "active"
-        
+
         results.append({
             "key": key,
             "name": name,
             "type": itype,
             "status": status,
         })
-    
+
     return ok(data={"integrations": results, "total": len(results), "configured": sum(1 for r in results if r["status"] != "not_configured")})

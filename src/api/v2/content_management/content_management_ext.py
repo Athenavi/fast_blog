@@ -98,7 +98,7 @@ async def create_revision_note(
     if not revision_id or not note_content:
         return fail("revision_id 和 note_content 为必填字段")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     note = ArticleRevisionNote(
         revision_id=revision_id,
         user_id=current_user.id,
@@ -274,7 +274,7 @@ async def create_menu_location(
     if isinstance(theme_supports, list):
         theme_supports = json.dumps(theme_supports, ensure_ascii=False)
 
-    now = datetime.utcnow()
+    now = datetime.now()
     location = MenuLocation(
         name=name,
         slug=slug,
@@ -335,7 +335,7 @@ async def update_menu_location(
         ts = data["theme_supports"]
         location.theme_supports = json.dumps(ts, ensure_ascii=False) if isinstance(ts, list) else ts
 
-    location.updated_at = datetime.utcnow()
+    location.updated_at = datetime.now()
 
     try:
         await db.commit()
@@ -471,7 +471,7 @@ async def create_assignment(
     if existing.scalar_one_or_none():
         return fail("该菜单已分配到此位置")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     assignment = MenuLocationAssignment(
         menu_id=menu_id,
         location_id=location_id,

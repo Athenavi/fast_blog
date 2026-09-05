@@ -2,12 +2,11 @@
 SEO 效果追踪 API
 提供搜索引擎流量、关键词排名、流量来源等查询功能
 """
-from functools import wraps
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from shared.services.seo.seo_tracker import seo_tracker
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
 router = APIRouter(tags=["seo-tracking"])

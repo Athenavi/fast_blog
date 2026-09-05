@@ -2,7 +2,6 @@
 全文搜索 API 端点
 提供基于 Meilisearch 的高性能搜索功能
 """
-import re
 from datetime import datetime
 from typing import Optional
 

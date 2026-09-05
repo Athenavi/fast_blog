@@ -4,7 +4,7 @@
 """
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
