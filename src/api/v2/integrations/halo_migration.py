@@ -1,6 +1,6 @@
 """
 Halo 博客迁移 API - V2 版本
-提供完整�?Halo 博客内容迁移功能
+提供完整的 Halo 博客内容迁移功能
 """
 from typing import Optional
 
@@ -11,21 +11,23 @@ from shared.models.user import User
 from shared.services.integrations.halo_import import HaloImportService
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(prefix="/halo", tags=["Halo Migration"])
 
 
+@router.post("/connect", summary="测试 Halo 连接")
+@_catch
 async def connect_to_halo(
         halo_url: str = Body(...),
         api_token: str = Body(...),
         current_user: User = Depends(jwt_required)
 ):
     """
-    测试�?Halo 博客的连�?
+    测试与 Halo 博客的连接
     参数:
-    - halo_url: Halo 博客�?URL (例如: https://your-halo-blog.com)
+    - halo_url: Halo 博客的 URL (例如: https://your-halo-blog.com)
     - api_token: Halo API Token
 
     返回连接状态和基本信息
@@ -44,7 +46,7 @@ async def connect_to_halo(
             'total_posts': result.get('total', 0),
             'halo_url': halo_url
         },
-        msg="成功连接�?Halo 博客"
+        msg="成功连接到 Halo 博客"
     )
 
 
@@ -58,7 +60,7 @@ async def preview_halo_content(
     """
     预览 Halo 博客的可迁移内容
 
-    返回统计信息，包括文章数、分类数...
+    返回统计信息，包括文章数、分类数等
     """
     service = HaloImportService(halo_url=halo_url, api_token=api_token)
 
@@ -89,22 +91,22 @@ async def preview_halo_content(
 @_catch
 async def import_halo_data(
         background_tasks: BackgroundTasks,
-        halo_url: str,
-        api_token: str,
-        user_mapping: Optional[str] = None,
+    halo_url: str = Body(...),
+    api_token: str = Body(...),
+    user_mapping: Optional[str] = Body(None),
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    �?Halo 博客导入数据�?FastBlog
+    从 Halo 博客导入数据到 FastBlog
 
     参数:
-    - halo_url: Halo 博客�?URL
+    - halo_url: Halo 博客的 URL
     - api_token: Halo API Token
-    - user_mapping: 用户映射 JSON (可�?
+    - user_mapping: 用户映射 JSON (可选)
 
     导入内容:
-    - 文章和页...
+    - 文章和页面
     - 分类
     - 标签
     """
@@ -118,7 +120,7 @@ async def import_halo_data(
         try:
             mapping_dict = json.loads(user_mapping)
         except json.JSONDecodeError:
-            return fail("用户映射格式错误，请使用有效�?JSON 格式")
+            return fail("用户映射格式错误，请使用有效的 JSON 格式")
 
     # 进度回调
     progress_data = {'current': 0, 'total': 0}
@@ -147,11 +149,12 @@ async def import_halo_data(
             'report': report,
             'progress': progress_data
         },
-        msg=f"成功导入 {import_result['results']['imported_articles']} 篇文�?
+        msg=f"成功导入 {import_result['results']['imported_articles']} 篇文章"
     )
 
 
 @router.get("/guide", summary="获取 Halo 迁移指南")
+@_catch
 async def get_halo_migration_guide():
     """
     获取 Halo 博客迁移指南
@@ -170,12 +173,12 @@ async def get_halo_migration_guide():
                 {
                     'step': 1,
                     'title': '准备 Halo API',
-                    'description': '�?Halo 后台生成 API Token，并记录 Halo 博客�?URL'
+                    'description': '在 Halo 后台生成 API Token，并记录 Halo 博客的 URL'
                 },
                 {
                     'step': 2,
                     'title': '测试连接',
-                    'description': '使用 /connect 接口测试�?Halo 博客的连�?
+                    'description': '使用 /connect 接口测试与 Halo 博客的连接'
                 },
                 {
                     'step': 3,
@@ -185,11 +188,11 @@ async def get_halo_migration_guide():
                 {
                     'step': 4,
                     'title': '配置映射',
-                    'description': '配置作者映射（如果需要将 Halo 作者映射到 FastBlog 用户�?
+                    'description': '配置作者映射（如果需要将 Halo 作者映射到 FastBlog 用户）'
                 },
                 {
                     'step': 5,
-                    'title': '开始迁�?,
+                    'title': '开始迁移',
                     'description': '使用 /import 接口开始迁移，系统会自动获取所有文章并导入'
                 }
             ],
@@ -199,16 +202,16 @@ async def get_halo_migration_guide():
                 {'type': 'tag', 'name': '标签', 'description': '文章标签'}
             ],
             'not_supported': [
-                {'type': 'comments', 'name': '评论', 'reason': 'Halo 评论结构复杂，暂不支�?},
-                 {'type': 'media', 'name': '媒体文件', 'reason': '需要手动重新上�?},
-                  {'type': 'theme', 'name': '主题', 'reason': '主题配置需要手动重新设�?}
+                {'type': 'comments', 'name': '评论', 'reason': 'Halo 评论结构复杂，暂不支持'},
+                {'type': 'media', 'name': '媒体文件', 'reason': '需要手动重新上传'},
+                {'type': 'theme', 'name': '主题', 'reason': '主题配置需要手动重新设置'}
             ],
             'important_notes': [
                 '迁移前建议备份当前数据库',
-                '重复的文章（slug 相同）会被自动跳�?,
-                'URL 重定向规则会自动创建，帮�?SEO 保持连续�?,
+                '重复的文章（slug 相同）会被自动跳过',
+                'URL 重定向规则会自动创建，帮助 SEO 保持连续性',
                 '大型博客迁移可能需要较长时间，请耐心等待',
-                'Halo API 可能有速率限制，大量文章时请注�?,
+                'Halo API 可能有速率限制，大量文章时请注意',
                 '建议在测试环境先进行迁移测试'
             ],
             'api_token_guide': {
@@ -216,9 +219,9 @@ async def get_halo_migration_guide():
                 'steps': [
                     '登录 Halo 管理后台',
                     '进入 系统设置 > API 设置',
-                    '点击 "生成�?Token"',
+                    '点击 "生成 Token"',
                     '选择所需的权限（至少需要读取文章、分类、标签）',
-                    '复制生成�?Token 并妥善保�?
+                    '复制生成的 Token 并妥善保管'
                 ]
             }
         }

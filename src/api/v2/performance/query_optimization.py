@@ -1,13 +1,18 @@
 """
 查询优化 API
-提供查询分析、性能监控和优化建议功�?"""
+提供查询分析、性能监控和优化建议功能
+"""
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
-router = APIRouter()
+router = APIRouter(tags=["query-optimization"])
 
 
 def _check_admin(user):
@@ -19,40 +24,41 @@ def _check_admin(user):
 @router.get("/analysis", summary="查询分析", description="分析最近的数据库查询，检测性能问题")
 @_catch
 async def analyze_queries(
-    limit: int = Query(100, ge=1, le=1000, description="分析的查询数..."),
+    limit: int = Query(100, ge=1, le=1000, description="分析的查询数量"),
         current_user=Depends(jwt_required),
 ):
-"""分析数据库查�?""
-_check_admin(current_user)
-recent_queries = query_monitor_service.queries[-limit:]
-if not recent_queries:
-    return ok(data={'message': 'No queries to analyze', 'total_queries': 0})
-analysis = query_optimizer.analyze_queries(recent_queries)
-return ok(data=analysis)
+    """分析数据库查询"""
+    _check_admin(current_user)
+    recent_queries = query_monitor_service.queries[-limit:]
+    if not recent_queries:
+        return ok(data={'message': 'No queries to analyze', 'total_queries': 0})
+    analysis = query_optimizer.analyze_queries(recent_queries)
+    return ok(data=analysis)
 
 
-@router.get("/monitor/stats", summary="查询监控统计", description="获取查询监控的统计信...")
+@router.get("/monitor/stats", summary="查询监控统计", description="获取查询监控的统计信息")
 @_catch
 async def get_query_stats(current_user=Depends(jwt_required)):
-"""获取查询监控统计"""
+    """获取查询监控统计"""
     _check_admin(current_user)
     stats = query_monitor_service.get_summary()
     return ok(data=stats)
 
 
-@router.post("/optimize/article-query", summary="优化文章查询", description="使用优化的方式查询文章列...")
+@router.post("/optimize/article-query", summary="优化文章查询", description="使用优化的方式查询文章列表")
 @_catch
 async def optimize_article_query(
         page: int = Body(1, ge=1, description="页码"),
         per_page: int = Body(10, ge=1, le=100, description="每页数量"),
         category_id: Optional[int] = Body(None, description="分类ID"),
-        status: Optional[int] = Body(None, description="状..."),
+    status: Optional[int] = Body(None, description="状态"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db),
 ):
     """
-优化的文章查询示�?""
-filters = {}
+    优化的文章查询示例
+    """
+    filters = {}
     if category_id is not None:
         filters['category'] = category_id
     if status is not None:
@@ -75,27 +81,27 @@ filters = {}
     })
 
 
-@router.get("/recommendations", summary="优化建议", description="获取数据库优化建...")
+@router.get("/recommendations", summary="优化建议", description="获取数据库优化建议")
 @_catch
 async def get_optimization_recommendations(current_user=Depends(jwt_required)):
-    """获取数据库优化建�?""
+    """获取数据库优化建议"""
     _check_admin(current_user)
     recommendations = [
         {'type': 'index', 'priority': 'high', 'title': '添加索引',
          'description': '为频繁查询的字段添加索引',
-         'suggestions': ['�?articles.status 字段添加索引', '�?articles.category_id 字段添加索引',
-                         '�?articles.created_at 字段添加索引', '�?user_activities.user_id 字段添加索引']},
-        {'type': 'eager_loading', 'priority': 'high', 'title': '使用预加�?,
-         'description': '使用joinedload或selectinload避免N+1查询',
+         'suggestions': ['为 articles.status 字段添加索引', '为 articles.category_id 字段添加索引',
+                         '为 articles.created_at 字段添加索引', '为 user_activities.user_id 字段添加索引']},
+        {'type': 'eager_loading', 'priority': 'high', 'title': '使用预加载',
+         'description': '使用 joinedload 或 selectinload 避免 N+1 查询',
          'example': 'query = select(Article).options(joinedload(Article.author))'},
         {'type': 'caching', 'priority': 'medium', 'title': '使用缓存',
          'description': '对频繁访问的数据使用多级缓存',
-         'suggestions': ['缓存热门文章列表', '缓存分类信息', '缓存用户权限数据', '使用Redis作为L2缓存']},
+         'suggestions': ['缓存热门文章列表', '缓存分类信息', '缓存用户权限数据', '使用 Redis 作为 L2 缓存']},
         {'type': 'batch_operations', 'priority': 'medium', 'title': '批量操作',
-         'description': '使用批量查询和更新减少数据库往�?},
+         'description': '使用批量查询和更新减少数据库往返'},
         {'type': 'pagination', 'priority': 'low', 'title': '优化分页',
-         'description': '对于大数据集使用游标分页替代偏移量分�?,
-         'suggestion': '当数据量超过10万条时，考虑使用基于ID或时间戳的游标分�?},
+         'description': '对于大数据集使用游标分页替代偏移量分页',
+         'suggestion': '当数据量超过10万条时，考虑使用基于 ID 或时间戳的游标分页'},
     ]
     return ok(data=recommendations)
 

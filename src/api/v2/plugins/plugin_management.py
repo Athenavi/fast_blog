@@ -12,8 +12,8 @@ from shared.services.plugins.plugin_audit import plugin_audit_logger
 from shared.services.plugins.plugin_manager.core import plugin_manager
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import admin_required
-from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.unified_logger import default_logger as logger
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 router = APIRouter(tags=["plugins"])
 
@@ -24,17 +24,17 @@ async def list_marketplace_plugins(
         current_user: User = Depends(admin_required)
 ):
     """
-    获取插件市场列表（扫�?plugins/ 目录发现所有可安装的插件）
+    获取插件市场列表（扫描 plugins/ 目录发现所有可安装的插件）
 
     Returns:
-        所有可发现的插件列...
+        所有可发现的插件列表
     """
     # 先扫描发现新插件
     new_slugs = plugin_manager.scan_for_new_plugins()
     for slug in new_slugs:
         plugin_manager.load_plugin(slug)
 
-    # 返回所有已加载插件的信...
+    # 返回所有已加载插件的信息
     plugins = [p.get_info() for p in plugin_manager.plugins.values()]
     return ok(data=plugins)
 
@@ -45,7 +45,7 @@ async def list_plugins(
         current_user: User = Depends(admin_required)
 ):
     """
-    获取所有已安装的插件列�?
+    获取所有已安装的插件列表
     Returns:
         插件列表
     """
@@ -62,7 +62,7 @@ async def load_all_plugins(
         current_user: User = Depends(admin_required)
 ):
     """
-    加载所有插�?
+    加载所有插件
     Returns:
         加载结果
     """
@@ -81,12 +81,12 @@ async def activate_plugin(
         current_user: User = Depends(admin_required)
 ):
     """
-    激活插�?
+    激活插件
     Args:
         plugin_slug: 插件标识
 
     Returns:
-        激活结...
+        激活结果
     """
     if plugin_slug not in plugin_manager.plugins:
         plugin_manager.load_plugin(plugin_slug)
@@ -191,7 +191,7 @@ async def update_plugin_settings(
         plugin_slug: 插件标识
 
     Body参数:
-        settings: 新的设置�?
+        settings: 新的设置值
     Returns:
         更新结果
     """
@@ -216,7 +216,7 @@ async def execute_plugin_action(
         current_user: User = Depends(admin_required)
 ):
     """
-    执行插件自定义动�?
+    执行插件自定义动作
     Args:
         plugin_slug: 插件标识
 
@@ -239,13 +239,13 @@ async def execute_plugin_action(
     if not hasattr(plugin, action):
         return fail(f'Action {action} not found')
 
-    # 自动推导 capability: "方法�? �?"action:resource_cap"
-    # 优先使用方法上的 _capability 属性，否则按命名约...
+    # 自动推导 capability: "方法名" -> "action:resource_cap"
+    # 优先使用方法上的 _capability 属性，否则按命名约定
     action_cap = getattr(getattr(plugin, action), '_capability', None)
     if action_cap:
         plugin.check_capability(action_cap, raise_error=True)
 
-        # 审计日志：记录插件操...
+    # 审计日志：记录插件操作
     try:
         plugin_audit_logger.log_api_call(
             plugin_slug=plugin_slug,
@@ -269,8 +269,8 @@ async def execute_plugin_action(
             result = method(**params)
     except TypeError:
         # 某些插件方法接受单个 dict 参数而非 **kwargs
-        # 尝试�?params 作为单个位置参数传...
-            if asyncio.iscoroutinefunction(method):
+        # 尝试将 params 作为单个位置参数传递
+        if asyncio.iscoroutinefunction(method):
             result = await method(params)
         else:
             result = method(params)
@@ -327,12 +327,12 @@ async def sync_plugin_config(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    同步插件配置 - 将本地插件状态同步到数据�?
+    同步插件配置 - 将本地插件状态同步到数据库
     此接口会:
-    1. 扫描本地 plugins 目录中的所有插...
-    2. 读取 plugin_state.json 中的激活状...
-    3. 将状态同步到数据库的 fb_plugins ...
-    4. 确保数据库和本地状态一�?
+    1. 扫描本地 plugins 目录中的所有插件
+    2. 读取 plugin_state.json 中的激活状态
+    3. 将状态同步到数据库的 fb_plugins 表
+    4. 确保数据库和本地状态一致
     Returns:
         同步结果
     """
@@ -344,7 +344,7 @@ async def sync_plugin_config(
 
     state_file = Path("storage/plugin_state.json")
     if not state_file.exists():
-        return fail('plugin_state.json 不存...")
+        return fail('plugin_state.json 不存在')
 
     with open(state_file, 'r', encoding='utf-8') as f:
         plugin_states = json.load(f)
@@ -364,7 +364,7 @@ async def sync_plugin_config(
                                 'metadata': metadata
                             })
                     except Exception as e:
-                        logger.warning(f"读取插件元数据失�?{item.name}: {e}")
+                        logger.warning(f"读取插件元数据失败 {item.name}: {e}")
 
     result = await db.execute(select(Plugin))
     db_plugins = result.scalars().all()
@@ -460,7 +460,7 @@ async def sync_plugin_config(
         raise
 
 
-# ==================== 热插�?API ====================
+# ==================== 热插拔 API ====================
 
 @router.post("/{plugin_slug}/hot-reload")
 @_catch
@@ -469,9 +469,9 @@ async def hot_reload_plugin(
         current_user: User = Depends(admin_required)
 ):
     """
-    热重载插件（无需重启应用�?
+    热重载插件（无需重启应用）
     步骤:
-    1. 停用当前插件（注销钩子...
+    1. 停用当前插件（注销钩子）
     2. 重新加载模块代码
     3. 创建新的插件实例
     4. 激活新插件（注册钩子）
@@ -489,7 +489,7 @@ async def hot_reload_plugin(
             'message': f'插件 {plugin_slug} 已热重载',
         })
     else:
-        return fail('热重载失败，请查看日...")
+        return fail('热重载失败，请查看日志')
 
 
 @router.post("/{plugin_slug}/hot-load")
@@ -499,7 +499,7 @@ async def hot_load_plugin(
         current_user: User = Depends(admin_required)
 ):
     """
-    热加载新插件（运行时动态加载，无需重启�?
+    热加载新插件（运行时动态加载，无需重启）
     Args:
         plugin_slug: 插件slug
 
@@ -510,10 +510,10 @@ async def hot_load_plugin(
 
     if success:
         return ok(data={
-            'message': f'插件 {plugin_slug} 已热加载并激�?,
+            'message': f'插件 {plugin_slug} 已热加载并激活',
         })
     else:
-        return fail('热加载失败，请查看日...")
+        return fail('热加载失败，请查看日志')
 
 
 @router.post("/{plugin_slug}/hot-unload")
@@ -523,7 +523,7 @@ async def hot_unload_plugin(
         current_user: User = Depends(admin_required)
 ):
     """
-    热卸载插件（运行时动态卸载，无需重启�?
+    热卸载插件（运行时动态卸载，无需重启）
     Args:
         plugin_slug: 插件slug
 
@@ -537,7 +537,7 @@ async def hot_unload_plugin(
             'message': f'插件 {plugin_slug} 已热卸载',
         })
     else:
-        return fail('热卸载失败，请查看日...")
+        return fail('热卸载失败，请查看日志')
 
 
 @router.get("/scan-new")

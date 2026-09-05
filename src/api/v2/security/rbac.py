@@ -2,6 +2,7 @@
 角色权限管理 API
 提供细粒度权限控制、自定义角色、权限继承和审计功能
 """
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional, List
@@ -10,6 +11,7 @@ from fastapi import APIRouter, Depends, Body, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.rbac import PermissionAuditLog
 from shared.models.rbac import Role, Capability, UserRole
 from shared.services.security.rbac_service import rbac_service
 from src.api.v2._helpers import ok, fail, _catch
@@ -21,6 +23,8 @@ router = APIRouter(tags=["rbac"])
 logger = logging.getLogger(__name__)
 
 
+@router.post("/roles", summary="创建角色")
+@_catch
 async def create_role(
         name: str = Body(..., description="角色名称"),
         slug: str = Body(..., description="角色标识"),
@@ -30,7 +34,8 @@ async def create_role(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    # 权限检...
+    """创建自定义角色"""
+    # 权限检查
     if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
@@ -78,6 +83,7 @@ async def get_roles(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
+    """获取角色列表"""
     query = select(Role)
     if not include_system:
         query = query.where(Role.is_system == False)
@@ -127,7 +133,7 @@ async def update_role_permissions(
     if role.is_system:
         return fail("Cannot modify system role permissions")
 
-    # 清空后重新添...
+    # 清空后重新添加
     role.capabilities = []
     if permission_codes:
         cap_stmt = select(Capability).where(Capability.code.in_(permission_codes))
@@ -167,7 +173,7 @@ async def delete_role(
     if role.is_system:
         return fail("Cannot delete system role")
 
-    # 移除所有用户的该角色关...
+    # 移除所有用户的该角色关联
     user_roles = await db.execute(
         select(UserRole).where(UserRole.role_id == role_id)
     )
@@ -196,6 +202,7 @@ async def get_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
+    """获取权限列表"""
     query = select(Capability).where(Capability.is_active == True)
     if resource_type:
         query = query.where(Capability.resource_type == resource_type)
@@ -217,7 +224,7 @@ async def get_permissions(
 
 # ==================== 用户角色分配 ====================
 
-@router.post("/users/{user_id}/roles", summary="为用户分配角...")
+@router.post("/users/{user_id}/roles", summary="为用户分配角色")
 @_catch
 async def assign_role_to_user(
         user_id: int,
@@ -225,6 +232,7 @@ async def assign_role_to_user(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
+    """为用户分配角色"""
     if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
@@ -244,7 +252,7 @@ async def assign_role_to_user(
     return ok(msg="Role assigned successfully")
 
 
-@router.delete("/users/{user_id}/roles/{role_id}", summary="从用户移除角...")
+@router.delete("/users/{user_id}/roles/{role_id}", summary="从用户移除角色")
 @_catch
 async def remove_role_from_user(
         user_id: int,
@@ -253,7 +261,8 @@ async def remove_role_from_user(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    从用户移除角�?""
+    从用户移除角色
+    """
     if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
@@ -280,6 +289,7 @@ async def get_user_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
+    """获取用户权限列表"""
     codes = await rbac_service.get_user_permission_codes(db, user_id)
 
     return ok(data={
@@ -289,7 +299,7 @@ async def get_user_permissions(
     })
 
 
-@router.post("/check-permission", summary="检查权...")
+@router.post("/check-permission", summary="检查权限")
 @_catch
 async def check_permission(
         user_id: int = Body(0, description="用户ID (0 表示当前用户)"),
@@ -381,4 +391,3 @@ async def _log_audit(
         created_at=datetime.now(timezone.utc),
     )
     db.add(log)
-    # 注意：不在这�?commit，由调用方统一 commit

@@ -1,17 +1,28 @@
 """
-页面构建�?API 路由
+页面构建器 API 路由
 提供页面的创建、保存、加载、发布和删除功能
 """
+import json
+from datetime import datetime
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from sqlalchemy import select, func, desc
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
+from src.api.v2._helpers import ok, _catch
+from src.auth import jwt_required_dependency as jwt_required
+from src.utils.database.unified_manager import get_db_session as get_async_db
 
 
 def _is_admin_user(user: User) -> bool:
-    """检查用户是否为管理�?""
+    """检查用户是否为管理员"""
     return getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False)
 
 
-router = APIRouter(prefix="/page-builder", tags=["Page Builder"])
+router = APIRouter(tags=["Page Builder"])
 
 
 class PageCreateRequest(BaseModel):
@@ -55,61 +66,64 @@ def _validate_blocks_data(blocks_data: list) -> None:
             raise HTTPException(status_code=422, detail=f"blocks_data[{i}] is missing a valid 'type' field")
 
 
+@router.post("/pages")
+@_catch
 async def create_page(
         req: PageCreateRequest,
-        current_user: User = Depends(jwt_required)
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
-    P2 - 1: 创建新页�?
+    P2 - 1: 创建新页面
     Args:
         req: 页面创建请求
         current_user: 当前登录用户
 
     Returns:
-创建的页面对...
+        创建的页面对象
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可创建页...")
-    async with db_manager.get_session() as db:
-        # 检�?slug 是否已存...
-            existing = await db.execute(
-            select(PageBuilder).where(PageBuilder.slug == req.slug)
-        )
-        if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail=f"Slug '{req.slug}' 已存...")
+        raise HTTPException(status_code=403, detail="仅管理员可创建页面")
 
-        # 创建新页...
-            _validate_blocks_data(req.blocks_data)
-        new_page = PageBuilder(
-            title=req.title,
-            slug=req.slug,
-            blocks_data=json.dumps(req.blocks_data, ensure_ascii=False),  # 存储�?JSON 字符...
-                template_name=req.template_name,
-            is_published=req.is_published,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
+    # 检查 slug 是否已存在
+    existing = await db.execute(
+        select(PageBuilder).where(PageBuilder.slug == req.slug)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail=f"Slug '{req.slug}' 已存在")
 
-        db.add(new_page)
-        await db.commit()
-        await db.refresh(new_page)
+    # 创建新页面
+    _validate_blocks_data(req.blocks_data)
+    new_page = PageBuilder(
+        title=req.title,
+        slug=req.slug,
+        blocks_data=json.dumps(req.blocks_data, ensure_ascii=False),  # 存储为 JSON 字符串
+        template_name=req.template_name,
+        is_published=req.is_published,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
 
-        # 解析 blocks_data 为列表返...
-            try:
-            blocks = json.loads(new_page.blocks_data)
-        except (json.JSONDecodeError, TypeError):
-            blocks = []
+    db.add(new_page)
+    await db.commit()
+    await db.refresh(new_page)
 
-        return ok(data=PageResponse(
-            id=new_page.id,
-            title=new_page.title,
-            slug=new_page.slug,
-            blocks_data=blocks,
-            template_name=new_page.template_name,
-            is_published=new_page.is_published,
-            created_at=new_page.created_at.isoformat() if new_page.created_at else None,
-            updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
-        ))
+    # 解析 blocks_data 为列表返回
+    try:
+        blocks = json.loads(new_page.blocks_data)
+    except (json.JSONDecodeError, TypeError):
+        blocks = []
+
+    return ok(data=PageResponse(
+        id=new_page.id,
+        title=new_page.title,
+        slug=new_page.slug,
+        blocks_data=blocks,
+        template_name=new_page.template_name,
+        is_published=new_page.is_published,
+        created_at=new_page.created_at.isoformat() if new_page.created_at else None,
+        updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
+    ))
 
 
 @router.get("/pages")
@@ -118,7 +132,8 @@ async def list_pages(
         skip: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=100),
         published_only: bool = Query(False),
-        current_user: User = Depends(jwt_required)
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """P2-1: 获取页面列表
 
@@ -130,67 +145,24 @@ async def list_pages(
     Returns:
         页面列表
     """
-    async with db_manager.get_session() as db:
-        query = select(PageBuilder)
+    query = select(PageBuilder)
 
-        if published_only:
-            query = query.where(PageBuilder.is_published == True)
+    if published_only:
+        query = query.where(PageBuilder.is_published == True)
 
-        query = query.order_by(desc(PageBuilder.created_at)).offset(skip).limit(limit)
+    query = query.order_by(desc(PageBuilder.created_at)).offset(skip).limit(limit)
 
-        result = await db.execute(query)
-        pages = result.scalars().all()
+    result = await db.execute(query)
+    pages = result.scalars().all()
 
-        response_list = []
-        for page in pages:
-            try:
-                blocks = json.loads(page.blocks_data)
-            except (json.JSONDecodeError, TypeError):
-                blocks = []
-
-            response_list.append(PageResponse(
-                id=page.id,
-                title=page.title,
-                slug=page.slug,
-                blocks_data=blocks,
-                template_name=page.template_name,
-                is_published=page.is_published,
-                created_at=page.created_at.isoformat() if page.created_at else None,
-                updated_at=page.updated_at.isoformat() if page.updated_at else None
-            ))
-
-        return ok(data=response_list)
-
-
-@router.get("/pages/{page_id}")
-@_catch
-async def get_page(
-        page_id: int,
-        current_user: User = Depends(jwt_required)
-):
-    """P2-1: 获取单个页面详情
-
-    Args:
-        page_id: 页面 ID
-
-    Returns:
-        页面对象
-    """
-    async with db_manager.get_session() as db:
-        result = await db.execute(
-            select(PageBuilder).where(PageBuilder.id == page_id)
-        )
-        page = result.scalar_one_or_none()
-
-        if not page:
-            raise HTTPException(status_code=404, detail="页面不存...")
-
+    response_list = []
+    for page in pages:
         try:
             blocks = json.loads(page.blocks_data)
         except (json.JSONDecodeError, TypeError):
             blocks = []
 
-        return ok(data=PageResponse(
+        response_list.append(PageResponse(
             id=page.id,
             title=page.title,
             slug=page.slug,
@@ -201,13 +173,56 @@ async def get_page(
             updated_at=page.updated_at.isoformat() if page.updated_at else None
         ))
 
+    return ok(data=response_list)
+
+
+@router.get("/pages/{page_id}")
+@_catch
+async def get_page(
+        page_id: int,
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """P2-1: 获取单个页面详情
+
+    Args:
+        page_id: 页面 ID
+
+    Returns:
+        页面对象
+    """
+    result = await db.execute(
+        select(PageBuilder).where(PageBuilder.id == page_id)
+    )
+    page = result.scalar_one_or_none()
+
+    if not page:
+        raise HTTPException(status_code=404, detail="页面不存在")
+
+    try:
+        blocks = json.loads(page.blocks_data)
+    except (json.JSONDecodeError, TypeError):
+        blocks = []
+
+    return ok(data=PageResponse(
+        id=page.id,
+        title=page.title,
+        slug=page.slug,
+        blocks_data=blocks,
+        template_name=page.template_name,
+        is_published=page.is_published,
+        created_at=page.created_at.isoformat() if page.created_at else None,
+        updated_at=page.updated_at.isoformat() if page.updated_at else None
+    ))
+
 
 @router.put("/pages/{page_id}")
 @_catch
 async def update_page(
         page_id: int,
         req: PageUpdateRequest,
-        current_user: User = Depends(jwt_required)
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """P2-1: 更新页面
 
@@ -219,54 +234,55 @@ async def update_page(
         更新后的页面对象
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可更新页...")
-    async with db_manager.get_session() as db:
-        result = await db.execute(
-            select(PageBuilder).where(PageBuilder.id == page_id)
-        )
-        page = result.scalar_one_or_none()
+        raise HTTPException(status_code=403, detail="仅管理员可更新页面")
 
-        if not page:
-            raise HTTPException(status_code=404, detail="页面不存...")
+    result = await db.execute(
+        select(PageBuilder).where(PageBuilder.id == page_id)
+    )
+    page = result.scalar_one_or_none()
 
-        # 更新字段
-        if req.title is not None:
-            page.title = req.title
-        if req.blocks_data is not None:
-            _validate_blocks_data(req.blocks_data)
-            page.blocks_data = json.dumps(req.blocks_data, ensure_ascii=False)
-        if req.template_name is not None:
-            page.template_name = req.template_name
-        if req.is_published is not None:
-            page.is_published = req.is_published
+    if not page:
+        raise HTTPException(status_code=404, detail="页面不存在")
 
-        page.updated_at = datetime.now()
+    # 更新字段
+    if req.title is not None:
+        page.title = req.title
+    if req.blocks_data is not None:
+        _validate_blocks_data(req.blocks_data)
+        page.blocks_data = json.dumps(req.blocks_data, ensure_ascii=False)
+    if req.template_name is not None:
+        page.template_name = req.template_name
+    if req.is_published is not None:
+        page.is_published = req.is_published
 
-        await db.commit()
-        await db.refresh(page)
+    page.updated_at = datetime.now()
 
-        try:
-            blocks = json.loads(page.blocks_data)
-        except (json.JSONDecodeError, TypeError):
-            blocks = []
+    await db.commit()
+    await db.refresh(page)
 
-        return ok(data=PageResponse(
-            id=page.id,
-            title=page.title,
-            slug=page.slug,
-            blocks_data=blocks,
-            template_name=page.template_name,
-            is_published=page.is_published,
-            created_at=page.created_at.isoformat() if page.created_at else None,
-            updated_at=page.updated_at.isoformat() if page.updated_at else None
-        ))
+    try:
+        blocks = json.loads(page.blocks_data)
+    except (json.JSONDecodeError, TypeError):
+        blocks = []
+
+    return ok(data=PageResponse(
+        id=page.id,
+        title=page.title,
+        slug=page.slug,
+        blocks_data=blocks,
+        template_name=page.template_name,
+        is_published=page.is_published,
+        created_at=page.created_at.isoformat() if page.created_at else None,
+        updated_at=page.updated_at.isoformat() if page.updated_at else None
+    ))
 
 
 @router.delete("/pages/{page_id}")
 @_catch
 async def delete_page(
         page_id: int,
-        current_user: User = Depends(jwt_required)
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """P2-1: 删除页面
 
@@ -277,27 +293,28 @@ async def delete_page(
         删除结果
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可删除页...")
-    async with db_manager.get_session() as db:
-        result = await db.execute(
-            select(PageBuilder).where(PageBuilder.id == page_id)
-        )
-        page = result.scalar_one_or_none()
+        raise HTTPException(status_code=403, detail="仅管理员可删除页面")
 
-        if not page:
-            raise HTTPException(status_code=404, detail="页面不存...")
+    result = await db.execute(
+        select(PageBuilder).where(PageBuilder.id == page_id)
+    )
+    page = result.scalar_one_or_none()
 
-        await db.delete(page)
-        await db.commit()
+    if not page:
+        raise HTTPException(status_code=404, detail="页面不存在")
 
-        return ok(msg="页面已删...")
+    await db.delete(page)
+    await db.commit()
+
+    return ok(msg="页面已删除")
 
 
 @router.post("/pages/{page_id}/publish")
 @_catch
 async def publish_page(
         page_id: int,
-        current_user: User = Depends(jwt_required)
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """P2-1: 发布页面
 
@@ -308,29 +325,30 @@ async def publish_page(
         发布结果
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可发布页...")
-    async with db_manager.get_session() as db:
-        result = await db.execute(
-            select(PageBuilder).where(PageBuilder.id == page_id)
-        )
-        page = result.scalar_one_or_none()
+        raise HTTPException(status_code=403, detail="仅管理员可发布页面")
 
-        if not page:
-            raise HTTPException(status_code=404, detail="页面不存...")
+    result = await db.execute(
+        select(PageBuilder).where(PageBuilder.id == page_id)
+    )
+    page = result.scalar_one_or_none()
 
-        page.is_published = True
-        page.updated_at = datetime.now()
+    if not page:
+        raise HTTPException(status_code=404, detail="页面不存在")
 
-        await db.commit()
+    page.is_published = True
+    page.updated_at = datetime.now()
 
-        return ok(msg="页面已发...")
+    await db.commit()
+
+    return ok(msg="页面已发布")
 
 
 @router.post("/pages/{page_id}/unpublish")
 @_catch
 async def unpublish_page(
         page_id: int,
-        current_user: User = Depends(jwt_required)
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """P2-1: 取消发布页面
 
@@ -341,100 +359,101 @@ async def unpublish_page(
         取消发布结果
     """
     if not _is_admin_user(current_user):
-        raise HTTPException(status_code=403, detail="仅管理员可取消发布页...")
-    async with db_manager.get_session() as db:
-        result = await db.execute(
-            select(PageBuilder).where(PageBuilder.id == page_id)
-        )
-        page = result.scalar_one_or_none()
+        raise HTTPException(status_code=403, detail="仅管理员可取消发布页面")
 
-        if not page:
-            raise HTTPException(status_code=404, detail="页面不存...")
+    result = await db.execute(
+        select(PageBuilder).where(PageBuilder.id == page_id)
+    )
+    page = result.scalar_one_or_none()
 
-        page.is_published = False
-        page.updated_at = datetime.now()
+    if not page:
+        raise HTTPException(status_code=404, detail="页面不存在")
 
-        await db.commit()
+    page.is_published = False
+    page.updated_at = datetime.now()
 
-        return ok(msg="页面已取消发...")
+    await db.commit()
+
+    return ok(msg="页面已取消发布")
 
 
 @router.get("/pages/slug/{slug}")
 @_catch
-async def get_page_by_slug(slug: str):
+async def get_page_by_slug(
+    slug: str,
+    db: AsyncSession = Depends(get_async_db)
+):
     """
-P2 - 1: 通过
-slug
-获取公开页面（无需认证�?
+    P2 - 1: 通过 slug 获取公开页面（无需认证）
     Args:
         slug: 页面路径标识
 
     Returns:
-页面对象（仅已发布的...
+        页面对象（仅已发布的）
     """
-    async with db_manager.get_session() as db:
-        slug_lower = slug.lower()
-        # 先查询页面构建器...
-            result = await db.execute(
-            select(PageBuilder).where(
-                (func.lower(PageBuilder.slug) == slug_lower) &
-                (PageBuilder.is_published == True)
-            )
+    slug_lower = slug.lower()
+    # 先查询页面构建器
+    result = await db.execute(
+        select(PageBuilder).where(
+            (func.lower(PageBuilder.slug) == slug_lower) &
+            (PageBuilder.is_published == True)
         )
-        page = result.scalar_one_or_none()
+    )
+    page = result.scalar_one_or_none()
 
-        if page:
-            try:
-                blocks = json.loads(page.blocks_data)
-            except (json.JSONDecodeError, TypeError):
-                blocks = []
-            return ok(data=PageResponse(
-                id=page.id, title=page.title, slug=page.slug,
-                blocks_data=blocks, template_name=page.template_name,
-                is_published=page.is_published,
-                created_at=page.created_at.isoformat() if page.created_at else None,
-                updated_at=page.updated_at.isoformat() if page.updated_at else None
-            ))
+    if page:
+        try:
+            blocks = json.loads(page.blocks_data)
+        except (json.JSONDecodeError, TypeError):
+            blocks = []
+        return ok(data=PageResponse(
+            id=page.id, title=page.title, slug=page.slug,
+            blocks_data=blocks, template_name=page.template_name,
+            is_published=page.is_published,
+            created_at=page.created_at.isoformat() if page.created_at else None,
+            updated_at=page.updated_at.isoformat() if page.updated_at else None
+        ))
 
-        # 回退：查�?CMS 静态页面表�?admin/settings 创建...
-            result = await db.execute(
-            select(PagesModel).where(
-                func.lower(PagesModel.slug) == slug_lower
-            )
+    # 回退：查询 CMS 静态页面表（admin/settings 创建）
+    result = await db.execute(
+        select(PagesModel).where(
+            func.lower(PagesModel.slug) == slug_lower
         )
-        cms_page = result.scalar_one_or_none()
+    )
+    cms_page = result.scalar_one_or_none()
 
-        if cms_page:
-            return ok(data=PageResponse(
-                id=cms_page.id, title=cms_page.title or '', slug=cms_page.slug or '',
-                blocks_data=[{
-                    'type': 'html-content',
-                    'data': {'content': cms_page.content or ''},
-                    'styles': {}
-                }],
-                template_name=cms_page.template,
-                is_published=True,
-                created_at=cms_page.created_at.isoformat() if cms_page.created_at else None,
-                updated_at=cms_page.updated_at.isoformat() if cms_page.updated_at else None
-            ))
+    if cms_page:
+        return ok(data=PageResponse(
+            id=cms_page.id, title=cms_page.title or '', slug=cms_page.slug or '',
+            blocks_data=[{
+                'type': 'html-content',
+                'data': {'content': cms_page.content or ''},
+                'styles': {}
+            }],
+            template_name=cms_page.template,
+            is_published=True,
+            created_at=cms_page.created_at.isoformat() if cms_page.created_at else None,
+            updated_at=cms_page.updated_at.isoformat() if cms_page.updated_at else None
+        ))
 
-        raise HTTPException(status_code=404, detail="页面不存在或未发...")
+    raise HTTPException(status_code=404, detail="页面不存在或未发布")
 
 
-# P6-4: 预建页面模板�?PAGE_TEMPLATES = [
+# P6-4: 预建页面模板
+PAGE_TEMPLATES = [
     {
         "id": "landing-page",
         "name": "Landing Page",
         "category": "营销",
-        "description": "高转化率的产品落地页，包�?Hero、特性、CTA、评价等模块",
+        "description": "高转化率的产品落地页，包含 Hero、特性、CTA、评价等模块",
         "preview_image": "/templates/landing-page.png",
         "blocks": [
             {
                 "type": "hero-section",
                 "data": {
-                    "title": "打造您的下一个伟大产�?,
+                    "title": "打造您的下一个伟大产品",
                     "subtitle": "快速启动，轻松扩展",
-                    "cta_text": "立即开�?,
+                    "cta_text": "立即开始",
                     "cta_link": "/signup"
                 },
                 "styles": {"backgroundColor": "#f8fafc", "padding": 80}
@@ -444,9 +463,9 @@ slug
                 "data": {
                     "title": "为什么选择我们",
                     "features": [
-                        {"icon": "zap", "title": "极速性能", "desc": "毫秒级响�?},
-                        {"icon": "shield", "title": "安全可靠", "desc": "企业级加�?},
-                        {"icon": "globe", "title": "全球部署", "desc": "CDN 加�?}
+                        {"icon": "zap", "title": "极速性能", "desc": "毫秒级响应"},
+                        {"icon": "shield", "title": "安全可靠", "desc": "企业级加密"},
+                        {"icon": "globe", "title": "全球部署", "desc": "CDN 加速"}
                     ]
                 },
                 "styles": {"padding": 60}
@@ -456,8 +475,8 @@ slug
                 "data": {
                     "title": "用户评价",
                     "testimonials": [
-                        {"name": "张三", "role": "CEO", "quote": "这个产品改变了我们的工作方式�?},
-                        {"name": "李四", "role": "CTO", "quote": "技术架构非常先�?}
+                        {"name": "张三", "role": "CEO", "quote": "这个产品改变了我们的工作方式"},
+                        {"name": "李四", "role": "CTO", "quote": "技术架构非常先进"}
                     ]
                 },
                 "styles": {"backgroundColor": "#ffffff", "padding": 60}
@@ -485,7 +504,7 @@ slug
                 "type": "hero-section",
                 "data": {
                     "title": "关于我们",
-                    "subtitle": "创新、协作、卓�?,
+                    "subtitle": "创新、协作、卓越",
                     "background_image": "/images/team.jpg"
                 },
                 "styles": {"padding": 100}
@@ -495,7 +514,7 @@ slug
                 "data": {
                     "title": "核心团队",
                     "members": [
-                        {"name": "王五", "role": "创始�?& CEO", "avatar": "/avatars/1.jpg"},
+                        {"name": "王五", "role": "创始人 & CEO", "avatar": "/avatars/1.jpg"},
                         {"name": "赵六", "role": "CTO", "avatar": "/avatars/2.jpg"},
                         {"name": "孙七", "role": "设计总监", "avatar": "/avatars/3.jpg"}
                     ]
@@ -534,10 +553,10 @@ slug
                 "data": {
                     "title": "选择适合您的方案",
                     "plans": [
-                        {"name": "免费�?, "price": "¥0", "features": ["基础功能", "社区支持"]},
-                        {"name": "专业�?, "price": "¥99/�?, "features": ["全部功能", "优先支持"],
+                        {"name": "免费版", "price": "¥0", "features": ["基础功能", "社区支持"]},
+                        {"name": "专业版", "price": "¥99/月", "features": ["全部功能", "优先支持"],
                          "highlighted": True},
-                        {"name": "企业�?, "price": "定制", "features": ["专属服务", "SLA 保障"]}
+                        {"name": "企业版", "price": "定制", "features": ["专属服务", "SLA 保障"]}
                     ]
                 },
                 "styles": {"padding": 80}
@@ -556,8 +575,8 @@ slug
                 "data": {
                     "title": "常见问题",
                     "faqs": [
-                        {"question": "如何开始使用？", "answer": "注册账号后即可免费试�?},
-                        {"question": "支持哪些支付方式�?, "answer": "支付宝、微信、信用卡"}
+                        {"question": "如何开始使用？", "answer": "注册账号后即可免费试用"},
+                        {"question": "支持哪些支付方式？", "answer": "支付宝、微信、信用卡"}
                     ]
                 },
                 "styles": {"padding": 60}
@@ -574,7 +593,7 @@ slug
             {
                 "type": "hero-section",
                 "data": {
-                    "title": "技术博�?,
+                    "title": "技术博客",
                     "subtitle": "分享前沿技术与实践经验"
                 },
                 "styles": {"padding": 80}
@@ -584,16 +603,16 @@ slug
     {
         "id": "portfolio-page",
         "name": "Portfolio",
-        "category": "作品�?,
-        "description": "作品展示页面，适合设计师和开发�?,
+        "category": "作品集",
+        "description": "作品展示页面，适合设计师和开发者",
         "preview_image": "/templates/portfolio-page.png",
         "blocks": [
             {
                 "type": "features-grid",
                 "data": {
-                    "title": "精选作�?,
+                    "title": "精选作品",
                     "features": [
-                        {"icon": "image", "title": "项目 A", "desc": "Web 应用开�?},
+                        {"icon": "image", "title": "项目 A", "desc": "Web 应用开发"},
                         {"icon": "image", "title": "项目 B", "desc": "移动 App 设计"}
                     ]
                 },
@@ -611,8 +630,8 @@ slug
             {
                 "type": "hero-section",
                 "data": {
-                    "title": "2026 技术大�?,
-                    "subtitle": "2026�?0�?5�?· 北京",
+                    "title": "2026 技术大会",
+                    "subtitle": "2026年10月5日 · 北京",
                     "cta_text": "立即报名",
                     "countdown": True
                 },
@@ -624,16 +643,16 @@ slug
         "id": "documentation-page",
         "name": "Documentation",
         "category": "支持",
-        "description": "文档中心页面，侧边栏导航 + 内容�?,
+        "description": "文档中心页面，侧边栏导航 + 内容区",
         "preview_image": "/templates/documentation-page.png",
         "blocks": [
             {
                 "type": "features-grid",
                 "data": {
-                    "title": "快速开�?,
+                    "title": "快速开始",
                     "features": [
-                        {"icon": "book", "title": "安装指南", "desc": "5分钟快速上�?},
-                        {"icon": "code", "title": "API 参�?, "desc": "完整接口文档"}
+                        {"icon": "book", "title": "安装指南", "desc": "5分钟快速上手"},
+                        {"icon": "code", "title": "API 参考", "desc": "完整接口文档"}
                     ]
                 },
                 "styles": {"padding": 60}
@@ -644,7 +663,7 @@ slug
         "id": "coming-soon-page",
         "name": "Coming Soon",
         "category": "营销",
-        "description": "即将上线页面，收集邮箱订�?,
+        "description": "即将上线页面，收集邮箱订阅",
         "preview_image": "/templates/coming-soon-page.png",
         "blocks": [
             {
@@ -665,11 +684,11 @@ slug
 @_catch
 async def list_templates():
     """
-P6 - 4: 获取所有预建页面模�?
+    P6 - 4: 获取所有预建页面模板
     Returns:
         模板列表
     """
-    return PAGE_TEMPLATES
+    return ok(data=PAGE_TEMPLATES)
 
 
 @router.get("/templates/{template_id}")
@@ -685,8 +704,8 @@ async def get_template(template_id: str):
     """
     template = next((t for t in PAGE_TEMPLATES if t["id"] == template_id), None)
     if not template:
-        raise HTTPException(status_code=404, detail="模板不存...")
-    return template
+        raise HTTPException(status_code=404, detail="模板不存在")
+    return ok(data=template)
 
 
 @router.post("/pages/from-template")
@@ -695,59 +714,60 @@ async def create_page_from_template(
         template_id: str,
         title: str,
         slug: str,
-        current_user: User = Depends(jwt_required)
+    current_user: User = Depends(jwt_required),
+    db: AsyncSession = Depends(get_async_db)
 ):
     """
-P6 - 4: 从模板创建页�?
+    P6 - 4: 从模板创建页面
     Args:
         template_id: 模板 ID
         title: 页面标题
         slug: 页面路径
 
     Returns:
-创建的页面对...
+        创建的页面对象
     """
     if not _is_admin_user(current_user):
         raise HTTPException(status_code=403, detail="仅管理员可从模板创建页面")
+
     template = next((t for t in PAGE_TEMPLATES if t["id"] == template_id), None)
     if not template:
-        raise HTTPException(status_code=404, detail="模板不存...")
+        raise HTTPException(status_code=404, detail="模板不存在")
 
-    async with db_manager.get_session() as db:
-        # 检�?slug 是否已存...
-            existing = await db.execute(
-            select(PageBuilder).where(PageBuilder.slug == slug)
-        )
-        if existing.scalar_one_or_none():
-            raise HTTPException(status_code=400, detail=f"Slug '{slug}' 已存...")
+    # 检查 slug 是否已存在
+    existing = await db.execute(
+        select(PageBuilder).where(PageBuilder.slug == slug)
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail=f"Slug '{slug}' 已存在")
 
-        # 创建新页...
-            new_page = PageBuilder(
-            title=title,
-            slug=slug,
-            blocks_data=json.dumps(template["blocks"]),
-            template_name=template_id,
-            is_published=False,
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
+    # 创建新页面
+    new_page = PageBuilder(
+        title=title,
+        slug=slug,
+        blocks_data=json.dumps(template["blocks"]),
+        template_name=template_id,
+        is_published=False,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
 
-        db.add(new_page)
-        await db.commit()
-        await db.refresh(new_page)
+    db.add(new_page)
+    await db.commit()
+    await db.refresh(new_page)
 
-        try:
-            blocks = json.loads(new_page.blocks_data)
-        except (json.JSONDecodeError, TypeError):
-            blocks = []
+    try:
+        blocks = json.loads(new_page.blocks_data)
+    except (json.JSONDecodeError, TypeError):
+        blocks = []
 
-        return ok(data=PageResponse(
-            id=new_page.id,
-            title=new_page.title,
-            slug=new_page.slug,
-            blocks_data=blocks,
-            template_name=new_page.template_name,
-            is_published=new_page.is_published,
-            created_at=new_page.created_at.isoformat() if new_page.created_at else None,
-            updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
-        ))
+    return ok(data=PageResponse(
+        id=new_page.id,
+        title=new_page.title,
+        slug=new_page.slug,
+        blocks_data=blocks,
+        template_name=new_page.template_name,
+        is_published=new_page.is_published,
+        created_at=new_page.created_at.isoformat() if new_page.created_at else None,
+        updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
+    ))

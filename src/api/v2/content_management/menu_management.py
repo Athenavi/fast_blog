@@ -1,9 +1,10 @@
 """
 菜单管理API端点
-提供菜单和菜单项的完整管理功�?"""
+提供菜单和菜单项的完整管理功能
+"""
 
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.content_management.menu_service import (
@@ -26,11 +27,13 @@ from src.utils.database.unified_manager import get_db_session as get_async_db
 router = APIRouter(tags=["menus"])
 
 
+@router.get("")
+@_catch
 async def list_menus(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取所有菜单列...
+    获取所有菜单列表
     """
     menus = await get_menus_list(db=db)
 
@@ -52,7 +55,7 @@ async def get_menu_detail(
     menu = await get_menu_with_items(db=db, menu_id=menu_id)
 
     if not menu:
-        return fail("菜单不存...")
+        return fail("菜单不存在")
 
     return ok(data=menu)
 
@@ -65,7 +68,7 @@ async def create_new_menu(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    创建新菜�?
+    创建新菜单
     Body参数:
         name: 菜单名称（必填）
         slug: 菜单slug（必填）
@@ -148,7 +151,7 @@ async def delete_existing_menu(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    删除菜单（级联删除所有菜单项�?
+    删除菜单（级联删除所有菜单项）
     Args:
         menu_id: 菜单ID
     """
@@ -175,11 +178,11 @@ async def add_item_to_menu(
         menu_id: 菜单ID
 
     Body参数:
-        title: 菜单项标题（必填...
-            url: 链接URL（必填）
+        title: 菜单项标题（必填）
+        url: 链接URL（必填）
         parent_id: 父菜单项ID（可选，用于子菜单）
-        target: 打开方式（_self或_blank，默认_self...
-            order_index: 排序索引（默�?...
+        target: 打开方式（_self或_blank，默认_self）
+        order_index: 排序索引（默认0）
     """
     form_data = await request.form()
 
@@ -212,10 +215,10 @@ async def add_item_to_menu(
     )
 
     if not item:
-        return fail("添加菜单项失...")
+        return fail("添加菜单项失败")
 
     return ok(data={
-        "message": "菜单项添加成�?,
+        "message": "菜单项添加成功",
         "item_id": item.id
     })
 
@@ -229,7 +232,7 @@ async def update_menu_item_detail(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    更新菜单�?
+    更新菜单项
     Args:
         item_id: 菜单项ID
 
@@ -272,7 +275,7 @@ async def update_menu_item_detail(
     if not success:
         return fail("更新菜单项失败，菜单项可能不存在")
 
-    return ok(data={"message": "菜单项更新成�?})
+    return ok(data={"message": "菜单项更新成功"})
 
 
 @router.delete("/items/{item_id}")
@@ -293,7 +296,7 @@ async def delete_menu_item_detail(
     if not success:
         return fail("删除菜单项失败，菜单项可能不存在")
 
-    return ok(data={"message": "菜单项删除成�?})
+    return ok(data={"message": "菜单项删除成功"})
 
 
 @router.post("/{menu_id}/reorder")
@@ -305,20 +308,19 @@ async def reorder_menu(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    批量重新排序菜单项（用于拖拽后的保存�?
+    批量重新排序菜单项（用于拖拽后的保存）
     Args:
         menu_id: 菜单ID
 
     Body参数:
         items: JSON数组，包含排序后的菜单项结构
     """
-    import json
 
     body = await request.json()
     items_order = body.get('items', [])
 
     if not items_order:
-        return fail("没有提供菜单项数...")
+        return fail("没有提供菜单项数据")
 
     success = await reorder_menu_items(
         db=db,
@@ -338,7 +340,7 @@ async def get_available_pages(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取可用于添加到菜单的页面列...
+    获取可用于添加到菜单的页面列表
     """
     pages = await get_available_pages_for_menu(db=db)
 
@@ -351,7 +353,7 @@ async def get_available_categories(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    获取可用于添加到菜单的分类列...
+    获取可用于添加到菜单的分类列表
     """
     categories = await get_available_categories_for_menu(db=db)
 

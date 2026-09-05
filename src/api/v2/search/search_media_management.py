@@ -245,7 +245,7 @@ async def batch_reindex(
         except Exception:
             await db.rollback()
             raise
-        return ok(data={"reset_count": count}, msg=f"已重�?{count} 条索引记...")
+        return ok(data={"reset_count": count}, msg=f"已重置 {count} 条索引记录")
     else:
         from sqlalchemy import update
         try:
@@ -261,7 +261,7 @@ async def batch_reindex(
         total_count = total.scalar()
         return ok(
             data={"reset_count": total_count},
-            msg=f"已重置全�?{total_count} 条索引记�?,
+            msg=f"已重置全部 {total_count} 条索引记录"
         )
 
 

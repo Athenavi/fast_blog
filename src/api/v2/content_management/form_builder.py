@@ -4,9 +4,9 @@
 """
 
 import json
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,11 +37,11 @@ async def send_form_notification_email(
         from shared.services.notifications.email_service import email_service
         from datetime import datetime
 
-        subject = f"新表单提�? {form_title}"
+        subject = f"新表单提交: {form_title}"
 
         # 构建HTML邮件内容
         html_content = f"""
-        <h2>新表单提�?/h2>
+        <h2>新表单提交</h2>
         <p><strong>表单:</strong> {form_title}</p>
         <p><strong>提交时间:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         <h3>提交数据:</h3>
@@ -53,7 +53,7 @@ async def send_form_notification_email(
 
         html_content += "</ul>"
 
-        # 纯文本内...
+        # 纯文本内容
         text_content = f"新表单提交: {form_title}\n\n" + "\n".join(
             [f"{k}: {v}" for k, v in submission_data.items()]
         )
@@ -105,7 +105,7 @@ async def list_forms(
     Args:
         page: 页码
         per_page: 每页数量
-        status: 按状态筛�?(draft, published, archived)
+        status: 按状态筛选 (draft, published, archived)
     """
     from sqlalchemy import func
 
@@ -128,8 +128,8 @@ async def list_forms(
 
     form_list = []
     for f in forms:
-        # 统计每个表单的提交数...
-            sub_count_stmt = select(func.count(FormSubmission.id)).where(
+        # 统计每个表单的提交数
+        sub_count_stmt = select(func.count(FormSubmission.id)).where(
             FormSubmission.form_id == f.id
         )
         sub_count_result = await db.execute(sub_count_stmt)
@@ -169,7 +169,7 @@ async def create_form(
         current_user=Depends(admin_required_api)
 ):
     """
-    创建新表�?
+    创建新表单
     Args:
         title: 表单标题
         description: 表单描述
@@ -203,7 +203,7 @@ async def validate_form_submission(
 
     Args:
         form_id: 表单ID
-        submission: 提交的表单数...
+        submission: 提交的表单数据
     """
     # 从数据库获取表单配置
     stmt = select(Form).where(Form.id == form_id)
@@ -211,7 +211,7 @@ async def validate_form_submission(
     form = result.scalar_one_or_none()
 
     if not form:
-        return fail("表单不存...")
+        return fail("表单不存在")
 
     # 获取表单字段
     stmt = select(FormField).where(
@@ -276,7 +276,7 @@ async def generate_form_html(
     form = result.scalar_one_or_none()
 
     if not form:
-        return fail("表单不存...")
+        return fail("表单不存在")
 
     # 获取表单字段
     stmt = select(FormField).where(
@@ -336,10 +336,10 @@ async def submit_form(
     form = result.scalar_one_or_none()
 
     if not form:
-        return fail("表单不存...")
+        return fail("表单不存在")
 
     if form.status != 'published':
-            return fail("表单未发...")
+        return fail("表单未发布")
 
     # 获取表单字段
     stmt = select(FormField).where(
@@ -375,8 +375,8 @@ async def submit_form(
     submission_record = FormSubmission(
         form_id=form_id,
         data=json.dumps(submission, ensure_ascii=False),
-        ip_address=None,  # 可以从request中获...
-            user_agent=None,
+        ip_address=None,  # 可以从request中获取
+        user_agent=None,
         status='new',
         created_at=datetime.now()
     )
@@ -432,7 +432,7 @@ async def get_form_submissions(
     result = await db.execute(stmt)
     submissions = result.scalars().all()
 
-    # 转换为字...
+    # 转换为字典
     submission_list = []
     for sub in submissions:
         try:
@@ -481,7 +481,7 @@ async def get_form_statistics(
     count_result = await db.execute(count_stmt)
     total_submissions = count_result.scalar() or 0
 
-    # 最�?天提交数
+    # 最近7天提交数
     seven_days_ago = datetime.now() - timedelta(days=7)
     recent_stmt = select(func.count(FormSubmission.id)).where(
         FormSubmission.form_id == form_id,
@@ -490,7 +490,7 @@ async def get_form_statistics(
     recent_result = await db.execute(recent_stmt)
     recent_submissions = recent_result.scalar() or 0
 
-    # 完成�?(这里简化处�?实际需要更复杂的逻辑)
+    # 完成率(这里简化处理，实际需要更复杂的逻辑)
     completion_rate = 100.0 if total_submissions > 0 else 0
 
     stats = {
@@ -518,13 +518,13 @@ async def delete_form(
         form_id: 表单ID
     """
     # 从数据库删除表单及其提交记录
-    # 先检查表单是否存...
+    # 先检查表单是否存在
     stmt = select(Form).where(Form.id == form_id)
     result = await db.execute(stmt)
     form = result.scalar_one_or_none()
 
     if not form:
-        return fail("表单不存...")
+        return fail("表单不存在")
 
     # 删除相关字段
     from sqlalchemy import delete
