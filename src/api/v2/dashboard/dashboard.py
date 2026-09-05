@@ -5,14 +5,15 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
-from sqlalchemy import desc
+from sqlalchemy import desc, delete
 from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import VIPPlan, VIPFeature
 from shared.models.analytics import UserActivity
-from shared.models.article import Article
+from shared.models.article import Article, ArticleRevision, ArticleContent
 from shared.models.category import Category
+from shared.models.comment import Comment, CommentVote, CommentSubscription
 from shared.models.user import User
 from shared.models.vip import VIPSubscription
 from src.api.v2._helpers import ok, fail, _catch
@@ -535,9 +536,6 @@ async def delete_blog_management_article(
     """
     删除博客管理文章
     """
-    from sqlalchemy import select, delete
-    from shared.models.article_content import ArticleContent
-    from shared.models.article_revision import ArticleRevision
 
     article_query = select(Article).where(Article.id == article_id)
     article_result = await db.execute(article_query)
@@ -548,11 +546,6 @@ async def delete_blog_management_article(
     # 检查权限 - 只有超级用户或文章作者可以删除
     if not current_user.is_superuser and article.user != current_user.id:
         raise HTTPException(status_code=403, detail="Permission denied")
-
-    # 级联删除评论投票（先于评论删除，避免孤立记录）
-    from shared.models.comment import Comment
-    from shared.models.comment_vote import CommentVote
-    from shared.models.comment_subscription import CommentSubscription
 
     comment_ids_result = await db.execute(
         select(Comment.id).where(Comment.article_id == article_id)

@@ -15,10 +15,10 @@ from fastapi import APIRouter, Depends, Query, UploadFile, File
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extensions import get_db
 from shared.models.media import Media
 from shared.models.user import User
 from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission
 
 logger = logging.getLogger(__name__)
@@ -161,8 +161,6 @@ async def upload_media(
     if _detected_mime and _detected_mime not in ALLOWED_MIMES:
         return ApiResponse(success=False, error=f"文件内容与声明类型不符")
 
-    # 保存文件到存储
-    from src.api.v2.media_legacy.upload_service import save_uploaded_file
     result = save_uploaded_file(
         file_content=content,
         filename=file.filename or "untitled",

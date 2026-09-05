@@ -5,8 +5,11 @@
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, Body, Query
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.multisite import Site, SiteUser, ContentMapping
+from shared.models.user import User
 from shared.services.system.multisite_service import multisite_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
@@ -321,7 +324,6 @@ async def get_site_detail(
         db: AsyncSession = Depends(get_async_db)
 ):
     """获取站点详细信息"""
-    from shared.models.site import Site
     from sqlalchemy import select
 
     stmt = select(Site).where(Site.id == site_id)
@@ -377,9 +379,6 @@ async def get_site_users(
         db: AsyncSession = Depends(get_async_db)
 ):
     """获取站点的用户列表"""
-    from shared.models.site_user import SiteUser
-    from shared.models.user import User
-    from sqlalchemy import select
 
     stmt = (
         select(User, SiteUser)
@@ -424,9 +423,6 @@ async def update_user_role(
     if not has_permission:
         return fail("Insufficient permissions")
 
-    from shared.models.site_user import SiteUser
-    from sqlalchemy import select
-
     stmt = select(SiteUser).where(
         SiteUser.site_id == site_id,
         SiteUser.user_id == user_id
@@ -454,8 +450,6 @@ async def get_content_mappings(
     """
     获取站点的内容映射记录
     """
-    from shared.models.content_mapping import ContentMapping
-    from sqlalchemy import select, desc
 
     if direction == "outgoing":
         stmt = select(ContentMapping).where(

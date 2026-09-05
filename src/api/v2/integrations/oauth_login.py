@@ -1,8 +1,11 @@
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Request
+from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.user import OAuthAccount, User
 from shared.services.integrations.oauth_service import oauth_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import create_access_token
@@ -132,11 +135,6 @@ async def oauth_callback(
     user_info = user_info_result["user"]
 
     # 3. 查找或创建用户
-    from shared.models.user import User
-    from shared.models.o_auth_account import OAuthAccount
-    from sqlalchemy import select
-    from datetime import datetime
-
     # 先查找OAuth关联记录
     oauth_query = select(OAuthAccount).where(
         (OAuthAccount.provider == provider) &
@@ -260,12 +258,9 @@ async def bind_oauth_account(
     Returns:
         绑定结果
     """
-    import os
-    from shared.models.o_auth_account import OAuthAccount
-    from sqlalchemy import select
-    from datetime import datetime
 
     # 获取配置
+    import os
     client_id = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_ID", "")
     client_secret = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_SECRET", "")
     redirect_uri = str(request.base_url) + f"api/v1/oauth/callback/{provider}"
@@ -360,8 +355,6 @@ async def unbind_oauth_account(
     Returns:
         解绑结果
     """
-    from shared.models.o_auth_account import OAuthAccount
-    from sqlalchemy import select, delete
 
     # 查找绑定记录
     result = await db.execute(
@@ -396,8 +389,6 @@ async def get_linked_accounts(
     Returns:
         绑定的账号列表
     """
-    from shared.models.o_auth_account import OAuthAccount
-    from sqlalchemy import select
 
     result = await db.execute(
         select(OAuthAccount).where(OAuthAccount.user_id == current_user.id)

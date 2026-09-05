@@ -13,9 +13,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extensions import get_db
 from shared.models.search import SearchHistory
 from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission
 
 logger = logging.getLogger(__name__)

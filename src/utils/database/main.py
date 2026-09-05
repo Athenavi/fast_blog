@@ -10,6 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, configure_mappers
 from sqlalchemy.pool import QueuePool
 
+from shared import logging
 from src.unified_logger import default_logger as logger
 # 导入统一管理器
 from src.utils.database.unified_manager import db_manager as unified_db_manager

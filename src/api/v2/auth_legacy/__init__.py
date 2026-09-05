@@ -25,6 +25,7 @@ from shared.services.security.rate_limiter import rate_limiter
 from shared.services.users.email_verification_service import email_verification_service
 from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
+from shared.services.users.sms_verification_service import sms_verification_service
 from shared.services.users.user_manager import create_user_account
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required

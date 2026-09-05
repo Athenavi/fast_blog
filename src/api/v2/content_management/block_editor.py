@@ -115,7 +115,7 @@ async def validate_block(request: BlockValidationRequest):
     Returns:
         验证结果
     """
-    block_data = request.block.dict()
+    block_data = request.block.model_dump()
     is_valid, error_msg = block_editor_service.validate_block(block_data)
 
     return BlockValidationResponse(
@@ -136,7 +136,7 @@ async def render_blocks(request: BlockRenderRequest):
     Returns:
         HTML 字符串
     """
-    blocks_data = [block.dict() for block in request.blocks]
+    blocks_data = [block.model_dump() for block in request.blocks]
     html = block_editor_service.blocks_to_html(blocks_data)
 
     return BlockRenderResponse(html=html)
@@ -348,7 +348,7 @@ async def convert_block_type(
     Returns:
         转换后的块数据
     """
-    block_data = block.dict()
+    block_data = block.model_dump()
     result = block_extensions.convert_block_type(block_data, new_type)
 
     if result is None:
@@ -369,7 +369,7 @@ async def duplicate_block(block: BlockData):
     Returns:
         复制的块数据
     """
-    block_data = block.dict()
+    block_data = block.model_dump()
     duplicated = block_extensions.duplicate_block(block_data)
 
     return {"block": duplicated}
@@ -391,7 +391,7 @@ async def merge_blocks(
     Returns:
         合并后的块
     """
-    result = block_extensions.merge_blocks(block1.dict(), block2.dict())
+    result = block_extensions.merge_blocks(block1.model_dump(), block2.model_dump())
 
     if result is None:
         raise HTTPException(status_code=400, detail="无法合并这两个块")
@@ -415,7 +415,7 @@ async def split_block(
     Returns:
         分割后的块列表
     """
-    blocks = block_extensions.split_block(block.dict(), position)
+    blocks = block_extensions.split_block(block.model_dump(), position)
 
     return {"blocks": blocks}
 
@@ -432,7 +432,7 @@ async def export_blocks(blocks: List[BlockData]):
     Returns:
         JSON 字符串
     """
-    blocks_data = [b.dict() for b in blocks]
+    blocks_data = [b.model_dump() for b in blocks]
     json_str = block_extensions.export_blocks_json(blocks_data)
 
     return {"json": json_str}
@@ -479,7 +479,7 @@ async def get_statistics(blocks: List[BlockData]):
     Returns:
         统计信息
     """
-    blocks_data = [b.dict() for b in blocks]
+    blocks_data = [b.model_dump() for b in blocks]
     stats = block_extensions.get_block_statistics(blocks_data)
 
     return stats

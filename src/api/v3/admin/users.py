@@ -18,10 +18,10 @@ from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy import select, func, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extensions import get_db
 from shared.models.rbac import UserRole, Role
 from shared.models.user import User
 from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db, get_current_user
 from src.api.v3._permission import Permission, invalidate_permission_cache
 
 logger = logging.getLogger(__name__)

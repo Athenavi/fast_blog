@@ -8,10 +8,11 @@ import logging
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth import get_current_user
+from extensions import get_db
 from shared.models.user import User as UserModel
 from shared.services.security.rbac_service import rbac_service
 from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db, get_current_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-permission"])

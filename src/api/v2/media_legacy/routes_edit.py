@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
-from shared.services.media.image_tool import image_processor
+from shared.services.media.image_tool import image_processor, image_editor
 from shared.services.media.media_manager import media_library_service
 from src.api.v2._storage_utils import async_file_cleanup
 from src.auth import jwt_required_dependency as jwt_required

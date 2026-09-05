@@ -17,12 +17,12 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from extensions import get_dbr
 from shared.models.menu.menu_items import MenuItems
 from shared.models.menu.menus import Menus
 from shared.models.page.pages import Pages
 from shared.models.system import SystemSettings
 from src.api.v2._base import ApiResponse
-from src.api.v3._deps import get_db, get_current_user
 from src.api.v3._permission import Permission
 
 logger = logging.getLogger(__name__)

@@ -28,8 +28,6 @@ def _build_router():
     from src.api.v2.integrations.medium_import import router as medium_router
     from src.api.v2.integrations.health_check import router as health_check_router
 
-    router.include_router(baidu_analytics_router, prefix="/analytics/baidu")
-    router.include_router(google_analytics_router, prefix="/analytics/google")
     router.include_router(ipfs_router, prefix="/ipfs")
     router.include_router(oauth_login_router, prefix="/oauth")
     router.include_router(wordpress_import_router, prefix="/wordpress")
