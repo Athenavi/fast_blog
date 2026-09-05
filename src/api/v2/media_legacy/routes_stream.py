@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v2.media_legacy.utils import handle_local_file, handle_s3_streaming
 from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
 from shared.utils.logger import get_logger

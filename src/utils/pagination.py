@@ -56,14 +56,14 @@ def create_pagination_response(
 ) -> Dict[str, Any]:
     """
     创建标准化的分页响应
-    
+
     Args:
         data: 数据列表
         total: 总记录数
         page: 当前页码
         per_page: 每页数量
         additional_data: 额外的数据
-    
+
     Returns:
         包含数据和分页信息的字典
     """
@@ -94,15 +94,15 @@ def parse_sort_params(
 ) -> Tuple[Optional[str], str]:
     """
     解析排序参数
-    
+
     Args:
         sort_by: 排序字段
         sort_order: 排序方向
         allowed_fields: 允许的排序字段列表
-    
+
     Returns:
         (排序字段, 排序方向) 元组
-    
+
     Raises:
         ValueError: 如果排序字段不在允许列表中
     """
@@ -123,7 +123,7 @@ def parse_sort_params(
 class CursorPagination:
     """
     游标分页实现
-    
+
     适用于大数据集，性能优于偏移量分页
     """
 
@@ -142,10 +142,10 @@ class CursorPagination:
     def get_where_clause(self, current_cursor_value: Any) -> str:
         """
         生成WHERE子句
-        
+
         Args:
             current_cursor_value: 当前游标值
-        
+
         Returns:
             SQL WHERE子句
         """
@@ -162,12 +162,12 @@ class CursorPagination:
     ) -> Dict[str, Any]:
         """
         创建游标分页响应
-        
+
         Args:
             data: 数据列表
             has_more: 是否还有更多数据
             next_cursor: 下一页游标
-        
+
         Returns:
             包含数据和分页信息的字典
         """
@@ -190,7 +190,6 @@ __all__ = [
     'parse_sort_params',
     'CursorPagination',
     'paginated_query',
-    'paginated_query_raw',
 ]
 
 

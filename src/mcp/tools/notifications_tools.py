@@ -93,7 +93,7 @@ async def send_bulk_notification(arguments: dict) -> dict:
             db.add(Notification(
                 recipient=uid, type="system", title=title,
                 message=message, is_read=False,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(),
             ))
             sent += 1
             if sent % 50 == 0:

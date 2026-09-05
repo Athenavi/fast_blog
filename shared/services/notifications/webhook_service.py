@@ -40,7 +40,7 @@ class WebhookService:
                 event=event,
                 payload=json.dumps(payload),
                 status="pending",
-                created_at=datetime.utcnow()
+                created_at=datetime.now()
             )
             db.add(delivery)
             await db.flush()

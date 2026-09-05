@@ -176,7 +176,7 @@ def update_ad_placement(
         service: AdManagementService = Depends(get_ad_service)
 ):
     """更新广告位"""
-    updated = service.update_ad_placement(placement_id, **placement.dict(exclude_unset=True))
+    updated = service.update_ad_placement(placement_id, **placement.model_dump(exclude_unset=True))
     if not updated:
         return fail("广告位不存在")
 
@@ -305,7 +305,7 @@ def update_ad(
         service: AdManagementService = Depends(get_ad_service)
 ):
     """更新广告"""
-    updated = service.update_ad(ad_id, **ad.dict(exclude_unset=True))
+    updated = service.update_ad(ad_id, **ad.model_dump(exclude_unset=True))
     if not updated:
         return fail("广告不存在")
 

@@ -24,7 +24,7 @@ class AIWorkflowService:
                 task_type=task_type,
                 input_data=json.dumps(input_data),
                 status="processing",
-                created_at=datetime.utcnow()
+                created_at=datetime.now()
             )
             db.add(workflow)
             await db.commit()

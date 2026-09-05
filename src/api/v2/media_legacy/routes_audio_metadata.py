@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config import settings
 from shared.models.media import Media
 from src.api.v2._helpers import ok
 from src.auth import jwt_required_dependency as jwt_required
@@ -91,7 +92,6 @@ def extract_cover_from_audio(media: Media) -> Optional[bytes]:
             try:
                 import tempfile
                 import boto3
-                from src.config import settings
 
                 # 解析 S3 路径 (s3://bucket/key)
                 parts = file_path.replace('s3://', '').split('/', 1)

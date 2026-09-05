@@ -51,7 +51,7 @@ async def create_category(arguments: dict) -> dict:
     async with db_manager.get_session() as db:
         try:
             cat = Category(name=name, slug=slug, description=arguments.get("description", ""),
-                           created_at=datetime.utcnow(), updated_at=datetime.utcnow())
+                           created_at=datetime.now(), updated_at=datetime.now())
             db.add(cat)
             await db.commit()
             return {"success": True, "message": f"分类「{name}」创建成功", "category_id": cat.id}

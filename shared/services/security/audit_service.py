@@ -39,7 +39,7 @@ class AuditService:
                 request_data=json.dumps(request_data) if request_data else None,
                 status=status,
                 error_message=error_message,
-                created_at=datetime.utcnow()
+                created_at=datetime.now()
             )
             db.add(log_entry)
             await db.commit()
