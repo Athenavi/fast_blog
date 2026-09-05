@@ -293,11 +293,9 @@ export const ScriptGate: React.FC<{
   children: React.ReactNode;
 }> = ({scriptReady, loading, error, fallback, children}) => {
   if (!scriptReady) {
-    return <>{loading || fallback || null
+    return <>{loading || fallback || null}</>;
   }
-    </>;
-  }
-  return <>{children} < />;
+  return <>{children}</>;
 };
 
 /**
@@ -312,14 +310,9 @@ export function withAsyncScript<T>(
     return (
       <WrappedComponent
         {...(props as any)}
-    scriptLoaded = {loaded}
-      >
-      {!
-    loaded && loading ? null : props.children
-  }
-    </WrappedComponent>
-  )
-    ;
+        scriptLoaded={loaded}
+      />
+    );
   };
 }
 
