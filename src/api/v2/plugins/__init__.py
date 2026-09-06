@@ -26,4 +26,9 @@ def _build_router():
 def __getattr__(name):
     if name == "router":
         return _build_router()
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    # 允许访问子模块（如 theme_routes）
+    import importlib
+    try:
+        return importlib.import_module(f"{__package__}.{name}")
+    except ModuleNotFoundError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

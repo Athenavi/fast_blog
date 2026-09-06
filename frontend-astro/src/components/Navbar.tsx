@@ -502,65 +502,6 @@ const Navbar: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* ─── 移动端底部导航 ─── */}
-      <nav
-        className={`fixed bottom-0 left-0 right-0 z-[9998] md:hidden backdrop-blur-xl border-t ${
-          isHome
-            ? 'home-nav bg-[#05070f]/85 border-white/10'
-            : 'bg-white/80 dark:bg-gray-950/80 border-black/5 dark:border-white/10'
-        }`}
-        style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
-        <div className="flex items-center justify-around h-14">
-          {navItems.map((item) => {
-            const Icon = getIconForMenuItem(item.title || '', item.url || '');
-            const active = isActive(item.url || '');
-            return (
-              <a
-                key={item.url}
-                href={item.url}
-                className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors min-w-[56px] ${
-                  active
-                    ? isHome ? 'text-blue-400' : 'text-blue-600 dark:text-blue-400'
-                    : 'theme-text-secondary'
-                }`}
-              >
-                <Icon className="w-5 h-5"/>
-                <span className="text-[10px] font-medium">{item.title}</span>
-                {active && (
-                  <motion.div
-                    layoutId="mobileActiveNav"
-                    className={`w-4 h-0.5 rounded-full mt-0.5 ${isHome ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-400'}`}
-                  />
-                )}
-              </a>
-            );
-          })}
-          {isLoggedIn ? (
-            <a
-              href="/settings"
-              className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors min-w-[56px] ${
-                pathname.startsWith('/settings') || pathname.startsWith('/profile') || pathname.startsWith('/my')
-                  ? isHome ? 'text-blue-400' : 'text-blue-600 dark:text-blue-400'
-                  : 'theme-text-secondary'
-              }`}
-            >
-              {userAvatar ? (
-                <img src={userAvatar} alt="" className="w-5 h-5 rounded-full object-cover"/>
-              ) : (
-                <User className="w-5 h-5"/>
-              )}
-              <span className="text-[10px] font-medium">我的</span>
-            </a>
-          ) : (
-            <a href="/login"
-               className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg theme-text-secondary min-w-[56px]">
-              <User className="w-5 h-5"/>
-              <span className="text-[10px] font-medium">登录</span>
-            </a>
-          )}
-        </div>
-      </nav>
-
       {/* ─── 搜索模态框 ─── */}
       <AnimatePresence>
         {isSearchOpen && (

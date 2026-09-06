@@ -23,6 +23,7 @@
  */
 
 import {useCallback, useEffect, useRef, useState} from 'react';
+import {getConfig} from '@/lib/config';
 
 export interface NetworkInfo {
   /** 是否在线 */
@@ -206,8 +207,15 @@ export function useNetworkState(): NetworkInfo {
   const onChangeRef = useRef<((prev: NetworkInfo, next: NetworkInfo) => void) | null>(null);
   const onChangedRef = useRef<((network: NetworkInfo) => void) | null>(null);
 
+  // 用于主动网络检测的 ref
+  const pingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    const handleOnline = () => updateState();
+    const handleOnline = () => {
+      // 延迟更新，等待网络真正恢复
+      updateState();
+      schedulePingCheck();
+    };
     const handleOffline = () => updateState();
 
     // Navigator connection API
@@ -219,6 +227,69 @@ export function useNetworkState(): NetworkInfo {
     if (connection) {
       connectionHandler = () => updateState();
       connection.addEventListener?.('change', connectionHandler);
+    }
+
+    // 主动 Ping 检测网络是否真的可用
+    function schedulePingCheck() {
+      if (pingTimeoutRef.current) {
+        clearTimeout(pingTimeoutRef.current);
+      }
+      // 在 1 秒后检查网络
+      pingTimeoutRef.current = setTimeout(() => {
+        pingNetwork().then((pingOnline) => {
+          const prev = stateRef.current;
+          const browserOnline = navigator.onLine;
+          // 如果 ping 成功，强制设置为在线（即使 navigator.onLine 返回 false）
+          // 如果 ping 失败且浏览器也认为离线，才标记为离线
+          const shouldBeOffline = !pingOnline && !browserOnline;
+          const isActuallyOnline = pingOnline || (browserOnline && !shouldBeOffline);
+          if (prev.isOnline !== isActuallyOnline) {
+            const ns = {...getNetworkState(), isOnline: isActuallyOnline, isOffline: !isActuallyOnline};
+            if (!isActuallyOnline) {
+              ns.isSlow = true;
+              ns.qualityScore = 0;
+              ns.networkLabel = 'offline';
+            } else {
+              // 如果在网络上，确保清除离线状态
+              if (ns.isOffline) {
+                ns.isOffline = false;
+                ns.isSlow = false;
+              }
+            }
+            onChangeRef.current?.(prev, ns);
+            onChangedRef.current?.(ns);
+            setState(ns);
+          }
+        });
+      }, 1000);
+    }
+
+    async function pingNetwork(): Promise<boolean> {
+      try {
+        // 使用配置的 API_BASE_URL 构建完整路径，以支持开发环境跨端口访问
+        const {API_BASE_URL, API_PREFIX} = getConfig();
+        const healthUrl = `${API_BASE_URL}${API_PREFIX}/health`;
+
+        // 尝试 fetching 后端健康检查端点来验证连接
+        await fetch(healthUrl, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: AbortSignal.timeout(3000)
+        });
+        return true;
+      } catch {
+        // 如果 API 请求失败，尝试 fetch 当前站点的静态资源（用于检测前端服务器是否可用）
+        try {
+          await fetch('/favicon.ico', {
+            method: 'HEAD',
+            cache: 'no-store',
+            signal: AbortSignal.timeout(2000)
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      }
     }
 
     function updateState() {
@@ -240,11 +311,17 @@ export function useNetworkState(): NetworkInfo {
     window.addEventListener('online', handleOnline, {passive: true});
     window.addEventListener('offline', handleOffline, {passive: true});
 
+    // 初始化时也进行一次 ping 检查
+    schedulePingCheck();
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       if (connection && connectionHandler) {
         connection.removeEventListener?.('change', connectionHandler);
+      }
+      if (pingTimeoutRef.current) {
+        clearTimeout(pingTimeoutRef.current);
       }
     };
   }, []);
@@ -276,7 +353,12 @@ export function useNetworkState(): NetworkInfo {
 }
 
 function getNetworkState(): NetworkInfo {
-  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+  // 仅在服务器端渲染时直接返回默认值
+  if (typeof navigator === 'undefined') {
+    return DEFAULT_NETWORK;
+  }
+
+  const isOnline = navigator.onLine;
 
   const connection = (navigator as any).connection ||
     (navigator as any).mozConnection ||
@@ -288,7 +370,9 @@ function getNetworkState(): NetworkInfo {
   const saveData = connection?.saveData ?? false;
 
   const isOffline = !isOnline;
-  const isSlow = isOffline || ['slow-2g', '2g', '3g'].includes(effectiveType);
+  // 只有在确认离线或确实是慢速网络时才标记为 isSlow
+  // 'unknown' 不应该被视为慢速网络
+  const isSlow = isOffline || (connection && ['slow-2g', '2g', '3g'].includes(effectiveType));
 
   // 获取实际测量到的 RTT
   const measuredMetrics = getNetworkMetrics();

@@ -5,10 +5,10 @@ import '@/styles/rtl.css';
 import Navbar from '@/components/Navbar';
 import ThemeHeader from '@/components/theme/ThemeHeader';
 import ThemeFooter from '@/components/theme/ThemeFooter';
+import MobileBottomNav from '@/components/MobileBottomNav';
 import {GlobalShortcuts} from '@/components/GlobalShortcuts';
 import MobileGestures from '@/components/MobileGestures';
 import OfflineBanner from '@/components/OfflineBanner';
-import MobileBottomNav from '@/components/MobileBottomNav';
 
 export interface Props {
   title?: string;
@@ -153,7 +153,7 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
     <GlobalShortcuts client:load />
     <MobileGestures client:load />
 
-  <main class="min-h-screen responsive-padding safe-pl safe-pr">
+  <main class="min-h-screen">
       <slot />
     </main>
 
