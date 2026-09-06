@@ -6,12 +6,17 @@
 
 'use client';
 
-import {memo, useCallback} from 'react';
+import {memo, useCallback, useEffect, useState} from 'react';
 import {RefreshCw, Wifi, X} from 'lucide-react';
 import {useNetworkState} from '@/lib/hooks/useNetworkState';
 
 const OfflineBanner = memo(() => {
   const {isOnline, isSlow, effectiveType} = useNetworkState();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleRetry = useCallback(() => {
     window.location.reload();
@@ -26,7 +31,7 @@ const OfflineBanner = memo(() => {
     }
   }, []);
 
-  if (isOnline && !isSlow) return null;
+  if (!isMounted || (isOnline && !isSlow)) return null;
 
   return (
     <div
