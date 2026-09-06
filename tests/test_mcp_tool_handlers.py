@@ -98,7 +98,7 @@ def _mock_media(**kwargs):
 # ============================================================================
 
 class TestCommentTools:
-    PATCH_TARGET = "src.mcp.tools.content.get_async_session_context"
+    PATCH_TARGET = "src.mcp.tools.content.db_manager.get_session"
 
     @patch(PATCH_TARGET)
     async def test_list_comments(self, mock_ctx):
@@ -135,7 +135,7 @@ class TestCommentTools:
 # ============================================================================
 
 class TestAnalyticsTools:
-    PATCH_TARGET = "src.mcp.tools.analytics.get_async_session_context"
+    PATCH_TARGET = "src.mcp.tools.analytics.db_manager.get_session"
 
     @patch(PATCH_TARGET)
     async def test_get_analytics(self, mock_ctx):
@@ -162,7 +162,7 @@ class TestAnalyticsTools:
 # ============================================================================
 
 class TestMediaTools:
-    PATCH_TARGET = "src.mcp.tools.media.get_async_session_context"
+    PATCH_TARGET = "src.mcp.tools.media.db_manager.get_session"
 
     @patch(PATCH_TARGET)
     async def test_list_media(self, mock_ctx):
@@ -197,7 +197,7 @@ class TestMediaTools:
 # ============================================================================
 
 class TestCategoryTagTools:
-    PATCH_TARGET = "src.mcp.tools.content.get_async_session_context"
+    PATCH_TARGET = "src.mcp.tools.content.db_manager.get_session"
 
     @patch(PATCH_TARGET)
     async def test_update_category(self, mock_ctx):

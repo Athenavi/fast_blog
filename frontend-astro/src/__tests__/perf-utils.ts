@@ -31,6 +31,7 @@ const mockPerformance = {
   clearMeasures: vi.fn(),
   getEntriesByName: vi.fn().mockReturnValue([]),
   getEntriesByType: vi.fn().mockReturnValue([]),
+  getEntries: vi.fn().mockReturnValue([]),
   now: vi.fn().mockReturnValue(Date.now()),
   timing: {},
   memory: {
@@ -46,8 +47,27 @@ const mockPerformance = {
 export function setupPerformanceMocks() {
   // @ts-ignore
   global.PerformanceObserver = MockPerformanceObserver;
+  
+  // Mock performance methods on the existing global.performance object
+  // instead of replacing the entire object (which may be read-only)
   // @ts-ignore
-  global.performance = mockPerformance;
+  global.performance.mark = mockPerformance.mark;
+  // @ts-ignore
+  global.performance.measure = mockPerformance.measure;
+  // @ts-ignore
+  global.performance.clearMarks = mockPerformance.clearMarks;
+  // @ts-ignore
+  global.performance.clearMeasures = mockPerformance.clearMeasures;
+  // @ts-ignore
+  global.performance.getEntriesByName = mockPerformance.getEntriesByName;
+  // @ts-ignore
+  global.performance.getEntriesByType = mockPerformance.getEntriesByType;
+  // @ts-ignore
+  global.performance.getEntries = mockPerformance.getEntries;
+  // @ts-ignore
+  global.performance.now = mockPerformance.now;
+  // @ts-ignore
+  global.performance.memory = mockPerformance.memory;
 }
 
 /**
@@ -60,6 +80,7 @@ export function clearPerformanceMocks() {
   mockPerformance.clearMeasures.mockClear();
   mockPerformance.getEntriesByName.mockClear();
   mockPerformance.getEntriesByType.mockClear();
+  mockPerformance.getEntries.mockClear();
 }
 
 /**
