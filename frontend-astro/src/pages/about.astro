@@ -4,7 +4,28 @@ import Layout from '@/layouts/Layout.astro';
 import '@/styles/globals.css';
 ---
 
-<Layout title="关于 - FastBlog">
+<Layout title="关于 - FastBlog"
+        description="FastBlog 是一个现代化的博客平台，致力于为创作者和读者提供最佳的内容分享体验">
+    <slot name="head">
+        {(() => {
+            const siteUrl = Astro.site?.origin ?? '';
+            if (!siteUrl) return null;
+            return (
+                <script type="application/ld+json" set:html={JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'AboutPage',
+                    name: '关于 FastBlog',
+                    description: 'FastBlog 是一个现代化的博客平台，致力于为创作者和读者提供最佳的内容分享体验。',
+                    url: `${siteUrl}/about`,
+                    publisher: {
+                        '@type': 'Organization',
+                        name: 'FastBlog',
+                        url: siteUrl,
+                    },
+                })} />
+            );
+        })()}
+    </slot>
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-8">关于 FastBlog</h1>
     <div class="prose dark:prose-invert max-w-none">

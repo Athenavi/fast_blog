@@ -682,9 +682,52 @@ def register_error_handlers(app: FastAPI):
 
     @app.get("/sitemap.xml", include_in_schema=False)
     async def root_sitemap():
-        """站点地图根路径（nginx 已反代 /sitemap.xml 到后端）— 301 到动态 sitemap"""
-        from fastapi.responses import RedirectResponse
+        """站点地图根路径 — 301 到动态 sitemap"""
         return RedirectResponse(url="/api/v2/seo/sitemap/sitemap.xml", status_code=301)
+
+    @app.get("/sitemap-posts.xml", include_in_schema=False)
+    async def root_sitemap_posts():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-posts.xml", status_code=301)
+
+    @app.get("/sitemap-categories.xml", include_in_schema=False)
+    async def root_sitemap_categories():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-categories.xml", status_code=301)
+
+    @app.get("/sitemap-tags.xml", include_in_schema=False)
+    async def root_sitemap_tags():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-tags.xml", status_code=301)
+
+    @app.get("/sitemap-pages.xml", include_in_schema=False)
+    async def root_sitemap_pages():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-pages.xml", status_code=301)
+
+    @app.get("/sitemap-multilingual.xml", include_in_schema=False)
+    async def root_sitemap_multilingual():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-multilingual.xml", status_code=301)
+
+    @app.get("/sitemap-authors.xml", include_in_schema=False)
+    async def root_sitemap_authors():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-authors.xml", status_code=301)
+
+    @app.get("/sitemap-images.xml", include_in_schema=False)
+    async def root_sitemap_images():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-images.xml", status_code=301)
+
+    @app.get("/sitemap-videos.xml", include_in_schema=False)
+    async def root_sitemap_videos():
+        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-videos.xml", status_code=301)
+
+    @app.get("/robots.txt", include_in_schema=False)
+    async def robots_txt(request: Request):
+        """robots.txt — 搜索引擎爬取规则"""
+        from fastapi.responses import PlainTextResponse
+        site_url = str(request.base_url).rstrip("/")
+        content = f"""User-agent: *
+Allow: /
+
+Sitemap: {site_url}/sitemap.xml
+"""
+        return PlainTextResponse(content=content, media_type="text/plain")
 
     @app.get("/api/v2/mobile-login", tags=["qr-login"])
     async def mobile_login_page(request: Request):

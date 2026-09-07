@@ -24,7 +24,29 @@ try {
 import '@/styles/globals.css';
 ---
 
-<Layout title="文章列表 - FastBlog" description="浏览所有文章">
+<Layout title="文章列表 - FastBlog" description="浏览所有文章，发现精彩内容">
+    <slot name="head">
+        {(() => {
+            const siteUrl = Astro.site?.origin ?? '';
+            if (!siteUrl) return null;
+            return (
+                <script type="application/ld+json" set:html={JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'CollectionPage',
+                    name: '文章列表',
+                    description: '浏览所有文章，发现精彩内容',
+                    url: `${siteUrl}/articles`,
+                    breadcrumb: {
+                        '@type': 'BreadcrumbList',
+                        itemListElement: [
+                            {'@type': 'ListItem', position: 1, name: '首页', item: siteUrl},
+                            {'@type': 'ListItem', position: 2, name: '文章列表'},
+                        ],
+                    },
+                })} />
+            );
+        })()}
+    </slot>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-3xl font-bold theme-text mb-8">文章列表</h1>
     <ArticleList

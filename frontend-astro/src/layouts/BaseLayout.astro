@@ -8,6 +8,10 @@ interface Props {
 }
 
 const { title, description = 'FastBlog - A modern blog platform', keywords = 'blog, articles, technology' } = Astro.props;
+
+// SEO
+const siteUrl = Astro.site?.origin ?? '';
+const canonicalUrl = siteUrl ? `${siteUrl}${Astro.url.pathname.replace(/\/index\.html$/, '')}` : '';
 ---
 
 <!doctype html>
@@ -22,9 +26,19 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
+      <meta property="og:site_name" content="FastBlog"/>
+      {siteUrl &&
+          <meta property="og:url" content={canonicalUrl}/>}
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+
+      <!-- SEO: Canonical -->
+      {canonicalUrl &&
+          <link rel="canonical" href={canonicalUrl}/>}
+
+      <!-- SEO: Robots -->
+      <meta name="robots" content="index, follow"/>
 
       <!-- Performance: Preconnect to critical origins -->
       <link rel="preconnect" href="https://fonts.googleapis.com"/>

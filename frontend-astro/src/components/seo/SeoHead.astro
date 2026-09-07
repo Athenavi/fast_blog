@@ -53,5 +53,26 @@ const authorName = article?.author?.username || '';
         mainEntityOfPage: canonical || undefined,
       })} />
     )}
+
+      {/* BreadcrumbList JSON-LD */}
+      {siteUrl && article && (() => {
+          const items = [
+              {name: '首页', url: siteUrl},
+              {name: '文章', url: `${siteUrl}/articles`},
+              {name: title},
+          ];
+          return (
+              <script type="application/ld+json" set:html={JSON.stringify({
+                  '@context': 'https://schema.org',
+                  '@type': 'BreadcrumbList',
+                  itemListElement: items.map((item, i) => ({
+                      '@type': 'ListItem',
+                      position: i + 1,
+                      name: item.name,
+                      ...(item.url ? {item: item.url} : {}),
+                  })),
+              })} />
+          );
+      })()}
   </>
 )}

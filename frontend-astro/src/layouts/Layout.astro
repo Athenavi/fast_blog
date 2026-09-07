@@ -18,6 +18,11 @@ export interface Props {
 }
 
 const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', lang = 'zh-CN'} = Astro.props;
+
+// Site-level SEO
+const siteUrl = Astro.site?.origin ?? '';
+const ogImage = siteUrl ? `${siteUrl}/og-image.png` : '';
+const canonicalUrl = siteUrl ? `${siteUrl}${Astro.url.pathname.replace(/\/index\.html$/, '')}` : '';
 ---
 
 <html lang={lang} dir={dir} suppressHydrationWarning>
@@ -32,6 +37,48 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
     <meta name="description" content={description} />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#3b82f6" />
+
+      <!-- SEO: Open Graph -->
+      <meta property="og:site_name" content="FastBlog"/>
+      <meta property="og:title" content={title}/>
+      <meta property="og:description" content={description}/>
+      <meta property="og:type" content="website"/>
+      {siteUrl &&
+          <meta property="og:url" content={canonicalUrl}/>}
+      {ogImage &&
+          <meta property="og:image" content={ogImage}/>}
+
+      <!-- SEO: Twitter Card -->
+      <meta name="twitter:card" content="summary_large_image"/>
+      <meta name="twitter:title" content={title}/>
+      <meta name="twitter:description" content={description}/>
+      {ogImage &&
+          <meta name="twitter:image" content={ogImage}/>}
+
+      <!-- SEO: Canonical -->
+      {canonicalUrl &&
+          <link rel="canonical" href={canonicalUrl}/>}
+
+      <!-- SEO: Feeds -->
+      {siteUrl &&
+          <link rel="alternate" type="application/rss+xml" title="RSS Feed" href={`${siteUrl}/api/v2/feed/rss`}/>}
+
+      <!-- SEO: Robots -->
+      <meta name="robots" content="index, follow"/>
+
+      <!-- SEO: WebSite JSON-LD schema with SearchAction -->
+      {siteUrl && <script type="application/ld+json" set:html={JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'WebSite',
+          name: 'FastBlog',
+          url: siteUrl,
+          description,
+          potentialAction: {
+              '@type': 'SearchAction',
+              target: `${siteUrl}/search?q={search_term_string}`,
+              'query-input': 'required name=search_term_string',
+          },
+      })} />}
 
       <!-- Fonts: Inter (matching BaseLayout/admin), Noto Serif SC for editorial headlines, system font fallback for CJK -->
       <link rel="preconnect" href="https://fonts.googleapis.com"/>

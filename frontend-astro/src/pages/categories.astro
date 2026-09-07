@@ -19,10 +19,37 @@ try {
 }
 ---
 
-<Layout title="分类 - FastBlog">
+<Layout title="分类 - FastBlog" description="浏览所有内容分类，发现感兴趣的主题">
+    <slot name="head">
+        {(() => {
+            const siteUrl = Astro.site?.origin ?? '';
+            if (!siteUrl) return null;
+            const items = [
+                {name: '首页', item: siteUrl},
+                {name: '分类'},
+            ];
+            return (
+                <script type="application/ld+json" set:html={JSON.stringify({
+                    '@context': 'https://schema.org',
+                    '@type': 'CollectionPage',
+                    name: '内容分类',
+                    description: '浏览所有内容分类，发现感兴趣的主题',
+                    url: `${siteUrl}/categories`,
+                    breadcrumb: {
+                        '@type': 'BreadcrumbList',
+                        itemListElement: items.map((item, i) => ({
+                            '@type': 'ListItem',
+                            position: i + 1,
+                            ...item,
+                        })),
+                    },
+                })} />
+            );
+        })()}
+    </slot>
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">内容分类</h1>
-    
+
     {fetchError ? (
       <div class="text-center py-12">
         <p class="text-gray-500 dark:text-gray-400">{fetchError}</p>

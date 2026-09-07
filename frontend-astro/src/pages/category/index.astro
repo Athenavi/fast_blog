@@ -35,12 +35,46 @@ if (name) {
 } else {
   error = '缺少分类参数';
 }
-import '@/styles/globals.css';
+
+// SEO
+const siteUrl = Astro.site?.origin ?? '';
+const seoTitle = category ? `${category.name} - FastBlog` : '分类 - FastBlog';
+const seoDescription = category?.description || '浏览分类文章';
 ---
 
-<BaseLayout 
-  title={category ? `${category.name} - FastBlog` : '分类 - FastBlog'}
-  description={category?.description || '浏览分类文章'}
+{siteUrl && (
+<head>
+    <script type="application/ld+json" set:html={JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: seoTitle,
+        description: seoDescription,
+        url: `${siteUrl}/category?name=${name || ''}`,
+        ...(category ? {
+            about: {
+                '@type': 'Thing',
+                name: category.name,
+                description: category.description,
+            },
+        } : {}),
+        breadcrumb: {
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                {'@type': 'ListItem', position: 1, name: '首页', item: siteUrl},
+                {'@type': 'ListItem', position: 2, name: '分类', item: `${siteUrl}/categories`},
+                {'@type': 'ListItem', position: 3, name: category?.name || name},
+            ],
+        },
+    })}/>
+    <meta property="og:type" content="article"/>
+    {category &&
+        <meta property="og:title" content={category.name}/>}
+</head>
+    )}
+
+<BaseLayout
+    title={seoTitle}
+    description={seoDescription}
 >
   {error || !category ? (
     <div class="min-h-screen flex items-center justify-center theme-bg-muted">
