@@ -217,6 +217,28 @@ async def _redis_invalidate(user_id: int):
 # 核心：加载用户权限（三重缓存）
 # ============================================================
 
+async def load_user_capability_codes(
+    db: AsyncSession, user_id: int
+) -> Set[str]:
+    """
+    公开接口：加载用户权限代码集合（三重缓存）。
+
+    查询路径: _MemoryCache → Redis → DB
+    写入路径: DB → Redis + _MemoryCache
+
+    注意: 如果不包含 request.state 缓存，调用者需自行处理。
+    包含 request.state 版本请使用内部函数 _load_user_capability_codes。
+
+    Args:
+        db: 数据库会话
+        user_id: 用户 ID
+
+    Returns:
+        权限代码集合
+    """
+    return await _load_user_capability_codes(db, user_id)
+
+
 async def _load_user_capability_codes(
     db: AsyncSession, user_id: int
 ) -> Set[str]:
@@ -240,9 +262,8 @@ async def _load_user_capability_codes(
         await _memory_cache.set(user_id, cached)
         return cached
 
-    # ── 3. DB 查询（终极回退） ──
-    codes = await rbac_service.get_user_permission_codes(db, user_id)
-    result = set(codes)
+    # �─ 3. DB 查询（终极回退） ──
+    result = await rbac_service.get_permission_codes_set(db, user_id)
     logger.debug("[perm_cache=db] user=%d hit=%d", user_id, len(result))
 
     # 回写到两级缓存（异步、不阻塞）

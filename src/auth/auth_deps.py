@@ -201,16 +201,43 @@ async def admin_required_page(
     return user_or_redirect
 
 
-# ---------- 角色 / 权限检查 ----------
+# ---------- 角色 / 权限检查（使用三重缓存）----------
+
+async def _check_cached(
+    request: Request,
+    user: UserModel,
+    db: AsyncSession,
+    permission_code: str,
+) -> bool:
+    """
+    使用三重缓存检查权限代码。
+    
+    优先从 request.state._perm_cache 读取（已被 Permission 依赖加载），
+    否则使用 _load_user_capability_codes 从缓存/DB 加载。
+    """
+    code = permission_code.replace(":", ".")
+    # 检查 request state 上是否已有权限缓存
+    perm_cache = getattr(request.state, "_perm_cache", None)
+    if perm_cache is not None:
+        return code in perm_cache
+    # 回退到三重缓存加载
+    from src.api.v3._permission import _load_user_capability_codes
+    codes = await _load_user_capability_codes(db, user.id)
+    # 缓存到 request.state 供后续使用
+    request.state._perm_cache = codes
+    return code in codes
+
+
 def require_permission(permission_code: str):
     """API：检查特定权限代码（格式: resource.action）"""
     async def checker(
+        request: Request,
         user: UserModel = Depends(get_current_user),
         db: AsyncSession = Depends(get_async_session),
     ) -> UserModel:
         if user.is_superuser:
             return user
-        if not await rbac_service.has_capability(db, user.id, permission_code):
+        if not await _check_cached(request, user, db, permission_code):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return user
     return checker
@@ -218,16 +245,8 @@ def require_permission(permission_code: str):
 
 def require_resource_permission(resource: str, action: str):
     """API：检查指定资源的操作权限"""
-    async def checker(
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        if user.is_superuser:
-            return user
-        if not await rbac_service.has_permission(db, user.id, resource, action):
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-        return user
-    return checker
+    code = f"{resource}.{action}"
+    return require_permission(code)
 
 
 def require_role(role_slug: str):
@@ -255,7 +274,7 @@ def require_permission_page(permission_code: str):
             return user_or_redirect
         if user_or_redirect.is_superuser:
             return user_or_redirect
-        if not await rbac_service.has_capability(db, user_or_redirect.id, permission_code):
+        if not await _check_cached(request, user_or_redirect, db, permission_code):
             return RedirectResponse(url=f"/login?next={request.url}")
         return user_or_redirect
     return checker

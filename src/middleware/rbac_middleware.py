@@ -1,6 +1,6 @@
 """
 RBAC 权限中间件
-为 API 请求提供全局权限检查
+为 API 请求提供全局权限检查（使用三重缓存加速）
 """
 
 import re
@@ -8,8 +8,47 @@ import re
 from fastapi import Request, HTTPException
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from shared.services.security.rbac_service import rbac_service
 from src.unified_logger import default_logger as logger
+
+__all__ = ["ROUTE_PERMISSION_MAP", "PERMISSION_MAP", "RBACMiddleware"]
+
+
+def _normalize(code: str) -> str:
+    """标准化权限代码: 将 resource:action 转为 resource.action"""
+    return code.replace(":", ".")
+
+
+async def _check_permission_cached(request: Request, user_id: int, resource: str, action: str) -> bool:
+    """
+    使用三重缓存检查权限。
+
+    优先从 request.state 读取已加载的权限集合，避免重复查询。
+    """
+    # Superuser 始终通过（request.state.user 上已有 is_superuser）
+    user = getattr(request.state, "user", None)
+    if user and getattr(user, "is_superuser", False):
+        return True
+
+    # 尝试从 FastAPI 的 request state 获取已加载的权限集合
+    # （由 _permission.py 的 Permission 依赖注入）
+    perm_cache = getattr(request.state, "_perm_cache", None)
+    if perm_cache is not None:
+        code = f"{resource}.{action}"
+        return code in perm_cache
+
+    # 回退到 _permission.py 的三重缓存
+    try:
+        from src.api.v3._permission import _load_user_capability_codes
+        from src.utils.database.unified_manager import db_manager
+
+        async with db_manager.get_session() as db:
+            codes = await _load_user_capability_codes(db, user_id)
+            code = f"{resource}.{action}"
+            return code in codes
+    except Exception as e:
+        logger.error(f"RBAC cached check error: {e}")
+        raise
+
 
 # 路由-权限映射配置
 # 格式: (method_regex, path_regex, resource, action, [exempt_methods])
@@ -223,25 +262,26 @@ class RBACMiddleware(BaseHTTPMiddleware):
         # 检查路由映射表
         for method_pattern, path_pattern, resource, action in ROUTE_PERMISSION_MAP:
             if re.match(method_pattern, request.method) and re.search(path_pattern, path):
-                # 需要检查权限
                 user = getattr(request.state, "user", None)
                 if not user or not hasattr(user, "id"):
                     # 未认证用户 — 跳过 RBAC 检查，交由路由层 Depends(jwt_required) 处理
                     continue
 
                 try:
-                    from src.utils.database.unified_manager import db_manager
-                    async with db_manager.get_session() as db:
-                        has_perm = await rbac_service.has_permission(db, user.id, resource, action)
-                        if not has_perm:
-                            logger.warning(f"Permission denied: user={user.id} resource={resource} action={action} path={path}")
-                            raise HTTPException(status_code=403, detail=f"Insufficient permissions: {resource}:{action}")
+                    has_perm = await _check_permission_cached(request, user.id, resource, action)
+                    if not has_perm:
+                        logger.warning(
+                            f"Permission denied: user={user.id} resource={resource} action={action} path={path}")
+                        raise HTTPException(status_code=403, detail=f"Insufficient permissions: {resource}:{action}")
                 except HTTPException:
                     raise
                 except Exception as e:
                     logger.error(f"RBAC check error: {e}")
-                    # 权限检查失败时保守处理 - 拒绝访问
                     raise HTTPException(status_code=403, detail="Permission check failed")
                 break
 
         return await call_next(request)
+
+
+# 兼容旧代码 — PERMISSION_MAP 是 ROUTE_PERMISSION_MAP 的别名
+PERMISSION_MAP = ROUTE_PERMISSION_MAP
