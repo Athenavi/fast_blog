@@ -1,0 +1,236 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Modern Minimal",
+    "slug": "modern-minimal",
+    "version": "2.0.0",
+    "description": "现代简约风格主题 - 干净、优雅、响应式设计，支持代码高亮和深色模式",
+    "author": "FastBlog Team"
+  },
+  "settings": {
+    "colors": {
+      "primary": "#3b82f6",
+      "secondary": "#64748b",
+      "accent": "#f59e0b",
+      "background": "#ffffff",
+      "foreground": "#1f2937",
+      "muted": "#f3f4f6",
+      "border": "#e5e7eb",
+      "code_background": "#1e293b",
+      "code_text": "#e2e8f0"
+    },
+    "layout": {
+      "sidebarPosition": "right",
+      "contentWidth": "max-w-5xl",
+      "showSidebar": true,
+      "showHeader": true,
+      "showFooter": true,
+      "showToc": true
+    },
+    "typography": {
+      "fontFamily": "Inter, system-ui, -apple-system, sans-serif",
+      "codeFont": "Fira Code, JetBrains Mono, monospace",
+      "fontSize": "16px",
+      "lineHeight": 1.75
+    },
+    "components": {
+      "borderRadius": "0.5rem",
+      "shadowStyle": "medium",
+      "buttonStyle": "rounded"
+    },
+    "features": {
+      "showReadingTime": true,
+      "showRelatedPosts": true,
+      "showCodeLineNumbers": true,
+      "showCopyButton": true,
+      "autoDarkMode": true
+    }
+  },
+  "settings_schema": {
+    "colors": {
+      "type": "group",
+      "label": "颜色方案",
+      "fields": {
+        "primary": {
+          "type": "color",
+          "label": "主色调",
+          "default": "#3b82f6"
+        },
+        "secondary": {
+          "type": "color",
+          "label": "次要色",
+          "default": "#64748b"
+        },
+        "accent": {
+          "type": "color",
+          "label": "强调色",
+          "default": "#f59e0b"
+        },
+        "background": {
+          "type": "color",
+          "label": "背景色",
+          "default": "#ffffff"
+        },
+        "foreground": {
+          "type": "color",
+          "label": "前景色",
+          "default": "#1f2937"
+        },
+        "muted": {
+          "type": "color",
+          "label": "弱化背景",
+          "default": "#f3f4f6"
+        },
+        "border": {
+          "type": "color",
+          "label": "边框",
+          "default": "#e5e7eb"
+        },
+        "code_background": {
+          "type": "color",
+          "label": "代码块背景",
+          "default": "#1e293b"
+        },
+        "code_text": {
+          "type": "color",
+          "label": "代码块文字",
+          "default": "#e2e8f0"
+        }
+      }
+    },
+    "layout": {
+      "type": "group",
+      "label": "布局设置",
+      "fields": {
+        "sidebarPosition": {
+          "type": "select",
+          "label": "侧边栏位置",
+          "options": [
+            "left",
+            "right",
+            "none"
+          ]
+        },
+        "contentWidth": {
+          "type": "select",
+          "label": "内容宽度",
+          "options": [
+            "max-w-4xl",
+            "max-w-5xl",
+            "max-w-7xl"
+          ]
+        },
+        "showSidebar": {
+          "type": "boolean",
+          "label": "显示侧边栏"
+        },
+        "showHeader": {
+          "type": "boolean",
+          "label": "显示页头"
+        },
+        "showFooter": {
+          "type": "boolean",
+          "label": "显示页脚"
+        },
+        "showToc": {
+          "type": "boolean",
+          "label": "显示目录"
+        }
+      }
+    },
+    "typography": {
+      "type": "group",
+      "label": "排版设置",
+      "fields": {
+        "fontFamily": {
+          "type": "text",
+          "label": "正文字体"
+        },
+        "codeFont": {
+          "type": "text",
+          "label": "等宽字体"
+        },
+        "fontSize": {
+          "type": "text",
+          "label": "字号"
+        },
+        "lineHeight": {
+          "type": "number",
+          "label": "行高"
+        }
+      }
+    },
+    "components": {
+      "type": "group",
+      "label": "组件",
+      "fields": {
+        "borderRadius": {
+          "type": "text",
+          "label": "圆角"
+        },
+        "shadowStyle": {
+          "type": "select",
+          "label": "阴影",
+          "options": [
+            "none",
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "buttonStyle": {
+          "type": "select",
+          "label": "按钮风格",
+          "options": [
+            "default",
+            "rounded",
+            "pill"
+          ]
+        }
+      }
+    },
+    "features": {
+      "type": "group",
+      "label": "功能开关",
+      "fields": {
+        "showReadingTime": {
+          "type": "boolean",
+          "label": "显示阅读时间"
+        },
+        "showRelatedPosts": {
+          "type": "boolean",
+          "label": "显示相关文章"
+        },
+        "showCodeLineNumbers": {
+          "type": "boolean",
+          "label": "代码行号"
+        },
+        "showCopyButton": {
+          "type": "boolean",
+          "label": "代码复制按钮"
+        },
+        "autoDarkMode": {
+          "type": "boolean",
+          "label": "自动深色模式"
+        }
+      }
+    }
+  },
+  "componentSlots": {
+    "header": "floating",
+    "articleCard": "default",
+    "footer": "default"
+  },
+  "supports": [
+    "custom-logo",
+    "custom-header",
+    "featured-image",
+    "post-thumbnails",
+    "comments",
+    "widgets",
+    "table-of-contents",
+    "code-highlighting",
+    "dark-mode",
+    "responsive-design"
+  ]
+}
