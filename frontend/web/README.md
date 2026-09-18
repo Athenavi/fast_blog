@@ -53,5 +53,5 @@ src/
 
 ## 相关文档
 
-- `docs/refactor/FRONTEND_NUXT_MIGRATION.md`：迁移决策、映射表、进度与待办
-- `docs/refactor/PERMISSION_REFACTOR_PLAN.md`：后端权限体系（三段码、数据范围、菜单授权）
+- `docs/refactor/HANDOVER.md`：交接文档（状态速览、迁移产出、坑与教训、**待办清单 §12**）
+- `docs/refactor/FASTAPIADMIN_REFACTOR.md`：后端重构的目标与现状（已定决策、权限体系、剩余待做）

@@ -11,7 +11,7 @@ import {storage} from '@/utils/storage'
  *
  * 响应形如 `{success, data, error}`（v2 风格，与 v3 的 `{code, msg, data}` 不同）。
  *
- * 仅 v2 有该端点这件事已登记在 `docs/refactor/FUTURE_WORK_PLAN.md` §5。
+ * 仅 v2 有该端点这件事已登记在 `docs/refactor/HANDOVER.md` §12.3。
  */
 export interface PluginActionResult<T> {
   success: boolean

@@ -7,7 +7,7 @@ import type {LyricLine} from '@/components/site/audio/helpers'
  *
  * ⚠️ **数据源是 v2 兼容层**：`GET /api/v2/media/{id}/metadata`。
  * v3 的 `MediaItem` 里没有 `lyrics` / `cover_image` 字段，目前没有等价端点，
- * 细节与待办见 `docs/refactor/FUTURE_WORK_PLAN.md` §5。后端补上 v3 端点后，
+ * 细节与待办见 `docs/refactor/HANDOVER.md` §12.3。后端补上 v3 端点后，
  * 只需要改这一个函数。
  *
  * astro 原实现里 `AudioLayer`、`PlayerView`、`MiniPlayerWrapper` **各请求了一次**
