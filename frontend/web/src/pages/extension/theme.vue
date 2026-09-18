@@ -9,7 +9,7 @@
  * 主题实现不支持的槽位会被忽略并记录告警。
  */
 import {Check, Refresh} from '@element-plus/icons-vue'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/utils/feedback'
 import {computed, ref} from 'vue'
 
 import {themeApi, type ThemeConfig, type ThemeInfo} from '@/api'

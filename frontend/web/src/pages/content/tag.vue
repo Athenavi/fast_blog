@@ -6,7 +6,7 @@
  * 因此后端只提供「聚合列表 / 重命名（可合并）/ 删除」这几种操作。
  */
 import {Delete, Edit, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {tagApi, type TagItem} from '@/api'

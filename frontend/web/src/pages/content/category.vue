@@ -6,7 +6,7 @@
  * 字段见 `CategoryPayload`（name / slug / parent_id / sort_order / icon / color / is_visible）。
  */
 import {Delete, Edit, Plus, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {categoryApi, type CategoryItem, type CategoryPayload} from '@/api'

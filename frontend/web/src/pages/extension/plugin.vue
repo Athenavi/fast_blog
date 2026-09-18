@@ -8,8 +8,8 @@
  * 这里统一走二次确认；卸载额外使用独立的 delete 权限码。
  */
 import {Delete, Refresh, Setting, Upload} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
-import {reactive, ref} from 'vue'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
+import {ref} from 'vue'
 
 import {pluginApi, type PluginItem} from '@/api'
 

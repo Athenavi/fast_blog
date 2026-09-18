@@ -6,7 +6,7 @@
  * `/{id}` 更新与删除、`/batch/delete` 批量删除。
  */
 import {Delete, Edit, Refresh, Upload} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {mediaApi, type MediaItem} from '@/api'

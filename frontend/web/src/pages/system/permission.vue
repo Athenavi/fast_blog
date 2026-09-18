@@ -6,10 +6,10 @@
  * 这里只做只读展示（按 `resource_type` 分组）与权限缓存运维。
  */
 import {Delete, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {ref} from 'vue'
 
-import {permissionApi, type CapabilityGroup} from '@/api'
+import {type CapabilityGroup, permissionApi} from '@/api'
 
 definePageMeta({
   layout: 'admin',

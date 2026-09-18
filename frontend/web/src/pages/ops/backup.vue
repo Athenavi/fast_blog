@@ -9,7 +9,7 @@
  * 样式统一使用 Element Plus 的 CSS 变量。
  */
 import {Delete, Download, Refresh, Upload} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {backupApi, type BackupItem, type BackupSchedule} from '@/api'

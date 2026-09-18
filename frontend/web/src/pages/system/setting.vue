@@ -7,7 +7,7 @@
  * `/system/setting/public` 下发给前台（站点名、描述、页脚等）。
  */
 import {Delete, Edit, Plus, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {settingApi, type SettingItem} from '@/api'

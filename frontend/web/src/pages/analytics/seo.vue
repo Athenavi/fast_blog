@@ -6,7 +6,7 @@
  * 全部为只读分析接口（`analyze` 不落库），因此只需 view 权限。
  */
 import {Refresh, Search} from '@element-plus/icons-vue'
-import {ElMessage} from 'element-plus'
+import {ElMessage} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {seoApi} from '@/api'

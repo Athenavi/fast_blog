@@ -7,7 +7,7 @@
  * 因此权限码用 `module_system:navmenu:*`。
  */
 import {Delete, Edit, Plus, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {menuApi, type MenuItemNode, type MenuNode} from '@/api'

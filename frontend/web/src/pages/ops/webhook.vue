@@ -6,7 +6,7 @@
  * 样式统一使用 Element Plus 的 CSS 变量。
  */
 import {Delete, Edit, Plus, Promotion, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {webhookApi, type WebhookItem, type WebhookPayload} from '@/api'

@@ -6,7 +6,7 @@
  * 部件配置（`config`）是自由 JSON，这里用文本域编辑并做解析校验。
  */
 import {Delete, Edit, Plus, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {widgetApi, type WidgetItem} from '@/api'

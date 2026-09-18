@@ -6,7 +6,7 @@
  * `/{id}/approve|reject` 审核、`/batch/delete` 批量删除。
  */
 import {Delete, Edit, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {commentApi, type CommentItem} from '@/api'

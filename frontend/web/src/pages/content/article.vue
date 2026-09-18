@@ -7,7 +7,7 @@
  * 后续可替换为富文本编辑器而不影响其余部分。
  */
 import {Delete, Edit, Plus, Refresh, Search} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {articleApi, type ArticleItem, type ArticlePayload, categoryApi, type CategoryItem,} from '@/api'

@@ -37,7 +37,7 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
-import {ElMessageBox} from 'element-plus'
+import {ElMessageBox} from '@/utils/feedback'
 
 import {notificationApi} from '@/api'
 import {useAppStore} from '@/store/modules/app'

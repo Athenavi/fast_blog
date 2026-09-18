@@ -8,7 +8,7 @@
  * 样式统一使用 Element Plus 的 CSS 变量，避免写死色值。
  */
 import {Delete, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from 'element-plus'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {notificationApi, type NotificationItem} from '@/api'

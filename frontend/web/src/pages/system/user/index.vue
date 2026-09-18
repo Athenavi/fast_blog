@@ -162,7 +162,7 @@
 
 <script lang="ts" setup>
 import {Plus, Refresh, Search} from '@element-plus/icons-vue'
-import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
+import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
 import {roleApi, type RoleItem, userApi, type UserItem, type UserQuery} from '@/api'
