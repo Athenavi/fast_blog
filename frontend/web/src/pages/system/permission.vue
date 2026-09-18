@@ -15,7 +15,7 @@ import {type CapabilityGroup, permissionApi} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.system.permission.title'),
+  title: 'admin.system.permission.title',
   permission: 'module_system:permission:view',
 })
 

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 首页（阅读优先）
  *
@@ -43,7 +44,7 @@ useWebsiteJsonLd({
 
 useSeoMeta({
   title: site.value.site_name || 'FastBlog',
-  description: site.value.site_description || '一个基于 FastAPI 与 Nuxt 的博客',
+  description: site.value.site_description || t('home.tagline'),
   ogTitle: site.value.site_name || 'FastBlog',
   ogDescription: site.value.site_description || '',
 })
@@ -63,16 +64,16 @@ useSeoMeta({
           {{ site.site_name || 'FastBlog' }}
         </h1>
         <p class="mt-4 max-w-read text-base leading-relaxed text-fg-muted">
-          {{ site.site_description || '记录技术、思考与生活。' }}
+          {{ site.site_description || t('home.description') }}
         </p>
         <div class="mt-8 flex flex-wrap gap-3">
           <NuxtLink to="/articles">
-            <Button size="lg">浏览文章
+            <Button size="lg">{{ $t('home.browseArticles') }}
               <Icon class="h-4 w-4" name="arrow-right"/>
             </Button>
           </NuxtLink>
           <NuxtLink to="/about">
-            <Button size="lg" variant="outline">关于本站</Button>
+            <Button size="lg" variant="outline">{{ $t('home.aboutLink') }}</Button>
           </NuxtLink>
         </div>
       </div>
@@ -81,12 +82,12 @@ useSeoMeta({
     <!-- 最新文章 -->
     <section class="mx-auto max-w-wide px-4 py-14">
       <div class="mb-8 flex items-end justify-between">
-        <h2 class="text-lg font-semibold tracking-tight text-fg">最新文章</h2>
+        <h2 class="text-lg font-semibold tracking-tight text-fg">{{ $t('home.latestArticles') }}</h2>
         <NuxtLink
           class="inline-flex items-center gap-1 text-sm text-fg-muted transition-colors hover:text-primary"
           to="/articles"
         >
-          全部文章
+          {{ $t('home.allArticles') }}
           <Icon class="h-3.5 w-3.5" name="arrow-right"/>
         </NuxtLink>
       </div>
@@ -95,15 +96,15 @@ useSeoMeta({
         :articles="articles"
         :page="1"
         :pages="0"
-        empty-description="发布第一篇文章后，它会出现在这里。"
-        empty-title="还没有已发布的文章"
+        :empty-description="$t('home.emptyArticlesDesc')"
+        :empty-title="$t('home.emptyArticlesTitle')"
       />
     </section>
 
     <!-- 分类 -->
     <section v-if="(categories || []).length" class="border-t border-line bg-surface-soft">
       <div class="mx-auto max-w-wide px-4 py-14">
-        <h2 class="mb-6 text-lg font-semibold tracking-tight text-fg">分类</h2>
+        <h2 class="mb-6 text-lg font-semibold tracking-tight text-fg">{{ $t('home.categoriesLink') }}</h2>
         <div class="flex flex-wrap gap-2">
           <NuxtLink v-for="category in categories || []" :key="category.id" :to="`/category/${category.id}`">
             <Badge class="bg-surface px-3 py-1 text-sm" variant="outline">

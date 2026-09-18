@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 虚拟列表（高度不固定）
  *
@@ -25,7 +26,7 @@ const props = withDefaults(
     estimatedItemHeight: 120,
     height: '600px',
     overscan: 8,
-    emptyTitle: '暂无内容',
+    emptyTitle: t('site.emptyContent'),
     emptyDescription: '',
   },
 )

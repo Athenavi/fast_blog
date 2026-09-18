@@ -18,7 +18,7 @@ import {formatDateTime} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.ops.notification.notifications'),
+  title: 'admin.ops.notification.notifications',
   permission: 'module_ops:notification:view',
 })
 

@@ -37,7 +37,7 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
   <ClientOnly>
     <div class="relative" @click.stop>
       <button
-        aria-label="外观设置"
+        :aria-label="$t('site.themeSettingsAria')"
         class="inline-flex h-9 w-9 items-center justify-center rounded-control text-fg-muted transition-colors hover:bg-surface-soft hover:text-fg"
         type="button"
         @click="open = !open"
@@ -50,7 +50,7 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
         v-if="open"
         class="absolute right-0 z-50 mt-2 w-56 rounded-card border border-line bg-surface p-2 shadow-lg"
       >
-        <p class="px-2 py-1.5 text-xs font-medium text-fg-subtle">外观</p>
+        <p class="px-2 py-1.5 text-xs font-medium text-fg-subtle">{{ $t('site.appearanceLabel') }}</p>
         <button
           v-for="item in THEME_MODES"
           :key="item.value"
@@ -68,7 +68,7 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
 
         <p class="flex items-center gap-1.5 px-2 py-1.5 text-xs font-medium text-fg-subtle">
           <Icon class="h-3.5 w-3.5" name="palette"/>
-          主色
+          {{ $t('site.accentLabel') }}
         </p>
         <div class="flex items-center gap-2 px-2 py-1.5">
           <button

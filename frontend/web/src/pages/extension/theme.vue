@@ -18,7 +18,7 @@ import {themeApi, type ThemeConfig, type ThemeInfo} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.extension.theme.themes'),
+  title: 'admin.extension.theme.themes',
   permission: 'module_extension:theme:view',
 })
 

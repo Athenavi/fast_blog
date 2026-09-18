@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 媒体预览器
  *
@@ -76,7 +77,7 @@ onKeyStroke('ArrowRight', () => {
     <!-- 顶栏 -->
     <header class="flex items-center gap-3 border-b border-line px-4 py-3">
       <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium text-fg">{{ current.name || '(未命名)' }}</p>
+        <p class="truncate text-sm font-medium text-fg">{{ current.name || t('media.unnamed') }}</p>
         <p class="mt-0.5 text-xs text-fg-subtle">
           <span v-if="current.size">{{ formatFileSize(current.size) }}</span>
           <span v-if="current.createdAt"> · {{ formatDateTime(current.createdAt) }}</span>
@@ -91,10 +92,10 @@ onKeyStroke('ArrowRight', () => {
         download
       >
         <Icon class="h-4 w-4" name="download"/>
-        下载
+        {{ $t('common.download') }}
       </a>
       <button
-        aria-label="关闭预览"
+        :aria-label="$t('media.closePreviewAria')"
         class="inline-flex h-9 w-9 items-center justify-center rounded-control text-fg-muted transition-colors hover:bg-surface-soft hover:text-fg"
         type="button"
         @click="close"
@@ -107,7 +108,7 @@ onKeyStroke('ArrowRight', () => {
     <div class="relative flex flex-1 items-center justify-center overflow-hidden p-4">
       <button
         v-if="canPrev"
-        aria-label="上一个"
+        :aria-label="$t('media.prevAria')"
         class="absolute left-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-pill border border-line bg-surface text-fg-muted transition-colors hover:text-fg"
         type="button"
         @click="go(-1)"
@@ -137,22 +138,22 @@ onKeyStroke('ArrowRight', () => {
         v-else-if="kind === 'pdf' && current.url"
         :src="current.url"
         class="h-full w-full max-w-4xl rounded-card border border-line bg-surface"
-        title="PDF 预览"
+        :title="$t('media.pdfPreviewTitle')"
       />
       <div v-else class="flex flex-col items-center gap-3 text-center">
         <Icon class="h-10 w-10 text-fg-subtle" name="file-text"/>
-        <p class="text-sm text-fg-muted">该类型暂不支持在线预览，可下载后查看</p>
+        <p class="text-sm text-fg-muted">{{ $t('media.unsupportedPreview') }}</p>
         <a v-if="current.url" :href="current.url" download>
           <Button variant="outline">
             <Icon class="h-4 w-4" name="download"/>
-            下载文件
+            {{ $t('media.downloadFile') }}
           </Button>
         </a>
       </div>
 
       <button
         v-if="canNext"
-        aria-label="下一个"
+        :aria-label="$t('media.nextAria')"
         class="absolute right-3 z-10 inline-flex h-10 w-10 items-center justify-center rounded-pill border border-line bg-surface text-fg-muted transition-colors hover:text-fg"
         type="button"
         @click="go(1)"

@@ -7,6 +7,7 @@
     GET    /api/v3/extension/plugin/{slug}           插件详情
     GET    /api/v3/extension/plugin/{slug}/settings  插件配置
     PUT    /api/v3/extension/plugin/{slug}/settings  保存插件配置
+    POST   /api/v3/extension/plugin/{slug}/action    执行插件自定义动作
     POST   /api/v3/extension/plugin/{slug}/install   安装（需 confirm=true）
     POST   /api/v3/extension/plugin/{slug}/activate  激活（需 confirm=true）
     POST   /api/v3/extension/plugin/{slug}/deactivate 停用（需 confirm=true）
@@ -23,7 +24,7 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
-from src.api.v3.modules.extension.plugin.schema import PluginSettingsUpdate
+from src.api.v3.modules.extension.plugin.schema import PluginActionRequest, PluginSettingsUpdate
 from src.api.v3.modules.extension.plugin.service import plugin_ops_service, require_confirm
 
 router = APIRouter(prefix="/plugin", tags=["extension-plugin"], route_class=OperationLogRoute)
@@ -137,3 +138,20 @@ async def uninstall_plugin(
 ) -> dict:
     require_confirm(confirm, "卸载插件")
     return resp.success(await plugin_ops_service.uninstall(slug), msg="已卸载")
+
+
+# ─────────────────────────── 自定义动作（动态路径放最后）───────────────────────────
+@router.post("/{slug}/action", response_model=ResponseModel, summary="执行插件自定义动作")
+async def execute_plugin_action(
+    slug: str,
+    payload: PluginActionRequest,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.PLUGIN_CONFIGURE),
+) -> dict:
+    """自 v2 ``POST /api/v2/plugins/{slug}/action`` 平移（T5-10）
+
+    插件方法自身的返回值原样放在 ``data`` 里（含插件级 ``{success, ...}``），
+    前端 ``utils/pluginAction.ts`` 据此判定成功与否。
+    """
+    result = await plugin_ops_service.execute_action(slug, payload.action, payload.params)
+    return resp.success(result)

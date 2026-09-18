@@ -16,7 +16,7 @@ import {formatDateTime, truncate} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('comment.title'),
+  title: 'comment.title',
   permission: 'module_content:comment:view',
 })
 

@@ -4,6 +4,7 @@ import type {ArticleItem, CategoryItem} from '@/types/content'
 
 const route = useRoute()
 const router = useRouter()
+const {t} = useI18n()
 const site = await useSiteInfo()
 
 const page = computed(() => Number(route.query.page || 1))
@@ -35,18 +36,20 @@ function selectCategory(id?: number) {
 }
 
 useSeoMeta({
-  title: () => `文章 - ${site.value.site_name || 'FastBlog'}`,
+  title: () => t('article.seoTitle', {name: site.value.site_name || 'FastBlog'}),
   description: site.value.site_description || '',
 })
 </script>
 
 <template>
   <div class="mx-auto max-w-5xl px-4 py-10">
-    <h1 class="text-2xl font-bold tracking-tight text-fg">文章</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('article.title') }}</h1>
 
     <div v-if="(categories || []).length" class="mt-5 flex flex-wrap gap-2">
       <button @click="selectCategory()">
-        <Badge :variant="categoryId ? 'outline' : 'default'" class="cursor-pointer px-3 py-1 text-sm">全部</Badge>
+        <Badge :variant="categoryId ? 'outline' : 'default'" class="cursor-pointer px-3 py-1 text-sm">
+          {{ $t('admin.common.all') }}
+        </Badge>
       </button>
       <button v-for="category in categories || []" :key="category.id" @click="selectCategory(category.id)">
         <Badge
@@ -64,7 +67,7 @@ useSeoMeta({
       :page="page"
       :pages="pageData?.pages ?? 0"
       class="mt-8"
-      empty-description="换个分类看看，或者稍后再来。"
+      :empty-description="$t('article.emptyDesc')"
       @change="changePage"
     />
   </div>

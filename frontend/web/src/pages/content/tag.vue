@@ -15,7 +15,7 @@ import {tagApi, type TagItem} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('article.tags'),
+  title: 'article.tags',
   permission: 'module_content:tag:view',
 })
 

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {computed, onBeforeUnmount, onMounted, reactive, ref, watch} from 'vue'
 
 import {type LyricLine, tokenizeText} from './helpers'
@@ -39,29 +40,71 @@ const GRADIENTS: Array<{
   to: string
   shadow: string
 }> = [
-  {id: 'purple-pink', label: '紫粉', from: '#a855f7', via: '#d946ef', to: '#ec4899', shadow: 'rgba(168,85,247,0.5)'},
-  {id: 'cyan-blue', label: '青蓝', from: '#06b6d4', via: '#3b82f6', to: '#6366f1', shadow: 'rgba(59,130,246,0.5)'},
-  {id: 'green-emerald', label: '翠绿', from: '#34d399', via: '#10b981', to: '#059669', shadow: 'rgba(16,185,129,0.5)'},
-  {id: 'orange-rose', label: '暖橙', from: '#fb923c', via: '#f43f5e', to: '#e11d48', shadow: 'rgba(244,63,94,0.5)'},
-  {id: 'white-glow', label: '白辉', from: '#ffffff', via: '#e2e8f0', to: '#94a3b8', shadow: 'rgba(255,255,255,0.4)'},
-  {id: 'gold-amber', label: '金色', from: '#fbbf24', via: '#f59e0b', to: '#d97706', shadow: 'rgba(245,158,11,0.5)'},
+  {
+    id: 'purple-pink',
+    label: t('audio.schemePurplePink'),
+    from: '#a855f7',
+    via: '#d946ef',
+    to: '#ec4899',
+    shadow: 'rgba(168,85,247,0.5)'
+  },
+  {
+    id: 'cyan-blue',
+    label: t('audio.schemeCyanBlue'),
+    from: '#06b6d4',
+    via: '#3b82f6',
+    to: '#6366f1',
+    shadow: 'rgba(59,130,246,0.5)'
+  },
+  {
+    id: 'green-emerald',
+    label: t('audio.schemeEmerald'),
+    from: '#34d399',
+    via: '#10b981',
+    to: '#059669',
+    shadow: 'rgba(16,185,129,0.5)'
+  },
+  {
+    id: 'orange-rose',
+    label: t('audio.schemeWarmOrange'),
+    from: '#fb923c',
+    via: '#f43f5e',
+    to: '#e11d48',
+    shadow: 'rgba(244,63,94,0.5)'
+  },
+  {
+    id: 'white-glow',
+    label: t('audio.schemeWhiteGlow'),
+    from: '#ffffff',
+    via: '#e2e8f0',
+    to: '#94a3b8',
+    shadow: 'rgba(255,255,255,0.4)'
+  },
+  {
+    id: 'gold-amber',
+    label: t('audio.schemeGold'),
+    from: '#fbbf24',
+    via: '#f59e0b',
+    to: '#d97706',
+    shadow: 'rgba(245,158,11,0.5)'
+  },
 ]
 
 const FONTS: Array<{ value: string; label: string }> = [
-  {value: 'system-ui, sans-serif', label: '系统'},
-  {value: '"PingFang SC", "Microsoft YaHei", sans-serif', label: '雅黑'},
+  {value: 'system-ui, sans-serif', label: t('audio.fontSystem')},
+  {value: '"PingFang SC", "Microsoft YaHei", sans-serif', label: t('audio.fontYahei')},
   {value: '"Noto Sans SC", sans-serif', label: 'Noto'},
-  {value: '"Songti SC", "SimSun", serif', label: '宋体'},
-  {value: '"STKaiti", "KaiTi", serif', label: '楷体'},
-  {value: 'monospace', label: '等宽'},
+  {value: '"Songti SC", "SimSun", serif', label: t('audio.fontSong')},
+  {value: '"STKaiti", "KaiTi", serif', label: t('audio.fontKai')},
+  {value: 'monospace', label: t('audio.fontMono')},
 ]
 
 const ANIM_PRESETS: Array<{ value: AnimPreset; label: string; desc: string }> = [
-  {value: 'fade-up', label: '淡入上移', desc: 'opacity 0→1 + y 20→0'},
-  {value: 'fade-scale', label: '淡入缩放', desc: 'opacity 0→1 + scale 0.8→1'},
-  {value: 'slide-left', label: '右侧滑入', desc: 'x 40→0 + opacity'},
-  {value: 'slide-right', label: '左侧滑入', desc: 'x -40→0 + opacity'},
-  {value: 'typewriter', label: '打字机', desc: 'clipPath 逐字展开'},
+  {value: 'fade-up', label: t('audio.animFadeUp'), desc: 'opacity 0→1 + y 20→0'},
+  {value: 'fade-scale', label: t('audio.animFadeScale'), desc: 'opacity 0→1 + scale 0.8→1'},
+  {value: 'slide-left', label: t('audio.animSlideRight'), desc: 'x 40→0 + opacity'},
+  {value: 'slide-right', label: t('audio.animSlideLeft'), desc: 'x -40→0 + opacity'},
+  {value: 'typewriter', label: t('audio.animTypewriter'), desc: t('audio.animClipPath')},
 ]
 
 const LS_KEY = 'fastblog_desktop_lyrics'
@@ -270,15 +313,15 @@ onBeforeUnmount(() => {
         v-if="!dragging"
         class="mb-2 flex items-center justify-between gap-2 text-[11px] text-white/40"
       >
-        <span>桌面歌词</span>
+        <span>{{ $t('audio.desktopLyrics') }}</span>
         <div class="flex items-center gap-1">
           <button class="rounded px-1.5 py-0.5 hover:bg-white/10 hover:text-white/80" type="button"
                   @click.stop="showSettings = !showSettings">
-            设置
+            {{ $t('audio.settings') }}
           </button>
           <button class="rounded px-1.5 py-0.5 hover:bg-white/10 hover:text-white/80" type="button"
                   @click.stop="emit('visibility-change', false)">
-            关闭
+            {{ $t('common.close') }}
           </button>
         </div>
       </div>
@@ -321,7 +364,7 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div v-else class="py-3 text-center text-sm text-white/40">暂无歌词</div>
+        <div v-else class="py-3 text-center text-sm text-white/40">{{ $t('audio.noLyrics') }}</div>
       </Transition>
 
       <!-- 设置面板 -->
@@ -331,7 +374,7 @@ onBeforeUnmount(() => {
         @pointerdown.stop
       >
         <div>
-          <p class="mb-1.5">配色</p>
+          <p class="mb-1.5">{{ $t('audio.schemeLabel') }}</p>
           <div class="flex flex-wrap gap-1.5">
             <button
               v-for="item in GRADIENTS"
@@ -348,25 +391,25 @@ onBeforeUnmount(() => {
 
         <div class="grid grid-cols-2 gap-2">
           <label class="flex flex-col gap-1">
-            字号 {{ settings.fontSize }}px
+            {{ $t('audio.fontSize', {size: settings.fontSize}) }}
             <input v-model.number="settings.fontSize" class="w-full" max="48" min="12" step="1" type="range">
           </label>
           <label class="flex flex-col gap-1">
-            不透明度 {{ settings.opacity }}%
+            {{ $t('audio.opacityLabel', {n: settings.opacity}) }}
             <input v-model.number="settings.opacity" class="w-full" max="100" min="20" step="1" type="range">
           </label>
           <label class="flex flex-col gap-1">
-            宽度 {{ settings.boxWidth }}px
+            {{ $t('audio.boxWidth', {n: settings.boxWidth}) }}
             <input v-model.number="settings.boxWidth" class="w-full" max="1200" min="280" step="20" type="range">
           </label>
           <label class="flex flex-col gap-1">
-            字体
+            {{ $t('audio.fontLabel') }}
             <select v-model="settings.fontFamily" class="w-full rounded bg-white/10 px-1 py-0.5">
               <option v-for="font in FONTS" :key="font.value" :value="font.value">{{ font.label }}</option>
             </select>
           </label>
           <label class="flex flex-col gap-1">
-            入场动画
+            {{ $t('audio.enterAnim') }}
             <select v-model="settings.entryAnim" class="w-full rounded bg-white/10 px-1 py-0.5">
               <option v-for="preset in ANIM_PRESETS" :key="preset.value" :value="preset.value">{{
                   preset.label
@@ -375,7 +418,7 @@ onBeforeUnmount(() => {
             </select>
           </label>
           <label class="flex flex-col gap-1">
-            出场动画
+            {{ $t('audio.exitAnim') }}
             <select v-model="settings.exitAnim" class="w-full rounded bg-white/10 px-1 py-0.5">
               <option v-for="preset in ANIM_PRESETS" :key="preset.value" :value="preset.value">{{
                   preset.label
@@ -387,10 +430,10 @@ onBeforeUnmount(() => {
 
         <div class="flex justify-end gap-2 pt-1">
           <button class="rounded border border-white/15 px-2 py-1 hover:bg-white/10" type="button"
-                  @click="resetPosition">重置位置
+                  @click="resetPosition">{{ $t('audio.resetPosition') }}
           </button>
           <button class="rounded border border-white/15 px-2 py-1 hover:bg-white/10" type="button" @click="resetAll">
-            恢复默认
+            {{ $t('audio.resetDefaults') }}
           </button>
         </div>
       </div>

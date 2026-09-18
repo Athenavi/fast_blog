@@ -17,7 +17,7 @@ import {pluginApi, type PluginItem} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.extension.plugin.plugins'),
+  title: 'admin.extension.plugin.plugins',
   permission: 'module_extension:plugin:view',
 })
 

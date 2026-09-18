@@ -17,7 +17,7 @@ const props = defineProps<{ category: CategoryItem }>()
         <CardDescription v-if="props.category.description">{{ props.category.description }}</CardDescription>
       </CardHeader>
       <CardContent>
-        <p class="text-xs text-fg-subtle">{{ props.category.article_count ?? 0 }} 篇文章</p>
+        <p class="text-xs text-fg-subtle">{{ $t('site.articleCount', {n: props.category.article_count ?? 0}) }}</p>
         <div v-if="props.category.children?.length" class="mt-3 flex flex-wrap gap-1.5">
           <Badge v-for="child in props.category.children" :key="child.id" variant="secondary">{{ child.name }}</Badge>
         </div>

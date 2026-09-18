@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import Highlight from '@tiptap/extension-highlight'
 import ImageExt from '@tiptap/extension-image'
 import LinkExt from '@tiptap/extension-link'
@@ -27,8 +28,8 @@ import type {IconName} from '@/lib/icons'
  *  2. astro 版的 AI 工具（润色/续写）调 `/api/v2/ai-*`，v3 没有 AI 域 ——
  *     按约定**不迁移**，已登记到 `docs/refactor/HANDOVER.md` §12.3。
  *
- * 图片目前走「填 URL」；上传到媒体库需要带 token 的写接口，等后台编辑器统一
- * 接入媒体选择器时再补（见 HANDOVER §12）。
+ * 图片支持三种来源（`MediaPickerDialog`）：我的媒体库点选、本地上传
+ * （v3 `mobile/media` 的 `/upload/image`，登录即可）、外链地址兜底。
  */
 const props = withDefaults(
   defineProps<{
@@ -36,7 +37,7 @@ const props = withDefaults(
     placeholder?: string
     editable?: boolean
   }>(),
-  {modelValue: '', placeholder: '开始写作…', editable: true},
+  {modelValue: '', placeholder: '', editable: true},
 )
 
 const emit = defineEmits<{ (e: 'update:modelValue', value: string): void }>()
@@ -46,7 +47,7 @@ const editor = useEditor({
   editable: props.editable,
   extensions: [
     StarterKit.configure({heading: {levels: [1, 2, 3]}}),
-    Placeholder.configure({placeholder: () => props.placeholder}),
+    Placeholder.configure({placeholder: () => props.placeholder || t('editor.placeholder')}),
     Underline,
     LinkExt.configure({openOnClick: false, autolink: true}),
     ImageExt,
@@ -89,19 +90,15 @@ interface Tool {
   isActive?: () => boolean
 }
 
-const imageDialogOpen = ref(false)
-const imageUrl = ref('')
+const pickerOpen = ref(false)
 
-function applyImage(): void {
-  const url = imageUrl.value.trim()
-  if (url) editor.value?.chain().focus().setImage({src: url}).run()
-  imageUrl.value = ''
-  imageDialogOpen.value = false
+function insertImage(url: string): void {
+  editor.value?.chain().focus().setImage({src: url}).run()
 }
 
 function applyLink(): void {
   const previous = editor.value?.getAttributes('link')?.href as string | undefined
-  const url = window.prompt('链接地址（留空则移除链接）', previous ?? '')
+  const url = window.prompt(t('editor.linkPrompt'), previous ?? '')
   if (url === null) return
   if (!url) {
     editor.value?.chain().focus().extendMarkRange('link').unsetLink().run()
@@ -114,56 +111,56 @@ const TOOLBAR: Tool[][] = [
   [
     {
       id: 'h1',
-      title: '一级标题',
+      title: t('editor.h1'),
       label: 'H1',
       run: () => editor.value?.chain().focus().toggleHeading({level: 1}).run(),
       isActive: () => Boolean(editor.value?.isActive('heading', {level: 1})),
     },
     {
       id: 'h2',
-      title: '二级标题',
+      title: t('editor.h2'),
       label: 'H2',
       run: () => editor.value?.chain().focus().toggleHeading({level: 2}).run(),
       isActive: () => Boolean(editor.value?.isActive('heading', {level: 2})),
     },
     {
       id: 'h3',
-      title: '三级标题',
+      title: t('editor.h3'),
       label: 'H3',
       run: () => editor.value?.chain().focus().toggleHeading({level: 3}).run(),
       isActive: () => Boolean(editor.value?.isActive('heading', {level: 3})),
     },
     {
       id: 'bold',
-      title: '加粗',
+      title: t('editor.bold'),
       icon: 'bold',
       run: () => editor.value?.chain().focus().toggleBold().run(),
       isActive: () => Boolean(editor.value?.isActive('bold')),
     },
     {
       id: 'italic',
-      title: '斜体',
+      title: t('editor.italic'),
       icon: 'italic',
       run: () => editor.value?.chain().focus().toggleItalic().run(),
       isActive: () => Boolean(editor.value?.isActive('italic')),
     },
     {
       id: 'underline',
-      title: '下划线',
+      title: t('editor.underline'),
       icon: 'underline',
       run: () => editor.value?.chain().focus().toggleUnderline().run(),
       isActive: () => Boolean(editor.value?.isActive('underline')),
     },
     {
       id: 'strike',
-      title: '删除线',
+      title: t('editor.strike'),
       icon: 'strikethrough',
       run: () => editor.value?.chain().focus().toggleStrike().run(),
       isActive: () => Boolean(editor.value?.isActive('strike')),
     },
     {
       id: 'highlight',
-      title: '高亮',
+      title: t('editor.highlight'),
       icon: 'highlighter',
       run: () => editor.value?.chain().focus().toggleHighlight().run(),
       isActive: () => Boolean(editor.value?.isActive('highlight')),
@@ -172,35 +169,35 @@ const TOOLBAR: Tool[][] = [
   [
     {
       id: 'bullet',
-      title: '无序列表',
+      title: t('editor.bulletList'),
       icon: 'list',
       run: () => editor.value?.chain().focus().toggleBulletList().run(),
       isActive: () => Boolean(editor.value?.isActive('bulletList')),
     },
     {
       id: 'ordered',
-      title: '有序列表',
+      title: t('editor.orderedList'),
       icon: 'list-ordered',
       run: () => editor.value?.chain().focus().toggleOrderedList().run(),
       isActive: () => Boolean(editor.value?.isActive('orderedList')),
     },
     {
       id: 'task',
-      title: '任务列表',
+      title: t('editor.taskList'),
       icon: 'list-todo',
       run: () => editor.value?.chain().focus().toggleTaskList().run(),
       isActive: () => Boolean(editor.value?.isActive('taskList')),
     },
     {
       id: 'quote',
-      title: '引用',
+      title: t('editor.quote'),
       icon: 'quote',
       run: () => editor.value?.chain().focus().toggleBlockquote().run(),
       isActive: () => Boolean(editor.value?.isActive('blockquote')),
     },
     {
       id: 'code',
-      title: '代码块',
+      title: t('editor.code'),
       icon: 'code',
       run: () => editor.value?.chain().focus().toggleCodeBlock().run(),
       isActive: () => Boolean(editor.value?.isActive('codeBlock')),
@@ -209,22 +206,22 @@ const TOOLBAR: Tool[][] = [
   [
     {
       id: 'link',
-      title: '链接',
+      title: t('editor.link'),
       icon: 'link',
       run: applyLink,
       isActive: () => Boolean(editor.value?.isActive('link')),
     },
     {
       id: 'image',
-      title: '图片',
+      title: t('editor.image'),
       icon: 'image',
       run: () => {
-        imageDialogOpen.value = !imageDialogOpen.value
+        pickerOpen.value = true
       },
     },
     {
       id: 'table',
-      title: '插入表格',
+      title: t('editor.table'),
       icon: 'table',
       run: () =>
         editor.value
@@ -237,21 +234,21 @@ const TOOLBAR: Tool[][] = [
   [
     {
       id: 'align-left',
-      title: '左对齐',
+      title: t('editor.alignLeft'),
       icon: 'align-left',
       run: () => editor.value?.chain().focus().setTextAlign('left').run(),
       isActive: () => Boolean(editor.value?.isActive({textAlign: 'left'})),
     },
     {
       id: 'align-center',
-      title: '居中',
+      title: t('editor.alignCenter'),
       icon: 'align-center',
       run: () => editor.value?.chain().focus().setTextAlign('center').run(),
       isActive: () => Boolean(editor.value?.isActive({textAlign: 'center'})),
     },
     {
       id: 'align-right',
-      title: '右对齐',
+      title: t('editor.alignRight'),
       icon: 'align-right',
       run: () => editor.value?.chain().focus().setTextAlign('right').run(),
       isActive: () => Boolean(editor.value?.isActive({textAlign: 'right'})),
@@ -260,13 +257,13 @@ const TOOLBAR: Tool[][] = [
   [
     {
       id: 'undo',
-      title: '撤销',
+      title: t('editor.undo'),
       icon: 'undo',
       run: () => editor.value?.chain().focus().undo().run(),
     },
     {
       id: 'redo',
-      title: '重做',
+      title: t('editor.redo'),
       icon: 'redo',
       run: () => editor.value?.chain().focus().redo().run(),
     },
@@ -296,16 +293,11 @@ const TOOLBAR: Tool[][] = [
       </template>
     </div>
 
-    <!-- 图片地址输入 -->
-    <div v-if="imageDialogOpen" class="rich-editor__image-bar">
-      <Input v-model="imageUrl" class="flex-1" placeholder="图片地址（https://… 或 /media/…）"
-             @keyup.enter.prevent="applyImage"/>
-      <Button size="sm" type="button" @click="applyImage">插入</Button>
-      <Button size="sm" type="button" variant="outline" @click="imageDialogOpen = false">取消</Button>
-    </div>
-
     <!-- 编辑区 -->
     <EditorContent :editor="editor" class="rich-editor__body"/>
+
+    <!-- 媒体选择弹窗（我的媒体库 / 本地上传 / 外链） -->
+    <MediaPickerDialog v-model="pickerOpen" @select="insertImage"/>
   </div>
 </template>
 
@@ -361,14 +353,6 @@ const TOOLBAR: Tool[][] = [
   height: 18px;
   margin: 0 4px;
   background-color: var(--color-line);
-}
-
-.rich-editor__image-bar {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  padding: 8px;
-  border-bottom: 1px solid var(--color-line);
 }
 
 .rich-editor__body :deep(.ProseMirror) {

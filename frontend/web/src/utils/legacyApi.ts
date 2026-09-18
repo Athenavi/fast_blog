@@ -1,12 +1,12 @@
+import {CODE_SUCCESS} from '@/composables/useApi'
 import {STORAGE_TOKEN} from '@/constants'
 import {storage} from '@/utils/storage'
 
 /**
- * v2 兼容层调用器
+ * 主题配置调用器（`GET/PUT /api/v3/extension/theme/{slug}/config`）
  *
- * 只给「v3 还没有对应域」的能力用 —— 目前是主题配置面板的
- * `GET/PUT /api/v2/themes/{slug}/config`（v3 的 `/extension/theme` 没有
- * `settings_schema` / `component_slots` 这套读写）。
+ * 自 v2 收敛到 v3（T5-10）：v3 的按 slug 配置端点与 `/active/config`（只管激活主题）
+ * 分离，主题配置页（fastblog-default / magazine / modern-minimal）配置各自的 slug。
  *
  * 与 `pluginAction` 同理：`@/api/request` 的 axios 把 baseURL 固定成 `/api/v3`，
  * 所以这里绕开实例、直接用 `$fetch` 打同源绝对路径，并带上 Bearer token。
@@ -24,18 +24,15 @@ async function request<T>(
 ): Promise<LegacyResult<T>> {
   const token = storage.get<string>(STORAGE_TOKEN)
   try {
-    const response = await $fetch<{ success?: boolean; data?: T; error?: string; msg?: string }>(
-      `/api/v2${path}`,
-      {
-        method,
-        ...(body === undefined ? {} : {body}),
-        headers: token ? {Authorization: `Bearer ${token}`} : {},
-      },
-    )
+    const response = await $fetch<{ code?: number; data?: T; msg?: string }>(`/api/v3${path}`, {
+      method,
+      ...(body === undefined ? {} : {body}),
+      headers: token ? {Authorization: `Bearer ${token}`} : {},
+    })
     return {
-      success: response?.success !== false,
+      success: response?.code === CODE_SUCCESS,
       data: (response?.data ?? null) as T | null,
-      error: response?.error || response?.msg,
+      error: response?.msg,
     }
   } catch (error) {
     return {

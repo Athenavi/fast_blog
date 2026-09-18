@@ -16,7 +16,7 @@ import {formatDateTime} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.system.log.title'),
+  title: 'admin.system.log.title',
   permission: 'module_system:log:view',
 })
 

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {computed, onBeforeUnmount, onMounted, ref} from 'vue'
 
 import {useAudioMetadata} from '@/composables/useAudioMetadata'
@@ -14,7 +15,8 @@ import {calcKaraokeProgress} from './helpers'
  *
  * 与 astro 版的差异（行为等价、结构更干净）：
  *  - 原实现 `AudioLayer` / `PlayerView` / `MiniPlayerWrapper` **各请求了一次**
- *    `/api/v2/media/{id}/metadata`；这里统一由 `useAudioMetadata` 加载一次后下传。
+ *    同一个 metadata 接口；这里统一由 `useAudioMetadata`（v3 `/mobile/media/{id}/metadata`）
+ *    加载一次后下传。
  *  - 音量状态上提到本层，最小化再展开后音量不会丢。
  *  - Esc 切换最小化（与原来一致）。
  */
@@ -114,8 +116,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <!-- 桌面歌词开关（阻止冒泡，避免误触迷你播放器的播放/暂停） -->
       <button
         v-if="lyrics.length"
-        :title="showDesktopLyrics ? '关闭桌面歌词' : '打开桌面歌词'"
-        aria-label="桌面歌词"
+        :aria-label="$t('audio.desktopLyrics')"
+        :title="showDesktopLyrics ? t('audio.hideDesktopLyrics') : t('audio.showDesktopLyrics')"
         class="fixed bottom-24 right-4 z-[66] flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-black/60 backdrop-blur transition-colors hover:bg-white/10"
         type="button"
         @click.stop="showDesktopLyrics = !showDesktopLyrics"

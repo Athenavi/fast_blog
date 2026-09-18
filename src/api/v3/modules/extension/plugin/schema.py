@@ -30,6 +30,13 @@ class PluginSettingsUpdate(SchemaBase):
     settings: Dict[str, Any] = Field(default_factory=dict, description="要写入的配置项")
 
 
+class PluginActionRequest(SchemaBase):
+    """插件自定义动作（自 v2 ``POST /api/v2/plugins/{slug}/action`` 平移）"""
+
+    action: str = Field(min_length=1, description="插件方法名")
+    params: Dict[str, Any] = Field(default_factory=dict, description="动作参数（展开为关键字参数）")
+
+
 class PluginSettingsOut(SchemaBase):
     slug: str
     settings: Dict[str, Any] = Field(default_factory=dict)

@@ -19,7 +19,7 @@ import {formatDateTime, formatFileSize} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.ops.backup.backups'),
+  title: 'admin.ops.backup.backups',
   permission: 'module_ops:backup:view',
 })
 

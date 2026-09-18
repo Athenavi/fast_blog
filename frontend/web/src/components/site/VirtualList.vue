@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 虚拟列表（固定行高）
  *
@@ -22,7 +23,7 @@ const props = withDefaults(
     emptyTitle?: string
     emptyDescription?: string
   }>(),
-  {itemHeight: 64, height: '520px', overscan: 6, emptyTitle: '暂无内容', emptyDescription: ''},
+  {itemHeight: 64, height: '520px', overscan: 6, emptyTitle: t('site.emptyContent'), emptyDescription: ''},
 )
 
 const {list, containerProps, wrapperProps} = useVirtualList(

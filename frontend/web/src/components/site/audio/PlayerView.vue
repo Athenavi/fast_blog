@@ -66,9 +66,9 @@ function toggleLyrics(): void {
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
       <!-- 最小化（桌面左上角） -->
       <button
-        aria-label="最小化播放"
+        :aria-label="$t('audio.minimizeAria')"
         class="absolute left-4 top-4 z-20 hidden h-8 w-8 items-center justify-center rounded-full bg-white/5 backdrop-blur transition-colors hover:bg-white/15 lg:flex"
-        title="最小化 (Esc)"
+        :title="$t('audio.minimizeTitle')"
         type="button"
         @click="emit('minimize')"
       >

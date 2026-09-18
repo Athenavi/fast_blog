@@ -20,7 +20,7 @@ const props = withDefaults(
 </script>
 
 <template>
-  <nav v-if="props.items.length" :class="props.class" aria-label="面包屑">
+  <nav v-if="props.items.length" :aria-label="$t('site.breadcrumbsAriaLabel')" :class="props.class">
     <ol class="flex flex-wrap items-center gap-1.5 text-sm">
       <li v-for="(item, index) in props.items" :key="index" class="flex items-center gap-1.5">
         <span v-if="index" aria-hidden="true" class="text-fg-subtle/70">/</span>

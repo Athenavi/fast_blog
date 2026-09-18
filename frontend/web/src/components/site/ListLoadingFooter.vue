@@ -28,17 +28,17 @@ const show = computed(() => props.isLoading || props.hasLoadedAll || Boolean(pro
   <div v-if="show" class="flex flex-col items-center gap-2 py-6 text-sm">
     <template v-if="props.error">
       <p class="text-danger">{{ props.error }}</p>
-      <Button size="sm" variant="outline" @click="emit('retry')">重试</Button>
+      <Button size="sm" variant="outline" @click="emit('retry')">{{ $t('common.retry') }}</Button>
     </template>
 
     <template v-else-if="props.isLoading">
       <Icon class="h-4 w-4 animate-spin text-fg-subtle" name="loader-circle"/>
-      <span class="text-fg-subtle">加载中…</span>
+      <span class="text-fg-subtle">{{ $t('site.loading') }}</span>
     </template>
 
     <p v-else class="text-fg-subtle">
-      已经到底了
-      <template v-if="props.totalLoaded">（共 {{ props.totalLoaded }} 条）</template>
+      {{ $t('site.listEnd') }}
+      <template v-if="props.totalLoaded">{{ $t('site.loadedCount', {n: props.totalLoaded}) }}</template>
     </p>
   </div>
 </template>

@@ -10,12 +10,12 @@ import {articleStatusKey, formatDateTime} from '@/utils/format'
 
 const {t} = useI18n()
 
-definePageMeta({layout: 'default', middleware: 'auth', title: '我的文章'})
+definePageMeta({layout: 'default', middleware: 'auth', title: 'myPosts.title'})
 
 const STATUS_OPTIONS = [
-  {label: '全部', value: undefined},
-  {label: '草稿', value: 0},
-  {label: '已发布', value: 1},
+  {label: t('admin.common.all'), value: undefined},
+  {label: t('myPosts.filterDraft'), value: 0},
+  {label: t('myPosts.filterPublished'), value: 1},
 ]
 
 const loading = ref(false)
@@ -47,9 +47,9 @@ function onFilterChange(): void {
 }
 
 async function removeOne(item: MobileArticleItem): Promise<void> {
-  if (!window.confirm(`确定删除「${item.title}」吗？`)) return
+  if (!window.confirm(t('myPosts.confirmDelete', {title: item.title}))) return
   await mobileApi.deleteMyArticle(item.id)
-  message.value = '已删除'
+  message.value = t('myPosts.deleted')
   await loadList()
 }
 
@@ -68,13 +68,13 @@ onMounted(loadList)
   <div class="mx-auto max-w-wide px-4 py-10">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-fg">我的文章</h1>
-        <p class="mt-1.5 text-sm text-fg-muted">投稿后为草稿状态，管理员审核通过即会发布。</p>
+        <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('myPosts.title') }}</h1>
+        <p class="mt-1.5 text-sm text-fg-muted">{{ $t('myPosts.subtitle') }}</p>
       </div>
       <NuxtLink to="/my/posts/create">
         <Button>
           <Icon class="h-4 w-4" name="plus"/>
-          写文章
+          {{ $t('myPosts.write') }}
         </Button>
       </NuxtLink>
     </div>
@@ -92,7 +92,7 @@ onMounted(loadList)
       </button>
       <Button :icon="undefined" class="ml-auto" size="sm" variant="outline" @click="loadList">
         <Icon class="h-4 w-4" name="refresh-cw"/>
-        刷新
+        {{ $t('common.refresh') }}
       </Button>
     </div>
 
@@ -110,15 +110,15 @@ onMounted(loadList)
             <Badge :variant="item.status === 1 ? 'success' : 'warning'" class="text-[11px]">
               {{ t(articleStatusKey(item.status)) }}
             </Badge>
-            <span>更新于 {{ formatDateTime(item.updated_at) }}</span>
-            <span v-if="item.views">{{ item.views }} 次浏览</span>
+            <span>{{ t('myPosts.updatedAt', {time: formatDateTime(item.updated_at)}) }}</span>
+            <span v-if="item.views">{{ t('myPosts.viewsCount', {n: item.views}) }}</span>
             <span v-for="tag in (item.tags || []).slice(0, 3)" :key="tag" class="text-fg-muted">#{{ tag }}</span>
           </div>
         </div>
 
         <div class="flex items-center gap-2 text-sm">
           <NuxtLink :to="`/my/posts/edit/${item.id}`">
-            <Button size="sm" variant="outline">编辑</Button>
+            <Button size="sm" variant="outline">{{ $t('admin.common.edit') }}</Button>
           </NuxtLink>
           <Button class="text-danger" size="sm" variant="ghost" @click="removeOne(item)">
             <Icon class="h-4 w-4" name="trash-2"/>
@@ -130,14 +130,19 @@ onMounted(loadList)
     <EmptyState
       v-else
       class="mt-6"
-      description="点击右上角「写文章」开始投稿。"
-      title="还没有文章"
+      :description="$t('myPosts.emptyDesc')"
+      :title="$t('myPosts.emptyTitle')"
     />
 
     <nav v-if="totalPages > 1" class="flex items-center justify-center gap-2 pt-8">
-      <Button :disabled="page <= 1" size="sm" variant="outline" @click="changePage(page - 1)">上一页</Button>
+      <Button :disabled="page <= 1" size="sm" variant="outline" @click="changePage(page - 1)">{{
+          $t('myPosts.prevPage')
+        }}
+      </Button>
       <span class="text-sm text-fg-muted">{{ page }} / {{ totalPages }}</span>
-      <Button :disabled="page >= totalPages" size="sm" variant="outline" @click="changePage(page + 1)">下一页</Button>
+      <Button :disabled="page >= totalPages" size="sm" variant="outline" @click="changePage(page + 1)">
+        {{ $t('myPosts.nextPage') }}
+      </Button>
     </nav>
   </div>
 </template>

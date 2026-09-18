@@ -17,7 +17,7 @@ import {articleStatusKey, articleStatusTag, formatDateTime} from '@/utils/format
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('article.title'),
+  title: 'article.title',
   permission: 'module_content:article:view',
 })
 

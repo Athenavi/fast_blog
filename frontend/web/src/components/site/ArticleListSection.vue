@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 文章列表区块：列表页 / 分类页 / 搜索页复用
  *
@@ -15,7 +16,7 @@ const props = withDefaults(
     emptyTitle?: string
     emptyDescription?: string
   }>(),
-  {loading: false, emptyTitle: '暂无文章', emptyDescription: ''},
+  {loading: false, emptyTitle: '', emptyDescription: ''},
 )
 
 const emit = defineEmits<{ (e: 'change', page: number): void }>()
@@ -35,7 +36,11 @@ const emit = defineEmits<{ (e: 'change', page: number): void }>()
       <ThemeArticleCard v-for="article in props.articles" :key="article.id" :article="article"/>
     </div>
 
-    <EmptyState v-else :description="props.emptyDescription" :title="props.emptyTitle"/>
+    <EmptyState
+      v-else
+      :description="props.emptyDescription"
+      :title="props.emptyTitle || t('site.emptyArticles')"
+    />
 
     <PaginationBar
       v-if="!props.loading"

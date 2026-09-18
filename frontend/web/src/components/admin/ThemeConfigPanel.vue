@@ -10,8 +10,7 @@ import {legacyGet, legacyPut} from '@/utils/legacyApi'
  *
  * 对应 astro 的 `components/plugins/ThemeConfigPanel.tsx`：
  * 读主题的 `settings_schema` 渲染表单，再叠加「组件槽位」（header / articleCard / footer）选择，
- * 一并保存到 **`/api/v2/themes/{slug}/config`**（v3 目前没有 settings_schema /
- * component_slots 的等价读写端点，见 `docs/refactor/HANDOVER.md` §12.3）。
+ * 一并保存到 **`/api/v3/extension/theme/{slug}/config`**（T5-10 已自 v2 收敛）。
  *
  * 原实现自带一个顶部通知条；这里改用与后台其它页一致的 `ElMessage`。
  */
@@ -81,7 +80,7 @@ async function load(): Promise<void> {
   loading.value = true
   error.value = ''
   try {
-    const result = await legacyGet<ThemeConfig>(`/themes/${props.pluginSlug}/config`)
+    const result = await legacyGet<ThemeConfig>(`/extension/theme/${props.pluginSlug}/config`)
     if (!result.success) error.value = result.error || t('admin.shared.admin.ThemeConfigPanel.failedToLoadThemeConfiguration')
     config.value = result.data ?? {}
     settings.value = {...(result.data?.settings ?? {})}
@@ -111,7 +110,7 @@ function reset(): void {
 async function save(): Promise<void> {
   saving.value = true
   try {
-    const result = await legacyPut(`/themes/${props.pluginSlug}/config`, {
+    const result = await legacyPut(`/extension/theme/${props.pluginSlug}/config`, {
       settings: settings.value,
       component_slots: componentSlots.value,
     })

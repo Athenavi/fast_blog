@@ -15,7 +15,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "type-check": "npm run prescan && nuxt typecheck",
-    "check:i18n": "node scripts/check-i18n.mjs"
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -54,6 +55,7 @@
     "web-vitals": "^6.2.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.0",
     "@types/node": "^24.0.5",
     "@types/nprogress": "^0.2.3",

@@ -30,6 +30,18 @@ class ThemeOpsService:
             raise NotFoundError("当前没有激活的主题")
         return plugin
 
+    async def _plugin_by_slug(self, slug: str):
+        """按 slug 取主题插件（自 v2 ``_get_theme_plugin`` 平移）"""
+        manager = self._manager()
+        plugin = await maybe_await(manager.get_plugin(slug))
+        if plugin is None:
+            raise NotFoundError(f"主题未找到: {slug}")
+        await maybe_await(plugin.load_metadata())
+        manifest = getattr(plugin, "manifest", None)
+        if not manifest or getattr(manifest, "category", None) != "theme":
+            raise NotFoundError(f"不是主题插件: {slug}")
+        return plugin
+
     @staticmethod
     async def _info_of(plugin) -> dict:
         info = await maybe_await(plugin.get_info())
@@ -111,6 +123,55 @@ class ThemeOpsService:
                 await maybe_await(setter(component_slots))
 
         return await self.active_config()
+
+    # ------------------------------------------------------------------ 按 slug 配置
+    # 自 v2 ``GET/PUT /api/v2/themes/{slug}/config`` 平移（T5-10）：
+    # 主题配置页（fastblog-default / magazine / modern-minimal）配置的是各自的 slug，
+    # 不一定是激活主题，因此与 ``active_config`` 分离。
+    async def theme_config(self, slug: str) -> dict:
+        plugin = await self._plugin_by_slug(slug)
+
+        config: Dict[str, Any] = {}
+        if hasattr(plugin, "get_theme_config"):
+            config = await maybe_await(plugin.get_theme_config()) or {}
+        settings = getattr(plugin, "settings", None) or config.get("settings", {})
+        metadata = getattr(plugin, "metadata", None) or {}
+        contract: Dict[str, Any] = {}
+        if hasattr(plugin, "get_theme_contract"):
+            contract = await maybe_await(plugin.get_theme_contract()) or {}
+
+        return {
+            "slug": slug,
+            "settings": settings,
+            "settings_schema": metadata.get("settings_schema", {}),
+            "supports": config.get("supports", []),
+            "contract": contract,
+        }
+
+    async def update_theme_config(
+        self, slug: str, *, settings: Dict[str, Any], component_slots: Optional[Dict[str, Any]] = None
+    ) -> dict:
+        """保存按 slug 的主题配置（写法与 v2 一致：槽位落 ``settings._componentSlots``）"""
+        plugin = await self._plugin_by_slug(slug)
+
+        update = getattr(plugin, "update_theme_settings", None)
+        if update is not None:
+            ok = await maybe_await(update(settings or {}))
+            if not ok:
+                raise BadRequestError("主题配置保存失败")
+        else:
+            plugin.settings.update(settings or {})
+            await maybe_await(plugin.save_settings())
+
+        if component_slots and isinstance(component_slots, dict):
+            plugin.settings["_componentSlots"] = component_slots
+            await maybe_await(plugin.save_settings())
+
+        slots: Dict[str, Any] = component_slots or {}
+        if hasattr(plugin, "get_component_slots"):
+            slots = await maybe_await(plugin.get_component_slots()) or slots
+
+        return {"slug": slug, "settings": plugin.settings, "componentSlots": slots}
 
 
 theme_ops_service = ThemeOpsService()

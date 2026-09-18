@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 全局错误页（404 / 500）
  *
@@ -14,11 +15,11 @@ const props = defineProps<{
 const isNotFound = computed(() => props.error?.statusCode === 404)
 const title = computed(() => String(props.error?.statusCode ?? 500))
 
-const headline = computed(() => (isNotFound.value ? '哎呀，页面走丢了' : '服务出了点问题'))
+const headline = computed(() => (isNotFound.value ? t('error.notFoundHeading') : t('error.serverHeading')))
 const subtitle = computed(() =>
   isNotFound.value
-    ? '页面不存在或已被移除，你可以搜索一下，或从下面的入口继续浏览。'
-    : props.error?.statusMessage || props.error?.message || '请稍后重试，或返回首页。',
+    ? t('error.notFoundDesc')
+    : props.error?.statusMessage || props.error?.message || t('error.serverDesc'),
 )
 
 const keyword = ref('')
@@ -41,20 +42,20 @@ function goHome(): void {
     <p class="mt-2 max-w-read text-sm leading-relaxed text-fg-muted">{{ subtitle }}</p>
 
     <form v-if="isNotFound" class="mt-8 flex w-full max-w-sm gap-2" @submit.prevent="goSearch">
-      <Input v-model="keyword" placeholder="搜索文章…"/>
+      <Input v-model="keyword" :placeholder="$t('error.searchPlaceholder')"/>
       <Button class="shrink-0" type="submit">
         <Icon class="h-4 w-4" name="search"/>
-        搜索
+        {{ $t('common.search') }}
       </Button>
     </form>
 
     <div class="mt-8 flex flex-wrap justify-center gap-3">
-      <Button @click="goHome">返回首页</Button>
+      <Button @click="goHome">{{ $t('error.goHome') }}</Button>
       <NuxtLink to="/articles">
-        <Button variant="outline">浏览文章</Button>
+        <Button variant="outline">{{ $t('error.browseArticles') }}</Button>
       </NuxtLink>
       <NuxtLink to="/categories">
-        <Button variant="outline">按分类浏览</Button>
+        <Button variant="outline">{{ $t('error.browseCategories') }}</Button>
       </NuxtLink>
     </div>
   </div>

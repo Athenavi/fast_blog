@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {computed, ref} from 'vue'
 
 import {formatTime} from './helpers'
@@ -42,7 +43,7 @@ const progressPercent = computed(() =>
 )
 
 const repeatLabel = computed(() =>
-  repeatMode.value === 'off' ? '关闭' : repeatMode.value === 'all' ? '全部循环' : '单曲循环',
+  repeatMode.value === 'off' ? t('admin.common.close') : repeatMode.value === 'all' ? t('audio.repeatAll') : t('audio.repeatOne'),
 )
 
 function onProgressInput(event: Event): void {
@@ -76,7 +77,7 @@ function skip(delta: number): void {
         <input
           :max="duration || 100"
           :value="currentTime"
-          aria-label="播放进度"
+          :aria-label="$t('audio.progressAria')"
           class="absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none bg-transparent opacity-0"
           min="0"
           style="touch-action: none"
@@ -101,9 +102,9 @@ function skip(delta: number): void {
       <!-- 左：歌曲信息 -->
       <div class="flex min-w-0 flex-1 items-center gap-3">
         <button
-          aria-label="最小化播放"
+          :aria-label="$t('audio.minimizeAria')"
           class="h-10 w-10 shrink-0 cursor-pointer overflow-hidden rounded-lg shadow active:scale-90"
-          title="最小化播放 (Esc)"
+          :title="$t('audio.minimizeTitle')"
           type="button"
           @click="emit('minimize')"
         >
@@ -121,7 +122,7 @@ function skip(delta: number): void {
 
         <button
           :aria-pressed="isLiked"
-          aria-label="收藏"
+          :aria-label="$t('audio.favoriteAria')"
           class="shrink-0 active:scale-85"
           type="button"
           @click="isLiked = !isLiked"
@@ -133,7 +134,7 @@ function skip(delta: number): void {
       <!-- 中：播放控制 -->
       <div class="flex items-center justify-center gap-1 sm:gap-3">
         <button
-          aria-label="后退10秒"
+          :aria-label="$t('audio.back10Aria')"
           class="hidden min-h-[44px] min-w-[44px] items-center justify-center p-2 text-white/50 transition-colors hover:text-white sm:flex"
           type="button"
           @click="skip(-10)"
@@ -142,7 +143,7 @@ function skip(delta: number): void {
         </button>
 
         <button
-          aria-label="重新播放"
+          :aria-label="$t('audio.replayAria')"
           class="flex min-h-[44px] min-w-[44px] items-center justify-center p-2 text-white/50 transition-colors hover:text-white"
           type="button"
           @click="emit('seek', 0)"
@@ -151,7 +152,7 @@ function skip(delta: number): void {
         </button>
 
         <button
-          :aria-label="isPlaying ? '暂停' : '播放'"
+          :aria-label="isPlaying ? t('audio.pause') : t('audio.play')"
           class="mx-1 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-lg transition-all hover:shadow-xl active:scale-90 sm:h-11 sm:w-11"
           type="button"
           @click="emit('toggle-play')"
@@ -160,7 +161,7 @@ function skip(delta: number): void {
         </button>
 
         <button
-          aria-label="前进10秒"
+          :aria-label="$t('audio.forward10Aria')"
           class="flex min-h-[44px] min-w-[44px] items-center justify-center p-2 text-white/50 transition-colors hover:text-white"
           type="button"
           @click="skip(10)"
@@ -169,7 +170,7 @@ function skip(delta: number): void {
         </button>
 
         <button
-          aria-label="快进10秒"
+          :aria-label="$t('audio.seek10Aria')"
           class="hidden min-h-[44px] min-w-[44px] items-center justify-center p-2 text-white/50 transition-colors hover:text-white sm:flex"
           type="button"
           @click="skip(10)"
@@ -181,7 +182,7 @@ function skip(delta: number): void {
       <!-- 右：音量与附加 -->
       <div class="flex flex-1 items-center justify-end gap-1 sm:gap-3">
         <button
-          :aria-label="`循环模式: ${repeatLabel}`"
+          :aria-label="$t('audio.repeatMode', {mode: repeatLabel})"
           class="relative hidden min-h-[44px] min-w-[44px] p-2 sm:block"
           type="button"
           @click="cycleRepeat"
@@ -199,7 +200,7 @@ function skip(delta: number): void {
 
         <div class="relative hidden items-center sm:flex">
           <button
-            aria-label="音量"
+            :aria-label="$t('audio.volumeAria')"
             class="flex min-h-[44px] min-w-[44px] items-center justify-center p-2"
             type="button"
             @click="showVolumeSlider = !showVolumeSlider"
@@ -215,7 +216,7 @@ function skip(delta: number): void {
                 background: `linear-gradient(to right, #a855f7 ${volume * 100}%, rgba(255,255,255,0.15) ${volume * 100}%)`,
               }"
               :value="volume"
-              aria-label="音量滑块"
+              :aria-label="$t('audio.volumeSliderAria')"
               class="h-1.5 w-24 cursor-pointer appearance-none rounded-full accent-purple-500"
               max="1"
               min="0"

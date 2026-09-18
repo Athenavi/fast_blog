@@ -18,7 +18,7 @@ import {formatDateTime, formatFileSize} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.system.hub.systemOverview'),
+  title: 'admin.system.hub.systemOverview',
   permission: 'module_system:monitor:view',
 })
 

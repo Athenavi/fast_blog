@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * PWA 安装提示
  *
@@ -58,7 +59,7 @@ onBeforeUnmount(() => {
   <ClientOnly>
     <div
       v-if="visible"
-      aria-label="安装应用"
+      :aria-label="$t('site.installAppAria')"
       class="fixed bottom-4 left-1/2 z-50 w-[min(92vw,26rem)] -translate-x-1/2 rounded-card border border-line bg-surface p-4 shadow-lg"
       role="dialog"
     >
@@ -66,14 +67,14 @@ onBeforeUnmount(() => {
         <img alt="" class="h-10 w-10 flex-shrink-0 rounded-control" src="/icon.svg">
 
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-fg">把 FastBlog 装到桌面</p>
+          <p class="text-sm font-medium text-fg">{{ $t('site.installTitle') }}</p>
           <p class="mt-1 text-xs leading-relaxed text-fg-muted">
-            安装后可全屏阅读、支持离线缓存，启动更快。
+            {{ $t('site.installDesc') }}
           </p>
         </div>
 
         <button
-          aria-label="关闭"
+          :aria-label="$t('admin.common.close')"
           class="inline-flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-soft hover:text-fg"
           type="button"
           @click="dismiss"
@@ -83,10 +84,10 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="mt-3 flex justify-end gap-2">
-        <Button size="sm" variant="outline" @click="dismiss">以后再说</Button>
+        <Button size="sm" variant="outline" @click="dismiss">{{ $t('site.later') }}</Button>
         <Button :disabled="installing" size="sm" @click="install">
           <Icon v-if="installing" class="h-4 w-4 animate-spin" name="loader-circle"/>
-          {{ installing ? '安装中…' : '立即安装' }}
+          {{ installing ? t('site.installing') : t('site.installNow') }}
         </Button>
       </div>
     </div>

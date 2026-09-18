@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 离线下载
  *
@@ -66,11 +67,11 @@ function isCached(url?: string | null): boolean {
 
 async function startDownload(): Promise<void> {
   if (!supported.value) {
-    error.value = '当前浏览器不支持离线缓存'
+    error.value = t('media.unsupportedOffline')
     return
   }
   if (!selectedItems.value.length) {
-    error.value = '请先选择要离线保存的文件'
+    error.value = t('media.selectFirst')
     return
   }
 
@@ -101,14 +102,14 @@ async function startDownload(): Promise<void> {
 
 async function clearCache(): Promise<void> {
   if (!supported.value) return
-  if (!window.confirm('确定清除本机已缓存的离线内容吗？')) return
+  if (!window.confirm(t('media.confirmClearOffline'))) return
   try {
     await caches.delete(CACHE_NAME)
     cachedUrls.value = []
     done.value = 0
     failed.value = 0
   } catch {
-    error.value = '清除失败'
+    error.value = t('media.clearFailed')
   }
 }
 
@@ -134,14 +135,14 @@ watch(
     <Card class="w-full max-w-2xl">
       <CardHeader class="flex-row items-center justify-between">
         <div>
-          <CardTitle class="text-base">离线保存</CardTitle>
+          <CardTitle class="text-base">{{ $t('media.offlineSave') }}</CardTitle>
           <CardDescription>
-            保存到本机后，断网也能查看已缓存的图片与文件
-            <span v-if="cachedUrls.length">（已缓存 {{ cachedUrls.length }} 项）</span>
+            {{ $t('media.offlineHint') }}
+            <span v-if="cachedUrls.length">{{ $t('media.cachedCount', {n: cachedUrls.length}) }}</span>
           </CardDescription>
         </div>
         <button
-          aria-label="关闭"
+          :aria-label="$t('admin.common.close')"
           class="inline-flex h-8 w-8 items-center justify-center rounded-control text-fg-subtle transition-colors hover:bg-surface-soft hover:text-fg"
           type="button"
           @click="emit('close')"
@@ -152,7 +153,7 @@ watch(
 
       <CardContent class="space-y-3">
         <p v-if="!supported" class="rounded-control bg-warning-soft px-3 py-2 text-sm text-warning">
-          当前浏览器不支持 Cache API，无法离线保存。
+          {{ $t('media.noCacheApi') }}
         </p>
 
         <div v-else class="max-h-72 space-y-1 overflow-y-auto rounded-control border border-line p-2">
@@ -167,13 +168,13 @@ watch(
               type="checkbox"
               @change="toggle(item.id)"
             >
-            <span class="min-w-0 flex-1 truncate text-sm text-fg">{{ item.name || '(未命名)' }}</span>
+            <span class="min-w-0 flex-1 truncate text-sm text-fg">{{ item.name || t('media.unnamed') }}</span>
             <span v-if="item.size" class="text-xs text-fg-subtle">{{ formatFileSize(item.size) }}</span>
-            <span v-if="isCached(item.url)" class="text-xs text-success">已缓存</span>
+            <span v-if="isCached(item.url)" class="text-xs text-success">{{ $t('media.cachedLabel') }}</span>
           </label>
 
           <p v-if="!props.items.length" class="px-2 py-3 text-center text-sm text-fg-subtle">
-            还没有可离线保存的文件
+            {{ $t('media.nothingToSave') }}
           </p>
         </div>
 
@@ -185,29 +186,29 @@ watch(
             />
           </div>
           <p class="text-xs text-fg-subtle">
-            已完成 {{ done }} / {{ selectedItems.length }}
-            <span v-if="failed" class="text-danger">（{{ failed }} 项失败）</span>
+            {{ $t('media.progressCount', {done, total: selectedItems.length}) }}
+            <span v-if="failed" class="text-danger">{{ $t('media.failedCount', {n: failed}) }}</span>
           </p>
         </div>
 
         <p v-if="error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
 
         <p v-if="selected.length" class="text-xs text-fg-muted">
-          已选 {{ selected.length }} 项，合计 {{ formatFileSize(selectedSize) }}
+          {{ $t('media.selectedSummary', {n: selected.length, size: formatFileSize(selectedSize)}) }}
         </p>
       </CardContent>
 
       <CardFooter class="justify-between gap-2">
         <Button :disabled="busy || !cachedUrls.length" class="text-danger" variant="ghost" @click="clearCache">
           <Icon class="h-4 w-4" name="trash-2"/>
-          清除缓存
+          {{ $t('media.clearCache') }}
         </Button>
         <div class="flex gap-2">
-          <Button variant="outline" @click="emit('close')">关闭</Button>
+          <Button variant="outline" @click="emit('close')">{{ $t('admin.common.close') }}</Button>
           <Button :disabled="busy || !supported || !selected.length" @click="startDownload">
             <Icon v-if="busy" class="h-4 w-4 animate-spin" name="loader-circle"/>
             <Icon v-else class="h-4 w-4" name="download"/>
-            {{ busy ? '保存中…' : '开始保存' }}
+            {{ busy ? t('media.saving') : t('media.startSave') }}
           </Button>
         </div>
       </CardFooter>

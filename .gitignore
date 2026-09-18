@@ -180,3 +180,8 @@ plugins/*/settings.json
 # FastApiAdmin 参考源码（clone 到仓库内但按约定不提交：只作移植基线）
 vendor/FastApiAdmin/
 
+
+# Playwright (e2e artifacts)
+frontend/web/test-results/
+frontend/web/playwright-report/
+frontend/web/playwright/.cache/

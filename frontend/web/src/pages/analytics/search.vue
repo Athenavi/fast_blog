@@ -14,7 +14,7 @@ import {searchAnalyticsApi} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.analytics.search.searchAnalytics'),
+  title: 'admin.analytics.search.searchAnalytics',
   permission: 'module_analytics:search:view',
 })
 

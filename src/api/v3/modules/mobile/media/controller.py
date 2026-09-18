@@ -102,6 +102,20 @@ async def my_media_stats(db: DBSession, user=Depends(jwt_required_dependency)) -
     return resp.success(await mobile_media_service.stats(db, user))
 
 
+@router.get(
+    "/{media_id}/metadata",
+    response_model=ResponseModel,
+    summary="音频元数据（封面/歌词，需登录，本人或公开媒体可读）",
+)
+async def get_media_audio_metadata(
+    media_id: int,
+    db: DBSession,
+    user=Depends(jwt_required_dependency),
+) -> dict:
+    """自 v2 ``GET /api/v2/media/{id}/metadata`` 平移（T5-10），响应形状保持一致"""
+    return resp.success(await mobile_media_service.audio_metadata(db, user, media_id))
+
+
 @router.get("/folders", response_model=ResponseModel, summary="我的文件夹树（需登录）")
 async def my_folders(db: DBSession, user=Depends(jwt_required_dependency)) -> dict:
     return resp.success(await mobile_media_service.folder_tree(db, user))

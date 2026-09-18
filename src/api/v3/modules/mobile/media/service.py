@@ -18,6 +18,7 @@ from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.modules.content.media.crud import media_crud, media_folder_crud
 from src.api.v3.modules.content.media.schema import MediaFolderUpdate, MediaUpdate
 from src.api.v3.modules.content.media.service import media_service
+from src.api.v3.modules.mobile.media.metadata import build_audio_metadata
 from src.api.v3.modules.mobile.media.schema import (
     MobileFolderCreate,
     MobileMediaUpdate,
@@ -52,6 +53,24 @@ class MobileMediaService:
     async def get_mine(self, db: AsyncSession, user, media_id: int) -> dict:
         await self._mine_or_404(db, user, media_id)
         return await media_service.get_media(db, media_id)
+
+    async def audio_metadata(self, db: AsyncSession, user, media_id: int) -> dict:
+        """音频元数据（封面 base64 + 歌词），自 v2 media_legacy 平移
+
+        读取范围比 ``_mine_or_404`` 宽一档：**本人的或公开的**媒体都可读
+        （歌词/封面跟着播放器走，公开音频的歌词对读者可见）。
+        归属不符依旧返回 404，不泄露存在性。
+        """
+        media = (
+            await db.execute(select(Media).where(Media.id == media_id))
+        ).scalar_one_or_none()
+        if media is None:
+            raise NotFoundError("媒体文件不存在")
+        if media.user != user.id and not media.is_public:
+            raise NotFoundError("媒体文件不存在")
+        if not media.mime_type or not media.mime_type.startswith("audio/"):
+            raise BadRequestError("不是音频文件")
+        return build_audio_metadata(media)
 
     async def folder_tree(self, db: AsyncSession, user) -> list[dict]:
         return await media_service.folder_tree(db, user_id=user.id)

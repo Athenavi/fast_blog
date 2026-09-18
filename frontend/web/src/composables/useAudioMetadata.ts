@@ -1,14 +1,15 @@
 import {ref, type Ref, watch} from 'vue'
 
+import {CODE_SUCCESS} from '@/composables/useApi'
+import {STORAGE_TOKEN} from '@/constants'
+import {storage} from '@/utils/storage'
 import type {LyricLine} from '@/components/site/audio/helpers'
 
 /**
  * 音频元数据（封面 + 歌词）
  *
- * ⚠️ **数据源是 v2 兼容层**：`GET /api/v2/media/{id}/metadata`。
- * v3 的 `MediaItem` 里没有 `lyrics` / `cover_image` 字段，目前没有等价端点，
- * 细节与待办见 `docs/refactor/HANDOVER.md` §12.3。后端补上 v3 端点后，
- * 只需要改这一个函数。
+ * 数据源：`GET /api/v3/mobile/media/{id}/metadata`（T5-10 已自 v2 收敛到 v3），
+ * 需登录、本人或公开媒体可读；响应形状（cover_image / lyrics）与 v2 一致。
  *
  * astro 原实现里 `AudioLayer`、`PlayerView`、`MiniPlayerWrapper` **各请求了一次**
  * 同一个接口（3 次重复请求）；这里合并为一次，由 `AudioLayer` 调用并向下传递。
@@ -22,13 +23,17 @@ export function useAudioMetadata(mediaId: Ref<number | null>) {
   async function load(id: number): Promise<void> {
     loading.value = true
     error.value = ''
+    const token = storage.get<string>(STORAGE_TOKEN)
     try {
       const result = await $fetch<{
-        success?: boolean
-        data?: { cover_image?: string | null; lyrics?: LyricLine[] }
-      }>(`/api/v2/media/${id}/metadata`, {credentials: 'include'})
+        code?: number
+        data?: { cover_image?: string | null; lyrics?: LyricLine[] } | null
+      }>(`/api/v3/mobile/media/${id}/metadata`, {
+        credentials: 'include',
+        headers: token ? {Authorization: `Bearer ${token}`} : {},
+      })
 
-      if (result?.data) {
+      if (result?.code === CODE_SUCCESS && result.data) {
         coverImage.value = result.data.cover_image ?? null
         lyrics.value = Array.isArray(result.data.lyrics) ? result.data.lyrics : []
       } else {

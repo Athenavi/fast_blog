@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {ref, watch} from 'vue'
 
 import {type LyricLine, tokenizeText} from './helpers'
@@ -69,7 +70,7 @@ function highlightCount(index: number, tokenCount: number): number {
     <!-- 移动端：顶部封面 + 歌名 -->
     <div class="flex items-center gap-4 border-b border-white/10 p-5 lg:hidden">
       <button
-        aria-label="最小化"
+        :aria-label="$t('audio.minimize')"
         class="shrink-0 active:scale-90"
         type="button"
         @click="emit('minimize')"
@@ -78,7 +79,7 @@ function highlightCount(index: number, tokenCount: number): number {
       </button>
 
       <div class="h-14 w-14 shrink-0 overflow-hidden rounded-xl shadow-lg">
-        <img v-if="coverImage" :alt="'封面'" :src="coverImage" class="h-full w-full object-cover">
+        <img v-if="coverImage" :alt="t('audio.cover')" :src="coverImage" class="h-full w-full object-cover">
         <span v-else
               class="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600">
           <Icon class="h-6 w-6 text-white/80" name="music"/>
@@ -100,9 +101,10 @@ function highlightCount(index: number, tokenCount: number): number {
         @click="emit('toggle-lyrics')"
       >
         <Icon class="h-4 w-4" name="mic-vocal"/>
-        歌词
+        {{ $t('audio.lyricsToggle') }}
       </button>
-      <span v-if="showLyrics && lyrics.length" class="text-xs text-white/30">{{ lyrics.length }} 行</span>
+      <span v-if="showLyrics && lyrics.length"
+            class="text-xs text-white/30">{{ $t('audio.linesCount', {n: lyrics.length}) }}</span>
     </div>
 
     <!-- 歌词内容 -->
@@ -188,14 +190,14 @@ function highlightCount(index: number, tokenCount: number): number {
 
         <div v-else class="flex h-full flex-col items-center justify-center text-white/30">
           <Icon class="mb-4 h-12 w-12 opacity-40" name="music"/>
-          <p class="text-sm">暂无歌词</p>
-          <p class="mt-1 text-xs">支持在音频文件同目录下放置 .lrc 文件</p>
+          <p class="text-sm">{{ $t('audio.noLyrics') }}</p>
+          <p class="mt-1 text-xs">{{ $t('audio.lyricsHint') }}</p>
         </div>
       </div>
 
       <div v-else class="flex h-full flex-col items-center justify-center text-white/20">
         <Icon class="mb-4 h-16 w-16 opacity-30" name="mic-vocal"/>
-        <p class="text-sm">点击上方「歌词」查看逐字高亮</p>
+        <p class="text-sm">{{ $t('audio.lyricsPanelHint') }}</p>
       </div>
     </div>
   </div>

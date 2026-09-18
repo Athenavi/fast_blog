@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /** 搜索：关键词作为查询参数，便于分享与回退 */
 
 import type {ArticleItem} from '@/types/content'
@@ -37,28 +38,30 @@ function changePage(next: number) {
 
 useSeoMeta({
   title: () =>
-    (keyword.value ? `搜索“${keyword.value}” - ${site.value.site_name}` : `搜索 - ${site.value.site_name}`) ||
-    '搜索 - FastBlog',
-  description: '站内文章搜索',
+    keyword.value
+      ? t('search.seoQuery', {query: keyword.value, name: site.value.site_name})
+      : t('search.seoWithName', {name: site.value.site_name}),
+  description: t('search.seoDescription'),
   robots: 'noindex',
 })
 </script>
 
 <template>
   <div class="mx-auto max-w-5xl px-4 py-10">
-    <h1 class="text-2xl font-bold tracking-tight text-fg">搜索</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('admin.common.search') }}</h1>
 
     <form class="mt-5 flex max-w-xl gap-2" @submit.prevent="submit">
-      <Input v-model="input" placeholder="输入关键词后回车"/>
+      <Input v-model="input" :placeholder="$t('search.placeholder')"/>
       <Button class="shrink-0" type="submit">
         <Icon class="h-4 w-4" name="search"/>
-        搜索
+        {{ $t('common.search') }}
       </Button>
     </form>
 
     <p v-if="keyword" class="mt-6 text-sm text-fg-muted">
-      关键词 “<span class="font-medium text-fg">{{ keyword }}</span>” 共
-      {{ pageData?.total ?? 0 }} 条结果
+      {{ $t('search.resultsPre') }}“<span class="font-medium text-fg">{{ keyword }}</span>”{{
+        $t('search.resultsMid')
+      }}{{ pageData?.total ?? 0 }}{{ $t('search.resultsPost') }}
     </p>
 
     <ArticleListSection
@@ -68,11 +71,11 @@ useSeoMeta({
       :page="page"
       :pages="pageData?.pages ?? 0"
       class="mt-6"
-      empty-description="试试更短或更通用的关键词。"
-      empty-title="没有匹配的文章"
+      :empty-description="$t('search.emptyDesc')"
+      :empty-title="$t('search.emptyTitle')"
       @change="changePage"
     />
 
-    <EmptyState v-else class="mt-6" description="支持标题与正文摘要匹配。" title="输入关键词开始搜索"/>
+    <EmptyState v-else :description="$t('search.initialDesc')" :title="$t('search.initialTitle')" class="mt-6"/>
   </div>
 </template>

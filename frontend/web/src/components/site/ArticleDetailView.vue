@@ -27,7 +27,7 @@ const publishedAt = computed(() => props.article.published_at || props.article.c
         </span>
         <span v-if="props.article.views" class="inline-flex items-center gap-1.5">
           <Icon class="h-4 w-4" name="eye"/>
-          {{ props.article.views }} 次浏览
+          {{ $t('article.viewsCount', {n: props.article.views}) }}
         </span>
         <Badge v-for="tag in props.article.tags || []" :key="tag" variant="secondary">{{ tag }}</Badge>
       </div>
@@ -41,6 +41,6 @@ const publishedAt = computed(() => props.article.published_at || props.article.c
     >
 
     <!-- eslint-disable-next-line vue/no-v-html -- 正文来自后台编辑器 -->
-    <div class="prose-content mt-9" v-html="props.article.content || '<p>（暂无正文）</p>'"/>
+    <div class="prose-content mt-9" v-html="props.article.content || ('<p>' + $t('site.noContent') + '</p>')"/>
   </article>
 </template>

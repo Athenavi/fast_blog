@@ -52,13 +52,19 @@ const permissionStore = usePermissionStore()
 const route = useRoute()
 const router = useRouter()
 
-const {t} = useI18n()
+const {t, te} = useI18n()
 
 const unread = ref(0)
 
 const breadcrumbs = computed(() =>
   route.matched
-    .map((item) => (item.meta?.title as string | undefined) ?? '')
+    .map((item) => {
+      // definePageMeta 的 title 现在存 i18n key（t() 不能在模块作用域求值，见 HANDOVER §17）；
+      // te() 判 key 存在后翻译，普通文案原样回退（与菜单的渐进式策略一致）
+      const title = item.meta?.title as string | undefined
+      if (!title) return ''
+      return te(title) ? t(title) : title
+    })
     .filter((title) => Boolean(title)),
 )
 

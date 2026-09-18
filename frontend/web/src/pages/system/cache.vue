@@ -20,7 +20,7 @@ const {t} = useI18n()
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.system.cache.cacheManagement'),
+  title: 'admin.system.cache.cacheManagement',
   permission: 'module_system:cache:view',
 })
 

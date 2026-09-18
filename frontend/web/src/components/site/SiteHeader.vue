@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /** 前台顶部导航（阅读优先：窄容器、克制的分割线、克制的动效） */
 
 import {useUserStore} from '@/store/modules/user'
@@ -8,10 +9,10 @@ const props = defineProps<{ siteName?: string }>()
 const userStore = useUserStore()
 
 const NAV = [
-  {label: '首页', to: '/'},
-  {label: '文章', to: '/articles'},
-  {label: '分类', to: '/categories'},
-  {label: '关于', to: '/about'},
+  {label: t('site.navHome'), to: '/'},
+  {label: t('site.navArticles'), to: '/articles'},
+  {label: t('site.navCategories'), to: '/categories'},
+  {label: t('site.navAbout'), to: '/about'},
 ]
 
 const mobileOpen = ref(false)
@@ -41,7 +42,7 @@ const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.s
       <div class="ml-auto flex items-center gap-1">
         <NuxtLink
           class="inline-flex h-9 w-9 items-center justify-center rounded-control text-fg-muted transition-colors hover:bg-surface-soft hover:text-fg"
-          aria-label="搜索"
+          :aria-label="$t('admin.common.search')"
           to="/search"
         >
           <Icon class="h-4 w-4" name="search"/>
@@ -55,7 +56,7 @@ const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.s
               class="hidden rounded-control px-3 py-1.5 text-sm text-fg-muted transition-colors hover:bg-surface-soft hover:text-fg md:inline-flex"
               to="/login"
             >
-              登录
+              {{ $t('login.loginButton') }}
             </NuxtLink>
           </template>
 
@@ -71,12 +72,12 @@ const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.s
             class="hidden rounded-control px-3 py-1.5 text-sm text-fg-muted transition-colors hover:bg-surface-soft hover:text-fg md:inline-flex"
             to="/login"
           >
-            登录
+            {{ $t('login.loginButton') }}
           </NuxtLink>
         </ClientOnly>
 
         <button
-          aria-label="菜单"
+          :aria-label="$t('site.menuAriaLabel')"
           class="inline-flex h-9 w-9 items-center justify-center rounded-control text-fg-muted hover:bg-surface-soft md:hidden"
           @click="mobileOpen = !mobileOpen"
         >
@@ -102,7 +103,7 @@ const isActive = (to: string) => (to === '/' ? route.path === '/' : route.path.s
           to="/profile"
           @click="mobileOpen = false"
         >
-          个人中心
+          {{ $t('user.center') }}
         </NuxtLink>
       </ClientOnly>
     </nav>

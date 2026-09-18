@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 个人中心
  *
@@ -10,7 +11,7 @@
 import {mobileApi, type MobileProfile, type MobileProfileUpdate, type MobileUserStats} from '@/api'
 import {useUserStore} from '@/store/modules/user'
 
-definePageMeta({layout: 'default', middleware: 'auth', title: '个人中心'})
+definePageMeta({layout: 'default', middleware: 'auth', title: 'user.center'})
 
 const userStore = useUserStore()
 
@@ -33,7 +34,7 @@ onMounted(async () => {
     form.profile_picture = detail.profile_picture || ''
     form.locale = detail.locale || ''
   } catch {
-    error.value = '加载个人资料失败，请稍后重试'
+    error.value = t('user.loadFailed')
   } finally {
     loading.value = false
   }
@@ -44,7 +45,7 @@ async function save(): Promise<void> {
   error.value = ''
 
   if (form.password && form.password.length < 8) {
-    error.value = '新密码至少 8 位'
+    error.value = t('user.passwordMinLength')
     return
   }
 
@@ -58,7 +59,7 @@ async function save(): Promise<void> {
   if (form.password) payload.password = form.password
 
   if (!Object.keys(payload).length) {
-    message.value = '没有需要保存的改动'
+    message.value = t('user.noChanges')
     return
   }
 
@@ -66,9 +67,9 @@ async function save(): Promise<void> {
   try {
     profile.value = await mobileApi.updateProfile(payload)
     form.password = ''
-    message.value = '已保存'
+    message.value = t('user.saved')
   } catch {
-    error.value = '保存失败，请稍后重试'
+    error.value = t('user.saveFailed')
   } finally {
     saving.value = false
   }
@@ -79,12 +80,12 @@ async function logout(): Promise<void> {
   await navigateTo('/', {replace: true})
 }
 
-useSeoMeta({title: '个人中心', robots: 'noindex'})
+useSeoMeta({title: t('user.center'), robots: 'noindex'})
 </script>
 
 <template>
   <div class="mx-auto max-w-3xl px-4 py-10">
-    <h1 class="text-2xl font-bold tracking-tight text-fg">个人中心</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('user.center') }}</h1>
 
     <div v-if="loading" class="mt-6 space-y-3">
       <Skeleton class="h-24 w-full"/>
@@ -96,7 +97,7 @@ useSeoMeta({title: '个人中心', robots: 'noindex'})
       <Card class="mt-6">
         <CardContent class="flex flex-wrap items-center gap-5 p-5">
           <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-pill bg-surface-soft">
-            <img v-if="profile?.profile_picture" :src="profile.profile_picture" alt="头像"
+            <img v-if="profile?.profile_picture" :alt="$t('user.avatar')" :src="profile.profile_picture"
                  class="h-full w-full object-cover">
             <span v-else class="text-lg font-semibold text-fg-muted">
               {{ (profile?.username || '?').slice(0, 1).toUpperCase() }}
@@ -111,15 +112,15 @@ useSeoMeta({title: '个人中心', robots: 'noindex'})
           <div class="flex gap-6">
             <div class="text-center">
               <p class="text-lg font-semibold text-fg">{{ stats?.articles ?? 0 }}</p>
-              <p class="text-xs text-fg-subtle">文章</p>
+              <p class="text-xs text-fg-subtle">{{ $t('user.articles') }}</p>
             </div>
             <div class="text-center">
               <p class="text-lg font-semibold text-fg">{{ stats?.comments ?? 0 }}</p>
-              <p class="text-xs text-fg-subtle">评论</p>
+              <p class="text-xs text-fg-subtle">{{ $t('user.comments') }}</p>
             </div>
             <div class="text-center">
               <p class="text-lg font-semibold text-fg">{{ stats?.likes_received ?? 0 }}</p>
-              <p class="text-xs text-fg-subtle">获赞</p>
+              <p class="text-xs text-fg-subtle">{{ $t('user.likesReceived') }}</p>
             </div>
           </div>
         </CardContent>
@@ -128,34 +129,34 @@ useSeoMeta({title: '个人中心', robots: 'noindex'})
       <!-- 编辑资料 -->
       <Card class="mt-5">
         <CardHeader>
-          <CardTitle class="text-base">编辑资料</CardTitle>
-          <CardDescription>用户名与邮箱不可自助修改，其余字段可直接保存。</CardDescription>
+          <CardTitle class="text-base">{{ $t('user.editProfile') }}</CardTitle>
+          <CardDescription>{{ $t('user.editHint') }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-fg">头像地址</label>
-            <Input v-model="form.profile_picture" placeholder="https://…（留空表示无头像）"/>
+            <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.avatarUrl') }}</label>
+            <Input v-model="form.profile_picture" :placeholder="$t('user.avatarUrlPlaceholder')"/>
           </div>
 
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-fg">个人简介</label>
+            <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.bio') }}</label>
             <textarea
               v-model="form.bio"
               class="w-full rounded-control border border-line px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               maxlength="500"
-              placeholder="介绍一下自己（最多 500 字）"
+              :placeholder="$t('user.bioPlaceholder')"
               rows="3"
             />
           </div>
 
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">界面语言</label>
-              <Input v-model="form.locale" placeholder="如 zh-CN"/>
+              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.locale') }}</label>
+              <Input v-model="form.locale" :placeholder="$t('user.localePlaceholder')"/>
             </div>
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">新密码</label>
-              <Input v-model="form.password" placeholder="留空表示不修改（至少 8 位）" type="password"/>
+              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.newPassword') }}</label>
+              <Input v-model="form.password" :placeholder="$t('user.newPasswordPlaceholder')" type="password"/>
             </div>
           </div>
 
@@ -167,12 +168,12 @@ useSeoMeta({title: '个人中心', robots: 'noindex'})
           <div class="flex items-center justify-between pt-1">
             <Button variant="outline" @click="logout">
               <Icon class="h-4 w-4" name="log-out"/>
-              退出登录
+              {{ $t('user.logout') }}
             </Button>
             <Button :disabled="saving" @click="save">
               <Icon v-if="saving" class="h-4 w-4 animate-spin" name="loader-circle"/>
               <Icon v-else class="h-4 w-4" name="save"/>
-              保存
+              {{ $t('common.save') }}
             </Button>
           </div>
         </CardContent>

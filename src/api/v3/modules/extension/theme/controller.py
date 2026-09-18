@@ -12,7 +12,8 @@
     PUT /api/v3/extension/theme/active/config    保存当前主题配置
     GET /api/v3/extension/theme/active/schema    配置 schema 与可用槽位
     GET /api/v3/extension/theme/active/contract  主题契约
-
+    GET /api/v3/extension/theme/{slug}/config    按主题 slug 读配置（静态路径之后注册）
+    PUT /api/v3/extension/theme/{slug}/config    按主题 slug 存配置
 权限码：``theme:view`` / ``theme:customize``
 """
 
@@ -83,3 +84,28 @@ async def active_theme_contract(
     _perm=AuthControl(codes.THEME_VIEW),
 ) -> dict:
     return resp.success(await theme_ops_service.active_contract())
+
+
+# ─────────────────────────── 按 slug 配置（动态路径放最后）───────────────────────────
+@router.get("/{slug}/config", response_model=ResponseModel, summary="按主题 slug 读配置")
+async def get_theme_config_by_slug(
+    slug: str,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.THEME_VIEW),
+) -> dict:
+    """自 v2 ``GET /api/v2/themes/{slug}/config`` 平移（T5-10）"""
+    return resp.success(await theme_ops_service.theme_config(slug))
+
+
+@router.put("/{slug}/config", response_model=ResponseModel, summary="按主题 slug 存配置")
+async def update_theme_config_by_slug(
+    slug: str,
+    payload: ThemeConfigUpdate,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.THEME_CUSTOMIZE),
+) -> dict:
+    """自 v2 ``PUT /api/v2/themes/{slug}/config`` 平移（T5-10）"""
+    data = await theme_ops_service.update_theme_config(
+        slug, settings=payload.settings, component_slots=payload.component_slots
+    )
+    return resp.success(data, msg="已保存")

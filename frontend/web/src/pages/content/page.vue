@@ -3,7 +3,7 @@ const {t} = useI18n()
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.content.page.pages'),
+  title: 'admin.content.page.pages',
   permission: 'module_content:page:view',
 })
 </script>

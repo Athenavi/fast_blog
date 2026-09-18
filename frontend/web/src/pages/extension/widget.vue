@@ -15,7 +15,7 @@ import {widgetApi, type WidgetItem} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.extension.widget.widgets'),
+  title: 'admin.extension.widget.widgets',
   permission: 'module_extension:widget:view',
 })
 

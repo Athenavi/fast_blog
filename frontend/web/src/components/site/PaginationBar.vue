@@ -18,7 +18,7 @@ const items = computed(() => {
 <template>
   <nav v-if="props.pages > 1" class="flex items-center justify-center gap-1 py-8">
     <Button :disabled="props.page <= 1" size="sm" variant="outline" @click="emit('change', props.page - 1)">
-      上一页
+      {{ $t('site.prevPage') }}
     </Button>
     <template v-for="(item, index) in items" :key="index">
       <span v-if="item === '...'" class="px-2 text-sm text-fg-subtle">…</span>
@@ -32,7 +32,7 @@ const items = computed(() => {
       </Button>
     </template>
     <Button :disabled="props.page >= props.pages" size="sm" variant="outline" @click="emit('change', props.page + 1)">
-      下一页
+      {{ $t('site.nextPage') }}
     </Button>
   </nav>
 </template>

@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import type {IconName} from '@/lib/icons'
 
 /**
@@ -17,9 +18,9 @@ import type {IconName} from '@/lib/icons'
  *     跟随主题与用户自选配色。
  */
 const navItems: Array<{ name: string; href: string; icon: IconName }> = [
-  {name: '首页', href: '/', icon: 'house'},
-  {name: '关于', href: '/about', icon: 'info'},
-  {name: '我的', href: '/profile', icon: 'user'},
+  {name: t('site.navHome'), href: '/', icon: 'house'},
+  {name: t('site.navAbout'), href: '/about', icon: 'info'},
+  {name: t('site.navProfile'), href: '/profile', icon: 'user'},
 ]
 
 const route = useRoute()
@@ -31,7 +32,8 @@ function isActive(href: string): boolean {
 </script>
 
 <template>
-  <nav aria-label="移动端导航" class="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface md:hidden">
+  <nav :aria-label="$t('site.mobileNavAriaLabel')"
+       class="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-surface md:hidden">
     <div
       class="flex h-16 items-center justify-around"
       style="padding-bottom: env(safe-area-inset-bottom, 0px)"

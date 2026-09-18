@@ -1,17 +1,18 @@
+import {CODE_SUCCESS} from '@/composables/useApi'
 import {STORAGE_TOKEN} from '@/constants'
 import {storage} from '@/utils/storage'
 
 /**
  * 插件动作统一调用器
  *
- * 后端插件动作端点是 **v2** 的 `POST /api/v2/plugins/{slug}/action`
- * （`src/api/v2/plugins/plugin_management.py`，需管理员权限），
- * 而 `@/api/request` 的 axios 实例把 baseURL 固定成 `/api/v3`，
- * 所以这里绕开实例、直接用 `$fetch` 打同源绝对路径，并手动带上 Bearer token。
+ * 数据源：v3 `POST /api/v3/extension/plugin/{slug}/action`（T5-10 已自 v2 收敛，
+ * 权限码 `module_extension:plugin:configure`）。`@/api/request` 的 axios 把 baseURL
+ * 固定成 `/api/v3`，这里继续用 `$fetch` 打同源绝对路径，并手动带上 Bearer token。
  *
- * 响应形如 `{success, data, error}`（v2 风格，与 v3 的 `{code, msg, data}` 不同）。
- *
- * 仅 v2 有该端点这件事已登记在 `docs/refactor/HANDOVER.md` §12.3。
+ * 响应：v3 envelope `{code, msg, data}`，`data` 是插件方法的**原样返回值**
+ * （通常是 `{success, ...}`，也可能是数组等宽松形状）。判定规则：
+ *  - envelope `code === 200` 只代表「调度成功」；
+ *  - 插件返回 `{success: false, error}` 时整体按失败处理，并把 `error` 透传给调用方。
  */
 export interface PluginActionResult<T> {
   success: boolean
@@ -26,18 +27,23 @@ export async function pluginAction<T = unknown>(
 ): Promise<PluginActionResult<T>> {
   const token = storage.get<string>(STORAGE_TOKEN)
   try {
-    const response = await $fetch<{ success?: boolean; data?: T; error?: string; msg?: string }>(
-      `/api/v2/plugins/${slug}/action`,
+    const response = await $fetch<{ code?: number; data?: T; msg?: string }>(
+      `/api/v3/extension/plugin/${slug}/action`,
       {
         method: 'POST',
         body: {action, params},
         headers: token ? {Authorization: `Bearer ${token}`} : {},
       },
     )
+
+    const pluginResult = (response?.data ?? null) as { success?: boolean; error?: string } | null
+    const dispatched = response?.code === CODE_SUCCESS
+    const pluginOk = pluginResult ? pluginResult.success !== false : true
+
     return {
-      success: response?.success === true,
-      data: (response?.data ?? null) as T | null,
-      error: response?.error || response?.msg,
+      success: dispatched && pluginOk,
+      data: pluginResult as T | null,
+      error: pluginResult?.error || response?.msg,
     }
   } catch (error) {
     return {

@@ -80,6 +80,15 @@
 
 <script lang="ts" setup>
 const {t} = useI18n()
+
+// 后台入口页此前完全没有 definePageMeta：无 auth 中间件、无 admin 布局，
+// 未登录可直接打开（e2e 发现，见 HANDOVER §17）。数据权限仍由后端接口兜底。
+definePageMeta({
+  layout: 'admin',
+  middleware: 'auth',
+  title: 'menu.dashboard',
+})
+
 import dayjs from 'dayjs'
 import {computed, onMounted, ref} from 'vue'
 

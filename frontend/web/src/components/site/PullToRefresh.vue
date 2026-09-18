@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 下拉刷新（移动端）
  *
@@ -123,7 +124,9 @@ function onScroll(): void {
             class="h-4 w-4 transition-transform"
             name="arrow-down"
           />
-          <span>{{ props.refreshing ? '正在刷新…' : reached ? '松开即可刷新' : '下拉刷新' }}</span>
+          <span>{{
+              props.refreshing ? t('site.refreshing') : reached ? t('site.releaseToRefresh') : t('site.pullToRefresh')
+            }}</span>
         </div>
       </slot>
     </div>

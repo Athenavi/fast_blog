@@ -16,7 +16,7 @@ import {menuApi, type MenuItemNode, type MenuNode} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.system.menu.title'),
+  title: 'admin.system.menu.title',
   permission: 'module_system:navmenu:view',
 })
 

@@ -13,6 +13,9 @@ await initThemeSlots()
     </main>
     <SiteFooter :footer="site.site_footer" :icp="site.icp" :site-name="site.site_name"/>
 
+    <!-- 断网 / 弱网提示条（仅客户端渲染，见组件注释） -->
+    <OfflineBanner/>
+
     <!-- 可安装时提示装到桌面（浏览器未提供安装能力时不显示） -->
     <PWAInstallPrompt/>
 

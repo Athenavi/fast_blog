@@ -16,7 +16,7 @@ import {formatDateTime, formatFileSize, splitTags} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: t('admin.content.media.mediaLibrary'),
+  title: 'admin.content.media.mediaLibrary',
   permission: 'module_content:media:view',
 })
 

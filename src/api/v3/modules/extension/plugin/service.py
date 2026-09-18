@@ -5,6 +5,7 @@
 （v2 的 widgets 端点就踩过这个坑）。
 """
 
+import asyncio
 from typing import Any, List
 
 from src.api.v3.common.async_utils import maybe_await as _maybe_await
@@ -130,6 +131,51 @@ class PluginOpsService:
         found = await _maybe_await(method()) or []
         names: List[str] = [str(item) for item in found]
         return {"new_plugins": names, "count": len(names)}
+
+    async def execute_action(self, slug: str, action: str, params: dict) -> Any:
+        """执行插件自定义动作（自 v2 ``execute_plugin_action`` 平移）
+
+        与 v2 的差异：
+        - 插件不存在 / 方法不存在 → 404 / 400（v2 是 200 + success=false）；
+        - 保留能力声明校验（方法上的 ``_capability`` → ``plugin.check_capability``）；
+        - 插件方法自身的返回值原样透传（含插件级 ``{success: False, error}``），
+          由前端包装层统一判定。
+        """
+        plugin = await self._load(slug)
+
+        method = getattr(plugin, action, None)
+        if method is None:
+            raise BadRequestError(f"动作 {action} 不存在")
+
+        # 能力声明校验：装饰器 requires_capability 标记在方法上
+        action_cap = getattr(method, "_capability", None)
+        if action_cap:
+            check = getattr(plugin, "check_capability", None)
+            if check is not None and not check(action_cap, raise_error=True):
+                raise BadRequestError(f"插件 {slug} 缺少能力 {action_cap}")
+
+        # 审计日志：记录插件操作（失败不影响主流程）
+        try:
+            from shared.services.plugins.plugin_manager.core import plugin_audit_logger
+
+            plugin_audit_logger.log_api_call(
+                plugin_slug=slug,
+                api_endpoint=action,
+                method="ACTION",
+                context={"params": params},
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+        try:
+            if asyncio.iscoroutinefunction(method):
+                return await method(**params)
+            return method(**params)
+        except TypeError:
+            # 某些插件方法接受单个 dict 参数而非 **kwargs
+            if asyncio.iscoroutinefunction(method):
+                return await method(params)
+            return method(params)
 
 
 plugin_ops_service = PluginOpsService()

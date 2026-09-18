@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 注册页
  *
@@ -11,7 +12,7 @@ import {useUserStore} from '@/store/modules/user'
 
 definePageMeta({layout: false, title: '注册'})
 
-useSeoMeta({title: '注册 - FastBlog', robots: 'noindex'})
+useSeoMeta({title: t('register.seoTitle'), robots: 'noindex'})
 
 const userStore = useUserStore()
 
@@ -24,11 +25,11 @@ const USERNAME_RE = /^[a-zA-Z0-9_]+$/
 
 function validate(): string {
   const username = form.username.trim()
-  if (username.length < 3 || username.length > 30) return '用户名需为 3-30 个字符'
-  if (!USERNAME_RE.test(username)) return '用户名只能包含字母、数字与下划线'
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) return '请输入有效的邮箱地址'
-  if (form.password.length < 8) return '密码至少 8 位'
-  if (form.password !== form.confirm) return '两次输入的密码不一致'
+  if (username.length < 3 || username.length > 30) return t('register.ruleUsernameLength')
+  if (!USERNAME_RE.test(username)) return t('register.ruleUsernameChars')
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) return t('register.ruleEmailInvalid')
+  if (form.password.length < 8) return t('register.rulePasswordLength')
+  if (form.password !== form.confirm) return t('register.rulePasswordMismatch')
   return ''
 }
 
@@ -51,7 +52,7 @@ async function onSubmit(): Promise<void> {
     }
     await navigateTo('/', {replace: true})
   } catch {
-    error.value = '注册失败，用户名或邮箱可能已被占用'
+    error.value = t('register.errorTaken')
   } finally {
     loading.value = false
   }
@@ -63,43 +64,43 @@ async function onSubmit(): Promise<void> {
     <div class="w-full max-w-sm">
       <div class="mb-6 text-center">
         <NuxtLink class="text-xl font-semibold tracking-tight text-fg" to="/">FastBlog</NuxtLink>
-        <p class="mt-1.5 text-sm text-fg-muted">创建账号，开始记录与交流</p>
+        <p class="mt-1.5 text-sm text-fg-muted">{{ $t('register.tagline') }}</p>
       </div>
 
       <Card>
         <CardContent class="p-6">
           <form class="space-y-4" @submit.prevent="onSubmit">
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">用户名</label>
-              <Input v-model="form.username" placeholder="3-30 位字母、数字或下划线"/>
+              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.username') }}</label>
+              <Input v-model="form.username" :placeholder="$t('register.usernameHint')"/>
             </div>
 
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">邮箱</label>
-              <Input v-model="form.email" placeholder="用于登录与找回密码" type="email"/>
+              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.email') }}</label>
+              <Input v-model="form.email" :placeholder="$t('register.emailHint')" type="email"/>
             </div>
 
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">密码</label>
-              <Input v-model="form.password" placeholder="至少 8 位" type="password"/>
+              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.password') }}</label>
+              <Input v-model="form.password" :placeholder="$t('register.passwordHint')" type="password"/>
             </div>
 
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">确认密码</label>
-              <Input v-model="form.confirm" placeholder="再次输入密码" type="password"/>
+              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.confirmPassword') }}</label>
+              <Input v-model="form.confirm" :placeholder="$t('register.confirmPasswordPlaceholder')" type="password"/>
             </div>
 
             <p v-if="error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
 
             <Button :disabled="loading" class="w-full" type="submit">
               <Icon v-if="loading" class="h-4 w-4 animate-spin" name="loader-circle"/>
-              {{ loading ? '注册中…' : '注册并登录' }}
+              {{ loading ? t('register.registering') : t('register.submit') }}
             </Button>
           </form>
 
           <p class="mt-5 text-center text-sm text-fg-muted">
-            已有账号？
-            <NuxtLink class="font-medium text-fg hover:underline" to="/login">去登录</NuxtLink>
+            {{ $t('register.hasAccount') }}
+            <NuxtLink class="font-medium text-fg hover:underline" to="/login">{{ $t('register.goLogin') }}</NuxtLink>
           </p>
         </CardContent>
       </Card>

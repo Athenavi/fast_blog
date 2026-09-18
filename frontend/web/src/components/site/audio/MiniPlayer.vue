@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {computed, onBeforeUnmount, ref, watch} from 'vue'
 
 /**
@@ -71,7 +72,7 @@ onBeforeUnmount(() => {
       <div class="flex min-w-[260px] max-w-[320px] items-center gap-3 p-3">
         <button
           class="h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-xl active:scale-90"
-          title="展开播放器"
+          :title="$t('audio.expandPlayerAria')"
           type="button"
           @click="emit('restore')"
         >
@@ -99,7 +100,7 @@ onBeforeUnmount(() => {
 
         <div class="flex items-center gap-1">
           <button
-            :aria-label="isPlaying ? '暂停' : '播放'"
+            :aria-label="isPlaying ? t('audio.pause') : t('audio.play')"
             class="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-colors hover:bg-white/20 active:scale-90"
             type="button"
             @click="emit('toggle-play')"
@@ -107,7 +108,7 @@ onBeforeUnmount(() => {
             <Icon :name="isPlaying ? 'pause' : 'play'" class="h-4 w-4 text-white"/>
           </button>
           <button
-            aria-label="关闭"
+            :aria-label="$t('admin.common.close')"
             class="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-colors hover:bg-white/15 active:scale-90"
             type="button"
             @click="emit('close')"
@@ -158,7 +159,7 @@ onBeforeUnmount(() => {
             @click="closeMenu(); emit('restore')"
           >
             <Icon class="h-5 w-5" name="expand"/>
-            展开播放器
+            {{ $t('audio.expandPlayerAria') }}
           </button>
           <button
             class="flex w-full items-center gap-3 rounded-xl bg-red-500/20 px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/30"
@@ -166,7 +167,7 @@ onBeforeUnmount(() => {
             @click="closeMenu(); emit('close')"
           >
             <Icon class="h-5 w-5" name="x"/>
-            关闭播放
+            {{ $t('audio.closePlayer') }}
           </button>
         </div>
       </div>
