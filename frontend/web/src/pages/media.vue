@@ -50,46 +50,45 @@ async function loadStats(): Promise<void> {
   }
 }
 
-async function loadList(): Promise<void> {
+/** 无限滚动：第一页替换，后续页追加 */
+async function loadList(reset = true): Promise<void> {
   loading.value = true
   try {
+    if (reset) page.value = 1
     const data = await mobileApi.mediaList({
       page: page.value,
       page_size: PAGE_SIZE,
       ...(activeFolder.value === undefined ? {} : {folder_id: activeFolder.value}),
       ...(keyword.value ? {keyword: keyword.value} : {}),
     })
-    list.value = data.items
+    list.value = reset ? data.items : [...list.value, ...data.items]
     total.value = data.total
-    // 列表变化后清理已不存在的选中项
-    const ids = new Set(data.items.map((item) => item.id))
+    const ids = new Set(list.value.map((item) => item.id))
     selected.value = selected.value.filter((id) => ids.has(id))
   } finally {
     loading.value = false
   }
 }
 
-async function refresh(): Promise<void> {
-  await Promise.all([loadList(), loadFolders(), loadStats()])
+const hasMore = computed(() => list.value.length < total.value)
+
+async function loadMore(): Promise<void> {
+  if (!hasMore.value || loading.value) return
+  page.value += 1
+  await loadList(false)
 }
 
-const totalPages = computed(() => Math.max(1, Math.ceil(total.value / PAGE_SIZE)))
+async function refresh(): Promise<void> {
+  await Promise.all([loadList(true), loadFolders(), loadStats()])
+}
 
 function selectFolder(id?: number): void {
   activeFolder.value = id
-  page.value = 1
-  loadList()
+  loadList(true)
 }
 
 function onSearch(): void {
-  page.value = 1
-  loadList()
-}
-
-function changePage(next: number): void {
-  if (next < 1 || next > totalPages.value) return
-  page.value = next
-  loadList()
+  loadList(true)
 }
 
 // ---------------------------------------------------------------- 上传
@@ -339,65 +338,63 @@ onMounted(refresh)
           </label>
         </div>
 
-        <div v-if="loading" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <Skeleton v-for="i in 8" :key="i" class="h-32 w-full"/>
-        </div>
-
-        <div v-else-if="list.length" class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          <div
-            v-for="item in list"
-            :key="item.id"
-            :class="cn('transition-colors', isSelected(item.id) ? 'border-primary' : 'border-line hover:border-line-strong')"
-            class="group relative overflow-hidden rounded-card border bg-surface"
-          >
-            <button
-              :aria-label="'选择 ' + (item.original_filename || item.filename)"
-              class="absolute left-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded border border-line bg-surface/90"
-              type="button"
-              @click="toggleSelect(item.id)"
+        <InfiniteList
+          :columns="4"
+          :has-more="hasMore"
+          :is-loading="loading"
+          :items="list"
+          empty-description="点击右上角「上传文件」开始，支持图片与常见文档。"
+          empty-title="这里还没有文件"
+          @load-more="loadMore"
+        >
+          <template #default="{item}">
+            <div
+              :class="cn('transition-colors', isSelected((item as MobileMediaItem).id) ? 'border-primary' : 'border-line hover:border-line-strong')"
+              class="group relative overflow-hidden rounded-card border bg-surface"
             >
-              <span v-if="isSelected(item.id)" class="text-xs text-primary">✓</span>
-            </button>
-
-            <div class="flex h-32 items-center justify-center bg-surface-soft">
-              <img
-                v-if="isImage(item) && item.file_url"
-                :alt="item.alt_text || item.original_filename || ''"
-                :src="item.thumbnail_url || item.file_url"
-                class="h-full w-full object-cover"
-                loading="lazy"
+              <button
+                :aria-label="'选择 ' + ((item as MobileMediaItem).original_filename || (item as MobileMediaItem).filename)"
+                class="absolute left-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded border border-line bg-surface/90"
+                type="button"
+                @click="toggleSelect((item as MobileMediaItem).id)"
               >
-              <Icon v-else class="h-8 w-8 text-fg-subtle" name="image"/>
-            </div>
+                <span v-if="isSelected((item as MobileMediaItem).id)" class="text-xs text-primary">✓</span>
+              </button>
 
-            <div class="p-2.5">
-              <p :title="item.original_filename || item.filename || ''" class="truncate text-xs font-medium text-fg">
-                {{ item.original_filename || item.filename }}
-              </p>
-              <p class="mt-0.5 text-[11px] text-fg-subtle">
-                {{ formatFileSize(item.file_size) }} · {{ formatDateTime(item.created_at).slice(0, 10) }}
-              </p>
-              <div class="mt-2 flex items-center gap-2 text-[11px]">
-                <button class="text-primary hover:underline" type="button" @click="copyUrl(item)">复制链接</button>
-                <button class="text-fg-muted hover:underline" type="button" @click="openEdit(item)">编辑</button>
-                <button class="ml-auto text-danger hover:underline" type="button" @click="removeOne(item)">删除</button>
+              <div class="flex h-32 items-center justify-center bg-surface-soft">
+                <img
+                  v-if="isImage(item as MobileMediaItem) && (item as MobileMediaItem).file_url"
+                  :alt="(item as MobileMediaItem).alt_text || (item as MobileMediaItem).original_filename || ''"
+                  :src="(item as MobileMediaItem).thumbnail_url || (item as MobileMediaItem).file_url || ''"
+                  class="h-full w-full object-cover"
+                  loading="lazy"
+                >
+                <Icon v-else class="h-8 w-8 text-fg-subtle" name="image"/>
+              </div>
+
+              <div class="p-2.5">
+                <p class="truncate text-xs font-medium text-fg">
+                  {{ (item as MobileMediaItem).original_filename || (item as MobileMediaItem).filename }}
+                </p>
+                <p class="mt-0.5 text-[11px] text-fg-subtle">
+                  {{ formatFileSize((item as MobileMediaItem).file_size) }} ·
+                  {{ formatDateTime((item as MobileMediaItem).created_at).slice(0, 10) }}
+                </p>
+                <div class="mt-2 flex items-center gap-2 text-[11px]">
+                  <button class="text-primary hover:underline" type="button" @click="copyUrl(item as MobileMediaItem)">
+                    复制链接
+                  </button>
+                  <button class="text-fg-muted hover:underline" type="button"
+                          @click="openEdit(item as MobileMediaItem)">编辑
+                  </button>
+                  <button class="ml-auto text-danger hover:underline" type="button"
+                          @click="removeOne(item as MobileMediaItem)">删除
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <EmptyState
-          v-else
-          description="点击右上角「上传文件」开始，支持图片与常见文档。"
-          title="这里还没有文件"
-        />
-
-        <nav v-if="totalPages > 1" class="flex items-center justify-center gap-2 pt-8">
-          <Button :disabled="page <= 1" size="sm" variant="outline" @click="changePage(page - 1)">上一页</Button>
-          <span class="text-sm text-fg-muted">{{ page }} / {{ totalPages }}</span>
-          <Button :disabled="page >= totalPages" size="sm" variant="outline" @click="changePage(page + 1)">下一页
-          </Button>
-        </nav>
+          </template>
+        </InfiniteList>
       </section>
     </div>
 

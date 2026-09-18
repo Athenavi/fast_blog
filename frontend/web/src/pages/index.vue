@@ -25,6 +25,13 @@ const {data: categories} = await useAsyncData('home-categories', () =>
 
 const articles = computed(() => articlePage.value?.items ?? [])
 
+const requestUrl = useRequestURL()
+useWebsiteJsonLd({
+  name: site.value.site_name || 'FastBlog',
+  description: site.value.site_description,
+  url: requestUrl.origin,
+})
+
 useSeoMeta({
   title: site.value.site_name || 'FastBlog',
   description: site.value.site_description || '一个基于 FastAPI 与 Nuxt 的博客',

@@ -43,5 +43,7 @@ const emit = defineEmits<{ (e: 'change', page: number): void }>()
       :pages="props.pages"
       @change="emit('change', $event)"
     />
+
+    <ListLoadingFooter :has-loaded-all="false" :is-loading="props.loading"/>
   </div>
 </template>

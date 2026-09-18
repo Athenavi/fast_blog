@@ -7,22 +7,14 @@ const {data: page} = await useAsyncData('page-about', () =>
   apiGet<PageItem>('/content/page/public/slug/about'),
 )
 
-/** 结构化数据（对齐 astro 旧版 about 页的 SEO 处理） */
-const requestUrl = useRequestURL()
-useHead({
-  script: [
-    {
-      type: 'application/ld+json',
-      innerHTML: JSON.stringify({
-        '@context': 'https://schema.org',
-        '@type': 'AboutPage',
-        name: page.value?.title || '关于本站',
-        description: page.value?.summary || site.value.site_description || '',
-        url: `${requestUrl.origin}/about`,
-      }),
-    },
-  ],
-})
+/** 结构化数据（对齐 astro 旧版 about 页的 SEO 处理，改用统一的 useJsonLd） */
+// 注意：useRequestURL 必须在 setup 顶层调用——放进 useHead 的响应式回调里会丢失 Nuxt 上下文
+const origin = useRequestURL().origin
+useJsonLd('AboutPage', () => ({
+  name: page.value?.title || '关于本站',
+  description: page.value?.summary || site.value.site_description || '',
+  url: `${origin}/about`,
+}))
 
 useSeoMeta({
   title: () => `${page.value?.title || '关于'} - ${site.value.site_name || 'FastBlog'}`,

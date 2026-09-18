@@ -10,13 +10,7 @@ import {Delete, Edit, Plus, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {reactive, ref} from 'vue'
 
-import {
-  articleApi,
-  categoryApi,
-  type ArticleItem,
-  type ArticlePayload,
-  type CategoryItem,
-} from '@/api'
+import {articleApi, type ArticleItem, type ArticlePayload, categoryApi, type CategoryItem,} from '@/api'
 import {articleStatusTag, articleStatusText, formatDateTime} from '@/utils/format'
 
 definePageMeta({
@@ -115,6 +109,7 @@ function emptyForm(): ArticlePayload {
     is_vip_only: false,
     required_vip_level: 0,
     sort_order: 0,
+    scheduled_publish_at: null,
   }
 }
 
@@ -147,6 +142,7 @@ async function openEdit(row: ArticleItem): Promise<void> {
       is_vip_only: detail.is_vip_only,
       required_vip_level: detail.required_vip_level,
       sort_order: detail.sort_order,
+      scheduled_publish_at: detail.scheduled_publish_at ?? null,
     })
   } catch {
     // 详情失败已由 request 拦截器统一提示
@@ -278,6 +274,14 @@ onMounted(async () => {
           </template>
         </el-table-column>
         <el-table-column label="浏览" prop="views" width="80"/>
+        <el-table-column label="定时发布" width="170">
+          <template #default="{row}">
+            <el-tag v-if="row.scheduled_publish_at" size="small" type="warning">
+              {{ formatDateTime(row.scheduled_publish_at) }}
+            </el-tag>
+            <span v-else class="muted">-</span>
+          </template>
+        </el-table-column>
         <el-table-column label="更新时间" width="170">
           <template #default="{row}">{{ formatDateTime(row.updated_at) }}</template>
         </el-table-column>
@@ -362,6 +366,15 @@ onMounted(async () => {
         <el-form-item label="排序">
           <el-input-number v-model="form.sort_order" :min="0"/>
         </el-form-item>
+        <el-form-item label="定时发布">
+          <el-date-picker
+            v-model="form.scheduled_publish_at"
+            placeholder="留空表示立即生效"
+            style="width: 100%"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+          />
+        </el-form-item>
       </el-form>
 
       <template #footer>
@@ -385,6 +398,10 @@ onMounted(async () => {
 
 .ml-1 {
   margin-left: 4px;
+}
+
+.muted {
+  color: var(--el-text-color-secondary);
 }
 
 .mr-1 {

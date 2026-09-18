@@ -14,14 +14,12 @@ const to = computed(() =>
 <template>
   <article class="group">
     <NuxtLink :to="to" class="block">
-      <div v-if="props.article.cover_image" class="mb-3 overflow-hidden rounded-card bg-surface-soft">
-        <img
-          :src="props.article.cover_image"
-          :alt="props.article.title"
-          loading="lazy"
-          class="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-        >
-      </div>
+      <DeferredImage
+        v-if="props.article.cover_image"
+        :alt="props.article.title"
+        :src="props.article.cover_image"
+        class="mb-3 rounded-card"
+      />
       <h3 class="text-base font-semibold leading-snug text-fg transition-colors group-hover:text-primary">
         {{ props.article.title }}
       </h3>

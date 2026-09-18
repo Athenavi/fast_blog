@@ -21,6 +21,29 @@ onMounted(() => {
   })
 })
 
+const requestUrl = useRequestURL()
+
+const breadcrumbs = computed(() => [
+  {label: '首页', to: '/'},
+  {label: '文章', to: '/articles'},
+  {label: article.value?.title || '文章'},
+])
+
+useBreadcrumbJsonLd(breadcrumbs.value, requestUrl.origin)
+
+useArticleJsonLd(
+  {
+    headline: article.value?.title,
+    description: article.value?.summary,
+    image: article.value?.cover_image,
+    datePublished: article.value?.published_at,
+    dateModified: article.value?.updated_at,
+    authorName: article.value?.author_name,
+    url: `${requestUrl.origin}/articles/${slug}`,
+  },
+  {keywords: article.value?.tags ?? []},
+)
+
 useSeoMeta({
   title: () => article.value?.title || '文章',
   description: () => article.value?.summary || '',
@@ -32,5 +55,10 @@ useSeoMeta({
 </script>
 
 <template>
-  <ArticleDetailView v-if="article" :article="article"/>
+  <div v-if="article">
+    <div class="mx-auto max-w-read px-4 pt-8">
+      <Breadcrumbs :items="breadcrumbs"/>
+    </div>
+    <ArticleDetailView :article="article"/>
+  </div>
 </template>
