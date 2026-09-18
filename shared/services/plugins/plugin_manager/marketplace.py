@@ -5,6 +5,7 @@
 
 import json
 import logging
+from collections import Counter
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
@@ -158,10 +159,7 @@ class PluginMarketService:
         plugins = self.discover_plugins()
 
         # 统计每个分类的插件数量
-        category_count = {}
-        for plugin in plugins:
-            category = plugin.get('category', 'uncategorized')
-            category_count[category] = category_count.get(category, 0) + 1
+        category_count = Counter(plugin.get('category', 'uncategorized') for plugin in plugins)
 
         # 转换为列表格式
         categories = [

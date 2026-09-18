@@ -397,11 +397,11 @@ class AIWritingAssistant:
             '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一',
             '上', '也', '很', '到', '说', '要', '去', '你', '会', '着',
         }
-        word_freq = {}
+        word_freq = Counter()
         for word in words:
             word = word.lower().strip('.,!?;:\'"')
             if len(word) > 2 and word not in stop_words:
-                word_freq[word] = word_freq.get(word, 0) + 1
+                word_freq[word] += 1
 
         # 按频率排序
         sorted_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)

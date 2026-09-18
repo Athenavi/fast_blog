@@ -8,20 +8,20 @@
 
 import html
 import json
+from collections import Counter
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select, func, or_, delete
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import TeamComment
-from shared.logging import default_logger as logger
 
 
 class TeamCommentService:
     """
     团队评论和反馈服务
-    
+
     管理团队内部的评论和反馈（数据库持久化）
     """
 
@@ -333,10 +333,7 @@ class TeamCommentService:
         unresolved = total - resolved
 
         # 统计每个作者的评论数（按 author_id）
-        by_author = {}
-        for comment in all_comments:
-            author_key = str(comment.author_id)
-            by_author[author_key] = by_author.get(author_key, 0) + 1
+        by_author = Counter(str(comment.author_id) for comment in all_comments)
 
         return {
             'total_comments': total,

@@ -5,6 +5,7 @@
 帮助识别和修复无障碍性问题
 """
 
+from collections import Counter
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -232,17 +233,13 @@ class AccessibilityAuditor:
         avg_score = sum(r['summary']['score'] for r in reports) / len(reports) if reports else 0
 
         # 找出最常见的问题
-        violation_counts = {}
-        for report in reports:
-            for violation in report['violations']:
-                rule_id = violation['rule_id']
-                violation_counts[rule_id] = violation_counts.get(rule_id, 0) + 1
+        violation_counts = Counter(
+            violation['rule_id']
+            for report in reports
+            for violation in report['violations']
+        )
 
-        common_issues = sorted(
-            violation_counts.items(),
-            key=lambda x: x[1],
-            reverse=True
-        )[:10]
+        common_issues = violation_counts.most_common(10)
 
         return {
             'total_pages': len(reports),

@@ -6,13 +6,14 @@
 
 import json
 import logging
+from collections import Counter
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 
-class AuditActionType(str, Enum):
+class AuditActionType(StrEnum):
     """审计动作类型"""
     # 数据访问
     DATA_READ = "data_read"
@@ -49,7 +50,7 @@ class AuditActionType(str, Enum):
     CUSTOM = "custom"
 
 
-class AuditStatus(str, Enum):
+class AuditStatus(StrEnum):
     """审计状态"""
     SUCCESS = "success"
     FAILURE = "failure"
@@ -258,16 +259,10 @@ class AuditLogger:
         failure_count = sum(1 for log in logs if log.get('status') == 'failure')
 
         # 按动作类型统计
-        action_stats = {}
-        for log in logs:
-            action = log.get('action_type', 'unknown')
-            action_stats[action] = action_stats.get(action, 0) + 1
+        action_stats = Counter(log.get('action_type', 'unknown') for log in logs)
 
         # 按严重级别统计
-        severity_stats = {}
-        for log in logs:
-            severity = log.get('severity', 'info')
-            severity_stats[severity] = severity_stats.get(severity, 0) + 1
+        severity_stats = Counter(log.get('severity', 'info') for log in logs)
 
         report = {
             "plugin_slug": plugin_slug,

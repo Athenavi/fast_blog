@@ -151,12 +151,16 @@ _redis_instance = None
 
 
 def _get_redis():
-    """获取 Redis 客户端单例（首次使用时懒加载，失败时返回 None）"""
+    """获取共享 Redis 客户端（复用 redis_service 单例，失败时返回 None）
+
+    连接由应用启动流程统一建立（src/app.py lifespan → _start_redis_subscriber），
+    这里只负责取单例；未连接时各调用点自行降级。
+    """
     global _redis_instance
     if _redis_instance is None:
         try:
-            from src.services.redis_service import RedisService
-            _redis_instance = RedisService()
+            from src.services.redis_service import redis_service
+            _redis_instance = redis_service
         except Exception as e:
             logger.warning(f"Redis 初始化失败，降级到内存缓存: {e}")
             _redis_instance = False
@@ -181,6 +185,9 @@ async def _redis_get_codes(user_id: int) -> Optional[Set[str]]:
             return set(raw.split(","))
         if isinstance(raw, list):
             return set(raw)
+        if isinstance(raw, int):
+            # RedisService.get 会对数字形态的值做 JSON 解析（"5" → 5）
+            return {str(raw)}
         return None
     except Exception as e:
         logger.warning(f"Redis 读取失败 (user={user_id}): {e}")
@@ -410,17 +417,28 @@ async def _redis_publish_invalidate(user_id: int):
 
 
 async def _redis_subscribe_invalidate():
-    """后台任务：订阅 Redis 广播频道，处理其他实例的失效事件"""
+    """后台任务：订阅 Redis 广播频道，处理其他实例的失效事件
+
+    这是常驻循环，调用方必须通过 start_redis_invalidate_subscriber()
+    以后台任务方式启动，不要直接 await，否则会阻塞启动流程。
+    """
     global _INVALIDATE_SUBSCRIBER_RUNNING
     if _INVALIDATE_SUBSCRIBER_RUNNING:
         return
-    _INVALIDATE_SUBSCRIBER_RUNNING = True
 
     redis = _get_redis()
     if not redis:
-        _INVALIDATE_SUBSCRIBER_RUNNING = False
         return
 
+    # 正常路径下 lifespan 已建立连接；这里兜底一次，避免拿未连接的客户端去订阅
+    if getattr(redis, "_redis", None) is None:
+        try:
+            await redis.connect()
+        except Exception as e:
+            logger.debug(f"Redis 未连接，跳过权限失效频道订阅: {e}")
+            return
+
+    _INVALIDATE_SUBSCRIBER_RUNNING = True
     try:
         pubsub = redis.redis.pubsub()
         await pubsub.subscribe(_REDIS_INVALIDATE_CHANNEL)
@@ -439,6 +457,22 @@ async def _redis_subscribe_invalidate():
         logger.warning(f"Redis 订阅失效频道失败: {e}")
     finally:
         _INVALIDATE_SUBSCRIBER_RUNNING = False
+
+
+_subscriber_task: Optional[asyncio.Task] = None
+
+
+def start_redis_invalidate_subscriber() -> Optional[asyncio.Task]:
+    """以后台任务方式启动权限失效频道订阅（幂等）
+
+    持有任务引用，避免被 GC 回收；重复调用时返回已存在的任务。
+    """
+    global _subscriber_task
+    if _subscriber_task is not None and not _subscriber_task.done():
+        return _subscriber_task
+    _subscriber_task = asyncio.ensure_future(_redis_subscribe_invalidate())
+    _subscriber_task.set_name("perm_cache_invalidate_subscriber")
+    return _subscriber_task
 
 
 # ============================================================

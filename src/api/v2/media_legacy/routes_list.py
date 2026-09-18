@@ -1,6 +1,7 @@
 """
 媒体列表、统计、分类、标签查询
 """
+from collections import Counter
 from decimal import Decimal
 from pathlib import Path
 from typing import Optional
@@ -284,11 +285,11 @@ async def get_all_tags(
     result = await db.execute(query)
     all_tags_str = [row[0] for row in result.all() if row[0]]
 
-    tag_count = {}
+    tag_count = Counter()
     for tags_str in all_tags_str:
         tags = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
         for tag in tags:
-            tag_count[tag] = tag_count.get(tag, 0) + 1
+            tag_count[tag] += 1
 
     tags = [
         {"name": name, "count": count}

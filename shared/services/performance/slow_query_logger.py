@@ -5,7 +5,7 @@
 提供查询优化建议
 """
 
-from collections import deque
+from collections import Counter, deque
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -207,10 +207,7 @@ class SlowQueryLogger:
                 suggestions.append(suggestion)
 
         # 检查重复查询模式
-        pattern_counts = {}
-        for query in self.queries:
-            pattern = self._normalize_sql(query['sql'])
-            pattern_counts[pattern] = pattern_counts.get(pattern, 0) + 1
+        pattern_counts = Counter(self._normalize_sql(query['sql']) for query in self.queries)
 
         for pattern, count in pattern_counts.items():
             if count >= 10:  # 相同模式出现10次以上

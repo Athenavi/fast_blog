@@ -5,7 +5,7 @@
 包括页面加载时间、服务器指标、数据库性能等
 """
 
-from collections import deque
+from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 
@@ -224,24 +224,22 @@ class PerformanceMonitor:
 
         query_times = [query['duration'] for query in recent_queries]
 
-        # 按类型统计
-        by_type = {}
-        for query in recent_queries:
-            qtype = query['query_type']
-            if qtype not in by_type:
-                by_type[qtype] = {'count': 0, 'total_time': 0}
-            by_type[qtype]['count'] += 1
-            by_type[qtype]['total_time'] += query['duration']
+        # 按类型、按表统计（单次遍历）
+        by_type: Dict[str, Dict[str, float]] = defaultdict(lambda: {'count': 0, 'total_time': 0})
+        by_table: Dict[str, Dict[str, float]] = defaultdict(
+            lambda: {'count': 0, 'total_time': 0, 'avg_time': 0})
 
-        # 按表统计
-        by_table = {}
         for query in recent_queries:
-            table = query.get('table', 'unknown')
-            if table not in by_table:
-                by_table[table] = {'count': 0, 'total_time': 0, 'avg_time': 0}
-            by_table[table]['count'] += 1
-            by_table[table]['total_time'] += query['duration']
-            by_table[table]['avg_time'] = by_table[table]['total_time'] / by_table[table]['count']
+            duration = query['duration']
+
+            type_stats = by_type[query['query_type']]
+            type_stats['count'] += 1
+            type_stats['total_time'] += duration
+
+            table_stats = by_table[query.get('table', 'unknown')]
+            table_stats['count'] += 1
+            table_stats['total_time'] += duration
+            table_stats['avg_time'] = table_stats['total_time'] / table_stats['count']
 
         # 找出慢查询 (>100ms)
         slow_queries = [
@@ -254,8 +252,8 @@ class PerformanceMonitor:
             'total_queries': len(recent_queries),
             'avg_query_time': sum(query_times) / len(query_times) if query_times else 0,
             'slow_queries': slow_queries,
-            'by_type': by_type,
-            'by_table': by_table,
+            'by_type': dict(by_type),
+            'by_table': dict(by_table),
         }
 
     def get_api_stats(self, hours: int = 24) -> Dict[str, Any]:

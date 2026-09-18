@@ -7,24 +7,19 @@ import time
 import qrcode
 from fastapi import Request
 
+from shared.services.core.cache_service import CacheService
+
 # 内存缓存用于 QR 登录令牌（避免同步 Redis 操作阻塞事件循环）
-_qr_cache: dict[str, dict] = {}
-_qr_cache_expiry: dict[str, float] = {}
+_qr_cache = CacheService(max_size=1000, default_ttl=180)
 
 
 def _cache_set(key: str, value, ttl: int = 180):
     """内存缓存写入 QR 令牌"""
-    _qr_cache[key] = value if isinstance(value, dict) else {"data": value}
-    _qr_cache_expiry[key] = time.time() + ttl
+    _qr_cache.set(key, value if isinstance(value, dict) else {"data": value}, ttl)
 
 
 def _cache_get(key: str):
-    """内存缓存读取 QR 令牌，自动清理过期项"""
-    expiry = _qr_cache_expiry.get(key)
-    if expiry and time.time() > expiry:
-        _qr_cache.pop(key, None)
-        _qr_cache_expiry.pop(key, None)
-        return None
+    """内存缓存读取 QR 令牌，过期项由 CacheService 兜底清理"""
     return _qr_cache.get(key)
 
 

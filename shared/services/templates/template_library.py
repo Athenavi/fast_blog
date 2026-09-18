@@ -11,6 +11,7 @@
 5. 模板预览和自定义
 """
 
+from collections import Counter
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, List, Optional
@@ -122,11 +123,7 @@ class TemplateLibrary:
 
     def get_categories(self) -> Dict[str, int]:
         """获取分类统计"""
-        stats = {}
-        for template in self.templates.values():
-            cat = template.category.value
-            stats[cat] = stats.get(cat, 0) + 1
-        return stats
+        return Counter(template.category.value for template in self.templates.values())
 
     def _register_builtin_templates(self):
         """注册内置模板"""

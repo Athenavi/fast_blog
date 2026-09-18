@@ -3,6 +3,7 @@ SVG 清理和验证工具
 用于安全地处理 SVG 文件，防止 XSS 攻击
 """
 import re
+from collections import Counter
 from xml.etree import ElementTree as ET
 
 # 允许的 SVG 标签
@@ -207,12 +208,12 @@ def validate_svg(svg_content: str) -> dict:
             pass
     
     # 统计元素数量
-    element_count = {}
+    element_count = Counter()
     for elem in root.iter():
         tag = elem.tag
         if '}' in tag:
             tag = tag.split('}', 1)[1]
-        element_count[tag] = element_count.get(tag, 0) + 1
+        element_count[tag] += 1
     
     metadata['element_count'] = element_count
     metadata['total_elements'] = sum(element_count.values())

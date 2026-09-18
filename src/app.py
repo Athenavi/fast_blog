@@ -416,21 +416,23 @@ def _enable_redis_caches():
 
 async def _start_redis_subscriber():
     """启动 Redis 缓存广播订阅（后台任务，失败不阻塞）"""
-    try:
-        from src.api.v3._permission import _redis_subscribe_invalidate
-        await _redis_subscribe_invalidate()
-    except Exception as e:
-        logger.info(f"[lifespan] Redis 广播订阅启动失败: {e}")
-
-    # 启动通用缓存失效广播监听
+    # 1. 先建立共享 Redis 连接，再启动各订阅者（订阅依赖已连接的客户端）
     try:
         from src.services.redis_service import redis_service
-        await redis_service.connect()
+        if redis_service._redis is None:
+            await redis_service.connect()
         await redis_service.start_cache_invalidation_listener()
         _enable_redis_caches()
-        logger.info(f"[lifespan] Redis cache:invalidate 监听已启动")
+        logger.info("[lifespan] Redis cache:invalidate 监听已启动")
     except Exception as e:
         logger.info(f"[lifespan] Redis cache:invalidate 监听启动失败: {e}")
+
+    # 2. 连接就绪后再启动权限缓存广播订阅（后台常驻任务，不能直接 await）
+    try:
+        from src.api.v3._permission import start_redis_invalidate_subscriber
+        start_redis_invalidate_subscriber()
+    except Exception as e:
+        logger.info(f"[lifespan] Redis 广播订阅启动失败: {e}")
 
 
 async def _shutdown_download_processor():

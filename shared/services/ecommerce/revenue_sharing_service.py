@@ -3,16 +3,15 @@
 提供收益计算、分成、提现等功能
 """
 from datetime import datetime
+from enum import StrEnum
 from typing import List, Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 
-from enum import Enum
-
 from shared.models import RevenueSharingConfig, UserRevenueStats, PayoutRequest, RevenueRecord
 
 
-class RevenueType(str, Enum):
+class RevenueType(StrEnum):
     """收益类型枚举"""
     ADVERTISEMENT = "advertisement"
     VIP_SUBSCRIPTION = "vip_subscription"

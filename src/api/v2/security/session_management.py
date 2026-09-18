@@ -3,6 +3,7 @@
 提供会话查看、远程注销、设备管理等功能
 """
 import logging
+from collections import Counter
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Body, Request
@@ -156,10 +157,10 @@ async def get_session_stats(
     sessions = session_management_service.get_user_sessions(current_user.id)
 
     # 按设备类型统计
-    device_types = {}
-    for session in sessions:
-        device_type = session['device_info'].get('platform', 'Unknown')
-        device_types[device_type] = device_types.get(device_type, 0) + 1
+    device_types = Counter(
+        session['device_info'].get('platform', 'Unknown')
+        for session in sessions
+    )
 
     return ok(data={
         'total_sessions': len(sessions),

@@ -2,17 +2,14 @@
 数据备份服务
 提供数据库和文件的自动备份、恢复和管理功能
 """
-import os
-import json
-import gzip
-import shutil
-
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
-from pathlib import Path
-
 import asyncio
-from sqlalchemy import text
+import gzip
+import json
+import os
+import shutil
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, Any, Optional, List
 
 from shared.logging import default_logger as logger
 
@@ -20,7 +17,7 @@ from shared.logging import default_logger as logger
 class BackupService:
     """
     数据备份服务
-    
+
     功能:
     1. 数据库备份（PostgreSQL）
     2. 文件备份（媒体文件、上传文件）
@@ -33,7 +30,7 @@ class BackupService:
     def __init__(self, backup_dir: str = None):
         """
         初始化备份服务
-        
+
         Args:
             backup_dir: 备份目录路径
         """
@@ -48,7 +45,7 @@ class BackupService:
         os.makedirs(self.full_backup_dir, exist_ok=True)
 
         # 应用根路径（供 restore_files 使用）
-        self.app_path = type('Path', (), {'parent': os.path.dirname(os.path.abspath(__file__))})()
+        self.app_path = Path(__file__).resolve().parent
 
         # 默认配置
         self.config = {
@@ -96,10 +93,10 @@ class BackupService:
     async def backup_database(self, backup_type: str = 'full') -> Dict[str, Any]:
         """
         备份数据库
-        
+
         Args:
             backup_type: 备份类型 ('full' 或 'incremental')
-            
+
         Returns:
             备份结果信息
         """
@@ -162,7 +159,7 @@ class BackupService:
                 'backup_path': backup_path,
                 'metadata': metadata
             }
-            
+
         except Exception as e:
             logger.error(f"Database backup failed: {e}")
             return {
@@ -173,7 +170,7 @@ class BackupService:
     async def backup_files(self) -> Dict[str, Any]:
         """
         备份文件（媒体文件、上传文件等）
-        
+
         Returns:
             备份结果信息
         """
@@ -237,7 +234,7 @@ class BackupService:
                 'backup_path': backup_path,
                 'metadata': metadata
             }
-            
+
         except Exception as e:
             logger.error(f"Files backup failed: {e}")
             return {
@@ -248,7 +245,7 @@ class BackupService:
     async def full_backup(self) -> Dict[str, Any]:
         """
         完整备份（数据库 + 文件）
-        
+
         Returns:
             备份结果信息
         """
@@ -296,7 +293,7 @@ class BackupService:
                 'backup_dir': backup_dir,
                 'metadata': metadata
             }
-            
+
         except Exception as e:
             logger.error(f"Full backup failed: {e}")
             return {
@@ -307,7 +304,7 @@ class BackupService:
     async def backup_full(self) -> Dict[str, Any]:
         """
         完整备份（数据库 + 文件）的别名方法
-        
+
         Returns:
             备份结果信息
         """
@@ -316,10 +313,10 @@ class BackupService:
     async def restore_database(self, backup_path: str) -> Dict[str, Any]:
         """
         恢复数据库
-        
+
         Args:
             backup_path: 备份文件路径
-            
+
         Returns:
             恢复结果
         """
@@ -395,10 +392,10 @@ class BackupService:
     async def restore_files(self, backup_path: str) -> Dict[str, Any]:
         """
         恢复文件
-        
+
         Args:
             backup_path: 备份文件路径
-            
+
         Returns:
             恢复结果
         """
@@ -414,7 +411,7 @@ class BackupService:
             import subprocess
 
             # 解压并恢复文件 — 限制到应用目录，避免覆盖系统文件
-            restore_base = str(self.app_path.parent)
+            restore_base = str(self.app_path)
             cmd = ['tar', '-xzf', backup_path, '-C', restore_base]
 
             result = subprocess.run(
@@ -444,11 +441,11 @@ class BackupService:
     def list_backups(self, backup_type: str = None, limit: int = None) -> List[Dict[str, Any]]:
         """
         列出所有备份
-        
+
         Args:
             backup_type: 备份类型过滤 ('database', 'files', 'full')
             limit: 返回数量限制
-            
+
         Returns:
             备份列表
         """
@@ -495,10 +492,10 @@ class BackupService:
     def delete_backup(self, backup_path: str) -> bool:
         """
         删除备份
-        
+
         Args:
             backup_path: 备份文件或目录路径
-            
+
         Returns:
             是否删除成功
         """
@@ -518,10 +515,10 @@ class BackupService:
     async def cleanup_old_backups(self, days: int = None) -> Dict[str, Any]:
         """
         清理旧备份
-        
+
         Args:
             days: 保留天数
-            
+
         Returns:
             清理结果统计
         """
@@ -529,11 +526,11 @@ class BackupService:
         cutoff_date = datetime.now() - timedelta(days=retention_days)
 
         backups = self.list_backups()
-        
+
         deleted_count = 0
         freed_space = 0
         deleted_backups = []
-        
+
         for backup in backups:
             created_at_str = backup.get('created_at', '')
             if not created_at_str:
@@ -646,7 +643,7 @@ class BackupService:
                 shutil.copyfileobj(f_in, f_out)
 
         return compressed_path
-        
+
     def _format_size(self, size_bytes: int) -> str:
         """格式化文件大小"""
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
