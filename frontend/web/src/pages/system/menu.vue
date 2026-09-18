@@ -256,7 +256,7 @@ onMounted(loadMenus)
             <el-empty v-if="!loading && !menus.length" :description="$t('admin.system.menu.emptyMenus')"/>
           </div>
 
-          <p class="hint">共 {{ total }} 个菜单</p>
+          <p class="hint">{{ $t('admin.system.menu.totalMenus', {total}) }}</p>
         </el-card>
       </el-col>
 

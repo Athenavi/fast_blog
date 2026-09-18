@@ -30,7 +30,7 @@
         <el-button v-auth="'module_system:user:create'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.system.user.createTitle') }}
         </el-button>
-        <span class="table-toolbar__total">共 {{ total }} 条</span>
+        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
       </div>
 
       <!-- 表格 -->

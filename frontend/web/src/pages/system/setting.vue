@@ -180,10 +180,10 @@ onMounted(loadList)
         <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
           <template #default="{row}">
             <el-button v-auth="'module_system:setting:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button v-auth="'module_system:setting:edit'" :icon="Delete" link type="danger" @click="removeRow(row)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>

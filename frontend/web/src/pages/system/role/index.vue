@@ -27,7 +27,7 @@
         <el-button v-auth="'module_system:role:edit'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.system.role.createTitle') }}
         </el-button>
-        <span class="table-toolbar__total">共 {{ total }} 条</span>
+        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>

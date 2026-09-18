@@ -74,7 +74,9 @@ onMounted(load)
         <el-input v-model="keyword" :placeholder="$t('admin.system.permission.filterPlaceholder')" clearable
                   style="width: 260px"/>
         <el-button :icon="Refresh" circle @click="load"/>
-        <span class="count">共 {{ totalCount }} 个权限码，{{ groups.length }} 个资源域</span>
+        <span class="count">{{
+            $t('admin.system.permission.totalSummary', {count: totalCount, groups: groups.length})
+          }}</span>
         <el-button
           v-auth="'module_system:permission:edit'"
           :icon="Delete"
@@ -88,7 +90,7 @@ onMounted(load)
       </div>
 
       <el-alert v-if="cacheStats" :closable="false" class="stats" type="info">
-        <template #title>权限缓存：{{ JSON.stringify(cacheStats) }}</template>
+        <template #title>{{ $t('admin.system.permission.cacheTitle', {stats: JSON.stringify(cacheStats)}) }}</template>
       </el-alert>
 
       <el-collapse v-loading="loading" class="groups">

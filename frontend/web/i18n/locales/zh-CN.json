@@ -500,7 +500,8 @@
       "edit": "编辑",
       "create": "新建",
       "createdAt": "创建时间",
-      "configInvalidJson": "配置不是合法的 JSON 对象：{message}"
+      "configInvalidJson": "配置不是合法的 JSON 对象：{message}",
+      "totalItems": "共 {n} 条"
     },
     "cache": {
       "refresh": "刷新",
@@ -652,7 +653,8 @@
         "parentPlaceholder": "顶级菜单项",
         "confirmRemoveMenu": "确定删除菜单「{name}」及其全部菜单项吗？",
         "confirmRemoveItem": "确定删除菜单项「{title}」吗？",
-        "childItems": "子项"
+        "childItems": "子项",
+        "totalMenus": "共 {total} 个菜单"
       },
       "permission": {
         "title": "权限码",
@@ -662,7 +664,9 @@
         "code": "权限码",
         "action": "动作",
         "empty": "没有匹配的权限码",
-        "clearCache": "清空权限缓存"
+        "clearCache": "清空权限缓存",
+        "totalSummary": "共 {count} 个权限码，{groups} 个资源域",
+        "cacheTitle": "权限缓存：{stats}"
       },
       "role": {
         "keyword": "关键词",

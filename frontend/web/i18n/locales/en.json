@@ -500,7 +500,8 @@
       "edit": "Edit",
       "create": "New",
       "createdAt": "Created at",
-      "configInvalidJson": "Configuration is not a valid JSON object: {message}"
+      "configInvalidJson": "Configuration is not a valid JSON object: {message}",
+      "totalItems": "{n} items"
     },
     "cache": {
       "refresh": "Refresh",
@@ -652,7 +653,8 @@
         "parentPlaceholder": "Top level",
         "confirmRemoveMenu": "Delete menu “{name}” and all of its items?",
         "confirmRemoveItem": "Delete menu item “{title}”?",
-        "childItems": "Children"
+        "childItems": "Children",
+        "totalMenus": "{total} menus"
       },
       "permission": {
         "title": "Permissions",
@@ -662,7 +664,9 @@
         "code": "Code",
         "action": "Action",
         "empty": "No matching permissions",
-        "clearCache": "Clear permission cache"
+        "clearCache": "Clear permission cache",
+        "totalSummary": "{count} permission codes across {groups} resource domains",
+        "cacheTitle": "Permission cache: {stats}"
       },
       "role": {
         "keyword": "Keyword",
