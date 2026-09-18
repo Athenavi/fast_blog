@@ -239,17 +239,18 @@ def register_all_routes(app: FastAPI, worker_info: str):
         logger.error(f"{worker_info} API v2 模块未找到: {e}")
         raise
 
-    # 注册 v3 路由（移动端专用）
+    # 注册 v3 路由（唯一权威 API 层）
+    # fail-fast：模块导入失败或路由冲突都会中止启动，避免"半成品 router 继续提供服务"
+    # （对应 FastApiAdmin core/discover.py 的两条工程原则）
     logger.info(f"{worker_info} {'=' * 60}")
-    logger.info(f"{worker_info} 开始注册 API v3 路由（移动端）...")
-    try:
-        from src.api.v3 import register_v3_routes
-        register_v3_routes(app)
-        logger.info(f"{worker_info} API v3 路由注册完成")
-    except ImportError as e:
-        logger.warning(f"{worker_info} API v3 模块未找到，跳过: {e}\n")
-    except Exception as e:
-        logger.warning(f"{worker_info} API v3 路由注册失败: {e}\n")
+    logger.info(f"{worker_info} 开始注册 API v3 路由...")
+    from src.api.v3 import register_v3_routes
+
+    v3_summary = register_v3_routes(app)
+    logger.info(
+        f"{worker_info} API v3 路由注册完成 (新骨架路由: {v3_summary['routes']}, "
+        f"legacy 模块: {v3_summary['legacy']})"
+    )
 
 
 # ---------- 生命周期 ----------

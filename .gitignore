@@ -171,3 +171,7 @@ plugins/*/settings.json
 
 # Local performance-test tooling (k6 binaries â€” download on demand)
 .k6-tool/
+
+# FastApiAdmin ²Î¿¼Ô´Âë£¨clone µ½²Ö¿âÄÚµ«°´Ô¼¶¨²»Ìá½»£ºÖ»×÷ÒÆÖ²»ùÏß£©
+vendor/FastApiAdmin/
+
