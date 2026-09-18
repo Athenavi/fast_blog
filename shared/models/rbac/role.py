@@ -4,11 +4,12 @@ SQLAlchemy 模型定义 - Role
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 # 提前导入 UserRole 以确保 user_role_assignments 表在 Role.users relationship 解析前已注册到 Base.metadata
 import shared.models.rbac.user_role  # noqa: F401
+import shared.models.rbac.role_group  # noqa: F401  确保 role_groups 表在 relationship 解析前注册
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
 
@@ -39,6 +40,8 @@ class Role(Base):
 
 
     is_active = Column(Boolean, default=True, doc='是否激活')
+    data_scope = Column(Integer,
+                        doc='数据权限范围（1 仅本人 / 2 本组及以下 / 3 全部 / 5 自定义组）；库侧 server_default=1，NULL 视为 1')
 
 
     created_at = Column(DateTime, doc='创建时间')
@@ -48,6 +51,9 @@ class Role(Base):
     # 关系定义
     capabilities = relationship('Capability', secondary='role_capabilities', back_populates='roles')
     users = relationship('User', secondary='user_role_assignments', back_populates='roles', primaryjoin="Role.id == user_role_assignments.c.role_id", secondaryjoin="user_role_assignments.c.user_id == User.id")
+    groups = relationship('PermissionGroup', secondary='role_groups', back_populates='roles',
+                          primaryjoin="Role.id == role_groups.c.role_id",
+                          secondaryjoin="role_groups.c.group_id == PermissionGroup.id")
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

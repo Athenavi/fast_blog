@@ -248,8 +248,8 @@ def register_all_routes(app: FastAPI, worker_info: str):
 
     v3_summary = register_v3_routes(app)
     logger.info(
-        f"{worker_info} API v3 路由注册完成 (新骨架路由: {v3_summary['routes']}, "
-        f"legacy 模块: {v3_summary['legacy']})"
+        f"{worker_info} API v3 路由注册完成 (路由: {v3_summary['routes']}, "
+        f"域: {len(v3_summary['domains'])})"
     )
 
 
@@ -362,7 +362,7 @@ async def _warm_permission_cache():
         from sqlalchemy import select
         from shared.models.user import User
         from shared.models.rbac import Capability
-        from src.api.v3._permission import _memory_cache
+        from src.api.v3.core.permission import memory_cache
         from src.utils.database.unified_manager import db_manager
 
         async with db_manager.get_session() as db:
@@ -381,7 +381,7 @@ async def _warm_permission_cache():
 
             # 预写入内存缓存
             for uid in superadmin_ids:
-                await _memory_cache.set(uid, all_codes)
+                await memory_cache.set(uid, frozenset(all_codes))
 
         logger.info(f"[lifespan] 权限缓存预热: {len(superadmin_ids)} 个超级管理员, {len(all_codes)} 个权限代码")
     except Exception as e:
@@ -430,8 +430,8 @@ async def _start_redis_subscriber():
 
     # 2. 连接就绪后再启动权限缓存广播订阅（后台常驻任务，不能直接 await）
     try:
-        from src.api.v3._permission import start_redis_invalidate_subscriber
-        start_redis_invalidate_subscriber()
+        from src.api.v3.core.permission import start_invalidate_subscriber
+        start_invalidate_subscriber()
     except Exception as e:
         logger.info(f"[lifespan] Redis 广播订阅启动失败: {e}")
 
@@ -570,15 +570,8 @@ def register_middleware(app: FastAPI):
     except Exception as e:
         logger.warning(f"[Rate Limit] 注册异常: {e}")
 
-    # RBAC 权限中间件
-    try:
-        from src.middleware.rbac_middleware import RBACMiddleware
-        app.add_middleware(RBACMiddleware)
-        logger.info("[RBAC Middleware] 已添加")
-    except ImportError as e:
-        logger.warning(f"[RBAC Middleware] 加载失败: {e}")
-    except Exception as e:
-        logger.warning(f"[RBAC Middleware] 注册异常: {e}")
+    # RBAC 路径映射中间件已移除：权限改由路由级 AuthPermission 声明，
+    # 不再保留第二套“路径正则 → 权限码”机制（其 27 条路径早已失效）。
 
     # API 版本响应头
     class APIVersionMiddleware(BaseHTTPMiddleware):

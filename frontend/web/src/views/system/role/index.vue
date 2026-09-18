@@ -1,0 +1,371 @@
+<template>
+  <div class="page-container">
+    <el-card shadow="never">
+      <el-form :inline="true" @submit.prevent="search()">
+        <el-form-item label="关键词">
+          <el-input
+            v-model="query.keyword"
+            placeholder="名称或标识"
+            clearable
+            style="width: 200px"
+            @keyup.enter="search()"
+          />
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="query.is_system" placeholder="全部" clearable style="width: 130px">
+            <el-option label="系统内置" :value="true"/>
+            <el-option label="自定义" :value="false"/>
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" :icon="Search" @click="search()">查询</el-button>
+          <el-button :icon="Refresh" @click="reset()">重置</el-button>
+        </el-form-item>
+      </el-form>
+
+      <div class="table-toolbar">
+        <el-button v-auth="'user:manage_roles'" type="primary" :icon="Plus" @click="openCreate">
+          新建角色
+        </el-button>
+        <span class="table-toolbar__total">共 {{ total }} 条</span>
+      </div>
+
+      <el-table :data="list" v-loading="loading" border stripe>
+        <el-table-column prop="id" label="ID" width="70"/>
+        <el-table-column prop="name" label="名称" min-width="140" show-overflow-tooltip/>
+        <el-table-column prop="slug" label="标识" width="150"/>
+        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip/>
+        <el-table-column label="类型" width="100">
+          <template #default="{ row }">
+            <el-tag v-if="row.is_system" type="warning" size="small">系统内置</el-tag>
+            <el-tag v-else type="info" size="small">自定义</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="permission_count" label="权限数" width="90"/>
+        <el-table-column prop="user_count" label="用户数" width="90"/>
+        <el-table-column label="操作" width="230" fixed="right">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="openPermissions(row as RoleItem)">权限配置</el-button>
+            <el-button v-auth="'user:manage_roles'" link type="primary" @click="openEdit(row as RoleItem)">
+              编辑
+            </el-button>
+            <el-button
+              v-auth="'user:manage_roles'"
+              link
+              type="danger"
+              :disabled="row.is_system"
+              @click="onDelete(row as RoleItem)"
+            >
+              删除
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <el-pagination
+        class="table-pagination"
+        background
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total"
+        :current-page="page"
+        :page-size="pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        @current-change="onPageChange"
+        @size-change="onSizeChange"
+      />
+    </el-card>
+
+    <!-- 新建 / 编辑 -->
+    <el-dialog v-model="formVisible" :title="formTitle" width="520px" destroy-on-close>
+      <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
+        <el-form-item label="名称" prop="name">
+          <el-input v-model="form.name" placeholder="如：内容编辑"/>
+        </el-form-item>
+        <el-form-item label="标识" prop="slug">
+          <el-input v-model="form.slug" :disabled="isEdit" placeholder="如：editor（唯一）"/>
+        </el-form-item>
+        <el-form-item label="描述">
+          <el-input v-model="form.description" type="textarea" :rows="2"/>
+        </el-form-item>
+        <el-form-item label="启用">
+          <el-switch v-model="form.is_active"/>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="formVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitForm">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 权限配置 -->
+    <el-drawer v-model="permVisible" :title="permTitle" size="560px" destroy-on-close>
+      <el-alert
+        type="info"
+        :closable="false"
+        class="mb-3"
+        title="权限码格式为 resource:action（与后端 capabilities.code 一致）。保存时会全量覆盖该角色的权限。"
+      />
+
+      <div v-loading="permLoading" class="perm">
+        <el-collapse v-model="activeGroups">
+          <el-collapse-item
+            v-for="group in groupedCapabilities"
+            :key="group.resource_type"
+            :name="group.resource_type"
+          >
+            <template #title>
+              <span class="perm__title">{{ group.resource_type }}</span>
+              <el-tag size="small" class="perm__count">
+                {{ countChecked(group) }} / {{ group.capabilities.length }}
+              </el-tag>
+            </template>
+            <el-checkbox-group v-model="checkedCodes" class="perm__group">
+              <el-checkbox
+                v-for="cap in group.capabilities"
+                :key="cap.code"
+                :value="cap.code"
+                :label="cap.code"
+              >
+                {{ cap.name }} <span class="perm__code">{{ cap.code }}</span>
+              </el-checkbox>
+            </el-checkbox-group>
+          </el-collapse-item>
+        </el-collapse>
+      </div>
+
+      <template #footer>
+        <el-button @click="permVisible = false">取消</el-button>
+        <el-button type="primary" :loading="saving" @click="submitPermissions">保存</el-button>
+      </template>
+    </el-drawer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import {Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
+import {computed, onMounted, reactive, ref} from 'vue'
+
+import {
+  permissionApi,
+  roleApi,
+  type CapabilityGroup,
+  type RoleItem,
+  type RoleQuery,
+} from '@/api'
+import {useTable} from '@/hooks/useTable'
+
+/** 查询表单（在 PageQuery 基础上补齐页面字段，避免 v-model 绑到 unknown） */
+interface RoleQueryForm extends RoleQuery {
+  keyword?: string
+  is_system?: boolean
+}
+
+const {
+  list,
+  loading,
+  total,
+  page,
+  pageSize,
+  query,
+  search,
+  reset,
+  load,
+  onPageChange,
+  onSizeChange,
+  remove,
+} = useTable<RoleItem, RoleQueryForm>({
+  fetcher: (params) => roleApi.list(params),
+  defaultQuery: {keyword: '', is_system: undefined},
+})
+
+// ---------------------------------------------------------------- 新建 / 编辑
+const formVisible = ref(false)
+const saving = ref(false)
+const isEdit = ref(false)
+const editingId = ref<number | null>(null)
+const formRef = ref<FormInstance>()
+
+const form = reactive({
+  name: '',
+  slug: '',
+  description: '',
+  is_active: true,
+})
+
+const formRules: FormRules = {
+  name: [{required: true, message: '请输入角色名称', trigger: 'blur'}],
+  slug: [
+    {required: true, message: '请输入角色标识', trigger: 'blur'},
+    {pattern: /^[a-z0-9_-]+$/, message: '仅允许小写字母、数字、下划线、短横线', trigger: 'blur'},
+  ],
+}
+
+const formTitle = computed(() => (isEdit.value ? '编辑角色' : '新建角色'))
+
+function openCreate(): void {
+  isEdit.value = false
+  editingId.value = null
+  Object.assign(form, {name: '', slug: '', description: '', is_active: true})
+  formVisible.value = true
+}
+
+async function openEdit(row: RoleItem): Promise<void> {
+  isEdit.value = true
+  editingId.value = row.id
+  Object.assign(form, {
+    name: row.name,
+    slug: row.slug,
+    description: row.description ?? '',
+    is_active: row.is_active,
+  })
+  formVisible.value = true
+}
+
+async function submitForm(): Promise<void> {
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  saving.value = true
+  try {
+    if (isEdit.value && editingId.value !== null) {
+      await roleApi.update(editingId.value, {
+        name: form.name,
+        description: form.description,
+        is_active: form.is_active,
+      })
+    } else {
+      await roleApi.create({
+        name: form.name,
+        slug: form.slug,
+        description: form.description,
+      })
+    }
+    ElMessage.success('保存成功')
+    formVisible.value = false
+    await (isEdit.value ? load() : search())
+  } catch {
+    // 拦截器已提示
+  } finally {
+    saving.value = false
+  }
+}
+
+async function onDelete(row: RoleItem): Promise<void> {
+  await remove(
+    () => roleApi.remove(row.id),
+    `确定要删除角色「${row.name}」吗？仍有用户使用时会拒绝删除。`,
+    '确认删除',
+  )
+}
+
+// ---------------------------------------------------------------- 权限配置
+const permVisible = ref(false)
+const permLoading = ref(false)
+const permTarget = ref<RoleItem | null>(null)
+const groupedCapabilities = ref<CapabilityGroup[]>([])
+const checkedCodes = ref<string[]>([])
+const activeGroups = ref<string[]>([])
+
+const permTitle = computed(() =>
+  permTarget.value ? `权限配置 - ${permTarget.value.name}` : '权限配置',
+)
+
+function countChecked(group: CapabilityGroup): number {
+  const codes = new Set(group.capabilities.map((cap) => cap.code))
+  return checkedCodes.value.filter((code) => codes.has(code)).length
+}
+
+async function openPermissions(row: RoleItem): Promise<void> {
+  permTarget.value = row
+  permVisible.value = true
+  permLoading.value = true
+  try {
+    const [groups, owned] = await Promise.all([
+      permissionApi.grouped(),
+      roleApi.permissions(row.id),
+    ])
+    groupedCapabilities.value = groups
+    checkedCodes.value = owned
+    activeGroups.value = groups.slice(0, 2).map((group) => group.resource_type)
+  } catch {
+    groupedCapabilities.value = []
+    checkedCodes.value = []
+  } finally {
+    permLoading.value = false
+  }
+}
+
+async function submitPermissions(): Promise<void> {
+  if (!permTarget.value) return
+  saving.value = true
+  try {
+    await roleApi.setPermissions(permTarget.value.id, checkedCodes.value)
+    ElMessage.success('权限已更新')
+    permVisible.value = false
+    await load()
+  } catch {
+    // 拦截器已提示
+  } finally {
+    saving.value = false
+  }
+}
+
+onMounted(() => {
+  // 首次进入时预热权限码分组（供权限抽屉使用）
+  permissionApi
+    .grouped()
+    .then((groups) => {
+      groupedCapabilities.value = groups
+    })
+    .catch(() => undefined)
+})
+</script>
+
+<style scoped>
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.table-toolbar__total {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.table-pagination {
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+
+.perm {
+  min-height: 200px;
+}
+
+.perm__title {
+  margin-right: 10px;
+  font-weight: 600;
+}
+
+.perm__count {
+  margin-left: 6px;
+}
+
+.perm__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.perm__code {
+  color: #9ca3af;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.mb-3 {
+  margin-bottom: 12px;
+}
+</style>

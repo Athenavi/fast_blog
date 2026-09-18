@@ -11,11 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.rbac.capability import Capability
 from shared.services.security.rbac_service import rbac_service
-from src.api.v3._permission import (
-    clear_permission_cache,
-    get_cache_stats,
-    invalidate_permission_cache,
-)
+from src.api.v3.core.permission import cache_stats as permission_cache_stats
+from src.api.v3.core.permission import invalidate_all, invalidate_user
 from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.system.permission.crud import capability_crud
 
@@ -74,15 +71,15 @@ class PermissionService:
         return {"granted": result, "all_granted": not missing, "missing": missing}
 
     async def cache_stats(self) -> dict:
-        return await get_cache_stats()
+        return permission_cache_stats()
 
     async def invalidate_cache(self, user_id: Optional[int] = None) -> None:
         """失效权限缓存：传 ``user_id`` 失效单个用户，否则清空全部"""
         if user_id is None:
-            await clear_permission_cache()
+            await invalidate_all()
             logger.info("已清空全部权限缓存")
         else:
-            await invalidate_permission_cache(user_id)
+            await invalidate_user(user_id)
             logger.info("已失效用户权限缓存 user_id=%s", user_id)
 
 

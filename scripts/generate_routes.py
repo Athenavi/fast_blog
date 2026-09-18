@@ -253,10 +253,13 @@ class RouteGenerator:
         # 为每个使用的子模块创建 __init__.py
         self._create_module_init_files(output_base, used_modules)
 
-        # 全部生成成功后才更新 __init__.py
+        # 更新 __init__.py
+        # 注意：_update_shared_models_init_from_orm 会**重建整个文件**的懒加载表，
+        # 因此必须传全量 ORM 模型；传“本次生成的子集”会把其它模型入口抹掉（历史缺陷）。
         if success_models:
-            successful_orm_config = {k: v for k, v in orm_models.items() if k in success_models}
-            self._update_shared_models_init_from_orm(successful_orm_config)
+            self._update_shared_models_init_from_orm(
+                {k: v for k, v in orm_models.items() if v.get('orm')}
+            )
 
         print(f"  ✅ 共生成 {generated_count} 个模型文件")
 
@@ -336,7 +339,11 @@ class RouteGenerator:
                     if field.get('primary_key') and field.get('type') == 'String':
                         has_uuid_pk = True
 
-                has_relationships = any(field.get('is_rel') for field in fields.values())
+                # 注意：relationships 不在 fields（那是列字段）里，必须用与 generate_all 相同的检查，
+                # 否则生成的模型会引用 relationship(...) 却没有导入它（历史缺陷）
+                has_relationships = self._check_relationships(model_def) or bool(
+                    model_def.get('relationships')
+                )
                 has_foreign_keys = self._check_foreign_keys_in_fields(fields)
 
                 # 构建类定义
@@ -382,12 +389,13 @@ class RouteGenerator:
                 import traceback
                 traceback.print_exc()
 
-        # 更新 __init__.py
+        # 更新 __init__.py（同上：必须传全量 ORM 模型，否则会抹掉其它模型入口）
         if used_modules:
             self._create_module_init_files(output_base, used_modules)
         if success_models:
-            successful_orm_config = {k: v for k, v in self.models.items() if k in success_models}
-            self._update_shared_models_init_from_orm(successful_orm_config)
+            self._update_shared_models_init_from_orm(
+                {k: v for k, v in self.models.items() if v.get('orm')}
+            )
 
         print(f"  ✅ 共生成 {generated_count} 个模型文件")
 

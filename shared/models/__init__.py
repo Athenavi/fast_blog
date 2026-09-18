@@ -1,9 +1,7 @@
 """
 Models 包 - 懒加载版本
-
 所有模型类通过 __getattr__ 按需导入，避免启动时一次性加载所有模型文件。
 Base 保持立即导入（SQLAlchemy 元数据初始化必需）。
-
 由代码生成器自动生成 - 请勿手动修改
 """
 
@@ -20,6 +18,7 @@ _LAZY_IMPORTS = {
     'AdClick': '.ad.ad_click',
     'AdImpression': '.ad.ad_impression',
     'AdPlacement': '.ad.ad_placement',
+    'AdminSettings': '.system.admin_settings',
     'ApprovalRecord': '.collaboration.approval_record',
     'ApprovalStep': '.collaboration.approval_step',
     'Article': '.article.article',
@@ -30,7 +29,6 @@ _LAZY_IMPORTS = {
     'ArticleRevisionNote': '.article.article_revision_note',
     'ArticleSEO': '.article.article_seo',
     'AuditLog': '.system.audit_log',
-    'AdminSettings': '.system.admin_settings',
     'BaiduAnalyticsConfig': '.analytics.baidu_analytics_config',
     'BlockPattern': '.widget.block_pattern',
     'Capability': '.rbac.capability',
@@ -90,6 +88,7 @@ _LAZY_IMPORTS = {
     'PaymentTransaction': '.payment.payment_transaction',
     'PayoutRequest': '.revenue.payout_request',
     'PermissionAuditLog': '.rbac.permission_audit_log',
+    'PermissionGroup': '.rbac.permission_group',
     'Plugin': '.plugin.plugin',
     'PrivateMessage': '.chat.private_message',
     'Product': '.ecommerce.product',
@@ -98,6 +97,7 @@ _LAZY_IMPORTS = {
     'RevenueSharingConfig': '.revenue.revenue_sharing_config',
     'Role': '.rbac.role',
     'RoleCapability': '.rbac.role_capability',
+    'RoleGroup': '.rbac.role_group',
     'SAMLConfig': '.integration.saml_config',
     'SLAReport': '.monitoring.sla_report',
     'SSOProvider': '.integration.sso_provider',
@@ -121,6 +121,7 @@ _LAZY_IMPORTS = {
     'User': '.user.user',
     'UserActivity': '.analytics.user_activity',
     'UserBlock': '.user.user_block',
+    'UserGroupMember': '.rbac.user_group_member',
     'UserRevenueStats': '.revenue.user_revenue_stats',
     'UserRole': '.rbac.user_role',
     'UserSession': '.user.user_session',
@@ -146,26 +147,27 @@ def __getattr__(name):
     module_path = _LAZY_IMPORTS.get(name)
     if module_path is not None:
         import importlib
-        try:
-            module = importlib.import_module(module_path, package=__name__)
-            cls = getattr(module, name, None)
-            if cls is not None:
-                _loaded_models[name] = cls
-                return cls
-        except (ImportError, AttributeError) as e:
-            pass
+        module = importlib.import_module(module_path, package='shared.models')
+        cls = getattr(module, name)
+        # 缓存到模块命名空间，后续访问直接命中
+        globals()[name] = cls
+        _loaded_models[name] = cls
+        return cls
 
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    raise AttributeError(f"module 'shared.models' has no attribute {name!r}")
 
+
+# ==================== 自动生成 - __all__ ====================
+# 此部分由脚本自动生成 - 请勿手动修改
 
 __all__ = [
-    'Base',
     'AIConfig',
     'AIWorkflow',
     'Ad',
     'AdClick',
     'AdImpression',
     'AdPlacement',
+    'AdminSettings',
     'ApprovalRecord',
     'ApprovalStep',
     'Article',
@@ -176,8 +178,8 @@ __all__ = [
     'ArticleRevisionNote',
     'ArticleSEO',
     'AuditLog',
-    'AdminSettings',
     'BaiduAnalyticsConfig',
+    'Base',
     'BlockPattern',
     'Capability',
     'Cart',
@@ -236,6 +238,7 @@ __all__ = [
     'PaymentTransaction',
     'PayoutRequest',
     'PermissionAuditLog',
+    'PermissionGroup',
     'Plugin',
     'PrivateMessage',
     'Product',
@@ -244,6 +247,7 @@ __all__ = [
     'RevenueSharingConfig',
     'Role',
     'RoleCapability',
+    'RoleGroup',
     'SAMLConfig',
     'SLAReport',
     'SSOProvider',
@@ -267,6 +271,7 @@ __all__ = [
     'User',
     'UserActivity',
     'UserBlock',
+    'UserGroupMember',
     'UserRevenueStats',
     'UserRole',
     'UserSession',
@@ -279,3 +284,4 @@ __all__ = [
     'Workspace',
     'WorkspaceMember',
 ]
+# ============================================================================

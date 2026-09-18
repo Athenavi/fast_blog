@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config.settings import settings
 from shared.models.user import User as UserModel
-from shared.services.security.rbac_service import rbac_service
 from src.utils.database.unified_manager import get_db_session as get_async_session
 
 # token_blacklist 改为惰性导入：避免模块加载时触发 Redis .ping() 导致启动缓慢
@@ -201,129 +200,14 @@ async def admin_required_page(
     return user_or_redirect
 
 
-# ---------- 角色 / 权限检查（使用三重缓存）----------
-
-async def _check_cached(
-    request: Request,
-    user: UserModel,
-    db: AsyncSession,
-    permission_code: str,
-) -> bool:
-    """
-    使用三重缓存检查权限代码。
-    
-    优先从 request.state._perm_cache 读取（已被 Permission 依赖加载），
-    否则使用 _load_user_capability_codes 从缓存/DB 加载。
-    """
-    code = permission_code.replace(":", ".")
-    # 检查 request state 上是否已有权限缓存
-    perm_cache = getattr(request.state, "_perm_cache", None)
-    if perm_cache is not None:
-        return code in perm_cache
-    # 回退到三重缓存加载
-    from src.api.v3._permission import _load_user_capability_codes
-    codes = await _load_user_capability_codes(db, user.id)
-    # 缓存到 request.state 供后续使用
-    request.state._perm_cache = codes
-    return code in codes
-
-
-def require_permission(permission_code: str):
-    """API：检查特定权限代码（格式: resource.action）"""
-    async def checker(
-        request: Request,
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        if user.is_superuser:
-            return user
-        if not await _check_cached(request, user, db, permission_code):
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-        return user
-    return checker
-
-
-def require_resource_permission(resource: str, action: str):
-    """API：检查指定资源的操作权限"""
-    code = f"{resource}.{action}"
-    return require_permission(code)
-
-
-def require_role(role_slug: str):
-    """API：检查用户是否拥有指定角色（支持角色继承）"""
-    async def checker(
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        if user.is_superuser:
-            return user
-        if await rbac_service.user_has_role(db, user.id, role_slug):
-            return user
-        raise HTTPException(status_code=403, detail="Insufficient role permissions")
-    return checker
-
-
-def require_permission_page(permission_code: str):
-    """页面：检查特定权限，未认证重定向"""
-    async def checker(
-        request: Request,
-        user_or_redirect=Depends(get_current_user_or_redirect),
-        db: AsyncSession = Depends(get_async_session),
-    ):
-        if isinstance(user_or_redirect, RedirectResponse):
-            return user_or_redirect
-        if user_or_redirect.is_superuser:
-            return user_or_redirect
-        if not await _check_cached(request, user_or_redirect, db, permission_code):
-            return RedirectResponse(url=f"/login?next={request.url}")
-        return user_or_redirect
-    return checker
-
-
-def require_role_page(role_slug: str):
-    """页面：检查特定角色，未认证重定向"""
-    async def checker(
-        request: Request,
-        user_or_redirect=Depends(get_current_user_or_redirect),
-        db: AsyncSession = Depends(get_async_session),
-    ):
-        if isinstance(user_or_redirect, RedirectResponse):
-            return user_or_redirect
-        if user_or_redirect.is_superuser:
-            return user_or_redirect
-        roles = await rbac_service.get_user_roles(db, user_or_redirect.id)
-        if not any(r.slug == role_slug for r in roles):
-            return RedirectResponse(url=f"/login?next={request.url}")
-        return user_or_redirect
-    return checker
-
-
-# ---------- VIP 检查 ----------
-def require_vip():
-    """API：要求 VIP 成员资格（基于实时 VIPSubscription 表）"""
-    async def checker(
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        # 超级管理员 bypass
-        if user.is_superuser:
-            return user
-        # 实时查询 VIPSubscription 表
-        from shared.models.vip import VIPSubscription
-        from datetime import datetime
-        result = await db.execute(
-            select(VIPSubscription).where(
-                VIPSubscription.user == user.id,
-                VIPSubscription.status == 1,
-                VIPSubscription.expires_at > datetime.now(),
-            )
-        )
-        sub = result.scalar_one_or_none()
-        if not sub:
-            raise HTTPException(status_code=403, detail="VIP membership required or expired")
-        return user
-    return checker
-
+# ---------- 权限检查函数已移除（权限重构 P1）----------
+#
+# 权限校验统一由 src/api/v3/core/permission.AuthPermission 承担
+# （ANY 语义 + 通配 + 单点 superuser bypass + fail-closed）。
+# 被删的旧实现：_check_cached / require_permission / require_resource_permission /
+#   require_role / require_permission_page / require_role_page / require_vip
+# 它们全部无调用方，且把权限码冒号归一化为点号后再比较（权限恒失败的根因之一）。
+# 注意：admin_required 保留（v2 端点大量使用）。
 
 # ---------- 导出别名（兼容旧代码） ----------
 jwt_required = get_current_user

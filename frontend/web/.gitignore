@@ -1,0 +1,16 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.DS_Store
+.vite/
+*.tsbuildinfo
+
+# unplugin 自动生成的类型声明（由构建过程产生）
+src/auto-imports.d.ts
+src/components.d.ts
+
+# 编辑器
+.idea/
+.vscode/*
+!.vscode/extensions.json

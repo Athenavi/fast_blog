@@ -399,6 +399,12 @@ models:
         back_populates: users
         primaryjoin: User.id == user_role_assignments.c.user_id
         secondaryjoin: user_role_assignments.c.role_id == Role.id
+      permission_groups:
+        target: PermissionGroup
+        secondary: user_group_members
+        back_populates: users
+        primaryjoin: User.id == user_group_members.c.user_id
+        secondaryjoin: user_group_members.c.group_id == PermissionGroup.id
   UserCreate:
     type: schema
     description: 用户创建请求模型
@@ -4986,6 +4992,9 @@ models:
         type: boolean
         default: true
         description: 是否激活
+      data_scope:
+        type: integer
+        description: 数据权限范围（1 仅本人 / 2 本组及以下 / 3 全部 / 5 自定义组）；库侧 server_default=1，NULL 视为 1
       created_at:
         type: string
         format: date-time
@@ -5019,6 +5028,12 @@ models:
         back_populates: roles
         primaryjoin: Role.id == user_role_assignments.c.role_id
         secondaryjoin: user_role_assignments.c.user_id == User.id
+      groups:
+        target: PermissionGroup
+        secondary: role_groups
+        back_populates: roles
+        primaryjoin: Role.id == role_groups.c.role_id
+        secondaryjoin: role_groups.c.group_id == PermissionGroup.id
   Capability:
     description: 权限能力模型
     status: active
@@ -5212,6 +5227,161 @@ models:
         columns:
           - created_at
         comment: 时间索引
+  PermissionGroup:
+    description: 权限用户组模型（替代官方的“部门”，承载数据权限范围）
+    status: active
+    frontend_page: /admin/permission-groups
+    properties:
+      id:
+        type: bigint
+        description: 权限组 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 权限组名称
+      code:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 权限组标识（唯一）
+      description:
+        type: string
+        nullable: true
+        description: 权限组描述
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父权限组 ID（树形，用于“本组及以下”数据范围）
+        foreignKey: PermissionGroup
+      sort_order:
+        type: bigint
+        default: 0
+        description: 显示排序
+      owner_id:
+        type: bigint
+        nullable: true
+        description: 组长用户 ID
+        foreignKey: User
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: rbac
+    orm: true
+    table: permission_groups
+    indexes:
+      - name: idx_permission_groups_code
+        columns:
+          - code
+        unique: true
+        comment: 权限组标识唯一索引
+      - name: idx_permission_groups_parent
+        columns:
+          - parent_id
+        comment: 父组索引（树形查询）
+      - name: idx_permission_groups_active
+        columns:
+          - is_active
+        comment: 激活状态索引
+      - name: idx_permission_groups_sort
+        columns:
+          - sort_order
+        comment: 排序索引
+    relationships:
+      users:
+        target: User
+        secondary: user_group_members
+        back_populates: permission_groups
+        primaryjoin: PermissionGroup.id == user_group_members.c.group_id
+        secondaryjoin: user_group_members.c.user_id == User.id
+      roles:
+        target: Role
+        secondary: role_groups
+        back_populates: groups
+        primaryjoin: PermissionGroup.id == role_groups.c.group_id
+        secondaryjoin: role_groups.c.role_id == Role.id
+  UserGroupMember:
+    description: 用户-权限组关联模型（一人多组）
+    status: active
+    frontend_page: /admin/permission-groups
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      user_id:
+        type: bigint
+        description: 用户 ID
+        foreignKey: User
+      group_id:
+        type: bigint
+        description: 权限组 ID
+        foreignKey: PermissionGroup
+      created_at:
+        type: string
+        format: date-time
+        description: 加入时间
+    module: rbac
+    orm: true
+    table: user_group_members
+    indexes:
+      - name: idx_user_group_members_user
+        columns:
+          - user_id
+        comment: 用户所属组查询索引
+      - name: idx_user_group_members_group
+        columns:
+          - group_id
+        comment: 组成员集合索引（数据范围过滤用）
+      - name: idx_user_group_members_unique
+        columns:
+          - user_id
+          - group_id
+        unique: true
+        comment: 防止重复加入同一组
+  RoleGroup:
+    description: 角色-权限组关联模型（data_scope=5 自定义范围时使用）
+    status: active
+    frontend_page: /admin/roles
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      role_id:
+        type: bigint
+        description: 角色 ID
+        foreignKey: Role
+      group_id:
+        type: bigint
+        description: 权限组 ID
+        foreignKey: PermissionGroup
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    module: rbac
+    orm: true
+    table: role_groups
+    indexes:
+      - name: idx_role_groups_role
+        columns:
+          - role_id
+      - name: idx_role_groups_group
+        columns:
+          - group_id
+      - name: idx_role_groups_unique
+        columns:
+          - role_id
+          - group_id
+        unique: true
+        comment: 防止同一角色重复绑定同一组
   Workspace:
     description: 团队工作区模型
     status: active

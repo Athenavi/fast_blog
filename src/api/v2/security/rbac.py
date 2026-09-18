@@ -15,7 +15,7 @@ from shared.models.rbac import PermissionAuditLog
 from shared.models.rbac import Role, Capability, UserRole
 from shared.services.security.rbac_service import rbac_service
 from src.api.v2._helpers import ok, fail, _catch
-from src.api.v3._permission import invalidate_permission_cache
+from src.api.v3.core.permission import invalidate_user as invalidate_permission_cache
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.unified_manager import get_db_session as get_async_db
 
