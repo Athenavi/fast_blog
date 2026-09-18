@@ -1,0 +1,38 @@
+/**
+ * 权限指令（客户端插件）
+ *
+ *   <el-button v-auth="'module_content:article:create'">新建</el-button>
+ *   <el-button v-auth="['module_content:article:edit', 'module_content:article:publish']">发布</el-button>
+ *   <el-button v-role="['admin']">仅管理员可见</el-button>
+ *
+ * 权限码与后端 `capabilities.code` 一致，超级管理员直接放行。
+ */
+import type {Directive, DirectiveBinding} from 'vue'
+
+import {useUserStore} from '@/store/modules/user'
+
+const auth: Directive<HTMLElement, string | string[]> = {
+  mounted(el, binding: DirectiveBinding<string | string[]>) {
+    const userStore = useUserStore()
+    if (!userStore.hasPermission(binding.value)) {
+      el.parentNode?.removeChild(el)
+    }
+  },
+}
+
+const role: Directive<HTMLElement, string | string[]> = {
+  mounted(el, binding: DirectiveBinding<string | string[]>) {
+    const userStore = useUserStore()
+    const required = Array.isArray(binding.value) ? binding.value : [binding.value]
+    const owned = new Set(userStore.roles)
+    const allowed = userStore.isSuperuser || required.some((slug) => owned.has(slug))
+    if (!allowed) {
+      el.parentNode?.removeChild(el)
+    }
+  },
+}
+
+export default defineNuxtPlugin((nuxtApp) => {
+  nuxtApp.vueApp.directive('auth', auth)
+  nuxtApp.vueApp.directive('role', role)
+})

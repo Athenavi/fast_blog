@@ -41,7 +41,7 @@ export function clearTokens(): void {
 
 /** 会话失效时跳登录（由 router 注入实际跳转，避免循环依赖） */
 let onUnauthorized: () => void = () => {
-  window.location.href = '/login'
+  if (import.meta.client) window.location.href = '/login'
 }
 
 export function setUnauthorizedHandler(handler: () => void): void {

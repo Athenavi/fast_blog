@@ -27,7 +27,6 @@
         </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="profile">个人中心</el-dropdown-item>
             <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
           </el-dropdown-menu>
         </template>
@@ -38,15 +37,12 @@
 
 <script setup lang="ts">
 import {computed, onMounted, ref} from 'vue'
-import {useRoute, useRouter} from 'vue-router'
 import {ElMessageBox} from 'element-plus'
 
 import {notificationApi} from '@/api'
 import {useAppStore} from '@/store/modules/app'
 import {usePermissionStore} from '@/store/modules/permission'
 import {useUserStore} from '@/store/modules/user'
-
-import {resetDynamicRoutes} from '@/router'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
@@ -76,15 +72,10 @@ function goNotifications(): void {
 }
 
 async function onCommand(command: string): Promise<void> {
-  if (command === 'profile') {
-    router.push('/profile')
-    return
-  }
   if (command === 'logout') {
     await ElMessageBox.confirm('确定要退出登录吗？', '提示', {type: 'warning'})
     await userStore.logout()
     permissionStore.reset()
-    resetDynamicRoutes()
     router.push('/login')
   }
 }

@@ -16,14 +16,14 @@
       router
     >
       <template v-for="menu in permissionStore.menus" :key="menu.path">
-        <el-sub-menu v-if="menu.children.length" :index="menu.path">
+        <el-sub-menu v-if="menu.children?.length" :index="menu.path">
           <template #title>
             <el-icon v-if="menu.icon">
               <component :is="menu.icon"/>
             </el-icon>
             <span>{{ menu.title }}</span>
           </template>
-          <el-menu-item v-for="child in menu.children" :key="child.path" :index="child.path">
+          <el-menu-item v-for="child in menu.children ?? []" :key="child.path" :index="child.path">
             {{ child.title }}
           </el-menu-item>
         </el-sub-menu>
@@ -41,7 +41,6 @@
 
 <script setup lang="ts">
 import {computed} from 'vue'
-import {useRoute} from 'vue-router'
 
 import {useAppStore} from '@/store/modules/app'
 import {usePermissionStore} from '@/store/modules/permission'
