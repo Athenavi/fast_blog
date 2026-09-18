@@ -74,13 +74,6 @@ frontend/web/*.tsbuildinfo
 frontend/web/src/.plugin-pages/
 frontend/web/src/.plugin-registry.ts
 
-# Astro（frontend-astro）：目录待逐项核对后移除，忽略规则随之一并清理
-frontend-astro/dist/
-frontend-astro/.astro/
-frontend-astro/*.tsbuildinfo
-frontend-astro/src/.plugin-pages/
-frontend-astro/src/.plugin-registry.ts
-frontend-astro/src/pages/admin/plugin-pages/
 frontend-next/.next/
 frontend-next/node_modules/
 
@@ -146,7 +139,6 @@ apps/*/migrations/*.py
 !alembic_migrations/versions/*.py
 /plugins_data/*
 /mobile-app/node_modules/
-/frontend-astro/node_modules/
 
 # Terraform
 *.tfstate
@@ -175,7 +167,6 @@ tools/ffmpeg/*.tar.xz
 
 # Runtime data & state
 data/
-frontend-astro/config.json
 
 # Plugin runtime settings
 plugins/*/settings.json
