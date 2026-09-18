@@ -9,10 +9,35 @@
  *     = useTable({ fetcher: (params) => userApi.list(params), defaultQuery: { is_active: undefined } })
  */
 
-import {ElMessage, ElMessageBox} from 'element-plus'
 import {onMounted, reactive, ref, type Ref} from 'vue'
 
 import type {PageQuery, PageResult} from '@/api/types'
+
+/** 动态引入确认框：同样避免 element-plus 进入前台共享 chunk */
+async function confirmBox(message: string, title = '提示'): Promise<boolean> {
+  try {
+    const {ElMessageBox} = await import('element-plus')
+    await confirmBox(message, title)
+    return true
+  } catch {
+    return false
+  }
+}
+
+
+/** 动态引入 Element Plus 的消息提示：避免 element-plus 进入前台共享 chunk */
+async function notify(
+  kind: 'error' | 'warning' | 'success' | 'info',
+  message: string,
+): Promise<void> {
+  try {
+    const {ElMessage} = await import('element-plus')
+    ElMessage({type: kind, message})
+  } catch {
+    /* 提示失败不应影响主流程 */
+  }
+}
+
 
 export interface UseTableOptions<T, Q extends PageQuery> {
   /** 拉取数据的函数（通常直接传某个 xxxApi.list） */
@@ -91,14 +116,14 @@ export function useTable<T, Q extends PageQuery = PageQuery>(options: UseTableOp
     successText = '操作成功',
   ): Promise<boolean> {
     try {
-      await ElMessageBox.confirm(message, title, {type: 'warning'})
+      await confirmBox(message, title)
     } catch {
       return false
     }
 
     try {
       await action()
-      ElMessage.success(successText)
+      void notify('success', successText)
       if (list.value.length === 1 && page.value > 1) {
         page.value -= 1
       }

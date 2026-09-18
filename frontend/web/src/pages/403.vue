@@ -1,23 +1,24 @@
-<template>
-  <div class="error-page">
-    <el-result icon="warning" sub-title="抱歉，你没有访问该页面的权限" title="403">
-      <template #extra>
-        <el-button type="primary" @click="router.push('/dashboard')">返回仪表盘</el-button>
-      </template>
-    </el-result>
-  </div>
-</template>
-
 <script lang="ts" setup>
-
-const router = useRouter()
+/**
+ * 403 无权限
+ *
+ * 用前台风格渲染：本页可能在未加载 Element Plus 的情况下打开
+ * （例如直接访问 /403），因此不依赖 el-* 组件。
+ */
+definePageMeta({layout: false, title: '无权限', robots: 'noindex'})
 </script>
 
-<style scoped>
-.error-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-</style>
+<template>
+  <div class="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+    <p class="text-5xl font-bold tracking-tight text-fg">403</p>
+    <p class="max-w-read text-fg-muted">抱歉，你没有访问该页面的权限。</p>
+    <div class="mt-3 flex gap-3">
+      <NuxtLink to="/dashboard">
+        <Button>返回仪表盘</Button>
+      </NuxtLink>
+      <NuxtLink to="/">
+        <Button variant="outline">回到首页</Button>
+      </NuxtLink>
+    </div>
+  </div>
+</template>

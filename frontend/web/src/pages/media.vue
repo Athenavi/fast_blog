@@ -33,6 +33,19 @@ const selected = ref<number[]>([])
 
 const fileInput = ref<HTMLInputElement | null>(null)
 
+/** 离线保存：把选中项交给 OfflineDownloadDialog */
+const offlineOpen = ref(false)
+const offlineCandidates = computed(() =>
+  list.value
+    .filter((item) => selected.value.includes(item.id))
+    .map((item) => ({
+      id: item.id,
+      url: item.file_url,
+      name: item.original_filename || item.filename,
+      size: item.file_size,
+    })),
+)
+
 // ---------------------------------------------------------------- 数据加载
 async function loadFolders(): Promise<void> {
   try {
@@ -261,6 +274,10 @@ onMounted(refresh)
           <Icon class="h-4 w-4" name="folder-plus"/>
           新建文件夹
         </Button>
+        <Button :disabled="!selected.length" variant="outline" @click="offlineOpen = true">
+          <Icon class="h-4 w-4" name="download"/>
+          离线保存
+        </Button>
       </div>
     </div>
 
@@ -449,5 +466,8 @@ onMounted(refresh)
         </CardFooter>
       </Card>
     </div>
+
+    <!-- 离线保存 -->
+    <OfflineDownloadDialog :items="offlineCandidates" :open="offlineOpen" @close="offlineOpen = false"/>
   </div>
 </template>

@@ -14,12 +14,25 @@ import axios, {
   type AxiosResponse,
   type InternalAxiosRequestConfig,
 } from 'axios'
-import {ElMessage} from 'element-plus'
 
 import {API_BASE_URL, CODE_SUCCESS, STORAGE_REFRESH_TOKEN, STORAGE_TOKEN} from '@/constants'
 import {storage} from '@/utils/storage'
 
 import type {ApiResponse, PageQuery, PageResult} from './types'
+
+/** 动态引入 Element Plus 的消息提示：避免 element-plus 进入前台共享 chunk */
+async function notify(
+  kind: 'error' | 'warning' | 'success' | 'info',
+  message: string,
+): Promise<void> {
+  try {
+    const {ElMessage} = await import('element-plus')
+    ElMessage({type: kind, message})
+  } catch {
+    /* 提示失败不应影响主流程 */
+  }
+}
+
 
 /** 401 时是否正在刷新 token（避免并发重复刷新） */
 let refreshing = false
@@ -91,7 +104,7 @@ instance.interceptors.response.use(
     const status = error?.response?.status as number | undefined
     if (status !== 401) {
       const msg = error?.response?.data?.msg || error?.message || '网络请求失败'
-      ElMessage.error(String(msg))
+      void notify('error', String(msg))
       return Promise.reject(error)
     }
 
@@ -120,7 +133,7 @@ instance.interceptors.response.use(
 
     if (!token) {
       clearTokens()
-      ElMessage.error('登录已过期，请重新登录')
+      void notify('error', '登录已过期，请重新登录')
       onUnauthorized()
       return Promise.reject(error)
     }
@@ -137,7 +150,7 @@ function unwrap<T>(response: AxiosResponse<ApiResponse<T>>, silent = false): T {
     return body.data
   }
   if (!silent) {
-    ElMessage.error(body?.msg || '请求失败')
+    void notify('error', body?.msg || '请求失败')
   }
   return Promise.reject(new Error(body?.msg || '请求失败')) as unknown as T
 }
@@ -154,7 +167,7 @@ export const http = {
     const resp = await instance.get<ApiResponse<T[]>>(url, {params})
     const body = resp.data
     if (body?.code !== CODE_SUCCESS) {
-      ElMessage.error(body?.msg || '请求失败')
+      void notify('error', body?.msg || '请求失败')
       throw new Error(body?.msg || '请求失败')
     }
     return {

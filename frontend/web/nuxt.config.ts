@@ -17,7 +17,63 @@ export default defineNuxtConfig({
   ssr: true,
 
   devtools: {enabled: true},
-  modules: ['@pinia/nuxt'],
+  modules: ['@pinia/nuxt', '@nuxt/image', '@nuxt/scripts', '@vite-pwa/nuxt'],
+
+  // 图片：使用本地 ipx 处理（自动 srcset / 格式转换），前台用 <NuxtImg>/<NuxtPicture>
+  image: {
+    format: ['webp', 'avif'],
+    screens: {
+      xs: 320,
+      sm: 640,
+      md: 768,
+      lg: 1024,
+      xl: 1280,
+    },
+  },
+
+  // 三方脚本：用 useScript() 管理加载时机与隐私（默认不加载第三方）
+  scripts: {
+    registry: {},
+  },
+
+  // PWA：提供 manifest 与 Service Worker（离线访问、安装到桌面）
+  // 离线下载（OfflineDownloadDialog）复用同一套 Workbox 运行时缓存
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'FastBlog',
+      short_name: 'FastBlog',
+      description: 'FastBlog 博客',
+      lang: 'zh-CN',
+      start_url: '/',
+      scope: '/',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#2f6fed',
+      icons: [
+        {src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any'},
+      ],
+    },
+    workbox: {
+      // 只预缓存静态资源；页面走网络优先，避免内容站拿到过期 HTML
+      globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
+      navigateFallback: '/',
+      navigateFallbackDenylist: [/^\/api\//, /^\/admin\//, /^\/system\//],
+      runtimeCaching: [
+        {
+          // 媒体文件：缓存优先，方便离线查看已浏览过的图片
+          urlPattern: /^https?:\/\/.*\/media\/.*/i,
+          handler: 'CacheFirst',
+          options: {
+            cacheName: 'media-assets',
+            expiration: {maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30},
+          },
+        },
+      ],
+    },
+    // 开发期不启用 SW，避免缓存干扰调试
+    devOptions: {enabled: false, suppressWarnings: true},
+  },
 
   css: ['~/styles/index.css'],
 

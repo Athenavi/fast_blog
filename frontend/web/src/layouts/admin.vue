@@ -1,5 +1,7 @@
 <template>
-  <el-container class="layout">
+  <div v-if="!ready" class="layout-loading">准备中…</div>
+
+  <el-container v-else class="layout">
     <el-aside :width="appStore.sidebarCollapsed ? '64px' : '210px'" class="layout__aside">
       <AppSidebar/>
     </el-aside>
@@ -17,15 +19,79 @@
 </template>
 
 <script lang="ts" setup>
+/**
+ * 后台布局
+ *
+ * **Element Plus 在这里懒加载，而不是静态 import、也不是全局插件。**
+ *
+ * 原因：Element Plus + dayjs 约 1.1 MB。layouts 属于 app 层、不按页面分割，
+ * 一旦静态 import 就会进入**初始包**，连前台博客首页都被迫下载管理端 UI 库
+ * （实测前台首页因此多了 1.1 MB）。改为动态 import 后，它只会在真正进入
+ * 后台路由时按需加载。
+ *
+ * 代价是后台首屏有一个极短的"准备中"瞬间（`ready` 为 false 时不渲染 el-* 结构）。
+ */
+import type {Component} from 'vue'
+
 import {useAppStore} from '@/store/modules/app'
 
-import AppHeader from './components/AppHeader.vue'
-import AppSidebar from './components/AppSidebar.vue'
-
 const appStore = useAppStore()
+
+const ready = ref(false)
+
+/** 侧边栏与头部按字符串名引用图标，这里显式注册用到的那些 */
+const ICONS = [
+  'Odometer',
+  'Document',
+  'Setting',
+  'DataLine',
+  'Grid',
+  'Tools',
+  'Bell',
+  'ArrowDown',
+  'Fold',
+  'Expand',
+  'Lock',
+  'User',
+  'Search',
+  'Plus',
+  'Edit',
+  'Delete',
+  'Refresh',
+] as const
+
+onMounted(async () => {
+  const [{default: ElementPlus}, icons, {default: zhCn}] = await Promise.all([
+    import('element-plus'),
+    import('@element-plus/icons-vue'),
+    import('element-plus/es/locale/lang/zh-cn'),
+    // 样式也一起懒加载，避免它被注入到前台
+    import('element-plus/dist/index.css'),
+  ])
+
+  const nuxtApp = useNuxtApp()
+  nuxtApp.vueApp.use(ElementPlus, {locale: zhCn})
+
+  const registry = (icons as unknown as { default?: Record<string, Component> }).default ?? {}
+  for (const name of ICONS) {
+    const icon = (registry as Record<string, Component>)[name]
+    if (icon) nuxtApp.vueApp.component(name, icon)
+  }
+
+  ready.value = true
+})
 </script>
 
 <style scoped>
+.layout-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 14px;
+  color: #909399;
+}
+
 .layout {
   height: 100%;
   font-size: 14px;
