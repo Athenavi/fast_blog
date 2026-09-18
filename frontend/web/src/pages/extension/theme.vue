@@ -88,7 +88,7 @@ async function save(): Promise<void> {
     }
     slots = parsedSlots as Record<string, unknown>
   } catch (error) {
-    ElMessage.warning(`JSON 解析失败：${(error as Error).message}`)
+    ElMessage.warning(t('admin.extension.theme.jsonParseFailed', {message: (error as Error).message}))
     return
   }
 
@@ -162,7 +162,7 @@ onMounted(loadAll)
                 type="primary"
                 @click="save"
               >
-                保存
+                {{ $t('admin.common.save') }}
               </el-button>
             </div>
           </template>

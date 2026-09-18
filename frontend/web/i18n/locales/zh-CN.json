@@ -499,7 +499,8 @@
       "statsFailed": "统计失败：{error}",
       "edit": "编辑",
       "create": "新建",
-      "createdAt": "创建时间"
+      "createdAt": "创建时间",
+      "configInvalidJson": "配置不是合法的 JSON 对象：{message}"
     },
     "cache": {
       "refresh": "刷新",
@@ -737,7 +738,13 @@
         "openCacheManagement": "前往缓存管理 →",
         "requests": "总请求",
         "hits": "总命中",
-        "hitRate": "命中率"
+        "hitRate": "命中率",
+        "kickConfirm": "确定把会话 #{id}（用户 {user}）强制下线吗？",
+        "onlineWindow": "在线判定窗口：{seconds} 秒",
+        "processInfo": "PID {pid} · 内存 {mem} · 线程 {threads}",
+        "cpuCores": "CPU（{count} 核）",
+        "load": "负载：{load}",
+        "onlineSummary": "活跃 {active} · 窗口内活跃 {recent} · 去重用户 {unique}"
       },
       "cache": {
         "cacheManagement": "缓存管理"
@@ -756,7 +763,10 @@
       "categories": "分类数",
       "mediaFiles": "媒体数",
       "deleted": "已删除",
-      "unknown": "未知"
+      "unknown": "未知",
+      "articleHint": "已发布 {published} / 草稿 {draft}",
+      "userHint": "启用 {active}",
+      "commentHint": "待审核 {pending}"
     },
     "content": {
       "article": {
@@ -788,7 +798,9 @@
         "htmlMarkdownSourceSupported": "支持 HTML / Markdown 源码",
         "properties": "属性",
         "vipOnly": "仅 VIP",
-        "leaveBlankToPublishImmediately": "留空表示立即生效"
+        "leaveBlankToPublishImmediately": "留空表示立即生效",
+        "deleteConfirm": "确定删除《{title}》吗？",
+        "deleteSelectedConfirm": "确定删除选中的 {n} 篇文章吗？"
       },
       "category": {
         "enterACategoryName": "请填写分类名称",
@@ -805,7 +817,9 @@
         "icon": "图标",
         "iconNameOrUrl": "图标名或 URL",
         "color": "颜色",
-        "eG3B82F6": "如 #3b82f6"
+        "eG3B82F6": "如 #3b82f6",
+        "deleteConfirm": "确定删除分类「{name}」吗？其下文章将失去该分类归属。",
+        "subCategory": "子分类"
       },
       "comment": {
         "commentContentIsRequired": "评论内容不能为空",
@@ -813,7 +827,12 @@
         "deleted": "已删除",
         "selectCommentsToDeleteFirst": "请先选择要删除的评论",
         "filterThisPageByContentOrAuthor": "按内容或作者过滤当前页",
-        "editComment": "编辑评论"
+        "editComment": "编辑评论",
+        "deleteConfirm": "确定删除该评论吗？",
+        "deleteSelectedConfirm": "确定删除选中的 {n} 条评论吗？",
+        "anonymousUser": "用户#{id}",
+        "approve": "通过",
+        "reject": "拒绝"
       },
       "media": {
         "mediaLibrary": "媒体库",
@@ -838,7 +857,10 @@
         "editMediaInformation": "编辑媒体信息",
         "altText": "替代文本",
         "forAccessibilityAndSeo": "用于无障碍与 SEO",
-        "separateWithCommas": "用英文逗号分隔"
+        "separateWithCommas": "用英文逗号分隔",
+        "uploadingFiles": "正在上传 {n} 个文件…",
+        "deleteConfirm": "确定删除「{name}」吗？",
+        "deleteSelectedConfirm": "确定删除选中的 {n} 个文件吗？"
       },
       "page": {
         "pages": "页面",
@@ -856,7 +878,11 @@
         "renameTag": "重命名标签",
         "originalTag": "原标签",
         "newTag": "新标签",
-        "enterANewTagName2": "输入新的标签名"
+        "enterANewTagName2": "输入新的标签名",
+        "mergeHint": "「{name}」已存在，保存后将与它合并",
+        "deleteConfirm": "确定删除标签「{name}」吗？将从 {count} 篇文章上移除该标签。",
+        "rename": "重命名",
+        "summary": "共 {total} 个标签（最多显示 200 个，可用关键词筛选）"
       }
     },
     "widget": {
@@ -882,7 +908,15 @@
         "version": "版本",
         "active": "已激活",
         "inactive": "未激活",
-        "submitConfigurationAsAJsonObjectSeeThePluginDocumentationForFieldMeanings": "配置项以 JSON 对象提交，字段含义见插件自身文档。"
+        "submitConfigurationAsAJsonObjectSeeThePluginDocumentationForFieldMeanings": "配置项以 JSON 对象提交，字段含义见插件自身文档。",
+        "scanFound": "发现 {count} 个新插件：{plugins}",
+        "actionConfirm": "确定{action}插件「{name}」吗？",
+        "uninstallConfirm": "确定卸载插件「{name}」吗？相关数据可能被保留或清除。",
+        "actionFailed": "{action}失败",
+        "actionSucceeded": "{action}成功{detail}",
+        "summary": "共 {total} 个插件",
+        "configTitle": "插件配置 · {name}",
+        "configuration": "配置"
       },
       "theme": {
         "themes": "主题",
@@ -905,7 +939,8 @@
         "componentSlotContractAndFrontendCss": "组件槽位契约与前台 CSS",
         "componentSlotContract": "组件槽位契约（contract）",
         "frontendInjectedCss": "前台注入的 CSS",
-        "thisThemeDoesNotProvideCustomCss": "（该主题未提供自定义 CSS）"
+        "thisThemeDoesNotProvideCustomCss": "（该主题未提供自定义 CSS）",
+        "jsonParseFailed": "JSON 解析失败：{message}"
       },
       "widget": {
         "widgets": "小部件",
@@ -922,7 +957,10 @@
         "editWidget": "编辑小部件",
         "createWidget": "新建小部件",
         "configuration": "配置",
-        "jsonObjectEGQuotLimitQuot5": "JSON 对象，如 {&quot;limit&quot;: 5}"
+        "jsonObjectEGQuotLimitQuot5": "JSON 对象，如 {&quot;limit&quot;: 5}",
+        "deleteConfirm": "确定删除小部件「{name}」吗？",
+        "unnamed": "（未命名 {type}）",
+        "summary": "共 {total} 个小部件"
       }
     },
     "analytics": {
@@ -941,7 +979,9 @@
         "keyword": "关键词",
         "count": "次数",
         "averageResults": "平均结果数",
-        "whatReadersSearchedForButCouldNotFind": "——读者想找但站内没有的内容"
+        "whatReadersSearchedForButCouldNotFind": "——读者想找但站内没有的内容",
+        "trendTitle": "{day}：{count} 次",
+        "noResultKeywords": "无结果关键词"
       },
       "seo": {
         "seoAnalysis": "SEO 分析",
@@ -973,7 +1013,12 @@
         "pasteContent": "粘贴正文内容",
         "improvementSuggestions": "改进建议",
         "noIssuesFound": "没有发现问题",
-        "fillInTheContentOnTheLeftToAnalyzeIt": "填写左侧内容后开始分析"
+        "fillInTheContentOnTheLeftToAnalyzeIt": "填写左侧内容后开始分析",
+        "checkedArticles": "已检查 {n} 篇文章",
+        "generatedAt": "生成于",
+        "checkRecent": "检查最近 50 篇已发布文章",
+        "bulkSummary": "已检查 {checked} 篇，平均 {score} 分",
+        "startAnalysis": "开始分析"
       }
     },
     "ops": {
@@ -1006,7 +1051,17 @@
         "files2": "文件",
         "full2": "完整",
         "filename": "文件名",
-        "size": "大小"
+        "size": "大小",
+        "createConfirm": "立即创建一个{type}备份？",
+        "backupStarted": "{type}备份已开始",
+        "restoreConfirm": "确定用「{file}」还原吗？当前数据将被覆盖，此操作不可撤销。",
+        "deleteConfirm": "确定删除备份「{name}」吗？",
+        "backupDatabase": "备份数据库",
+        "backupFiles": "备份文件",
+        "backupFull": "完整备份",
+        "cleanupByDays": "按天清理",
+        "restore": "还原",
+        "summary": "共 {total} 个备份（最多显示 100 个）"
       },
       "notification": {
         "notifications": "通知",
@@ -1016,7 +1071,11 @@
         "markAllAsRead": "全部标记已读",
         "read": "已读",
         "unread": "未读",
-        "markAsRead": "标记已读"
+        "markAsRead": "标记已读",
+        "markedRead": "已标记 {n} 条为已读",
+        "deleteConfirm": "确定删除通知「{name}」吗？",
+        "cleaned": "已清理 {n} 条",
+        "cleanRead": "清理已读"
       },
       "webhook": {
         "enterANameAndCallbackUrl": "请填写名称与回调地址",
@@ -1039,7 +1098,10 @@
         "resetSecret": "重置密钥",
         "secret2": "密钥",
         "leaveBlankToKeepUnchanged": "留空表示不修改",
-        "usedToVerifyRequestSignatures": "用于校验请求签名"
+        "usedToVerifyRequestSignatures": "用于校验请求签名",
+        "testConfirm": "向「{name}」发送一条测试事件？",
+        "triggered": "已触发：{event}",
+        "deleteConfirm": "确定删除 Webhook「{name}」吗？"
       }
     },
     "shared": {
@@ -1088,15 +1150,25 @@
       "Placeholder": {
         "theBusinessImplementationForThisPageWillBeCompletedInALaterPhase": "该页面的业务实现将在后续阶段完成。",
         "backToDashboard": "返回仪表盘"
+      },
+      "AdminMediaPreview": {
+        "downloadFile": "下载文件"
+      },
+      "ThemeConfigPanel": {
+        "saveConfig": "保存配置"
+      },
+      "PerfDashboard": {
+        "noSlowResources": "尚无慢资源记录；指标随浏览逐步累积。"
       }
     },
-    "admin": {
-      "plugin-pages": {
-        "[slug]": {
-          "plugins": "插件",
-          "pluginPageNotFound": "未找到该插件页面"
-        }
-      }
+    "pluginPages": {
+      "plugins": "插件",
+      "pluginPageNotFound": "未找到该插件页面",
+      "notMigrated": "插件页面「{title}」尚未迁移到 Nuxt",
+      "originalReact": "原实现为 React 组件",
+      "locatedAt": "，位于",
+      "rewriteHint": "重写为同名 .vue 后，本页会自动加载，无需改动路由。",
+      "otherRoutes": "该插件的其他路由：{routes}"
     }
   },
   "menu": {

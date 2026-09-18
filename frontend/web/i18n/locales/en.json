@@ -499,7 +499,8 @@
       "statsFailed": "Stats failed: {error}",
       "edit": "Edit",
       "create": "New",
-      "createdAt": "Created at"
+      "createdAt": "Created at",
+      "configInvalidJson": "Configuration is not a valid JSON object: {message}"
     },
     "cache": {
       "refresh": "Refresh",
@@ -737,7 +738,13 @@
         "openCacheManagement": "Open cache management →",
         "requests": "Requests",
         "hits": "Hits",
-        "hitRate": "Hit rate"
+        "hitRate": "Hit rate",
+        "kickConfirm": "Force session #{id} (user {user}) offline?",
+        "onlineWindow": "Online window: {seconds}s",
+        "processInfo": "PID {pid} · Memory {mem} · Threads {threads}",
+        "cpuCores": "CPU ({count} cores)",
+        "load": "Load: {load}",
+        "onlineSummary": "Active {active} · In window {recent} · Unique users {unique}"
       },
       "cache": {
         "cacheManagement": "Cache management"
@@ -756,7 +763,10 @@
       "categories": "Categories",
       "mediaFiles": "Media files",
       "deleted": "Deleted",
-      "unknown": "Unknown"
+      "unknown": "Unknown",
+      "articleHint": "Published {published} / Drafts {draft}",
+      "userHint": "Active {active}",
+      "commentHint": "Pending {pending}"
     },
     "content": {
       "article": {
@@ -788,7 +798,9 @@
         "htmlMarkdownSourceSupported": "HTML / Markdown source supported",
         "properties": "Properties",
         "vipOnly": "VIP only",
-        "leaveBlankToPublishImmediately": "Leave blank to publish immediately"
+        "leaveBlankToPublishImmediately": "Leave blank to publish immediately",
+        "deleteConfirm": "Delete \"{title}\"?",
+        "deleteSelectedConfirm": "Delete the {n} selected articles?"
       },
       "category": {
         "enterACategoryName": "Enter a category name",
@@ -805,7 +817,9 @@
         "icon": "Icon",
         "iconNameOrUrl": "Icon name or URL",
         "color": "Color",
-        "eG3B82F6": "e.g. #3b82f6"
+        "eG3B82F6": "e.g. #3b82f6",
+        "deleteConfirm": "Delete category \"{name}\"? Its articles will lose this category.",
+        "subCategory": "Subcategory"
       },
       "comment": {
         "commentContentIsRequired": "Comment content is required",
@@ -813,7 +827,12 @@
         "deleted": "Deleted",
         "selectCommentsToDeleteFirst": "Select comments to delete first",
         "filterThisPageByContentOrAuthor": "Filter this page by content or author",
-        "editComment": "Edit comment"
+        "editComment": "Edit comment",
+        "deleteConfirm": "Delete this comment?",
+        "deleteSelectedConfirm": "Delete the {n} selected comments?",
+        "anonymousUser": "User #{id}",
+        "approve": "Approve",
+        "reject": "Reject"
       },
       "media": {
         "mediaLibrary": "Media Library",
@@ -838,7 +857,10 @@
         "editMediaInformation": "Edit media information",
         "altText": "Alt text",
         "forAccessibilityAndSeo": "For accessibility and SEO",
-        "separateWithCommas": "Separate with commas"
+        "separateWithCommas": "Separate with commas",
+        "uploadingFiles": "Uploading {n} files…",
+        "deleteConfirm": "Delete \"{name}\"?",
+        "deleteSelectedConfirm": "Delete the {n} selected files?"
       },
       "page": {
         "pages": "Pages",
@@ -856,7 +878,11 @@
         "renameTag": "Rename tag",
         "originalTag": "Original tag",
         "newTag": "New tag",
-        "enterANewTagName2": "Enter a new tag name"
+        "enterANewTagName2": "Enter a new tag name",
+        "mergeHint": "\"{name}\" already exists and will be merged after saving",
+        "deleteConfirm": "Delete tag \"{name}\"? It will be removed from {count} articles.",
+        "rename": "Rename",
+        "summary": "{total} tags (showing up to 200; filter by keyword)"
       }
     },
     "widget": {
@@ -882,7 +908,15 @@
         "version": "Version",
         "active": "Active",
         "inactive": "Inactive",
-        "submitConfigurationAsAJsonObjectSeeThePluginDocumentationForFieldMeanings": "Submit configuration as a JSON object; see the plugin documentation for field meanings."
+        "submitConfigurationAsAJsonObjectSeeThePluginDocumentationForFieldMeanings": "Submit configuration as a JSON object; see the plugin documentation for field meanings.",
+        "scanFound": "Found {count} new plugins: {plugins}",
+        "actionConfirm": "{action} plugin \"{name}\"?",
+        "uninstallConfirm": "Uninstall plugin \"{name}\"? Related data may be kept or removed.",
+        "actionFailed": "{action} failed",
+        "actionSucceeded": "{action} succeeded{detail}",
+        "summary": "{total} plugins",
+        "configTitle": "Plugin configuration · {name}",
+        "configuration": "Configure"
       },
       "theme": {
         "themes": "Themes",
@@ -905,7 +939,8 @@
         "componentSlotContractAndFrontendCss": "Component slot contract and frontend CSS",
         "componentSlotContract": "Component slot contract",
         "frontendInjectedCss": "Frontend-injected CSS",
-        "thisThemeDoesNotProvideCustomCss": "(This theme does not provide custom CSS)"
+        "thisThemeDoesNotProvideCustomCss": "(This theme does not provide custom CSS)",
+        "jsonParseFailed": "JSON parse failed: {message}"
       },
       "widget": {
         "widgets": "Widgets",
@@ -922,7 +957,10 @@
         "editWidget": "Edit widget",
         "createWidget": "Create widget",
         "configuration": "Configuration",
-        "jsonObjectEGQuotLimitQuot5": "JSON object, e.g. {&quot;limit&quot;: 5}"
+        "jsonObjectEGQuotLimitQuot5": "JSON object, e.g. {&quot;limit&quot;: 5}",
+        "deleteConfirm": "Delete widget \"{name}\"?",
+        "unnamed": "(Unnamed {type})",
+        "summary": "{total} widgets"
       }
     },
     "analytics": {
@@ -941,7 +979,9 @@
         "keyword": "Keyword",
         "count": "Count",
         "averageResults": "Average results",
-        "whatReadersSearchedForButCouldNotFind": "— What readers searched for but could not find"
+        "whatReadersSearchedForButCouldNotFind": "— What readers searched for but could not find",
+        "trendTitle": "{day}: {count} searches",
+        "noResultKeywords": "Keywords with no results"
       },
       "seo": {
         "seoAnalysis": "SEO Analysis",
@@ -973,7 +1013,12 @@
         "pasteContent": "Paste content",
         "improvementSuggestions": "Improvement suggestions",
         "noIssuesFound": "No issues found",
-        "fillInTheContentOnTheLeftToAnalyzeIt": "Fill in the content on the left to analyze it"
+        "fillInTheContentOnTheLeftToAnalyzeIt": "Fill in the content on the left to analyze it",
+        "checkedArticles": "Checked {n} articles",
+        "generatedAt": "Generated at",
+        "checkRecent": "Check the latest 50 published articles",
+        "bulkSummary": "Checked {checked}, average score {score}",
+        "startAnalysis": "Start analysis"
       }
     },
     "ops": {
@@ -1006,7 +1051,17 @@
         "files2": "Files",
         "full2": "Full",
         "filename": "Filename",
-        "size": "Size"
+        "size": "Size",
+        "createConfirm": "Create a {type} backup now?",
+        "backupStarted": "{type} backup started",
+        "restoreConfirm": "Restore from \"{file}\"? Current data will be overwritten and this cannot be undone.",
+        "deleteConfirm": "Delete backup \"{name}\"?",
+        "backupDatabase": "Backup database",
+        "backupFiles": "Backup files",
+        "backupFull": "Full backup",
+        "cleanupByDays": "Cleanup by days",
+        "restore": "Restore",
+        "summary": "{total} backups (showing up to 100)"
       },
       "notification": {
         "notifications": "Notifications",
@@ -1016,7 +1071,11 @@
         "markAllAsRead": "Mark all as read",
         "read": "Read",
         "unread": "Unread",
-        "markAsRead": "Mark as read"
+        "markAsRead": "Mark as read",
+        "markedRead": "Marked {n} as read",
+        "deleteConfirm": "Delete notification \"{name}\"?",
+        "cleaned": "Cleaned {n}",
+        "cleanRead": "Clean read"
       },
       "webhook": {
         "enterANameAndCallbackUrl": "Enter a name and callback URL",
@@ -1039,7 +1098,10 @@
         "resetSecret": "Reset secret",
         "secret2": "Secret",
         "leaveBlankToKeepUnchanged": "Leave blank to keep unchanged",
-        "usedToVerifyRequestSignatures": "Used to verify request signatures"
+        "usedToVerifyRequestSignatures": "Used to verify request signatures",
+        "testConfirm": "Send a test event to \"{name}\"?",
+        "triggered": "Triggered: {event}",
+        "deleteConfirm": "Delete webhook \"{name}\"?"
       }
     },
     "shared": {
@@ -1088,15 +1150,25 @@
       "Placeholder": {
         "theBusinessImplementationForThisPageWillBeCompletedInALaterPhase": "The business implementation for this page will be completed in a later phase.",
         "backToDashboard": "Back to dashboard"
+      },
+      "AdminMediaPreview": {
+        "downloadFile": "Download file"
+      },
+      "ThemeConfigPanel": {
+        "saveConfig": "Save configuration"
+      },
+      "PerfDashboard": {
+        "noSlowResources": "No slow resources yet; metrics accumulate as you browse."
       }
     },
-    "admin": {
-      "plugin-pages": {
-        "[slug]": {
-          "plugins": "Plugins",
-          "pluginPageNotFound": "Plugin page not found"
-        }
-      }
+    "pluginPages": {
+      "plugins": "Plugins",
+      "pluginPageNotFound": "Plugin page not found",
+      "notMigrated": "Plugin page \"{title}\" has not been migrated to Nuxt yet",
+      "originalReact": "The original implementation is the React component",
+      "locatedAt": ", located at ",
+      "rewriteHint": "Rewrite it as a same-name .vue file and this page will load it automatically; no route changes needed.",
+      "otherRoutes": "Other routes of this plugin: {routes}"
     }
   },
   "menu": {

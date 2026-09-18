@@ -93,7 +93,7 @@ async function onFilesPicked(event: Event): Promise<void> {
   if (!files.length) return
 
   uploading.value = true
-  progress.value = `正在上传 ${files.length} 个文件…`
+  progress.value = t('admin.content.media.uploadingFiles', {n: files.length})
   try {
     await mediaApi.upload(files)
     ElMessage.success(t('admin.content.media.uploadComplete'))
@@ -143,7 +143,7 @@ async function submitEdit(): Promise<void> {
 
 // ---------------------------------------------------------------- 删除
 async function removeRow(row: MediaItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除「${row.original_filename || row.filename}」吗？`, t('admin.common.notice'), {
+  await ElMessageBox.confirm(t('admin.content.media.deleteConfirm', {name: row.original_filename || row.filename}), t('admin.common.notice'), {
     type: 'warning',
   })
   await mediaApi.remove(row.id)
@@ -156,7 +156,7 @@ async function removeSelected(): Promise<void> {
     ElMessage.warning(t('admin.content.media.selectFilesToDeleteFirst'))
     return
   }
-  await ElMessageBox.confirm(`确定删除选中的 ${selection.value.length} 个文件吗？`, t('admin.common.notice'), {
+  await ElMessageBox.confirm(t('admin.content.media.deleteSelectedConfirm', {n: selection.value.length}), t('admin.common.notice'), {
     type: 'warning',
   })
   await mediaApi.batchDelete(selection.value.map((item) => item.id))
@@ -197,7 +197,7 @@ onMounted(loadList)
       <div class="toolbar">
         <el-button v-auth="'module_content:media:upload'" :icon="Upload" :loading="uploading" type="primary"
                    @click="pickFiles">
-          上传文件
+          {{ $t('media.upload') }}
         </el-button>
         <el-button
           v-auth="'module_content:media:delete'"
@@ -207,7 +207,7 @@ onMounted(loadList)
           type="danger"
           @click="removeSelected"
         >
-          批量删除
+          {{ $t('common.batchDelete') }}
         </el-button>
         <span v-if="progress" class="progress">{{ progress }}</span>
         <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
@@ -266,10 +266,10 @@ onMounted(loadList)
         <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
           <template #default="{row}">
             <el-button v-auth="'module_content:media:upload'" :icon="Edit" link type="primary" @click="openEdit(row)">
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button v-auth="'module_content:media:delete'" :icon="Delete" link type="danger" @click="removeRow(row)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>

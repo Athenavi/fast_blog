@@ -116,7 +116,8 @@ onMounted(loadAll)
       <div class="section">
         <h4 class="sub-title">{{ $t('admin.analytics.search.searchTrend') }}</h4>
         <div v-if="trend?.points.length" class="trend">
-          <div v-for="point in trend.points" :key="point.day" :title="`${point.day}：${point.searches} 次`"
+          <div v-for="point in trend.points" :key="point.day"
+               :title="$t('admin.analytics.search.trendTitle', {day: point.day, count: point.searches})"
                class="trend__col">
             <div class="trend__bar-wrap">
               <div :style="{height: barWidth(point.searches, trendMax)}" class="trend__bar"/>
@@ -142,7 +143,7 @@ onMounted(loadAll)
 
         <el-col :span="12">
           <h4 class="sub-title">
-            无结果关键词
+            {{ $t('admin.analytics.search.noResultKeywords') }}
             <span class="sub-hint">{{ $t('admin.analytics.search.whatReadersSearchedForButCouldNotFind') }}</span>
           </h4>
           <el-table :data="zeroResult" max-height="420" row-key="keyword">

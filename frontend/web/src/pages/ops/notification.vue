@@ -74,12 +74,12 @@ async function markRead(row: NotificationItem): Promise<void> {
 
 async function readAll(): Promise<void> {
   const result = await notificationApi.readAll()
-  ElMessage.success(`已标记 ${result?.affected ?? 0} 条为已读`)
+  ElMessage.success(t('admin.ops.notification.markedRead', {n: result?.affected ?? 0}))
   await refresh()
 }
 
 async function removeRow(row: NotificationItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除通知「${row.title || row.id}」吗？`, t('admin.common.notice'), {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.ops.notification.deleteConfirm', {name: row.title || row.id}), t('admin.common.notice'), {type: 'warning'})
   await notificationApi.remove(row.id)
   ElMessage.success(t('admin.ops.notification.deleted'))
   await refresh()
@@ -88,7 +88,7 @@ async function removeRow(row: NotificationItem): Promise<void> {
 async function cleanRead(): Promise<void> {
   await ElMessageBox.confirm(t('admin.ops.notification.clearAllReadNotificationsThisActionCannotBeUndone'), t('admin.common.notice'), {type: 'warning'})
   const result = await notificationApi.clean()
-  ElMessage.success(`已清理 ${result?.affected ?? 0} 条`)
+  ElMessage.success(t('admin.ops.notification.cleaned', {n: result?.affected ?? 0}))
   await refresh()
 }
 
@@ -123,7 +123,7 @@ onMounted(refresh)
           {{ $t('admin.ops.notification.markAllAsRead') }}
         </el-button>
         <el-button v-auth="'module_ops:notification:edit'" :icon="Delete" plain type="danger" @click="cleanRead">
-          清理已读
+          {{ $t('admin.ops.notification.cleanRead') }}
         </el-button>
       </div>
 
@@ -165,7 +165,7 @@ onMounted(refresh)
               type="danger"
               @click="removeRow(row)"
             >
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>

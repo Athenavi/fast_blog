@@ -111,17 +111,17 @@ async function submitForm(): Promise<void> {
 
 // ---------------------------------------------------------------- 操作
 async function testHook(row: WebhookItem): Promise<void> {
-  await ElMessageBox.confirm(`向「${row.name}」发送一条测试事件？`, t('admin.common.notice'), {type: 'info'})
+  await ElMessageBox.confirm(t('admin.ops.webhook.testConfirm', {name: row.name}), t('admin.common.notice'), {type: 'info'})
   const result = await webhookApi.test(row.id)
   if (result?.triggered) {
-    ElMessage.success(`已触发：${result.event}`)
+    ElMessage.success(t('admin.ops.webhook.triggered', {event: result.event}))
   } else {
     ElMessage.warning(result?.detail || t('admin.ops.webhook.notTriggeredNoAvailableEvent'))
   }
 }
 
 async function removeRow(row: WebhookItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除 Webhook「${row.name}」吗？`, t('admin.common.notice'), {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.ops.webhook.deleteConfirm', {name: row.name}), t('admin.common.notice'), {type: 'warning'})
   await webhookApi.remove(row.id)
   ElMessage.success(t('admin.ops.webhook.deleted'))
   await loadList()
@@ -137,7 +137,7 @@ onMounted(async () => {
     <el-card shadow="never">
       <div class="toolbar">
         <el-button v-auth="'module_ops:webhook:edit'" :icon="Plus" type="primary" @click="openCreate">
-          新建 Webhook
+          {{ $t('admin.ops.webhook.createWebhook') }}
         </el-button>
         <el-button :icon="Refresh" circle @click="loadList"/>
       </div>
@@ -185,7 +185,7 @@ onMounted(async () => {
               type="primary"
               @click="openEdit(row)"
             >
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button
               v-auth="'module_ops:webhook:edit'"
@@ -194,7 +194,7 @@ onMounted(async () => {
               type="danger"
               @click="removeRow(row)"
             >
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>

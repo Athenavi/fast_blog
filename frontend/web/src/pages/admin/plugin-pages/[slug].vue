@@ -53,27 +53,28 @@ const asyncComponent = computed(() => {
 <template>
   <div class="plugin-page-host">
     <el-breadcrumb separator="/">
-      <el-breadcrumb-item>{{ $t('admin.admin.plugin-pages.[slug].plugins') }}</el-breadcrumb-item>
+      <el-breadcrumb-item>{{ $t('admin.pluginPages.plugins') }}</el-breadcrumb-item>
       <el-breadcrumb-item>{{ title }}</el-breadcrumb-item>
     </el-breadcrumb>
 
     <div class="plugin-page-host__body">
       <component :is="asyncComponent" v-if="asyncComponent"/>
 
-      <el-empty v-else-if="current" :description="`插件页面「${title}」尚未迁移到 Nuxt`">
+      <el-empty v-else-if="current" :description="$t('admin.pluginPages.notMigrated', {title})">
         <p class="plugin-page-host__hint">
-          原实现为 React 组件 <code>{{ current.component }}</code
-        >，位于 <code>plugins/{{ slug }}/frontend/</code>。
+          {{ $t('admin.pluginPages.originalReact') }} <code>{{
+            current.component
+          }}</code>{{ $t('admin.pluginPages.locatedAt') }}<code>plugins/{{ slug }}/frontend/</code>.
         </p>
         <p class="plugin-page-host__hint">
-          重写为同名 <code>.vue</code> 后，本页会自动加载，无需改动路由。
+          {{ $t('admin.pluginPages.rewriteHint') }}
         </p>
         <p v-if="siblings.length > 1" class="plugin-page-host__hint">
-          该插件的其他路由：{{ siblings.map((item) => item.path).join('、') }}
+          {{ $t('admin.pluginPages.otherRoutes', {routes: siblings.map((item) => item.path).join('、')}) }}
         </p>
       </el-empty>
 
-      <el-empty v-else :description="$t('admin.admin.plugin-pages.[slug].pluginPageNotFound')"/>
+      <el-empty v-else :description="$t('admin.pluginPages.pluginPageNotFound')"/>
     </div>
   </div>
 </template>

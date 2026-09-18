@@ -56,7 +56,7 @@ async function load(): Promise<void> {
 
 async function kick(row: OnlineSession): Promise<void> {
   await ElMessageBox.confirm(
-    `确定把会话 #${row.id}（用户 ${row.user_id}）强制下线吗？`,
+    t('admin.system.hub.kickConfirm', {id: row.id, user: row.user_id}),
     t('admin.common.notice'),
     {type: 'warning'},
   )
@@ -94,9 +94,11 @@ onMounted(load)
     <div class="mb-3 flex flex-wrap items-center gap-3">
       <el-button :loading="loading" @click="load">
         <Icon class="mr-1 h-3.5 w-3.5" name="refresh-cw"/>
-        刷新
+        {{ $t('common.refresh') }}
       </el-button>
-      <span class="text-xs text-fg-subtle">在线判定窗口：{{ online?.window_seconds ?? 1800 }} 秒</span>
+      <span class="text-xs text-fg-subtle">{{
+          $t('admin.system.hub.onlineWindow', {seconds: online?.window_seconds ?? 1800})
+        }}</span>
     </div>
 
     <!-- 服务器信息 -->
@@ -125,15 +127,20 @@ onMounted(load)
             }}
           </el-descriptions-item>
           <el-descriptions-item :label="$t('admin.system.hub.process')">
-            PID {{ server.process.pid }} · 内存 {{ formatFileSize(server.process.rss) }} · 线程
-            {{ server.process.threads }}
+            {{
+              $t('admin.system.hub.processInfo', {
+                pid: server.process.pid,
+                mem: formatFileSize(server.process.rss),
+                threads: server.process.threads
+              })
+            }}
           </el-descriptions-item>
         </el-descriptions>
 
         <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div class="gauge">
             <div class="gauge__head">
-              <span>CPU（{{ server.cpu.count }} 核）</span>
+              <span>{{ $t('admin.system.hub.cpuCores', {count: server.cpu.count}) }}</span>
               <span class="gauge__value">{{ server.cpu.percent.toFixed(1) }}%</span>
             </div>
             <div class="gauge__track">
@@ -141,7 +148,7 @@ onMounted(load)
                    class="gauge__fill"/>
             </div>
             <p v-if="server.cpu.load_avg.length" class="gauge__foot">
-              负载：{{ server.cpu.load_avg.join(' / ') }}
+              {{ $t('admin.system.hub.load', {load: server.cpu.load_avg.join(' / ')}) }}
             </p>
           </div>
 
@@ -189,8 +196,13 @@ onMounted(load)
       <template #header>
         <span class="font-medium">{{ $t('admin.system.hub.onlineUsers') }}</span>
         <span class="ml-3 text-xs text-fg-subtle">
-          活跃 {{ online?.active_sessions ?? '—' }} · 窗口内活跃 {{ online?.recent_sessions ?? '—' }} ·
-          去重用户 {{ online?.unique_users ?? '—' }}
+          {{
+            $t('admin.system.hub.onlineSummary', {
+              active: online?.active_sessions ?? '—',
+              recent: online?.recent_sessions ?? '—',
+              unique: online?.unique_users ?? '—'
+            })
+          }}
         </span>
       </template>
 
@@ -244,7 +256,8 @@ onMounted(load)
         </NuxtLink>
       </template>
 
-      <p v-if="multiLevel.error" class="text-sm text-danger">统计失败：{{ multiLevel.error }}</p>
+      <p v-if="multiLevel.error" class="text-sm text-danger">
+        {{ $t('admin.common.statsFailed', {error: multiLevel.error}) }}</p>
 
       <div v-else class="grid grid-cols-3 gap-4">
         <div class="gauge">

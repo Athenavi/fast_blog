@@ -81,7 +81,7 @@ async function runBulk(): Promise<void> {
   bulkLoading.value = true
   try {
     bulk.value = (await seoApi.bulkCheck({limit: 50, only_published: true})) as unknown as BulkResult
-    ElMessage.success(`已检查 ${bulk.value.checked} 篇文章`)
+    ElMessage.success(t('admin.analytics.seo.checkedArticles', {n: bulk.value.checked}))
   } finally {
     bulkLoading.value = false
   }
@@ -158,7 +158,7 @@ onMounted(async () => {
               </el-col>
               <el-col :span="6">
                 <div class="generated">
-                  生成于<br>{{ formatDateTime(report.generated_at) }}
+                  {{ $t('admin.analytics.seo.generatedAt') }}<br>{{ formatDateTime(report.generated_at) }}
                 </div>
               </el-col>
             </el-row>
@@ -208,10 +208,10 @@ onMounted(async () => {
         <el-tab-pane :label="$t('admin.analytics.seo.bulkCheck')" name="bulk">
           <div class="toolbar">
             <el-button :loading="bulkLoading" type="primary" @click="runBulk">
-              检查最近 50 篇已发布文章
+              {{ $t('admin.analytics.seo.checkRecent') }}
             </el-button>
             <span v-if="bulk" class="hint">
-              已检查 {{ bulk.checked }} 篇，平均 {{ bulk.average_score.toFixed(1) }} 分
+              {{ $t('admin.analytics.seo.bulkSummary', {checked: bulk.checked, score: bulk.average_score.toFixed(1)}) }}
             </span>
           </div>
 
@@ -286,7 +286,7 @@ onMounted(async () => {
                 </el-form-item>
                 <el-form-item>
                   <el-button :icon="Search" :loading="analyzeLoading" type="primary" @click="runAnalyze">
-                    开始分析
+                    {{ $t('admin.analytics.seo.startAnalysis') }}
                   </el-button>
                 </el-form-item>
               </el-form>

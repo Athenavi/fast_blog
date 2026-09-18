@@ -42,7 +42,10 @@ async function scan(): Promise<void> {
   try {
     const result = await pluginApi.scan()
     if (result?.count) {
-      ElMessage.success(`发现 ${result.count} 个新插件：${result.new_plugins.join('、')}`)
+      ElMessage.success(t('admin.extension.plugin.scanFound', {
+        count: result.count,
+        plugins: result.new_plugins.join('、')
+      }))
     } else {
       ElMessage.info(t('admin.extension.plugin.noNewPluginsFound'))
     }
@@ -70,7 +73,10 @@ async function act(
   const danger = action === 'uninstall'
 
   await ElMessageBox.confirm(
-    danger ? `确定卸载插件「${row.name || slug}」吗？相关数据可能被保留或清除。` : `确定${label}插件「${row.name || slug}」吗？`,
+    danger ? t('admin.extension.plugin.uninstallConfirm', {name: row.name || slug}) : t('admin.extension.plugin.actionConfirm', {
+      action: label,
+      name: row.name || slug
+    }),
     danger ? t('admin.extension.plugin.dangerousOperation') : t('admin.common.notice'),
     danger
       ? {
@@ -91,9 +97,12 @@ async function act(
           : await pluginApi.uninstall(slug)
 
   if (result?.success === false) {
-    ElMessage.error(result.detail || `${label}失败`)
+    ElMessage.error(result.detail || t('admin.extension.plugin.actionFailed', {action: label}))
   } else {
-    ElMessage.success(`${label}成功${result?.detail ? `：${result.detail}` : ''}`)
+    ElMessage.success(t('admin.extension.plugin.actionSucceeded', {
+      action: label,
+      detail: result?.detail ? `：${result.detail}` : ''
+    }))
   }
   await loadList()
 }
@@ -130,7 +139,7 @@ async function saveSettings(): Promise<void> {
     }
     settings = parsed as Record<string, unknown>
   } catch (error) {
-    ElMessage.warning(`配置不是合法的 JSON 对象：${(error as Error).message}`)
+    ElMessage.warning(t('admin.common.configInvalidJson', {message: (error as Error).message}))
     return
   }
 
@@ -189,7 +198,7 @@ onMounted(loadList)
               type="primary"
               @click="act(row, 'install')"
             >
-              安装
+              {{ $t('admin.extension.plugin.install') }}
             </el-button>
             <el-button
               v-if="!row.is_active"
@@ -198,7 +207,7 @@ onMounted(loadList)
               type="success"
               @click="act(row, 'activate')"
             >
-              激活
+              {{ $t('admin.extension.plugin.activate') }}
             </el-button>
             <el-button
               v-else
@@ -207,7 +216,7 @@ onMounted(loadList)
               type="warning"
               @click="act(row, 'deactivate')"
             >
-              停用
+              {{ $t('admin.common.disabled') }}
             </el-button>
             <el-button
               v-auth="'module_extension:plugin:configure'"
@@ -216,7 +225,7 @@ onMounted(loadList)
               type="primary"
               @click="openSettings(row)"
             >
-              配置
+              {{ $t('admin.extension.plugin.configuration') }}
             </el-button>
             <el-button
               v-auth="'module_extension:plugin:delete'"
@@ -225,18 +234,18 @@ onMounted(loadList)
               type="danger"
               @click="act(row, 'uninstall')"
             >
-              卸载
+              {{ $t('admin.extension.plugin.uninstall') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <p class="hint">共 {{ total }} 个插件</p>
+      <p class="hint">{{ $t('admin.extension.plugin.summary', {total}) }}</p>
     </el-card>
 
     <el-dialog
       v-model="dialogVisible"
-      :title="`插件配置 · ${activePlugin?.name || activePlugin?.slug || ''}`"
+      :title="$t('admin.extension.plugin.configTitle', {name: activePlugin?.name || activePlugin?.slug || ''})"
       destroy-on-close
       width="640px"
     >

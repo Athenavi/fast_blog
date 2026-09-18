@@ -62,13 +62,13 @@ async function loadStats(): Promise<void> {
 // ---------------------------------------------------------------- 创建
 async function createBackup(kind: 'database' | 'files' | 'full'): Promise<void> {
   const label = TYPE_LABELS[kind]
-  await ElMessageBox.confirm(`立即创建一个${label}备份？`, t('admin.common.notice'), {type: 'info'})
+  await ElMessageBox.confirm(t('admin.ops.backup.createConfirm', {type: label}), t('admin.common.notice'), {type: 'info'})
   creating.value = true
   try {
     if (kind === 'database') await backupApi.createDatabase('database')
     else if (kind === 'files') await backupApi.createFiles()
     else await backupApi.createFull()
-    ElMessage.success(`${label}备份已开始`)
+    ElMessage.success(t('admin.ops.backup.backupStarted', {type: label}))
     await Promise.all([loadList(), loadStats()])
   } finally {
     creating.value = false
@@ -83,7 +83,7 @@ async function restore(row: BackupItem): Promise<void> {
     return
   }
   await ElMessageBox.confirm(
-    `确定用「${file}」还原吗？当前数据将被覆盖，此操作不可撤销。`,
+    t('admin.ops.backup.restoreConfirm', {file}),
     t('admin.ops.backup.dangerousOperation'),
     {type: 'error', confirmButtonText: t('admin.ops.backup.confirmRestore'), confirmButtonClass: 'el-button--danger'},
   )
@@ -94,7 +94,7 @@ async function restore(row: BackupItem): Promise<void> {
 async function removeRow(row: BackupItem): Promise<void> {
   const path = row.path || row.filename || ''
   if (!path) return
-  await ElMessageBox.confirm(`确定删除备份「${row.filename || path}」吗？`, t('admin.common.notice'), {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.ops.backup.deleteConfirm', {name: row.filename || path}), t('admin.common.notice'), {type: 'warning'})
   await backupApi.remove(path)
   ElMessage.success(t('admin.ops.backup.deleted'))
   await Promise.all([loadList(), loadStats()])
@@ -186,7 +186,7 @@ onMounted(async () => {
                 type="primary"
                 @click="saveSchedule"
               >
-                保存
+                {{ $t('admin.common.save') }}
               </el-button>
             </div>
           </template>
@@ -239,18 +239,18 @@ onMounted(async () => {
           type="primary"
           @click="createBackup('database')"
         >
-          备份数据库
+          {{ $t('admin.ops.backup.backupDatabase') }}
         </el-button>
         <el-button v-auth="'module_ops:backup:create'" :icon="Download" :loading="creating"
                    @click="createBackup('files')">
-          备份文件
+          {{ $t('admin.ops.backup.backupFiles') }}
         </el-button>
         <el-button v-auth="'module_ops:backup:create'" :icon="Download" :loading="creating"
                    @click="createBackup('full')">
-          完整备份
+          {{ $t('admin.ops.backup.backupFull') }}
         </el-button>
         <el-button v-auth="'module_ops:backup:delete'" :icon="Delete" plain type="danger" @click="cleanup">
-          按天清理
+          {{ $t('admin.ops.backup.cleanupByDays') }}
         </el-button>
       </div>
 
@@ -273,16 +273,16 @@ onMounted(async () => {
         <el-table-column :label="$t('admin.common.actions')" fixed="right" width="170">
           <template #default="{row}">
             <el-button v-auth="'module_ops:backup:restore'" :icon="Upload" link type="warning" @click="restore(row)">
-              还原
+              {{ $t('admin.ops.backup.restore') }}
             </el-button>
             <el-button v-auth="'module_ops:backup:delete'" :icon="Delete" link type="danger" @click="removeRow(row)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <p class="hint">共 {{ total }} 个备份（最多显示 100 个）</p>
+      <p class="hint">{{ $t('admin.ops.backup.summary', {total}) }}</p>
     </el-card>
   </div>
 </template>

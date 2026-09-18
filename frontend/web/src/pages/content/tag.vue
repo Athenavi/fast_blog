@@ -62,7 +62,7 @@ async function checkMerge(): Promise<void> {
     return
   }
   mergeHint.value = list.value.some((item) => item.name === target)
-    ? `「${target}」已存在，保存后将与它合并`
+    ? t('admin.content.tag.mergeHint', {name: target})
     : ''
 }
 
@@ -90,7 +90,7 @@ async function submitRename(): Promise<void> {
 
 async function removeRow(row: TagItem): Promise<void> {
   await ElMessageBox.confirm(
-    `确定删除标签「${row.name}」吗？将从 ${row.count} 篇文章上移除该标签。`,
+    t('admin.content.tag.deleteConfirm', {name: row.name, count: row.count}),
     t('admin.common.notice'),
     {type: 'warning'},
   )
@@ -129,16 +129,16 @@ onMounted(loadList)
         <el-table-column :label="$t('admin.common.actions')" fixed="right" width="180">
           <template #default="{row}">
             <el-button v-auth="'module_content:tag:edit'" :icon="Edit" link type="primary" @click="openRename(row)">
-              重命名
+              {{ $t('admin.content.tag.rename') }}
             </el-button>
             <el-button v-auth="'module_content:tag:edit'" :icon="Delete" link type="danger" @click="removeRow(row)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <p class="hint">共 {{ total }} 个标签（最多显示 200 个，可用关键词筛选）</p>
+      <p class="hint">{{ $t('admin.content.tag.summary', {total}) }}</p>
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="$t('admin.content.tag.renameTag')" destroy-on-close width="480px">

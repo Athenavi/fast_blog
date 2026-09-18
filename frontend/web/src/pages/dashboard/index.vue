@@ -17,7 +17,7 @@
             <div class="card-header">
               <span>{{ $t('admin.dashboard.recentArticles') }}</span>
               <el-button link type="primary" @click="router.push('/content/article')">
-                全部
+                {{ $t('admin.common.all') }}
               </el-button>
             </div>
           </template>
@@ -45,7 +45,7 @@
             <div class="card-header">
               <span>{{ $t('admin.dashboard.recentComments') }}</span>
               <el-button link type="primary" @click="router.push('/content/comment')">
-                全部
+                {{ $t('admin.common.all') }}
               </el-button>
             </div>
           </template>
@@ -105,13 +105,20 @@ const cards = computed(() => {
     {
       label: t('admin.dashboard.totalArticles'),
       value: data?.total_articles ?? 0,
-      hint: `已发布 ${data?.published_articles ?? 0} / 草稿 ${data?.draft_articles ?? 0}`
+      hint: t('admin.dashboard.articleHint', {
+        published: data?.published_articles ?? 0,
+        draft: data?.draft_articles ?? 0
+      })
     },
-    {label: t('admin.dashboard.totalUsers'), value: data?.total_users ?? 0, hint: `启用 ${data?.active_users ?? 0}`},
+    {
+      label: t('admin.dashboard.totalUsers'),
+      value: data?.total_users ?? 0,
+      hint: t('admin.dashboard.userHint', {active: data?.active_users ?? 0})
+    },
     {
       label: t('admin.dashboard.totalComments'),
       value: data?.total_comments ?? 0,
-      hint: `待审核 ${data?.pending_comments ?? 0}`
+      hint: t('admin.dashboard.commentHint', {pending: data?.pending_comments ?? 0})
     },
     {label: t('admin.dashboard.totalViews'), value: data?.total_views ?? 0},
     {label: t('admin.dashboard.categories'), value: data?.total_categories ?? 0},

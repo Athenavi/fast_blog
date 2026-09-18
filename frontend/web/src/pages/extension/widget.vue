@@ -120,7 +120,7 @@ async function submitForm(): Promise<void> {
     }
     config = parsed as Record<string, unknown>
   } catch (error) {
-    ElMessage.warning(`配置不是合法的 JSON 对象：${(error as Error).message}`)
+    ElMessage.warning(t('admin.common.configInvalidJson', {message: (error as Error).message}))
     return
   }
 
@@ -164,7 +164,7 @@ async function move(row: WidgetItem, delta: number): Promise<void> {
 }
 
 async function removeRow(row: WidgetItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除小部件「${row.title || row.widget_type}」吗？`, t('admin.common.notice'), {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.extension.widget.deleteConfirm', {name: row.title || row.widget_type}), t('admin.common.notice'), {type: 'warning'})
   await widgetApi.remove(row.id)
   ElMessage.success(t('admin.extension.widget.deleted'))
   await loadList()
@@ -202,7 +202,7 @@ onMounted(async () => {
 
       <div class="toolbar">
         <el-button v-auth="'module_extension:widget:edit'" :icon="Plus" type="primary" @click="openCreate">
-          新建小部件
+          {{ $t('admin.extension.widget.createWidget') }}
         </el-button>
         <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
       </div>
@@ -215,7 +215,10 @@ onMounted(async () => {
           </template>
         </el-table-column>
         <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="180">
-          <template #default="{row}">{{ row.title || `（未命名 ${row.widget_type}）` }}</template>
+          <template #default="{row}">{{
+              row.title || $t('admin.extension.widget.unnamed', {type: row.widget_type})
+            }}
+          </template>
         </el-table-column>
         <el-table-column :label="$t('admin.cache.level')" prop="widget_type" width="140"/>
         <el-table-column :label="$t('admin.extension.widget.region')" prop="area" width="140"/>
@@ -237,7 +240,7 @@ onMounted(async () => {
               type="primary"
               @click="openEdit(row)"
             >
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button
               v-auth="'module_extension:widget:edit'"
@@ -246,13 +249,13 @@ onMounted(async () => {
               type="danger"
               @click="removeRow(row)"
             >
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
-      <p class="hint">共 {{ total }} 个小部件</p>
+      <p class="hint">{{ $t('admin.extension.widget.summary', {total}) }}</p>
     </el-card>
 
     <el-dialog

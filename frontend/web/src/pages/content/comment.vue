@@ -117,7 +117,7 @@ async function submitEdit(): Promise<void> {
 
 // ---------------------------------------------------------------- 删除
 async function removeRow(row: CommentItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除该评论吗？`, t('admin.common.notice'), {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.content.comment.deleteConfirm'), t('admin.common.notice'), {type: 'warning'})
   await commentApi.remove(row.id)
   ElMessage.success(t('admin.content.comment.deleted'))
   await loadList()
@@ -129,7 +129,7 @@ async function removeSelected(): Promise<void> {
     return
   }
   await ElMessageBox.confirm(
-    `确定删除选中的 ${selection.value.length} 条评论吗？`,
+    t('admin.content.comment.deleteSelectedConfirm', {n: selection.value.length}),
     t('admin.common.notice'),
     {type: 'warning'},
   )
@@ -160,7 +160,7 @@ onMounted(loadList)
           type="danger"
           @click="removeSelected"
         >
-          批量删除
+          {{ $t('common.batchDelete') }}
         </el-button>
       </div>
 
@@ -171,7 +171,7 @@ onMounted(loadList)
         <el-table-column :label="$t('article.author')" width="150">
           <template #default="{row}">
             <div class="author">
-              <span>{{ row.author_name || `用户#${row.user_id ?? '-'}` }}</span>
+              <span>{{ row.author_name || t('admin.content.comment.anonymousUser', {id: row.user_id ?? '-'}) }}</span>
               <span v-if="row.author_email" class="email">{{ row.author_email }}</span>
             </div>
           </template>
@@ -197,18 +197,18 @@ onMounted(loadList)
           <template #default="{row}">
             <template v-if="!row.is_approved">
               <el-button v-auth="'module_content:comment:approve'" link type="success" @click="approve(row)">
-                通过
+                {{ $t('admin.content.comment.approve') }}
               </el-button>
               <el-button v-auth="'module_content:comment:approve'" link type="warning" @click="reject(row)">
-                拒绝
+                {{ $t('admin.content.comment.reject') }}
               </el-button>
             </template>
             <el-button v-auth="'module_content:comment:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button v-auth="'module_content:comment:delete'" :icon="Delete" link type="danger"
                        @click="removeRow(row)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>

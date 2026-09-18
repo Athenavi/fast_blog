@@ -104,7 +104,7 @@ async function submitForm(): Promise<void> {
 
 async function removeRow(row: CategoryItem): Promise<void> {
   await ElMessageBox.confirm(
-    `确定删除分类「${row.name}」吗？其下文章将失去该分类归属。`,
+    t('admin.content.category.deleteConfirm', {name: row.name}),
     t('admin.common.notice'),
     {type: 'warning'},
   )
@@ -121,7 +121,7 @@ onMounted(loadTree)
     <el-card shadow="never">
       <div class="toolbar">
         <el-button v-auth="'module_content:category:create'" :icon="Plus" type="primary" @click="openCreate()">
-          新建分类
+          {{ $t('admin.content.category.newCategory') }}
         </el-button>
         <el-button :icon="Refresh" circle @click="loadTree"/>
       </div>
@@ -158,14 +158,14 @@ onMounted(loadTree)
           <template #default="{row}">
             <el-button v-auth="'module_content:category:create'" :icon="Plus" link type="primary"
                        @click="openCreate(row)">
-              子分类
+              {{ $t('admin.content.category.subCategory') }}
             </el-button>
             <el-button v-auth="'module_content:category:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button v-auth="'module_content:category:delete'" :icon="Delete" link type="danger"
                        @click="removeRow(row)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>

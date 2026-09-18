@@ -183,7 +183,7 @@ async function togglePublish(row: ArticleItem): Promise<void> {
 }
 
 async function removeRow(row: ArticleItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除《${row.title}》吗？`, t('admin.common.notice'), {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.content.article.deleteConfirm', {title: row.title}), t('admin.common.notice'), {type: 'warning'})
   await articleApi.remove(row.id)
   ElMessage.success(t('admin.content.article.deleted'))
   await loadList()
@@ -195,7 +195,7 @@ async function removeSelected(): Promise<void> {
     return
   }
   await ElMessageBox.confirm(
-    `确定删除选中的 ${selection.value.length} 篇文章吗？`,
+    t('admin.content.article.deleteSelectedConfirm', {n: selection.value.length}),
     t('admin.common.notice'),
     {type: 'warning'},
   )
@@ -236,7 +236,7 @@ onMounted(async () => {
 
       <div class="toolbar">
         <el-button v-auth="'module_content:article:create'" :icon="Plus" type="primary" @click="openCreate">
-          新建文章
+          {{ $t('admin.content.article.newArticle') }}
         </el-button>
         <el-button
           v-auth="'module_content:article:delete'"
@@ -246,7 +246,7 @@ onMounted(async () => {
           type="danger"
           @click="removeSelected"
         >
-          批量删除
+          {{ $t('common.batchDelete') }}
         </el-button>
         <el-button :icon="Refresh" circle @click="loadList"/>
       </div>
@@ -297,14 +297,14 @@ onMounted(async () => {
         <el-table-column :label="$t('admin.common.actions')" fixed="right" width="210">
           <template #default="{row}">
             <el-button v-auth="'module_content:article:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button v-auth="'module_content:article:publish'" link type="primary" @click="togglePublish(row)">
               {{ row.status === 1 ? t('admin.content.article.moveToDraft') : t('admin.content.article.publish') }}
             </el-button>
             <el-button v-auth="'module_content:article:delete'" :icon="Delete" link type="danger"
                        @click="removeRow(row)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>
