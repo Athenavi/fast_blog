@@ -17,7 +17,23 @@ export default defineNuxtConfig({
   ssr: true,
 
   devtools: {enabled: true},
-  modules: ['@pinia/nuxt', '@nuxt/image', '@nuxt/scripts', '@vite-pwa/nuxt'],
+  modules: ['@pinia/nuxt', '@nuxt/image', '@nuxt/scripts', '@vite-pwa/nuxt', '@nuxtjs/i18n'],
+
+  // i18n：文案在 i18n/locales/*.json（这两个文件是从迁移前的 frontend-astro 取回的）
+  //
+  // `strategy: 'no_prefix'` —— URL 不带语言前缀，**不改变现有路由**
+  // （前台已有 /articles、/p/{slug} 等 SEO 路径，带前缀会连带影响 sitemap、PWA 与已收录链接）。
+  // 切换语言走 `useI18n().setLocale()`，选择由模块记在 cookie 里。
+  i18n: {
+    locales: [
+      {code: 'zh-CN', language: 'zh-CN', name: '简体中文', file: 'zh-CN.json'},
+      {code: 'en', language: 'en-US', name: 'English', file: 'en.json'},
+    ],
+    defaultLocale: 'zh-CN',
+    strategy: 'no_prefix',
+    // 中文站默认不做浏览器语言自动跳转（要开时改成 {alwaysRedirect: true} 之类）
+    detectBrowserLanguage: false,
+  },
 
   // 图片：使用本地 ipx 处理（自动 srcset / 格式转换），前台用 <NuxtImg>/<NuxtPicture>
   image: {

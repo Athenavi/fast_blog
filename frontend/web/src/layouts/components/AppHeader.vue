@@ -10,6 +10,8 @@
     </el-breadcrumb>
 
     <div class="header__right">
+      <LanguageSwitcher/>
+
       <el-badge :value="unread" :hidden="unread === 0" class="header__badge">
         <el-icon class="header__icon" @click="goNotifications">
           <Bell/>
@@ -22,12 +24,12 @@
             {{ userStore.displayName.slice(0, 1).toUpperCase() }}
           </el-avatar>
           <span class="header__username">{{ userStore.displayName }}</span>
-          <el-tag v-if="userStore.isSuperuser" size="small" type="danger">超管</el-tag>
+          <el-tag v-if="userStore.isSuperuser" size="small" type="danger">{{ $t('admin.superuser') }}</el-tag>
           <el-icon><ArrowDown/></el-icon>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
+            <el-dropdown-item command="logout" divided>{{ $t('admin.logout') }}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -49,6 +51,8 @@ const userStore = useUserStore()
 const permissionStore = usePermissionStore()
 const route = useRoute()
 const router = useRouter()
+
+const {t} = useI18n()
 
 const unread = ref(0)
 
@@ -73,7 +77,7 @@ function goNotifications(): void {
 
 async function onCommand(command: string): Promise<void> {
   if (command === 'logout') {
-    await ElMessageBox.confirm('确定要退出登录吗？', '提示', {type: 'warning'})
+    await ElMessageBox.confirm(t('admin.logoutConfirm'), t('admin.notice'), {type: 'warning'})
     await userStore.logout()
     permissionStore.reset()
     router.push('/login')
