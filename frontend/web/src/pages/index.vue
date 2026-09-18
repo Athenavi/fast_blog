@@ -12,6 +12,8 @@
  * 后端补上排序参数后，这里只需增加一次请求。
  */
 
+import {usePreferredReducedMotion} from '@vueuse/core'
+
 import type {ArticleItem, CategoryItem} from '@/types/content'
 
 const site = await useSiteInfo()
@@ -24,6 +26,13 @@ const {data: categories} = await useAsyncData('home-categories', () =>
 )
 
 const articles = computed(() => articlePage.value?.items ?? [])
+
+/** three.js 线框背景：跟随系统的「减少动态效果」偏好 */
+const prefersReducedMotion = usePreferredReducedMotion()
+const reducedMotion = computed(() => prefersReducedMotion.value === 'reduce')
+
+/** 线框背景按需加载：three 约 600 KB，且只在客户端渲染，不能进首屏包 */
+const WireframeScene = defineAsyncComponent(() => import('@/components/site/WireframeScene.vue'))
 
 const requestUrl = useRequestURL()
 useWebsiteJsonLd({
@@ -43,8 +52,13 @@ useSeoMeta({
 <template>
   <div>
     <!-- Hero：留白优先，避免任何装饰性硬编码色 -->
-    <section class="border-b border-line">
-      <div class="mx-auto max-w-wide px-4 py-20 sm:py-28">
+    <section class="relative overflow-hidden border-b border-line">
+      <!-- three.js 线框背景：仅客户端、按需加载，低透明度不抢内容 -->
+      <ClientOnly>
+        <component :is="WireframeScene" :reduced-motion="reducedMotion"/>
+      </ClientOnly>
+
+      <div class="relative mx-auto max-w-wide px-4 py-20 sm:py-28">
         <h1 class="max-w-read text-3xl font-bold tracking-tight text-fg sm:text-4xl">
           {{ site.site_name || 'FastBlog' }}
         </h1>

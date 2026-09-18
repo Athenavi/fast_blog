@@ -67,6 +67,16 @@ function isImage(row: MediaItem): boolean {
   return (row.mime_type || '').startsWith('image/')
 }
 
+// ---------------------------------------------------------------- 预览
+/** 后台全类型预览（AdminMediaPreview）：按 id 定位，支持列表内左右切换 */
+const previewOpen = ref(false)
+const previewId = ref<number | null>(null)
+
+function openPreview(row: MediaItem): void {
+  previewId.value = row.id
+  previewOpen.value = true
+}
+
 // ---------------------------------------------------------------- 上传
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploading = ref(false)
@@ -208,8 +218,17 @@ onMounted(loadList)
         <el-table-column type="selection" width="46"/>
         <el-table-column label="预览" width="90">
           <template #default="{row}">
-            <img v-if="isImage(row)" :alt="row.alt_text || ''" :src="row.file_url || ''" class="thumb">
-            <span v-else class="file-badge">{{ (row.file_type || 'file').toUpperCase() }}</span>
+            <span
+              class="preview-cell"
+              role="button"
+              tabindex="0"
+              title="点击预览"
+              @click="openPreview(row)"
+              @keyup.enter="openPreview(row)"
+            >
+              <img v-if="isImage(row)" :alt="row.alt_text || ''" :src="row.file_url || ''" class="thumb">
+              <span v-else class="file-badge">{{ (row.file_type || 'file').toUpperCase() }}</span>
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="文件名" min-width="220">
@@ -283,6 +302,16 @@ onMounted(loadList)
         <el-button :loading="saving" type="primary" @click="submitEdit">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 全类型预览（图片/视频/音频/PDF/文本） -->
+    <AdminMediaPreview
+      :active-id="previewId"
+      :files="list"
+      :open="previewOpen"
+      @close="previewOpen = false"
+      @edit="openEdit"
+      @navigate="previewId = $event.id"
+    />
   </div>
 </template>
 
@@ -301,6 +330,11 @@ onMounted(loadList)
 .progress {
   font-size: 13px;
   color: #909399;
+}
+
+.preview-cell {
+  display: inline-flex;
+  cursor: zoom-in;
 }
 
 .thumb {

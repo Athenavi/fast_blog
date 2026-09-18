@@ -64,8 +64,8 @@ Thumbs.db
 # (These are either volume-mounted, separate containers, or not used)
 # ============================================================================
 
-# Frontend source (served by separate nginx container)
-frontend-astro
+# Frontend source (built by the frontend container from ./frontend/web)
+frontend
 
 # User data directories (volume-mounted at runtime)
 media

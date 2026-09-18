@@ -16,6 +16,11 @@
       </el-main>
     </el-container>
   </el-container>
+
+  <!-- 性能面板：按需加载，避免进入初始包（layouts 属 app 层，静态 import 会全站生效） -->
+  <ClientOnly>
+    <component :is="PerfDashboard" v-if="ready"/>
+  </ClientOnly>
 </template>
 
 <script lang="ts" setup>
@@ -38,6 +43,9 @@ import {useAppStore} from '@/store/modules/app'
 const appStore = useAppStore()
 
 const ready = ref(false)
+
+/** 性能面板按需加载：layouts 属 app 层，静态 import 会进初始包 */
+const PerfDashboard = defineAsyncComponent(() => import('@/components/admin/PerfDashboard.vue'))
 
 /** 侧边栏与头部按字符串名引用图标，这里显式注册用到的那些 */
 const ICONS = [

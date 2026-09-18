@@ -95,7 +95,7 @@ jobs:
   # Frontend Unit Tests (Vitest, parallel to backend)
   # ============================================================================
   test-frontend:
-    name: Frontend Unit Tests
+    name: Frontend type-check & build
     runs-on: ubuntu-latest
     needs: lint
 
@@ -108,23 +108,23 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: frontend-astro/package-lock.json
+          cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend-astro
-        run: npm ci --legacy-peer-deps
+        working-directory: frontend/web
+        run: npm ci
 
-      - name: Run Vitest unit tests
-        working-directory: frontend-astro
-        run: npm run test
+      - name: Production build
+        working-directory: frontend/web
+        run: npm run build
 
       - name: Generate plugin frontend registry (prescan)
-        working-directory: frontend-astro
+        working-directory: frontend/web
         run: npm run prescan
 
       - name: TypeScript type check
-        working-directory: frontend-astro
-        run: npx --package typescript tsc --noEmit
+        working-directory: frontend/web
+        run: npm run type-check
 
   # ============================================================================
   # Backend Tests
@@ -230,14 +230,14 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: frontend-astro/package-lock.json
+          cache-dependency-path: frontend/web/package-lock.json
 
       - name: Install dependencies
-        working-directory: frontend-astro
-        run: npm ci --legacy-peer-deps
+        working-directory: frontend/web
+        run: npm ci
 
       - name: Build frontend
-        working-directory: frontend-astro
+        working-directory: frontend/web
         run: npm run build
 
   # ============================================================================
@@ -269,10 +269,10 @@ jobs:
         with:
           node-version: "22"
           cache: "npm"
-          cache-dependency-path: frontend-astro/package-lock.json
+          cache-dependency-path: frontend/web/package-lock.json
 
       - name: Audit frontend dependencies
-        working-directory: frontend-astro
+        working-directory: frontend/web
         run: npm audit --production || true
 
   # ============================================================================

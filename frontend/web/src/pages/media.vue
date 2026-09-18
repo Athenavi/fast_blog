@@ -46,6 +46,40 @@ const offlineCandidates = computed(() =>
     })),
 )
 
+/** 全屏预览（MediaPreview）：把当前列表映射成预览项，按下标切换 */
+const previewOpen = ref(false)
+const previewIndex = ref(0)
+const previewItems = computed(() =>
+  list.value.map((item) => ({
+    id: item.id,
+    url: item.file_url,
+    name: item.original_filename || item.filename,
+    mimeType: item.mime_type,
+    size: item.file_size,
+    createdAt: item.created_at,
+  })),
+)
+
+/** 音频走全屏播放器（AudioLayer：歌词 / 桌面歌词 / 迷你播放器） */
+const audioTrack = ref<{ id: number; name: string; url: string } | null>(null)
+
+function openPreview(item: MobileMediaItem): void {
+  // 音频交给专用播放器，其余类型用通用预览
+  if ((item.mime_type || '').startsWith('audio/') && item.file_url) {
+    audioTrack.value = {
+      id: item.id,
+      name: item.original_filename || item.filename || `音频 ${item.id}`,
+      url: item.file_url,
+    }
+    return
+  }
+
+  const index = list.value.findIndex((row) => row.id === item.id)
+  if (index < 0) return
+  previewIndex.value = index
+  previewOpen.value = true
+}
+
 // ---------------------------------------------------------------- 数据加载
 async function loadFolders(): Promise<void> {
   try {
@@ -378,7 +412,11 @@ onMounted(refresh)
                 <span v-if="isSelected((item as MobileMediaItem).id)" class="text-xs text-primary">✓</span>
               </button>
 
-              <div class="flex h-32 items-center justify-center bg-surface-soft">
+              <div
+                :title="'预览 ' + ((item as MobileMediaItem).original_filename || (item as MobileMediaItem).filename || '')"
+                class="flex h-32 cursor-zoom-in items-center justify-center bg-surface-soft"
+                @click="openPreview(item as MobileMediaItem)"
+              >
                 <img
                   v-if="isImage(item as MobileMediaItem) && (item as MobileMediaItem).file_url"
                   :alt="(item as MobileMediaItem).alt_text || (item as MobileMediaItem).original_filename || ''"
@@ -469,5 +507,16 @@ onMounted(refresh)
 
     <!-- 离线保存 -->
     <OfflineDownloadDialog :items="offlineCandidates" :open="offlineOpen" @close="offlineOpen = false"/>
+
+    <!-- 全屏预览（图片/视频/音频/PDF，支持左右切换与方向键） -->
+    <MediaPreview
+      v-model="previewIndex"
+      :items="previewItems"
+      :open="previewOpen"
+      @close="previewOpen = false"
+    />
+
+    <!-- 音频专用播放器（黑胶 + 逐字歌词 + 桌面歌词 + 迷你播放器） -->
+    <AudioLayer v-if="audioTrack" :track="audioTrack" @close="audioTrack = null"/>
   </div>
 </template>

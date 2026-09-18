@@ -51,41 +51,18 @@ repos:
         entry: mypy src/
         language: system
 
-  # ── Frontend: ESLint ──
-  - repo: local
-    hooks:
-      - id: eslint
-        name: ESLint (frontend)
-        entry: npx eslint --fix --max-warnings=0
-        language: system
-        files: \.(ts|tsx|js|jsx|astro)$
-        types: [ file ]
-        working_directory: frontend-astro
-        pass_filenames: true
+  # 说明：原 ESLint / Prettier hook 随 frontend-astro 下线一并移除——
+  # frontend/web（Nuxt 4）尚未引入对应配置，如需请另装 @nuxt/eslint 与 prettier。
 
-  # ── Frontend: Prettier ──
-  - repo: local
-    hooks:
-      - id: prettier
-        name: Prettier (frontend)
-        entry: npx prettier --write --ignore-unknown
-        language: system
-        files: \.(ts|tsx|js|jsx|json|css|html|astro|md)$
-        types: [ file ]
-        working_directory: frontend-astro
-        pass_filenames: true
-        exclude: (node_modules|dist|\.astro|package-lock\.json)
-
-  # ── Frontend: TypeScript type check ──
   - repo: local
     hooks:
       - id: tsc
         name: TypeScript Check (frontend)
-        entry: npx astro check
+        entry: npm run type-check
         language: system
-        files: \.(ts|tsx)$
+        files: \.(ts|vue)$
         types: [ file ]
-        working_directory: frontend-astro
+        working_directory: frontend/web
         pass_filenames: false
         stages: [ pre-push ]
 

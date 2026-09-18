@@ -27,7 +27,7 @@ class CodeSplittingOptimizer:
         Args:
             build_dir: 构建输出目录
         """
-        self.build_dir = build_dir or "frontend-astro/dist"
+        self.build_dir = build_dir or "frontend/web/.output/public"
         self.bundle_analysis: Dict = {}
         self.split_recommendations: List[Dict] = []
 

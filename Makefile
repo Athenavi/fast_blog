@@ -16,7 +16,7 @@ help: ## Show this help message
 
 install: ## Install all dependencies (backend + frontend)
 	pip install -r requirements.txt
-	cd frontend-astro && npm install
+	cd frontend/web && npm install
 	@echo "✅ Dependencies installed successfully"
 
 install-backend: ## Install backend dependencies only
@@ -24,7 +24,7 @@ install-backend: ## Install backend dependencies only
 	@echo "✅ Backend dependencies installed"
 
 install-frontend: ## Install frontend dependencies only
-	cd frontend-astro && npm install
+	cd frontend/web && npm install
 	@echo "✅ Frontend dependencies installed"
 
 setup: ## Initial project setup (copy env, install deps)
@@ -40,14 +40,14 @@ dev: ## Start development server (backend)
 	python main.py --backend fastapi --env dev
 
 dev-frontend: ## Start frontend development server
-	cd frontend-astro && npm run dev
+	cd frontend/web && npm run dev
 
 dev-all: ## Start both backend and frontend (requires two terminals)
 	@echo "Starting backend on port 9421..."
-	@echo "Starting frontend on port 4321..."
+	@echo "Starting frontend on port 5173..."
 	@echo "Press Ctrl+C to stop"
 	python main.py --backend fastapi --env dev &
-	cd frontend-astro && npm run dev
+	cd frontend/web && npm run dev
 
 # ============================================================================
 # Testing
@@ -66,8 +66,8 @@ test-coverage: ## Run tests with coverage report
 	python -m pytest tests/ --cov=src --cov-report=html --cov-report=term
 	@echo "📊 Coverage report generated in htmlcov/"
 
-test-frontend: ## Run frontend tests
-	cd frontend-astro && npm test
+test-frontend: ## Run frontend type-check (frontend/web)
+	cd frontend/web && npm run type-check
 
 # ============================================================================
 # Code Quality
@@ -183,7 +183,7 @@ pre-commit-update: ## Update pre-commit hooks
 # ============================================================================
 
 build: ## Build production assets
-	cd frontend-astro && npm run build
+	cd frontend/web && npm run build
 	@echo "✅ Production assets built"
 
 build-release: ## Build release package

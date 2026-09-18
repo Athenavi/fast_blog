@@ -32,7 +32,7 @@ const emit = defineEmits<{ (e: 'change', page: number): void }>()
     </div>
 
     <div v-else-if="props.articles.length" class="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
-      <ArticleCard v-for="article in props.articles" :key="article.id" :article="article"/>
+      <ThemeArticleCard v-for="article in props.articles" :key="article.id" :article="article"/>
     </div>
 
     <EmptyState v-else :description="props.emptyDescription" :title="props.emptyTitle"/>

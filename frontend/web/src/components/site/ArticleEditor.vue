@@ -13,6 +13,9 @@ const emit = defineEmits<{ (e: 'saved', id: number): void }>()
 
 const isEdit = computed(() => props.articleId !== undefined)
 
+/** 正文字模式：富文本（Tiptap RichEditor）或源码（HTML / Markdown） */
+const contentMode = ref<'rich' | 'source'>('rich')
+
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
@@ -226,8 +229,30 @@ onMounted(async () => {
       </div>
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-fg">正文</label>
+        <div class="mb-1.5 flex items-center justify-between">
+          <label class="block text-sm font-medium text-fg">正文</label>
+          <div class="flex items-center gap-1 rounded-control bg-surface-soft p-0.5 text-xs">
+            <button
+              :class="contentMode === 'rich' ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted'"
+              class="rounded-control px-2 py-1 transition-colors"
+              type="button"
+              @click="contentMode = 'rich'"
+            >富文本
+            </button>
+            <button
+              :class="contentMode === 'source' ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted'"
+              class="rounded-control px-2 py-1 transition-colors"
+              type="button"
+              @click="contentMode = 'source'"
+            >源码
+            </button>
+          </div>
+        </div>
+
+        <!-- 富文本（Tiptap） / 源码（HTML、Markdown）两种模式共用同一个 form.content -->
+        <RichEditor v-if="contentMode === 'rich'" v-model="form.content" placeholder="开始写作…"/>
         <textarea
+          v-else
           v-model="form.content"
           class="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm leading-relaxed text-fg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           placeholder="支持 HTML / Markdown 源码"

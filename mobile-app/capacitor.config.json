@@ -1,7 +1,7 @@
 {
   "appId": "com.fastblog.app",
   "appName": "FastBlog",
-  "webDir": "../frontend-astro/dist",
+  "webDir": "../frontend/web/.output/public",
   "server": {
     "androidScheme": "https",
     "iosScheme": "https"

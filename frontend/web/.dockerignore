@@ -1,0 +1,21 @@
+# 构建上下文瘦身：只保留源码与依赖清单
+node_modules
+.nuxt
+.output
+.nitro
+.cache
+
+# 环境文件（.env.production 保留，构建需要）
+.env.development
+.env.local
+.env.*.local
+
+# 日志与编辑器
+*.log
+npm-debug.log*
+.vscode
+.idea
+
+# 版本控制
+.git
+.gitignore

@@ -63,7 +63,7 @@
     },
     "frontend_dev": {
       "command": ["npm", "run", "dev"],
-      "working_dir": "frontend-astro",
+      "working_dir": "frontend/web",
       "autostart": false,
       "autorestart": true,
       "restart_limit": 3,
@@ -74,10 +74,10 @@
       "stderr_logfile": "logs/frontend_dev.err.log",
       "environment": {
         "NODE_ENV": "development",
-        "PORT": "3000"
+        "VITE_PORT": "5173"
       },
       "health_check": {
-        "endpoint": "http://127.0.0.1:3000",
+        "endpoint": "http://127.0.0.1:5173",
         "interval": 30,
         "timeout": 5,
         "retries": 3

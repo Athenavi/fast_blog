@@ -64,6 +64,17 @@ yarn-error.log*
 .vite/
 cache/
 frontend/dist/
+
+# Nuxt（frontend/web）：构建产物与本地生成物
+frontend/web/.nuxt/
+frontend/web/.output/
+frontend/web/.nitro/
+frontend/web/.data/
+frontend/web/*.tsbuildinfo
+frontend/web/src/.plugin-pages/
+frontend/web/src/.plugin-registry.ts
+
+# Astro（frontend-astro）：目录待逐项核对后移除，忽略规则随之一并清理
 frontend-astro/dist/
 frontend-astro/.astro/
 frontend-astro/*.tsbuildinfo

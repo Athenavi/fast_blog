@@ -22,9 +22,9 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "✅ 依赖安装成功" -ForegroundColor Green
 Write-Host ""
 
-Write-Host "🔨 步骤 2: 构建 Astro Web 应用..." -ForegroundColor Yellow
-cd ..\frontend-astro
-npm run build
+Write-Host "🔨 步骤 2: 构建 Nuxt Web 应用（静态导出）..." -ForegroundColor Yellow
+cd ..\frontend\web
+npm run generate
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Web 构建失败！" -ForegroundColor Red

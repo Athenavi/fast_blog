@@ -242,14 +242,14 @@ class ConfigManager:
             ProcessConfig(
                 name="frontend_dev",
                 command=["npm", "run", "dev"],
-                working_dir="frontend-astro",
+                working_dir="frontend/web",
                 autostart=False,  # 仅开发环境启用
                 autorestart=True,
                 restart_limit=3,
                 restart_delay=5,
                 stdout_logfile="logs/frontend_dev.log",
                 stderr_logfile="logs/frontend_dev.err.log",
-                environment={"NODE_ENV": "development", "PORT": "3000"}
+                environment={"NODE_ENV": "development", "VITE_PORT": "5173"}
             )
         ]
 

@@ -1,20 +1,20 @@
 # FastBlog Capacitor 混合应用开发指南
 
-将 Astro PWA 应用打包为 iOS/Android 原生应用，复用 100% 的 Web 代码。
+将 FastBlog Nuxt PWA 应用打包为 iOS/Android 原生应用，复用 100% 的 Web 代码。
 
 ## 快速开始
 
 ### 前置要求
 
 - Node.js 16+
-- FastBlog Astro 项目已完成 PWA 配置
+- FastBlog Nuxt 前端已完成 PWA 配置
 
 ### 初始化
 
 ```bash
 cd mobile-app
 npm install @capacitor/core @capacitor/cli
-npx cap init FastBlog com.fastblog.app --web-dir=../frontend-astro/dist
+npx cap init FastBlog com.fastblog.app --web-dir=../frontend/web/.output/public
 npm install @capacitor/android @capacitor/ios  # iOS 需要 macOS
 npx cap add android
 npx cap add ios
@@ -23,7 +23,7 @@ npx cap add ios
 ### 构建 + 同步
 
 ```bash
-cd frontend-astro && npm run build
+cd frontend/web && npm run generate
 cd ../mobile-app && npx cap sync
 ```
 
@@ -56,7 +56,7 @@ import {CapacitorConfig} from '@capacitor/cli';
 const config: CapacitorConfig = {
     appId: 'com.fastblog.app',
     appName: 'FastBlog',
-    webDir: '../frontend-astro/dist',
+    webDir: '../frontend/web/.output/public',
     server: {cleartext: false},
     plugins: {
         SplashScreen: {launchShowDuration: 2000, backgroundColor: '#3b82f6'},

@@ -83,20 +83,6 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
-    build: {
-      rollupOptions: {
-        output: {
-          // Vite 8（rolldown）要求 manualChunks 为函数；Element Plus 体积较大，单独分块
-          manualChunks(id: string) {
-            if (id.includes('element-plus') || id.includes('@element-plus/icons-vue')) {
-              return 'vendor-element'
-            }
-            if (id.includes('echarts')) return 'vendor-echarts'
-            return undefined
-          },
-        },
-      },
-    },
   },
 
   devServer: {
@@ -123,6 +109,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '',
+      // RUM 上报端点；留空表示只本地采集（后端 v3 暂无该端点）
+      rumEndpoint: process.env.NUXT_PUBLIC_RUM_ENDPOINT || '',
     },
   },
 

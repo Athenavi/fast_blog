@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 /** 前台布局：顶部导航 + 正文区 + 页脚 */
 const site = await useSiteInfo()
+// 主题槽位（component_slots）：决定文章卡片等组件使用哪个变体
+await initThemeSlots()
 </script>
 
 <template>

@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 """
 FastBlog 发布构建脚本
-支持 Astro 前端，自动从 Git 提交生成发布说明（含多行 body）
-精简版 —— 适配 frontend-astro
+支持 Nuxt 前端，自动从 Git 提交生成发布说明（含多行 body）
+精简版 —— 适配 frontend/web
 """
 
 import argparse
@@ -72,11 +72,11 @@ def get_backend_versions() -> List[str]:
 
 
 def get_frontend_versions() -> List[str]:
-    """前端 Astro 依赖版本"""
+    """前端 Nuxt 依赖版本"""
     versions = []
-    pkg_path = project_root / "frontend-astro" / "package.json"
+    pkg_path = project_root / "frontend" / "web" / "package.json"
     if not pkg_path.exists():
-        return ["- 无法读取 frontend-astro/package.json"]
+        return ["- 无法读取 frontend/web/package.json"]
     try:
         data = json.loads(pkg_path.read_text(encoding="utf-8"))
         deps = data.get("dependencies", {})
@@ -84,13 +84,13 @@ def get_frontend_versions() -> List[str]:
         all_deps = {**deps, **dev_deps}
 
         # 核心框架
-        for pkg in ["astro", "react", "react-dom", "@astrojs/react"]:
+        for pkg in ["nuxt", "vue", "@nuxt/image", "@vite-pwa/nuxt"]:
             ver = all_deps.get(pkg)
             if ver:
                 versions.append(f"- {pkg}: {ver}")
 
         # 样式/工具
-        for pkg in ["tailwindcss", "postcss", "autoprefixer", "typescript"]:
+        for pkg in ["tailwindcss", "element-plus", "@nuxt/scripts", "typescript"]:
             ver = all_deps.get(pkg)
             if ver:
                 versions.append(f"- {pkg}: {ver}")
@@ -157,10 +157,10 @@ class ReleaseBuilder:
         return files
 
     def build_frontend(self) -> List[Path]:
-        print("构建前端 (Astro)...")
-        frontend_dir = self.project_root / "frontend-astro"
+        print("构建前端 (Nuxt)...")
+        frontend_dir = self.project_root / "frontend" / "web"
         if not frontend_dir.exists():
-            print("WARNING: frontend-astro 目录不存在，跳过前端构建")
+            print("WARNING: frontend/web 目录不存在，跳过前端构建")
             return []
 
         try:
@@ -176,20 +176,20 @@ class ReleaseBuilder:
             print("前端构建完成")
 
             files = []
-            dist_src = frontend_dir / "dist"
+            dist_src = frontend_dir / ".output"
             if dist_src.exists():
-                dst_dist = self.release_dir / "frontend-astro" / "dist"
+                dst_dist = self.release_dir / "frontend" / ".output"
                 files.extend(self._copy_tree_collecting(dist_src, dst_dist))
 
             # 复制配置文件
             config_files = [
-                "package.json", "astro.config.mjs", "tsconfig.json",
-                "tailwind.config.mjs", "postcss.config.mjs", ".env_example"
+                "package.json", "package-lock.json", "nuxt.config.ts",
+                "tsconfig.json", ".env.production"
             ]
             for fname in config_files:
                 src = frontend_dir / fname
                 if src.exists():
-                    dst = self.release_dir / "frontend-astro" / fname
+                    dst = self.release_dir / "frontend" / fname
                     files.extend(self._copy_file_collecting(src, dst))
             print(f"已收集 {len(files)} 个前端文件")
             return files
@@ -431,7 +431,7 @@ class UpdatePackageBuilder:
         include_dirs = [
             "src", "apps", "django_blog", "shared", "config",
             "process_supervisor", "updater", "update_server",
-            "scripts", "frontend-astro"  # 添加 Astro 源码目录
+            "scripts", "frontend"  # 前端源码目录（Nuxt）
         ]
         include_root = ["main.py", "requirements.txt", "version.txt", ".env_example", "README.md"]
         files = []

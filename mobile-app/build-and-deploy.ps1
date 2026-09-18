@@ -5,17 +5,17 @@ Write-Host "🔧 FastBlog Mobile App 构建脚本" -ForegroundColor Cyan
 Write-Host "================================" -ForegroundColor Cyan
 Write-Host ""
 
-# 步骤 1: 构建 Astro 前端
-Write-Host "📦 步骤 1: 构建 Astro 前端..." -ForegroundColor Yellow
-cd ..\frontend-astro
-npm run build
+# 步骤 1: 构建 Nuxt 前端（静态导出）
+Write-Host "📦 步骤 1: 构建 Nuxt 前端（nuxt generate）..." -ForegroundColor Yellow
+cd ..\frontend\web
+npm run generate
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Astro 构建失败！" -ForegroundColor Red
+    Write-Host "❌ 前端构建失败！" -ForegroundColor Red
     exit 1
 }
 
-Write-Host "✅ Astro 构建成功" -ForegroundColor Green
+Write-Host "✅ 前端构建成功" -ForegroundColor Green
 Write-Host ""
 
 # 步骤 2: 同步到 Capacitor
