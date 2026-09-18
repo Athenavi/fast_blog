@@ -98,6 +98,14 @@ SETTING_EDIT = "module_system:setting:edit"
 LOG_VIEW = "module_system:log:view"
 LOG_EDIT = "module_system:log:edit"
 
+CACHE_VIEW = "module_system:cache:view"
+CACHE_CLEAR = "module_system:cache:clear"
+CACHE_WARMUP = "module_system:cache:warmup"
+CACHE_WRITE = "module_system:cache:write"
+
+MONITOR_VIEW = "module_system:monitor:view"
+MONITOR_KICK = "module_system:monitor:kick"
+
 # ============================================================ analytics 域
 DASHBOARD_VIEW = "module_analytics:dashboard:view"
 SEO_VIEW = "module_analytics:seo:view"
@@ -233,6 +241,12 @@ CODE_LABELS: dict[str, str] = {
     SETTING_EDIT: "编辑系统设置",
     LOG_VIEW: "查看操作日志",
     LOG_EDIT: "清理操作日志",
+    CACHE_VIEW: "查看缓存",
+    CACHE_CLEAR: "清空缓存",
+    CACHE_WARMUP: "预热缓存",
+    CACHE_WRITE: "读写缓存键",
+    MONITOR_VIEW: "查看系统状态",
+    MONITOR_KICK: "强制下线",
     # ---- analytics ----
     DASHBOARD_VIEW: "查看仪表盘",
     SEO_VIEW: "查看 SEO",

@@ -55,6 +55,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     icon: 'Setting',
     order: 3,
     children: [
+      {name: 'SystemHub', path: '/system/hub', title: '系统总览', permission: 'module_system:monitor:view'},
       {name: 'UserList', path: '/system/user', title: '用户', permission: 'module_system:user:view'},
       {name: 'RoleList', path: '/system/role', title: '角色', permission: 'module_system:role:view'},
       {name: 'MenuList', path: '/system/menu', title: '菜单', permission: 'module_system:navmenu:view'},
@@ -66,6 +67,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       },
       {name: 'SettingList', path: '/system/setting', title: '系统设置', permission: 'module_system:setting:view'},
       {name: 'LogList', path: '/system/log', title: '日志', permission: 'module_system:log:view'},
+      {name: 'CacheManage', path: '/system/cache', title: '缓存', permission: 'module_system:cache:view'},
     ],
   },
   {

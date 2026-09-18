@@ -42,10 +42,12 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     "/system": (
         "admin_menu",
         "auth",
+        "cache",
         "group",
         "health",
         "log",
         "menu",
+        "monitor",
         "permission",
         "role",
         "setting",

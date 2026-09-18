@@ -6,7 +6,7 @@ await initThemeSlots()
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-canvas">
+  <div class="flex min-h-screen flex-col bg-canvas pb-16 md:pb-0">
     <SiteHeader :site-name="site.site_name"/>
     <main class="flex-1">
       <slot/>
@@ -15,5 +15,8 @@ await initThemeSlots()
 
     <!-- 可安装时提示装到桌面（浏览器未提供安装能力时不显示） -->
     <PWAInstallPrompt/>
+
+    <!-- 移动端底部导航：首页 / 关于 / 我的（仅 <md 显示，见组件注释） -->
+    <MobileBottomNav/>
   </div>
 </template>

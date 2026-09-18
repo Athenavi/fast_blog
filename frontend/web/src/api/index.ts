@@ -45,6 +45,26 @@ export type {SettingItem, SettingUpsert} from './modules/setting'
 export {logApi} from './modules/log'
 export type {AuditLogItem, AuditLogQuery} from './modules/log'
 
+export {cacheApi} from './modules/cache'
+export type {
+  CacheLevelStats,
+  CacheStats,
+  CacheWarmupItem,
+  MultiLevelCacheStats,
+} from './modules/cache'
+
+export {monitorApi} from './modules/monitor'
+export type {
+  CpuInfo,
+  DiskInfo,
+  MemoryInfo,
+  MonitorOverview,
+  OnlineSession,
+  OnlineStats,
+  ProcessInfo,
+  ServerInfo,
+} from './modules/monitor'
+
 // ---------------------------------------------------------------- content
 export {articleApi} from './modules/article'
 export type {
