@@ -79,8 +79,10 @@ export default defineNuxtConfig({
     '/extension/**': {ssr: false},
     '/ops/**': {ssr: false},
     '/403': {ssr: false},
-    // 用户中心依赖登录态（存于本地存储），关闭 SSR
+    // 用户中心与投稿依赖登录态（存于本地存储），关闭 SSR
     '/profile': {ssr: false},
+    '/media': {ssr: false},
+    '/my/**': {ssr: false},
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},

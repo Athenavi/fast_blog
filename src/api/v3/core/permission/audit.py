@@ -47,6 +47,17 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     ("POST", "/api/v3/mobile/media/upload/image"): "移动端上传图片（仅认证，配额在业务层）",
     ("POST", "/api/v3/mobile/media/upload/article-cover"): "移动端上传封面（仅认证）",
     ("PUT", "/api/v3/mobile/user/profile"): "修改本人资料（仅认证）",
+    # ---- 前台媒体库：全部只操作"本人"数据（service 层做归属校验，越权返回 404）----
+    ("POST", "/api/v3/mobile/media/folders"): "新建本人的媒体文件夹",
+    ("PUT", "/api/v3/mobile/media/folders/{folder_id}"): "重命名本人的媒体文件夹",
+    ("DELETE", "/api/v3/mobile/media/folders/{folder_id}"): "删除本人的媒体文件夹",
+    ("PUT", "/api/v3/mobile/media/{media_id}"): "更新本人的媒体信息",
+    ("DELETE", "/api/v3/mobile/media/{media_id}"): "删除本人的媒体",
+    ("POST", "/api/v3/mobile/media/batch/delete"): "批量删除本人的媒体",
+    # ---- 前台投稿：只能操作"本人"文章，且服务端强制为草稿（发布需后台权限）----
+    ("POST", "/api/v3/mobile/article"): "投稿创建草稿（仅认证；状态等管理字段由服务端强制）",
+    ("PUT", "/api/v3/mobile/article/{article_id}"): "编辑本人的文章（仅认证；改状态的企图被忽略）",
+    ("DELETE", "/api/v3/mobile/article/{article_id}"): "删除本人的文章（仅认证）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

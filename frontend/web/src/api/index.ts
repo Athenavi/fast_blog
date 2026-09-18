@@ -106,7 +106,16 @@ export type {NotificationItem} from './modules/notification'
 // ---------------------------------------------------------------- mobile（前台用户端）
 export {mobileApi} from './modules/mobile'
 export type {
+  MobileArticleDetail,
+  MobileArticleItem,
+  MobileArticlePayload,
+  MobileArticleQuery,
   MobileLoginPayload,
+  MobileMediaFolder,
+  MobileMediaItem,
+  MobileMediaQuery,
+  MobileMediaStats,
+  MobileMediaUpdate,
   MobileProfile,
   MobileProfileUpdate,
   MobileTokenData,
