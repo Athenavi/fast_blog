@@ -233,7 +233,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           }}
         </p>
         <a v-if="current.file_url" :href="current.file_url" class="text-sm text-blue-400 hover:underline" download>
-          下载文件
+          {{ $t('admin.shared.AdminMediaPreview.downloadFile') }}
         </a>
       </div>
 

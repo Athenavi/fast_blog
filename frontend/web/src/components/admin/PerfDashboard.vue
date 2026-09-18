@@ -199,7 +199,7 @@ onBeforeUnmount(() => {
       </div>
 
       <p v-else class="perf-panel__label perf-panel__label--muted">
-        尚无慢资源记录；指标随浏览逐步累积。
+        {{ $t('admin.shared.PerfDashboard.noSlowResources') }}
       </p>
     </div>
   </section>

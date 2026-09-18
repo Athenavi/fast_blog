@@ -6,7 +6,9 @@
  */
 
 import {mobileApi, type MobileArticleItem} from '@/api'
-import {articleStatusText, formatDateTime} from '@/utils/format'
+import {articleStatusKey, formatDateTime} from '@/utils/format'
+
+const {t} = useI18n()
 
 definePageMeta({layout: 'default', middleware: 'auth', title: '我的文章'})
 
@@ -106,7 +108,7 @@ onMounted(loadList)
           <p class="truncate font-medium text-fg">{{ item.title }}</p>
           <div class="mt-1 flex flex-wrap items-center gap-3 text-xs text-fg-subtle">
             <Badge :variant="item.status === 1 ? 'success' : 'warning'" class="text-[11px]">
-              {{ articleStatusText(item.status) }}
+              {{ t(articleStatusKey(item.status)) }}
             </Badge>
             <span>更新于 {{ formatDateTime(item.updated_at) }}</span>
             <span v-if="item.views">{{ item.views }} 次浏览</span>

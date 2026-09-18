@@ -12,7 +12,7 @@ import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {articleApi, type ArticleItem, type ArticlePayload, categoryApi, type CategoryItem,} from '@/api'
-import {articleStatusTag, articleStatusText, formatDateTime} from '@/utils/format'
+import {articleStatusKey, articleStatusTag, formatDateTime} from '@/utils/format'
 
 definePageMeta({
   layout: 'admin',
@@ -279,7 +279,7 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column :label="$t('admin.common.status')" width="90">
           <template #default="{row}">
-            <el-tag :type="articleStatusTag(row.status)" size="small">{{ articleStatusText(row.status) }}</el-tag>
+            <el-tag :type="articleStatusTag(row.status)" size="small">{{ t(articleStatusKey(row.status)) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column :label="$t('article.views')" prop="views" width="80"/>

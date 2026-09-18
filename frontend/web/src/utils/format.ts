@@ -29,12 +29,19 @@ export function formatFileSize(bytes?: number | null): string {
 
 type TagType = 'success' | 'info' | 'warning' | 'danger' | 'primary'
 
-/** 文章状态：-1 删除 / 0 草稿 / 1 已发布（与后端 articles.status 一致） */
-export function articleStatusText(status?: number | null): string {
-  if (status === 1) return '已发布'
-  if (status === 0) return '草稿'
-  if (status === -1) return '已删除'
-  return '未知'
+/** 文章状态：-1 删除 / 0 草稿 / 1 已发布（与后端 articles.status 一致）。
+ * 纯 util 不硬编码中文，只返回 i18n key，由调用方用 t() 渲染。 */
+export type ArticleStatusKey =
+  'common.published'
+  | 'common.draft'
+  | 'admin.dashboard.deleted'
+  | 'admin.dashboard.unknown'
+
+export function articleStatusKey(status?: number | null): ArticleStatusKey {
+  if (status === 1) return 'common.published'
+  if (status === 0) return 'common.draft'
+  if (status === -1) return 'admin.dashboard.deleted'
+  return 'admin.dashboard.unknown'
 }
 
 export function articleStatusTag(status?: number | null): TagType {
@@ -45,16 +52,12 @@ export function articleStatusTag(status?: number | null): TagType {
 }
 
 /** 页面状态：0 草稿 / 1 已发布 */
-export function pageStatusText(status?: number | null): string {
-  return status === 1 ? '已发布' : '草稿'
+export function pageStatusKey(status?: number | null): 'common.published' | 'common.draft' {
+  return status === 1 ? 'common.published' : 'common.draft'
 }
 
 export function pageStatusTag(status?: number | null): TagType {
   return status === 1 ? 'success' : 'warning'
-}
-
-export function boolText(value?: boolean | null, trueText = '是', falseText = '否'): string {
-  return value ? trueText : falseText
 }
 
 /** 截断长文本，避免表格被撑开 */

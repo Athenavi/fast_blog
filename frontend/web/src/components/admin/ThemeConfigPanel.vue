@@ -255,11 +255,11 @@ onMounted(load)
       <div class="flex justify-end gap-3">
         <el-button @click="reset">
           <Icon class="mr-1 h-4 w-4" name="rotate-ccw"/>
-          重置
+          {{ $t('admin.common.reset') }}
         </el-button>
         <el-button :loading="saving" type="primary" @click="save">
           <Icon class="mr-1 h-4 w-4" name="save"/>
-          保存配置
+          {{ $t('admin.shared.ThemeConfigPanel.saveConfig') }}
         </el-button>
       </div>
     </template>

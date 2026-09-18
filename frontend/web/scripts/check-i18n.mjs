@@ -116,8 +116,8 @@ if (missing.length) {
     for (const key of missing) console.log(`  - ${key}`)
 }
 
-if (missing.length || missingMenus.length || malformed.length) {
+if (missing.length || missingMenus.length || malformed.length || asymmetric.length) {
     process.exit(1)
 }
 
-console.log('\n✅ 所有引用的 key 都存在（含菜单动态 key），且无单花括号问题')
+console.log('\n✅ 所有引用的 key 都存在（含菜单动态 key），两份 locale 对称，且无单花括号问题')
