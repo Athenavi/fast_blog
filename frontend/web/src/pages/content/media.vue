@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 媒体库（上传 / 列表 / 编辑元信息 / 删除）
  *
@@ -15,15 +16,15 @@ import {formatDateTime, formatFileSize, splitTags} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '媒体库',
+  title: t('admin.content.media.mediaLibrary'),
   permission: 'module_content:media:view',
 })
 
 const MIME_OPTIONS = [
-  {label: '图片', value: 'image/'},
-  {label: '视频', value: 'video/'},
-  {label: '音频', value: 'audio/'},
-  {label: '文档', value: 'application/'},
+  {label: t('admin.content.media.image'), value: 'image/'},
+  {label: t('admin.content.media.video'), value: 'video/'},
+  {label: t('admin.content.media.audio'), value: 'audio/'},
+  {label: t('admin.content.media.document'), value: 'application/'},
 ]
 
 const loading = ref(false)
@@ -95,7 +96,7 @@ async function onFilesPicked(event: Event): Promise<void> {
   progress.value = `正在上传 ${files.length} 个文件…`
   try {
     await mediaApi.upload(files)
-    ElMessage.success('上传完成')
+    ElMessage.success(t('admin.content.media.uploadComplete'))
     await loadList()
   } finally {
     uploading.value = false
@@ -132,7 +133,7 @@ async function submitEdit(): Promise<void> {
         .map((item) => item.trim())
         .filter(Boolean),
     })
-    ElMessage.success('已保存')
+    ElMessage.success(t('admin.content.media.saved'))
     dialogVisible.value = false
     await loadList()
   } finally {
@@ -142,24 +143,24 @@ async function submitEdit(): Promise<void> {
 
 // ---------------------------------------------------------------- 删除
 async function removeRow(row: MediaItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除「${row.original_filename || row.filename}」吗？`, '提示', {
+  await ElMessageBox.confirm(`确定删除「${row.original_filename || row.filename}」吗？`, t('admin.common.notice'), {
     type: 'warning',
   })
   await mediaApi.remove(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.content.media.deleted'))
   await loadList()
 }
 
 async function removeSelected(): Promise<void> {
   if (!selection.value.length) {
-    ElMessage.warning('请先选择要删除的文件')
+    ElMessage.warning(t('admin.content.media.selectFilesToDeleteFirst'))
     return
   }
-  await ElMessageBox.confirm(`确定删除选中的 ${selection.value.length} 个文件吗？`, '提示', {
+  await ElMessageBox.confirm(`确定删除选中的 ${selection.value.length} 个文件吗？`, t('admin.common.notice'), {
     type: 'warning',
   })
   await mediaApi.batchDelete(selection.value.map((item) => item.id))
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.content.media.deleted'))
   await loadList()
 }
 
@@ -167,8 +168,8 @@ function copyUrl(row: MediaItem): void {
   if (!row.file_url) return
   navigator.clipboard
     ?.writeText(row.file_url)
-    .then(() => ElMessage.success('链接已复制'))
-    .catch(() => ElMessage.warning('复制失败，请手动复制'))
+    .then(() => ElMessage.success(t('admin.content.media.linkCopied')))
+    .catch(() => ElMessage.warning(t('admin.content.media.copyFailedCopyItManually')))
 }
 
 onMounted(loadList)
@@ -178,17 +179,18 @@ onMounted(loadList)
   <div class="page-container">
     <el-card shadow="never">
       <el-form :inline="true" @submit.prevent>
-        <el-form-item label="类型">
-          <el-select v-model="query.mime_type" clearable placeholder="全部" style="width: 130px">
+        <el-form-item :label="$t('admin.cache.level')">
+          <el-select v-model="query.mime_type" :placeholder="$t('admin.common.all')" clearable style="width: 130px">
             <el-option v-for="item in MIME_OPTIONS" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="分类">
-          <el-input v-model="query.category" clearable placeholder="媒体分类" style="width: 160px"
+        <el-form-item :label="$t('article.category')">
+          <el-input v-model="query.category" :placeholder="$t('admin.content.media.mediaCategory')" clearable
+                    style="width: 160px"
                     @keyup.enter="onSearch"/>
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Refresh" type="primary" @click="onSearch">查询</el-button>
+          <el-button :icon="Refresh" type="primary" @click="onSearch">{{ $t('admin.common.search') }}</el-button>
         </el-form-item>
       </el-form>
 
@@ -216,13 +218,13 @@ onMounted(loadList)
 
       <el-table v-loading="loading" :data="list" row-key="id" @selection-change="onSelectionChange">
         <el-table-column type="selection" width="46"/>
-        <el-table-column label="预览" width="90">
+        <el-table-column :label="$t('admin.content.media.preview')" width="90">
           <template #default="{row}">
             <span
               class="preview-cell"
               role="button"
               tabindex="0"
-              title="点击预览"
+              :title="$t('admin.content.media.clickToPreview')"
               @click="openPreview(row)"
               @keyup.enter="openPreview(row)"
             >
@@ -231,33 +233,37 @@ onMounted(loadList)
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="文件名" min-width="220">
+        <el-table-column :label="$t('admin.content.media.filename')" min-width="220">
           <template #default="{row}">
             <span class="name">{{ row.original_filename || row.filename }}</span>
-            <el-button v-if="row.file_url" class="copy" link type="primary" @click="copyUrl(row)">复制链接</el-button>
+            <el-button v-if="row.file_url" class="copy" link type="primary" @click="copyUrl(row)">
+              {{ $t('admin.content.media.copyLink') }}
+            </el-button>
           </template>
         </el-table-column>
-        <el-table-column label="类型" width="120">
+        <el-table-column :label="$t('admin.cache.level')" width="120">
           <template #default="{row}">{{ row.mime_type || '-' }}</template>
         </el-table-column>
-        <el-table-column label="大小" width="100">
+        <el-table-column :label="$t('admin.content.media.size')" width="100">
           <template #default="{row}">{{ formatFileSize(row.file_size) }}</template>
         </el-table-column>
-        <el-table-column label="尺寸" width="110">
+        <el-table-column :label="$t('admin.content.media.dimensions')" width="110">
           <template #default="{row}">
             <span v-if="row.width && row.height">{{ row.width }}×{{ row.height }}</span>
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="公开" width="80">
+        <el-table-column :label="$t('admin.setting.publicLabel')" width="80">
           <template #default="{row}">
-            <el-tag :type="row.is_public ? 'success' : 'info'" size="small">{{ row.is_public ? '是' : '否' }}</el-tag>
+            <el-tag :type="row.is_public ? 'success' : 'info'" size="small">
+              {{ row.is_public ? t('admin.common.yes') : t('admin.common.no') }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="上传时间" width="170">
+        <el-table-column :label="$t('admin.content.media.uploadTime')" width="170">
           <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="150">
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
           <template #default="{row}">
             <el-button v-auth="'module_content:media:upload'" :icon="Edit" link type="primary" @click="openEdit(row)">
               编辑
@@ -281,25 +287,27 @@ onMounted(loadList)
       />
     </el-card>
 
-    <el-dialog v-model="dialogVisible" destroy-on-close title="编辑媒体信息" width="560px">
+    <el-dialog v-model="dialogVisible" :title="$t('admin.content.media.editMediaInformation')" destroy-on-close
+               width="560px">
       <el-form :model="form" label-width="90px">
-        <el-form-item label="描述">
+        <el-form-item :label="$t('admin.common.description')">
           <el-input v-model="form.description" maxlength="255" show-word-limit/>
         </el-form-item>
-        <el-form-item label="替代文本">
-          <el-input v-model="form.alt_text" maxlength="255" placeholder="用于无障碍与 SEO" show-word-limit/>
+        <el-form-item :label="$t('admin.content.media.altText')">
+          <el-input v-model="form.alt_text" :placeholder="$t('admin.content.media.forAccessibilityAndSeo')"
+                    maxlength="255" show-word-limit/>
         </el-form-item>
-        <el-form-item label="分类">
+        <el-form-item :label="$t('article.category')">
           <el-input v-model="form.category" maxlength="100"/>
         </el-form-item>
-        <el-form-item label="标签">
-          <el-input v-model="form.tags" placeholder="用英文逗号分隔"/>
+        <el-form-item :label="$t('article.tags')">
+          <el-input v-model="form.tags" :placeholder="$t('admin.content.media.separateWithCommas')"/>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitEdit">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitEdit">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
 

@@ -53,7 +53,7 @@ const asyncComponent = computed(() => {
 <template>
   <div class="plugin-page-host">
     <el-breadcrumb separator="/">
-      <el-breadcrumb-item>插件</el-breadcrumb-item>
+      <el-breadcrumb-item>{{ $t('admin.admin.plugin-pages.[slug].plugins') }}</el-breadcrumb-item>
       <el-breadcrumb-item>{{ title }}</el-breadcrumb-item>
     </el-breadcrumb>
 
@@ -73,7 +73,7 @@ const asyncComponent = computed(() => {
         </p>
       </el-empty>
 
-      <el-empty v-else description="未找到该插件页面"/>
+      <el-empty v-else :description="$t('admin.admin.plugin-pages.[slug].pluginPageNotFound')"/>
     </div>
   </div>
 </template>

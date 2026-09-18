@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 搜索分析
  *
@@ -13,14 +14,14 @@ import {searchAnalyticsApi} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '搜索分析',
+  title: t('admin.analytics.search.searchAnalytics'),
   permission: 'module_analytics:search:view',
 })
 
 const DAY_OPTIONS = [
-  {label: '近 7 天', value: 7},
-  {label: '近 30 天', value: 30},
-  {label: '近 90 天', value: 90},
+  {label: t('admin.analytics.search.last7Days'), value: 7},
+  {label: t('admin.analytics.search.last30Days'), value: 30},
+  {label: t('admin.analytics.search.last90Days'), value: 90},
 ]
 
 const days = ref(30)
@@ -89,29 +90,31 @@ onMounted(loadAll)
       <el-row v-loading="loading" :gutter="12" class="stats">
         <el-col :span="6">
           <el-card class="stat-card" shadow="never">
-            <el-statistic :value="summary?.total_searches ?? 0" title="搜索总次数"/>
+            <el-statistic :title="$t('admin.analytics.search.totalSearches')" :value="summary?.total_searches ?? 0"/>
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card class="stat-card" shadow="never">
-            <el-statistic :value="summary?.unique_keywords ?? 0" title="不同关键词"/>
+            <el-statistic :title="$t('admin.analytics.search.uniqueKeywords')" :value="summary?.unique_keywords ?? 0"/>
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card class="stat-card" shadow="never">
-            <el-statistic :value="summary?.zero_result_searches ?? 0" title="无结果搜索"/>
+            <el-statistic :title="$t('admin.analytics.search.searchesWithNoResults')"
+                          :value="summary?.zero_result_searches ?? 0"/>
           </el-card>
         </el-col>
         <el-col :span="6">
           <el-card class="stat-card" shadow="never">
-            <el-statistic :value="rateText(summary?.zero_result_rate ?? null)" title="无结果占比"/>
+            <el-statistic :title="$t('admin.analytics.search.noResultRate')"
+                          :value="rateText(summary?.zero_result_rate ?? null)"/>
           </el-card>
         </el-col>
       </el-row>
 
       <!-- 趋势：用 CSS 条形展示，避免为一张图引入图表库 -->
       <div class="section">
-        <h4 class="sub-title">搜索趋势</h4>
+        <h4 class="sub-title">{{ $t('admin.analytics.search.searchTrend') }}</h4>
         <div v-if="trend?.points.length" class="trend">
           <div v-for="point in trend.points" :key="point.day" :title="`${point.day}：${point.searches} 次`"
                class="trend__col">
@@ -121,17 +124,17 @@ onMounted(loadAll)
             <span class="trend__label">{{ point.day.slice(5) }}</span>
           </div>
         </div>
-        <el-empty v-else description="该时间段没有搜索记录"/>
+        <el-empty v-else :description="$t('admin.analytics.search.noSearchesInThisPeriod')"/>
       </div>
 
       <el-row :gutter="16" class="section">
         <el-col :span="12">
-          <h4 class="sub-title">热门关键词</h4>
+          <h4 class="sub-title">{{ $t('admin.analytics.search.popularKeywords') }}</h4>
           <el-table :data="popular" max-height="420" row-key="keyword">
             <el-table-column label="#" type="index" width="60"/>
-            <el-table-column label="关键词" min-width="140" prop="keyword"/>
-            <el-table-column label="次数" prop="count" sortable width="90"/>
-            <el-table-column label="平均结果数" width="120">
+            <el-table-column :label="$t('admin.analytics.search.keyword')" min-width="140" prop="keyword"/>
+            <el-table-column :label="$t('admin.analytics.search.count')" prop="count" sortable width="90"/>
+            <el-table-column :label="$t('admin.analytics.search.averageResults')" width="120">
               <template #default="{row}">{{ Number(row.avg_results ?? 0).toFixed(1) }}</template>
             </el-table-column>
           </el-table>
@@ -140,12 +143,12 @@ onMounted(loadAll)
         <el-col :span="12">
           <h4 class="sub-title">
             无结果关键词
-            <span class="sub-hint">——读者想找但站内没有的内容</span>
+            <span class="sub-hint">{{ $t('admin.analytics.search.whatReadersSearchedForButCouldNotFind') }}</span>
           </h4>
           <el-table :data="zeroResult" max-height="420" row-key="keyword">
             <el-table-column label="#" type="index" width="60"/>
-            <el-table-column label="关键词" min-width="160" prop="keyword"/>
-            <el-table-column label="次数" prop="count" sortable width="90"/>
+            <el-table-column :label="$t('admin.analytics.search.keyword')" min-width="160" prop="keyword"/>
+            <el-table-column :label="$t('admin.analytics.search.count')" prop="count" sortable width="90"/>
           </el-table>
         </el-col>
       </el-row>

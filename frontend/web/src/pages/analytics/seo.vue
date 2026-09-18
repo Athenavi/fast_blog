@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * SEO 分析
  *
@@ -15,7 +16,7 @@ import {formatDateTime} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: 'SEO 分析',
+  title: t('admin.analytics.seo.seoAnalysis'),
   permission: 'module_analytics:seo:view',
 })
 
@@ -112,7 +113,7 @@ const analyzeResult = ref<{
 
 async function runAnalyze(): Promise<void> {
   if (!analyzeForm.title.trim() && !analyzeForm.content.trim()) {
-    ElMessage.warning('请填写标题或正文')
+    ElMessage.warning(t('admin.analytics.seo.enterATitleOrContent'))
     return
   }
   analyzeLoading.value = true
@@ -141,17 +142,19 @@ onMounted(async () => {
     <el-card shadow="never">
       <el-tabs v-model="activeTab">
         <!-- 综合报告 -->
-        <el-tab-pane label="综合报告" name="report">
+        <el-tab-pane :label="$t('admin.analytics.seo.overallReport')" name="report">
           <div v-loading="reportLoading">
             <el-row v-if="report" :gutter="12" class="stats">
               <el-col :span="6">
-                <el-statistic :value="report.total_articles" title="文章总数"/>
+                <el-statistic :title="$t('admin.analytics.seo.totalArticles')" :value="report.total_articles"/>
               </el-col>
               <el-col :span="6">
-                <el-statistic :value="Number(report.average_score.toFixed(1))" title="平均得分"/>
+                <el-statistic :title="$t('admin.analytics.seo.averageScore')"
+                              :value="Number(report.average_score.toFixed(1))"/>
               </el-col>
               <el-col :span="6">
-                <el-statistic :value="report.orphan_count" title="孤立文章（无入链）"/>
+                <el-statistic :title="$t('admin.analytics.seo.orphanArticlesNoInboundLinks')"
+                              :value="report.orphan_count"/>
               </el-col>
               <el-col :span="6">
                 <div class="generated">
@@ -162,7 +165,7 @@ onMounted(async () => {
 
             <el-row v-if="report" :gutter="12" class="mt-4">
               <el-col :span="10">
-                <h4 class="sub-title">评分分布</h4>
+                <h4 class="sub-title">{{ $t('admin.analytics.seo.scoreDistribution') }}</h4>
                 <div class="grade-list">
                   <div v-for="(count, grade) in report.grade_distribution" :key="grade" class="grade-row">
                     <el-tag :type="gradeTag(String(grade))" class="grade-tag" size="small">{{ grade }}</el-tag>
@@ -178,16 +181,16 @@ onMounted(async () => {
               </el-col>
 
               <el-col :span="14">
-                <h4 class="sub-title">最常见问题</h4>
+                <h4 class="sub-title">{{ $t('admin.analytics.seo.mostCommonIssues') }}</h4>
                 <el-table :data="report.common_suggestions" border size="small">
-                  <el-table-column label="建议" min-width="260" prop="suggestion"/>
-                  <el-table-column label="出现次数" prop="count" width="100"/>
+                  <el-table-column :label="$t('admin.analytics.seo.recommendation')" min-width="260" prop="suggestion"/>
+                  <el-table-column :label="$t('admin.analytics.seo.occurrences')" prop="count" width="100"/>
                 </el-table>
               </el-col>
             </el-row>
 
             <div v-if="report?.top_keywords.length" class="mt-4">
-              <h4 class="sub-title">高频关键词</h4>
+              <h4 class="sub-title">{{ $t('admin.analytics.seo.frequentKeywords') }}</h4>
               <div class="tags">
                 <el-tag v-for="item in report.top_keywords.slice(0, 30)" :key="item.keyword" class="tag" size="small">
                   {{ item.keyword }}<span class="tag-count">{{ item.count }}</span>
@@ -196,13 +199,13 @@ onMounted(async () => {
             </div>
 
             <div class="toolbar mt-4">
-              <el-button :icon="Refresh" @click="loadReport">刷新报告</el-button>
+              <el-button :icon="Refresh" @click="loadReport">{{ $t('admin.analytics.seo.refreshReport') }}</el-button>
             </div>
           </div>
         </el-tab-pane>
 
         <!-- 批量检查 -->
-        <el-tab-pane label="批量检查" name="bulk">
+        <el-tab-pane :label="$t('admin.analytics.seo.bulkCheck')" name="bulk">
           <div class="toolbar">
             <el-button :loading="bulkLoading" type="primary" @click="runBulk">
               检查最近 50 篇已发布文章
@@ -214,69 +217,72 @@ onMounted(async () => {
 
           <el-table v-if="bulk" v-loading="bulkLoading" :data="bulk.items" row-key="article_id">
             <el-table-column label="ID" prop="article_id" width="80"/>
-            <el-table-column label="标题" min-width="240" prop="title" show-overflow-tooltip/>
-            <el-table-column label="得分" width="110">
+            <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="240" prop="title"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.analytics.seo.score')" width="110">
               <template #default="{row}">
                 <span :style="{color: scoreColor(row.score), fontWeight: 600}">{{ row.score }}</span>
               </template>
             </el-table-column>
-            <el-table-column label="等级" width="80">
+            <el-table-column :label="$t('vip.level')" width="80">
               <template #default="{row}">
                 <el-tag :type="gradeTag(row.grade)" size="small">{{ row.grade || '-' }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="问题数" prop="suggestion_count" width="90"/>
-            <el-table-column label="主要问题" min-width="280">
+            <el-table-column :label="$t('admin.analytics.seo.issues')" prop="suggestion_count" width="90"/>
+            <el-table-column :label="$t('admin.analytics.seo.mainIssues')" min-width="280">
               <template #default="{row}">
                 <span class="suggestion">{{ (row.top_suggestions || []).join('；') || '-' }}</span>
               </template>
             </el-table-column>
           </el-table>
 
-          <el-empty v-else description="点击上方按钮开始批量检查"/>
+          <el-empty v-else :description="$t('admin.analytics.seo.clickTheButtonAboveToStartABulkCheck')"/>
         </el-tab-pane>
 
         <!-- 关键词 -->
-        <el-tab-pane label="关键词" name="keywords">
+        <el-tab-pane :label="$t('admin.analytics.seo.keyword')" name="keywords">
           <el-table :data="keywords" max-height="560" row-key="keyword">
             <el-table-column label="#" type="index" width="70"/>
-            <el-table-column label="关键词" min-width="200" prop="keyword"/>
-            <el-table-column label="出现次数" prop="count" sortable width="120"/>
+            <el-table-column :label="$t('admin.analytics.seo.keyword')" min-width="200" prop="keyword"/>
+            <el-table-column :label="$t('admin.analytics.seo.occurrences')" prop="count" sortable width="120"/>
           </el-table>
         </el-tab-pane>
 
         <!-- 孤立文章 -->
-        <el-tab-pane label="孤立文章" name="orphans">
+        <el-tab-pane :label="$t('admin.analytics.seo.orphanArticles')" name="orphans">
           <el-alert
             :closable="false"
             class="mb-3"
-            title="孤立文章指没有任何其它文章链接到它——搜索引擎较难发现，建议在内链中补上引用。"
+            :title="$t('admin.analytics.seo.orphanArticlesHaveNoInboundLinksFromOtherArticlesSoSearchEnginesMayMissThemAddInternalLinksToImproveDiscoverability')"
             type="info"
           />
           <el-table :data="orphans" max-height="520" row-key="article_id">
             <el-table-column label="ID" prop="article_id" width="80"/>
-            <el-table-column label="标题" min-width="260" prop="title" show-overflow-tooltip/>
-            <el-table-column label="别名" min-width="160" prop="slug"/>
-            <el-table-column label="入链数" prop="inbound_links" width="100"/>
+            <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="260" prop="title"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.analytics.seo.alias')" min-width="160" prop="slug"/>
+            <el-table-column :label="$t('admin.analytics.seo.inboundLinks')" prop="inbound_links" width="100"/>
           </el-table>
         </el-tab-pane>
 
         <!-- 内容分析器 -->
-        <el-tab-pane label="内容分析器" name="analyzer">
+        <el-tab-pane :label="$t('admin.analytics.seo.contentAnalyzer')" name="analyzer">
           <el-row :gutter="16">
             <el-col :span="12">
               <el-form :model="analyzeForm" label-width="80px">
-                <el-form-item label="标题">
-                  <el-input v-model="analyzeForm.title" placeholder="待分析的标题"/>
+                <el-form-item :label="$t('admin.system.menu.itemTitle')">
+                  <el-input v-model="analyzeForm.title" :placeholder="$t('admin.analytics.seo.titleToAnalyze')"/>
                 </el-form-item>
-                <el-form-item label="描述">
+                <el-form-item :label="$t('admin.common.description')">
                   <el-input v-model="analyzeForm.description" :rows="2" type="textarea"/>
                 </el-form-item>
-                <el-form-item label="关键词">
-                  <el-input v-model="analyzeForm.keywords" placeholder="用英文逗号分隔"/>
+                <el-form-item :label="$t('admin.analytics.seo.keyword')">
+                  <el-input v-model="analyzeForm.keywords" :placeholder="$t('admin.analytics.seo.separateWithCommas')"/>
                 </el-form-item>
-                <el-form-item label="正文">
-                  <el-input v-model="analyzeForm.content" :rows="10" placeholder="粘贴正文内容" type="textarea"/>
+                <el-form-item :label="$t('admin.analytics.seo.content')">
+                  <el-input v-model="analyzeForm.content" :placeholder="$t('admin.analytics.seo.pasteContent')"
+                            :rows="10" type="textarea"/>
                 </el-form-item>
                 <el-form-item>
                   <el-button :icon="Search" :loading="analyzeLoading" type="primary" @click="runAnalyze">
@@ -294,13 +300,13 @@ onMounted(async () => {
                   </span>
                   <el-tag :type="gradeTag(analyzeResult.grade)" class="ml-2">{{ analyzeResult.grade || '-' }}</el-tag>
                 </div>
-                <h4 class="sub-title">改进建议</h4>
+                <h4 class="sub-title">{{ $t('admin.analytics.seo.improvementSuggestions') }}</h4>
                 <ul v-if="analyzeResult.suggestions.length" class="suggestions">
                   <li v-for="(item, index) in analyzeResult.suggestions" :key="index">{{ item }}</li>
                 </ul>
-                <el-empty v-else description="没有发现问题"/>
+                <el-empty v-else :description="$t('admin.analytics.seo.noIssuesFound')"/>
               </div>
-              <el-empty v-else description="填写左侧内容后开始分析"/>
+              <el-empty v-else :description="$t('admin.analytics.seo.fillInTheContentOnTheLeftToAnalyzeIt')"/>
             </el-col>
           </el-row>
         </el-tab-pane>

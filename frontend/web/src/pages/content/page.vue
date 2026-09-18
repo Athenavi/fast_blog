@@ -1,12 +1,13 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '页面',
+  title: t('admin.content.page.pages'),
   permission: 'module_content:page:view',
 })
 </script>
 
 <template>
-  <Placeholder title="页面"/>
+  <Placeholder :title="$t('admin.content.page.pages2')"/>
 </template>

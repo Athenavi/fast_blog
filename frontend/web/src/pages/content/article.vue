@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 文章管理（列表 / 筛选 / 分页 / 增删改 / 发布）
  *
@@ -16,14 +17,14 @@ import {articleStatusTag, articleStatusText, formatDateTime} from '@/utils/forma
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '文章',
+  title: t('article.title'),
   permission: 'module_content:article:view',
 })
 
 /** 与后端 STATUS_DRAFT / STATUS_PUBLISHED 一致 */
 const STATUS_OPTIONS = [
-  {label: '草稿', value: 0},
-  {label: '已发布', value: 1},
+  {label: t('common.draft'), value: 0},
+  {label: t('common.published'), value: 1},
 ]
 
 const loading = ref(false)
@@ -152,7 +153,7 @@ async function openEdit(row: ArticleItem): Promise<void> {
 async function submitForm(): Promise<void> {
   const title = (form.title ?? '').trim()
   if (!title) {
-    ElMessage.warning('请填写标题')
+    ElMessage.warning(t('admin.content.article.titleIsRequired'))
     return
   }
 
@@ -161,10 +162,10 @@ async function submitForm(): Promise<void> {
     const payload: ArticlePayload = {...form, title}
     if (editingId.value) {
       await articleApi.update(editingId.value, payload)
-      ElMessage.success('已保存')
+      ElMessage.success(t('admin.content.article.saved'))
     } else {
       await articleApi.create(payload)
-      ElMessage.success('已创建')
+      ElMessage.success(t('admin.content.article.created'))
     }
     dialogVisible.value = false
     await loadList()
@@ -177,29 +178,29 @@ async function submitForm(): Promise<void> {
 async function togglePublish(row: ArticleItem): Promise<void> {
   const next = row.status !== 1
   await articleApi.publish(row.id, next)
-  ElMessage.success(next ? '已发布' : '已转为草稿')
+  ElMessage.success(next ? t('common.published') : t('admin.content.article.movedToDraft'))
   await loadList()
 }
 
 async function removeRow(row: ArticleItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除《${row.title}》吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(`确定删除《${row.title}》吗？`, t('admin.common.notice'), {type: 'warning'})
   await articleApi.remove(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.content.article.deleted'))
   await loadList()
 }
 
 async function removeSelected(): Promise<void> {
   if (!selection.value.length) {
-    ElMessage.warning('请先选择要删除的文章')
+    ElMessage.warning(t('admin.content.article.selectArticlesToDeleteFirst'))
     return
   }
   await ElMessageBox.confirm(
     `确定删除选中的 ${selection.value.length} 篇文章吗？`,
-    '提示',
+    t('admin.common.notice'),
     {type: 'warning'},
   )
   await articleApi.batchDelete(selection.value.map((item) => item.id))
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.content.article.deleted'))
   await loadList()
 }
 
@@ -212,23 +213,24 @@ onMounted(async () => {
   <div class="page-container">
     <el-card shadow="never">
       <el-form :inline="true" @submit.prevent>
-        <el-form-item label="关键词">
-          <el-input v-model="query.keyword" clearable placeholder="标题关键词" style="width: 200px"
+        <el-form-item :label="$t('admin.content.article.keyword')">
+          <el-input v-model="query.keyword" :placeholder="$t('admin.content.article.titleKeyword')" clearable
+                    style="width: 200px"
                     @keyup.enter="onSearch"/>
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" clearable placeholder="全部" style="width: 130px">
+        <el-form-item :label="$t('admin.common.status')">
+          <el-select v-model="query.status" :placeholder="$t('admin.common.all')" clearable style="width: 130px">
             <el-option v-for="item in STATUS_OPTIONS" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="query.category_id" clearable placeholder="全部" style="width: 160px">
+        <el-form-item :label="$t('article.category')">
+          <el-select v-model="query.category_id" :placeholder="$t('admin.common.all')" clearable style="width: 160px">
             <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id"/>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Search" type="primary" @click="onSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="onReset">重置</el-button>
+          <el-button :icon="Search" type="primary" @click="onSearch">{{ $t('admin.common.search') }}</el-button>
+          <el-button :icon="Refresh" @click="onReset">{{ $t('admin.common.reset') }}</el-button>
         </el-form-item>
       </el-form>
 
@@ -252,29 +254,36 @@ onMounted(async () => {
       <el-table v-loading="loading" :data="list" row-key="id" @selection-change="onSelectionChange">
         <el-table-column type="selection" width="46"/>
         <el-table-column label="ID" prop="id" width="70"/>
-        <el-table-column label="标题" min-width="240">
+        <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="240">
           <template #default="{row}">
             <span class="title-cell">{{ row.title }}</span>
-            <el-tag v-if="row.is_sticky" class="ml-1" size="small" type="warning">置顶</el-tag>
-            <el-tag v-if="row.is_featured" class="ml-1" size="small" type="success">推荐</el-tag>
-            <el-tag v-if="row.hidden" class="ml-1" size="small" type="info">隐藏</el-tag>
+            <el-tag v-if="row.is_sticky" class="ml-1" size="small" type="warning">
+              {{ $t('admin.content.article.featured') }}
+            </el-tag>
+            <el-tag v-if="row.is_featured" class="ml-1" size="small" type="success">
+              {{ $t('admin.content.article.recommended') }}
+            </el-tag>
+            <el-tag v-if="row.hidden" class="ml-1" size="small" type="info">{{
+                $t('admin.content.article.hidden')
+              }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="分类" width="120">
+        <el-table-column :label="$t('article.category')" width="120">
           <template #default="{row}">{{ categoryName(row.category_id) }}</template>
         </el-table-column>
-        <el-table-column label="标签" min-width="150">
+        <el-table-column :label="$t('article.tags')" min-width="150">
           <template #default="{row}">
             <el-tag v-for="tag in (row.tags || []).slice(0, 3)" :key="tag" class="mr-1" size="small">{{ tag }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column :label="$t('admin.common.status')" width="90">
           <template #default="{row}">
             <el-tag :type="articleStatusTag(row.status)" size="small">{{ articleStatusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="浏览" prop="views" width="80"/>
-        <el-table-column label="定时发布" width="170">
+        <el-table-column :label="$t('article.views')" prop="views" width="80"/>
+        <el-table-column :label="$t('admin.content.article.scheduledPublish')" width="170">
           <template #default="{row}">
             <el-tag v-if="row.scheduled_publish_at" size="small" type="warning">
               {{ formatDateTime(row.scheduled_publish_at) }}
@@ -282,16 +291,16 @@ onMounted(async () => {
             <span v-else class="muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="更新时间" width="170">
+        <el-table-column :label="$t('admin.common.updatedAt')" width="170">
           <template #default="{row}">{{ formatDateTime(row.updated_at) }}</template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="210">
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="210">
           <template #default="{row}">
             <el-button v-auth="'module_content:article:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
               编辑
             </el-button>
             <el-button v-auth="'module_content:article:publish'" link type="primary" @click="togglePublish(row)">
-              {{ row.status === 1 ? '转草稿' : '发布' }}
+              {{ row.status === 1 ? t('admin.content.article.moveToDraft') : t('admin.content.article.publish') }}
             </el-button>
             <el-button v-auth="'module_content:article:delete'" :icon="Delete" link type="danger"
                        @click="removeRow(row)">
@@ -315,61 +324,64 @@ onMounted(async () => {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingId ? '编辑文章' : '新建文章'"
+      :title="editingId ? t('admin.content.article.editArticle') : t('admin.content.article.newArticle')"
       destroy-on-close
       top="5vh"
       width="820px"
     >
       <el-form :model="form" label-width="90px">
-        <el-form-item label="标题" required>
-          <el-input v-model="form.title" maxlength="255" placeholder="文章标题" show-word-limit/>
+        <el-form-item :label="$t('admin.system.menu.itemTitle')" required>
+          <el-input v-model="form.title" :placeholder="$t('admin.content.article.articleTitle')" maxlength="255"
+                    show-word-limit/>
         </el-form-item>
-        <el-form-item label="别名">
-          <el-input v-model="form.slug" placeholder="URL 别名（留空由后端生成）"/>
+        <el-form-item :label="$t('admin.content.article.alias')">
+          <el-input v-model="form.slug" :placeholder="$t('admin.content.article.urlAliasLeaveBlankToGenerate')"/>
         </el-form-item>
-        <el-form-item label="摘要">
+        <el-form-item :label="$t('admin.content.article.summary')">
           <el-input v-model="form.excerpt" :rows="2" maxlength="255" show-word-limit type="textarea"/>
         </el-form-item>
-        <el-form-item label="封面">
-          <el-input v-model="form.cover_image" placeholder="封面图 URL"/>
+        <el-form-item :label="$t('admin.content.article.cover')">
+          <el-input v-model="form.cover_image" :placeholder="$t('admin.content.article.coverImageUrl')"/>
         </el-form-item>
-        <el-form-item label="分类">
-          <el-select v-model="form.category_id" clearable placeholder="请选择" style="width: 100%">
+        <el-form-item :label="$t('article.category')">
+          <el-select v-model="form.category_id" :placeholder="$t('admin.content.article.pleaseSelect')" clearable
+                     style="width: 100%">
             <el-option v-for="item in categories" :key="item.id" :label="item.name" :value="item.id"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="标签">
+        <el-form-item :label="$t('article.tags')">
           <el-select
             v-model="form.tags"
             allow-create
             default-first-option
             filterable
             multiple
-            placeholder="输入后回车添加"
+            :placeholder="$t('admin.content.article.pressEnterToAdd')"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="正文">
-          <el-input v-model="form.content" :rows="10" placeholder="支持 HTML / Markdown 源码" type="textarea"/>
+        <el-form-item :label="$t('admin.content.article.content')">
+          <el-input v-model="form.content" :placeholder="$t('admin.content.article.htmlMarkdownSourceSupported')"
+                    :rows="10" type="textarea"/>
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item :label="$t('admin.common.status')">
           <el-radio-group v-model="form.status">
             <el-radio v-for="item in STATUS_OPTIONS" :key="item.value" :value="item.value">{{ item.label }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="属性">
-          <el-checkbox v-model="form.is_sticky">置顶</el-checkbox>
-          <el-checkbox v-model="form.is_featured">推荐</el-checkbox>
-          <el-checkbox v-model="form.hidden">隐藏</el-checkbox>
-          <el-checkbox v-model="form.is_vip_only">仅 VIP</el-checkbox>
+        <el-form-item :label="$t('admin.content.article.properties')">
+          <el-checkbox v-model="form.is_sticky">{{ $t('admin.content.article.featured') }}</el-checkbox>
+          <el-checkbox v-model="form.is_featured">{{ $t('admin.content.article.recommended') }}</el-checkbox>
+          <el-checkbox v-model="form.hidden">{{ $t('admin.content.article.hidden') }}</el-checkbox>
+          <el-checkbox v-model="form.is_vip_only">{{ $t('admin.content.article.vipOnly') }}</el-checkbox>
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="$t('admin.widget.order')">
           <el-input-number v-model="form.sort_order" :min="0"/>
         </el-form-item>
-        <el-form-item label="定时发布">
+        <el-form-item :label="$t('admin.content.article.scheduledPublish')">
           <el-date-picker
             v-model="form.scheduled_publish_at"
-            placeholder="留空表示立即生效"
+            :placeholder="$t('admin.content.article.leaveBlankToPublishImmediately')"
             style="width: 100%"
             type="datetime"
             value-format="YYYY-MM-DDTHH:mm:ss"
@@ -378,8 +390,8 @@ onMounted(async () => {
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitForm">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>

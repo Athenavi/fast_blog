@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 插件管理
  *
@@ -16,7 +17,7 @@ import {pluginApi, type PluginItem} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '插件',
+  title: t('admin.extension.plugin.plugins'),
   permission: 'module_extension:plugin:view',
 })
 
@@ -43,7 +44,7 @@ async function scan(): Promise<void> {
     if (result?.count) {
       ElMessage.success(`发现 ${result.count} 个新插件：${result.new_plugins.join('、')}`)
     } else {
-      ElMessage.info('没有发现新插件')
+      ElMessage.info(t('admin.extension.plugin.noNewPluginsFound'))
     }
     await loadList()
   } finally {
@@ -59,15 +60,24 @@ async function act(
   const slug = row.slug || ''
   if (!slug) return
 
-  const LABELS = {install: '安装', activate: '激活', deactivate: '停用', uninstall: '卸载'}
+  const LABELS = {
+    install: t('admin.extension.plugin.install'),
+    activate: t('admin.extension.plugin.activate'),
+    deactivate: t('admin.common.disabled'),
+    uninstall: t('admin.extension.plugin.uninstall')
+  }
   const label = LABELS[action]
   const danger = action === 'uninstall'
 
   await ElMessageBox.confirm(
     danger ? `确定卸载插件「${row.name || slug}」吗？相关数据可能被保留或清除。` : `确定${label}插件「${row.name || slug}」吗？`,
-    danger ? '高危操作' : '提示',
+    danger ? t('admin.extension.plugin.dangerousOperation') : t('admin.common.notice'),
     danger
-      ? {type: 'error', confirmButtonText: '确认卸载', confirmButtonClass: 'el-button--danger'}
+      ? {
+        type: 'error',
+        confirmButtonText: t('admin.extension.plugin.confirmUninstall'),
+        confirmButtonClass: 'el-button--danger'
+      }
       : {type: 'warning'},
   )
 
@@ -116,7 +126,7 @@ async function saveSettings(): Promise<void> {
   try {
     const parsed = configText.value.trim() ? JSON.parse(configText.value) : {}
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('必须是 JSON 对象')
+      throw new Error(t('admin.extension.plugin.mustBeAJsonObject'))
     }
     settings = parsed as Record<string, unknown>
   } catch (error) {
@@ -127,7 +137,7 @@ async function saveSettings(): Promise<void> {
   configSaving.value = true
   try {
     await pluginApi.saveSettings(slug, settings)
-    ElMessage.success('配置已保存')
+    ElMessage.success(t('admin.extension.plugin.configurationSaved'))
     dialogVisible.value = false
   } finally {
     configSaving.value = false
@@ -141,13 +151,18 @@ onMounted(loadList)
   <div class="page-container">
     <el-card shadow="never">
       <div class="toolbar">
-        <el-button :icon="Refresh" :loading="scanning" @click="scan">扫描插件</el-button>
-        <span class="hint">插件目录中新增的插件需要先扫描才会出现在列表里</span>
+        <el-button :icon="Refresh" :loading="scanning" @click="scan">{{
+            $t('admin.extension.plugin.scanPlugins')
+          }}
+        </el-button>
+        <span class="hint">{{
+            $t('admin.extension.plugin.newPluginsInThePluginDirectoryMustBeScannedBeforeTheyAppearInTheList')
+          }}</span>
         <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
       </div>
 
       <el-table v-loading="loading" :data="list" row-key="slug">
-        <el-table-column label="插件" min-width="240">
+        <el-table-column :label="$t('admin.extension.plugin.plugins2')" min-width="240">
           <template #default="{row}">
             <div class="plugin">
               <span class="plugin__name">{{ row.name || row.slug }}</span>
@@ -155,17 +170,17 @@ onMounted(loadList)
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="版本" prop="version" width="100"/>
-        <el-table-column label="作者" prop="author" width="140"/>
-        <el-table-column label="分类" prop="category" width="120"/>
-        <el-table-column label="状态" width="100">
+        <el-table-column :label="$t('admin.extension.plugin.version')" prop="version" width="100"/>
+        <el-table-column :label="$t('article.author')" prop="author" width="140"/>
+        <el-table-column :label="$t('article.category')" prop="category" width="120"/>
+        <el-table-column :label="$t('admin.common.status')" width="100">
           <template #default="{row}">
             <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-              {{ row.is_active ? '已激活' : '未激活' }}
+              {{ row.is_active ? t('admin.extension.plugin.active') : t('admin.extension.plugin.inactive') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="280">
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="280">
           <template #default="{row}">
             <el-button
               v-auth="'module_extension:plugin:install'"
@@ -228,13 +243,16 @@ onMounted(loadList)
       <el-alert
         :closable="false"
         class="mb-3"
-        title="配置项以 JSON 对象提交，字段含义见插件自身文档。"
+        :title="$t('admin.extension.plugin.submitConfigurationAsAJsonObjectSeeThePluginDocumentationForFieldMeanings')"
         type="info"
       />
       <el-input v-model="configText" :rows="12" placeholder='{ "key": "value" }' type="textarea"/>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button :loading="configSaving" type="primary" @click="saveSettings">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="configSaving" type="primary" @click="saveSettings">{{
+            $t('admin.common.save')
+          }}
+        </el-button>
       </template>
     </el-dialog>
   </div>

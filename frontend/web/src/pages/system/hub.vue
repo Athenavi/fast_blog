@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {computed, onMounted, ref} from 'vue'
 
 import {cacheApi, type CacheStats, monitorApi, type OnlineSession, type OnlineStats, type ServerInfo} from '@/api'
@@ -17,7 +18,7 @@ import {formatDateTime, formatFileSize} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '系统总览',
+  title: t('admin.system.hub.systemOverview'),
   permission: 'module_system:monitor:view',
 })
 
@@ -56,13 +57,13 @@ async function load(): Promise<void> {
 async function kick(row: OnlineSession): Promise<void> {
   await ElMessageBox.confirm(
     `确定把会话 #${row.id}（用户 ${row.user_id}）强制下线吗？`,
-    '提示',
+    t('admin.common.notice'),
     {type: 'warning'},
   )
   kicking.value = row.id
   try {
     await monitorApi.kick(row.id)
-    ElMessage.success('已强制下线')
+    ElMessage.success(t('admin.system.hub.sessionTerminated'))
     await load()
   } finally {
     kicking.value = null
@@ -100,7 +101,7 @@ onMounted(load)
 
     <!-- 服务器信息 -->
     <el-card class="mb-4" shadow="never">
-      <template #header><span class="font-medium">服务器</span></template>
+      <template #header><span class="font-medium">{{ $t('admin.system.hub.server') }}</span></template>
 
       <div v-if="loading && !server" class="space-y-3">
         <Skeleton class="h-5 w-64"/>
@@ -109,12 +110,21 @@ onMounted(load)
 
       <template v-else-if="server">
         <el-descriptions :column="3" border size="small">
-          <el-descriptions-item label="操作系统">{{ server.platform }}</el-descriptions-item>
-          <el-descriptions-item label="主机名">{{ server.hostname }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.hub.operatingSystem')">{{
+              server.platform
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.hub.hostname')">{{ server.hostname }}</el-descriptions-item>
           <el-descriptions-item label="Python">{{ server.python_version }}</el-descriptions-item>
-          <el-descriptions-item label="启动时间">{{ formatDateTime(server.boot_time) }}</el-descriptions-item>
-          <el-descriptions-item label="已运行">{{ formatUptime(server.uptime_seconds) }}</el-descriptions-item>
-          <el-descriptions-item label="进程">
+          <el-descriptions-item :label="$t('admin.system.hub.bootTime')">{{
+              formatDateTime(server.boot_time)
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.hub.uptime')">{{
+              formatUptime(server.uptime_seconds)
+            }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.hub.process')">
             PID {{ server.process.pid }} · 内存 {{ formatFileSize(server.process.rss) }} · 线程
             {{ server.process.threads }}
           </el-descriptions-item>
@@ -137,7 +147,7 @@ onMounted(load)
 
           <div class="gauge">
             <div class="gauge__head">
-              <span>内存</span>
+              <span>{{ $t('admin.system.hub.memory') }}</span>
               <span class="gauge__value">{{ server.memory.percent.toFixed(1) }}%</span>
             </div>
             <div class="gauge__track">
@@ -151,16 +161,16 @@ onMounted(load)
         </div>
 
         <el-table v-if="server.disks.length" :data="server.disks" border class="mt-4" size="small">
-          <el-table-column label="挂载点" min-width="160">
+          <el-table-column :label="$t('admin.system.hub.mountPoint')" min-width="160">
             <template #default="{row}">
               <span class="font-mono text-xs">{{ row.mountpoint }}</span>
               <span class="ml-2 text-xs text-fg-subtle">{{ row.fstype }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="容量" width="200">
+          <el-table-column :label="$t('admin.system.hub.capacity')" width="200">
             <template #default="{row}">{{ formatFileSize(row.used) }} / {{ formatFileSize(row.total) }}</template>
           </el-table-column>
-          <el-table-column label="使用率" width="160">
+          <el-table-column :label="$t('admin.system.hub.usage')" width="160">
             <template #default="{row}">
               <div class="gauge__track">
                 <div :style="{width: `${row.percent}%`, backgroundColor: barColor(row.percent)}" class="gauge__fill"/>
@@ -177,20 +187,21 @@ onMounted(load)
     <!-- 在线会话 -->
     <el-card class="mb-4" shadow="never">
       <template #header>
-        <span class="font-medium">在线用户</span>
+        <span class="font-medium">{{ $t('admin.system.hub.onlineUsers') }}</span>
         <span class="ml-3 text-xs text-fg-subtle">
           活跃 {{ online?.active_sessions ?? '—' }} · 窗口内活跃 {{ online?.recent_sessions ?? '—' }} ·
           去重用户 {{ online?.unique_users ?? '—' }}
         </span>
       </template>
 
-      <EmptyState v-if="!sessions.length && !loading" description="当前没有活跃会话" title="暂无在线用户"/>
+      <EmptyState v-if="!sessions.length && !loading" :description="$t('admin.system.hub.noActiveSessions')"
+                  :title="$t('admin.system.hub.noOnlineUsers')"/>
 
       <el-table v-else v-loading="loading" :data="sessions" border size="small">
-        <el-table-column label="用户" width="90">
+        <el-table-column :label="$t('user.title')" width="90">
           <template #default="{row}">#{{ row.user_id }}</template>
         </el-table-column>
-        <el-table-column label="设备" min-width="220">
+        <el-table-column :label="$t('admin.system.hub.device')" min-width="220">
           <template #default="{row}">
             <span class="block truncate text-xs">{{ row.device_info || '—' }}</span>
           </template>
@@ -198,15 +209,17 @@ onMounted(load)
         <el-table-column label="IP" width="140">
           <template #default="{row}">{{ row.ip_address || '—' }}</template>
         </el-table-column>
-        <el-table-column label="位置" width="120">
+        <el-table-column :label="$t('admin.system.hub.location')" width="120">
           <template #default="{row}">{{ row.location || '—' }}</template>
         </el-table-column>
-        <el-table-column label="最后活动" width="170">
+        <el-table-column :label="$t('admin.system.hub.lastActivity')" width="170">
           <template #default="{row}">{{ formatDateTime(row.last_activity) }}</template>
         </el-table-column>
-        <el-table-column align="right" label="操作" width="110">
+        <el-table-column :label="$t('admin.common.actions')" align="right" width="110">
           <template #default="{row}">
-            <el-button :loading="kicking === row.id" link type="danger" @click="kick(row)">强制下线</el-button>
+            <el-button :loading="kicking === row.id" link type="danger" @click="kick(row)">
+              {{ $t('admin.system.hub.terminateSession') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -225,23 +238,25 @@ onMounted(load)
     <!-- 缓存概览 -->
     <el-card shadow="never">
       <template #header>
-        <span class="font-medium">缓存</span>
-        <NuxtLink class="ml-3 text-xs text-primary hover:underline" to="/system/cache">前往缓存管理 →</NuxtLink>
+        <span class="font-medium">{{ $t('admin.system.hub.cache') }}</span>
+        <NuxtLink class="ml-3 text-xs text-primary hover:underline" to="/system/cache">
+          {{ $t('admin.system.hub.openCacheManagement') }}
+        </NuxtLink>
       </template>
 
       <p v-if="multiLevel.error" class="text-sm text-danger">统计失败：{{ multiLevel.error }}</p>
 
       <div v-else class="grid grid-cols-3 gap-4">
         <div class="gauge">
-          <p class="gauge__label">总请求</p>
+          <p class="gauge__label">{{ $t('admin.system.hub.requests') }}</p>
           <p class="gauge__big">{{ multiLevel.total_requests ?? '—' }}</p>
         </div>
         <div class="gauge">
-          <p class="gauge__label">总命中</p>
+          <p class="gauge__label">{{ $t('admin.system.hub.hits') }}</p>
           <p class="gauge__big">{{ multiLevel.total_hits ?? '—' }}</p>
         </div>
         <div class="gauge">
-          <p class="gauge__label">命中率</p>
+          <p class="gauge__label">{{ $t('admin.system.hub.hitRate') }}</p>
           <p class="gauge__big">{{ multiLevel.hit_rate ?? '—' }}</p>
         </div>
       </div>

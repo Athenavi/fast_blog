@@ -15,23 +15,24 @@
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>最近文章</span>
+              <span>{{ $t('admin.dashboard.recentArticles') }}</span>
               <el-button link type="primary" @click="router.push('/content/article')">
                 全部
               </el-button>
             </div>
           </template>
           <el-table v-loading="loading" :data="recentArticles" size="small">
-            <el-table-column label="标题" min-width="200" prop="title" show-overflow-tooltip/>
-            <el-table-column label="状态" width="90">
+            <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="200" prop="title"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.common.status')" width="90">
               <template #default="{ row }">
                 <el-tag :type="statusTagType(row.status)" size="small">
                   {{ statusText(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="浏览" prop="views" width="80"/>
-            <el-table-column label="创建时间" width="160">
+            <el-table-column :label="$t('article.views')" prop="views" width="80"/>
+            <el-table-column :label="$t('admin.common.createdAt')" width="160">
               <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
             </el-table-column>
           </el-table>
@@ -42,19 +43,19 @@
         <el-card class="mt-4-mobile" shadow="never">
           <template #header>
             <div class="card-header">
-              <span>最近评论</span>
+              <span>{{ $t('admin.dashboard.recentComments') }}</span>
               <el-button link type="primary" @click="router.push('/content/comment')">
                 全部
               </el-button>
             </div>
           </template>
           <el-table v-loading="loading" :data="recentComments" size="small">
-            <el-table-column label="作者" prop="author_name" show-overflow-tooltip width="120"/>
-            <el-table-column label="内容" min-width="200" prop="content" show-overflow-tooltip/>
-            <el-table-column label="审核" width="90">
+            <el-table-column :label="$t('article.author')" prop="author_name" show-overflow-tooltip width="120"/>
+            <el-table-column :label="$t('article.content')" min-width="200" prop="content" show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.dashboard.review')" width="90">
               <template #default="{ row }">
                 <el-tag :type="row.is_approved ? 'success' : 'warning'" size="small">
-                  {{ row.is_approved ? '已通过' : '待审核' }}
+                  {{ row.is_approved ? t('common.approved') : t('common.pending') }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -65,19 +66,20 @@
 
     <el-card class="mt-4" shadow="never">
       <template #header>
-        <div class="card-header"><span>浏览量排行</span></div>
+        <div class="card-header"><span>{{ $t('admin.dashboard.topViews') }}</span></div>
       </template>
       <el-table v-loading="loading" :data="topArticles" size="small">
         <el-table-column label="#" type="index" width="60"/>
-        <el-table-column label="标题" min-width="240" prop="title" show-overflow-tooltip/>
-        <el-table-column label="浏览量" prop="views" sortable width="120"/>
-        <el-table-column label="点赞" prop="likes" width="100"/>
+        <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="240" prop="title" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.dashboard.views')" prop="views" sortable width="120"/>
+        <el-table-column :label="$t('article.likes')" prop="likes" width="100"/>
       </el-table>
     </el-card>
   </div>
 </template>
 
 <script lang="ts" setup>
+const {t} = useI18n()
 import dayjs from 'dayjs'
 import {computed, onMounted, ref} from 'vue'
 
@@ -101,23 +103,27 @@ const cards = computed(() => {
   const data = overview.value
   return [
     {
-      label: '文章总数',
+      label: t('admin.dashboard.totalArticles'),
       value: data?.total_articles ?? 0,
       hint: `已发布 ${data?.published_articles ?? 0} / 草稿 ${data?.draft_articles ?? 0}`
     },
-    {label: '用户总数', value: data?.total_users ?? 0, hint: `启用 ${data?.active_users ?? 0}`},
-    {label: '评论总数', value: data?.total_comments ?? 0, hint: `待审核 ${data?.pending_comments ?? 0}`},
-    {label: '总浏览量', value: data?.total_views ?? 0},
-    {label: '分类数', value: data?.total_categories ?? 0},
-    {label: '媒体数', value: data?.total_media ?? 0},
+    {label: t('admin.dashboard.totalUsers'), value: data?.total_users ?? 0, hint: `启用 ${data?.active_users ?? 0}`},
+    {
+      label: t('admin.dashboard.totalComments'),
+      value: data?.total_comments ?? 0,
+      hint: `待审核 ${data?.pending_comments ?? 0}`
+    },
+    {label: t('admin.dashboard.totalViews'), value: data?.total_views ?? 0},
+    {label: t('admin.dashboard.categories'), value: data?.total_categories ?? 0},
+    {label: t('admin.dashboard.mediaFiles'), value: data?.total_media ?? 0},
   ]
 })
 
 function statusText(status?: number | null): string {
-  if (status === 1) return '已发布'
-  if (status === 0) return '草稿'
-  if (status === -1) return '已删除'
-  return '未知'
+  if (status === 1) return t('common.published')
+  if (status === 0) return t('common.draft')
+  if (status === -1) return t('admin.dashboard.deleted')
+  return t('admin.dashboard.unknown')
 }
 
 function statusTagType(status?: number | null): 'success' | 'info' | 'danger' | 'warning' {

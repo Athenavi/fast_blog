@@ -4,6 +4,8 @@ import {computed, onMounted, ref} from 'vue'
 import {cacheApi, type CacheStats} from '@/api'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 
+const {t} = useI18n()
+
 /**
  * 缓存管理（v3 `system/cache`）
  *
@@ -18,11 +20,9 @@ import {ElMessage, ElMessageBox} from '@/utils/feedback'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '缓存管理',
+  title: t('admin.system.cache.cacheManagement'),
   permission: 'module_system:cache:view',
 })
-
-const {t} = useI18n()
 
 /** 层级名走 i18n；未知层级原样显示 */
 function levelLabel(key: string): string {

@@ -9,9 +9,13 @@ defineProps<{ title: string }>()
 <template>
   <div class="page-container">
     <el-card shadow="never">
-      <el-result :title="title" icon="info" sub-title="该页面的业务实现将在后续阶段完成。">
+      <el-result :sub-title="$t('admin.shared.Placeholder.theBusinessImplementationForThisPageWillBeCompletedInALaterPhase')" :title="title"
+                 icon="info">
         <template #extra>
-          <el-button type="primary" @click="navigateTo('/dashboard')">返回仪表盘</el-button>
+          <el-button type="primary" @click="navigateTo('/dashboard')">{{
+              $t('admin.shared.Placeholder.backToDashboard')
+            }}
+          </el-button>
         </template>
       </el-result>
     </el-card>

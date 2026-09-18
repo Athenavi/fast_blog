@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 小部件管理
  *
@@ -14,7 +15,7 @@ import {widgetApi, type WidgetItem} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '小部件',
+  title: t('admin.extension.widget.widgets'),
   permission: 'module_extension:widget:view',
 })
 
@@ -107,7 +108,7 @@ function openEdit(row: WidgetItem): void {
 
 async function submitForm(): Promise<void> {
   if (!form.widget_type || !form.area) {
-    ElMessage.warning('请选择部件类型与所属区域')
+    ElMessage.warning(t('admin.extension.widget.selectAWidgetTypeAndRegion'))
     return
   }
 
@@ -115,7 +116,7 @@ async function submitForm(): Promise<void> {
   try {
     const parsed = form.configText.trim() ? JSON.parse(form.configText) : {}
     if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      throw new Error('必须是 JSON 对象')
+      throw new Error(t('admin.extension.widget.mustBeAJsonObject'))
     }
     config = parsed as Record<string, unknown>
   } catch (error) {
@@ -135,10 +136,10 @@ async function submitForm(): Promise<void> {
     }
     if (editingId.value) {
       await widgetApi.update(editingId.value, payload)
-      ElMessage.success('已保存')
+      ElMessage.success(t('admin.extension.widget.saved'))
     } else {
       await widgetApi.create(payload)
-      ElMessage.success('已创建')
+      ElMessage.success(t('admin.extension.widget.created'))
     }
     dialogVisible.value = false
     await loadList()
@@ -152,7 +153,7 @@ async function toggle(row: WidgetItem): Promise<void> {
   const next = !row.is_active
   await widgetApi.toggle(row.id, next)
   row.is_active = next
-  ElMessage.success(next ? '已启用' : '已停用')
+  ElMessage.success(next ? t('admin.extension.widget.enabled') : t('admin.extension.widget.disabled'))
 }
 
 async function move(row: WidgetItem, delta: number): Promise<void> {
@@ -163,9 +164,9 @@ async function move(row: WidgetItem, delta: number): Promise<void> {
 }
 
 async function removeRow(row: WidgetItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除小部件「${row.title || row.widget_type}」吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(`确定删除小部件「${row.title || row.widget_type}」吗？`, t('admin.common.notice'), {type: 'warning'})
   await widgetApi.remove(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.extension.widget.deleted'))
   await loadList()
 }
 
@@ -178,24 +179,24 @@ onMounted(async () => {
   <div class="page-container">
     <el-card shadow="never">
       <el-form :inline="true" @submit.prevent>
-        <el-form-item label="区域">
-          <el-select v-model="query.area" clearable placeholder="全部" style="width: 150px">
+        <el-form-item :label="$t('admin.extension.widget.region')">
+          <el-select v-model="query.area" :placeholder="$t('admin.common.all')" clearable style="width: 150px">
             <el-option v-for="item in areas" :key="valueOf(item)" :label="labelOf(item)" :value="valueOf(item)"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="query.widget_type" clearable placeholder="全部" style="width: 150px">
+        <el-form-item :label="$t('admin.cache.level')">
+          <el-select v-model="query.widget_type" :placeholder="$t('admin.common.all')" clearable style="width: 150px">
             <el-option v-for="item in types" :key="valueOf(item)" :label="labelOf(item)" :value="valueOf(item)"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.is_active" clearable placeholder="全部" style="width: 120px">
-            <el-option :value="true" label="已启用"/>
-            <el-option :value="false" label="已停用"/>
+        <el-form-item :label="$t('admin.common.status')">
+          <el-select v-model="query.is_active" :placeholder="$t('admin.common.all')" clearable style="width: 120px">
+            <el-option :label="$t('admin.extension.widget.enabled2')" :value="true"/>
+            <el-option :label="$t('admin.extension.widget.disabled2')" :value="false"/>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Refresh" type="primary" @click="loadList">查询</el-button>
+          <el-button :icon="Refresh" type="primary" @click="loadList">{{ $t('admin.common.search') }}</el-button>
         </el-form-item>
       </el-form>
 
@@ -207,18 +208,18 @@ onMounted(async () => {
       </div>
 
       <el-table v-loading="loading" :data="list" row-key="id">
-        <el-table-column label="排序" prop="order_index" width="90">
+        <el-table-column :label="$t('admin.widget.order')" prop="order_index" width="90">
           <template #default="{row}">
             <el-button :disabled="row.order_index <= 0" link @click="move(row, -1)">↑</el-button>
             <el-button link @click="move(row, 1)">↓</el-button>
           </template>
         </el-table-column>
-        <el-table-column label="标题" min-width="180">
+        <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="180">
           <template #default="{row}">{{ row.title || `（未命名 ${row.widget_type}）` }}</template>
         </el-table-column>
-        <el-table-column label="类型" prop="widget_type" width="140"/>
-        <el-table-column label="区域" prop="area" width="140"/>
-        <el-table-column label="状态" width="100">
+        <el-table-column :label="$t('admin.cache.level')" prop="widget_type" width="140"/>
+        <el-table-column :label="$t('admin.extension.widget.region')" prop="area" width="140"/>
+        <el-table-column :label="$t('admin.common.status')" width="100">
           <template #default="{row}">
             <el-switch
               :disabled="false"
@@ -227,7 +228,7 @@ onMounted(async () => {
             />
           </template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="150">
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
           <template #default="{row}">
             <el-button
               v-auth="'module_extension:widget:edit'"
@@ -256,39 +257,40 @@ onMounted(async () => {
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingId ? '编辑小部件' : '新建小部件'"
+      :title="editingId ? t('admin.extension.widget.editWidget') : t('admin.extension.widget.createWidget')"
       destroy-on-close
       width="640px"
     >
       <el-form :model="form" label-width="90px">
-        <el-form-item label="类型" required>
+        <el-form-item :label="$t('admin.cache.level')" required>
           <el-select v-model="form.widget_type" allow-create filterable style="width: 100%">
             <el-option v-for="item in types" :key="valueOf(item)" :label="labelOf(item)" :value="valueOf(item)"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="区域" required>
+        <el-form-item :label="$t('admin.extension.widget.region')" required>
           <el-select v-model="form.area" allow-create filterable style="width: 100%">
             <el-option v-for="item in areas" :key="valueOf(item)" :label="labelOf(item)" :value="valueOf(item)"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="标题">
+        <el-form-item :label="$t('admin.system.menu.itemTitle')">
           <el-input v-model="form.title" maxlength="120" show-word-limit/>
         </el-form-item>
-        <el-form-item label="配置">
-          <el-input v-model="form.configText" :rows="8" placeholder="JSON 对象，如 {&quot;limit&quot;: 5}"
+        <el-form-item :label="$t('admin.extension.widget.configuration')">
+          <el-input v-model="form.configText" :placeholder="$t('admin.extension.widget.jsonObjectEGQuotLimitQuot5')"
+                    :rows="8"
                     type="textarea"/>
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="$t('admin.widget.order')">
           <el-input-number v-model="form.order_index" :min="0"/>
         </el-form-item>
-        <el-form-item label="启用">
+        <el-form-item :label="$t('admin.common.enabled')">
           <el-switch v-model="form.is_active"/>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitForm">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>

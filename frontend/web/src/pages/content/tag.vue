@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 标签管理
  *
@@ -14,7 +15,7 @@ import {tagApi, type TagItem} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '标签',
+  title: t('article.tags'),
   permission: 'module_content:tag:view',
 })
 
@@ -68,7 +69,7 @@ async function checkMerge(): Promise<void> {
 async function submitRename(): Promise<void> {
   const target = newName.value.trim()
   if (!target) {
-    ElMessage.warning('请填写新的标签名')
+    ElMessage.warning(t('admin.content.tag.enterANewTagName'))
     return
   }
   if (target === oldName.value) {
@@ -79,7 +80,7 @@ async function submitRename(): Promise<void> {
   saving.value = true
   try {
     const result = await tagApi.rename(oldName.value, target)
-    ElMessage.success(result?.merged ? '已合并到同名标签' : '已重命名')
+    ElMessage.success(result?.merged ? t('admin.content.tag.mergedIntoTheSameNameTag') : t('admin.content.tag.renamed'))
     dialogVisible.value = false
     await loadList()
   } finally {
@@ -90,11 +91,11 @@ async function submitRename(): Promise<void> {
 async function removeRow(row: TagItem): Promise<void> {
   await ElMessageBox.confirm(
     `确定删除标签「${row.name}」吗？将从 ${row.count} 篇文章上移除该标签。`,
-    '提示',
+    t('admin.common.notice'),
     {type: 'warning'},
   )
   await tagApi.remove(row.name)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.content.tag.deleted'))
   await loadList()
 }
 
@@ -105,26 +106,27 @@ onMounted(loadList)
   <div class="page-container">
     <el-card shadow="never">
       <el-form :inline="true" @submit.prevent>
-        <el-form-item label="关键词">
-          <el-input v-model="query.keyword" clearable placeholder="标签名包含" style="width: 200px"
+        <el-form-item :label="$t('admin.content.tag.keyword')">
+          <el-input v-model="query.keyword" :placeholder="$t('admin.content.tag.tagNameContains')" clearable
+                    style="width: 200px"
                     @keyup.enter="loadList"/>
         </el-form-item>
-        <el-form-item label="最少文章数">
+        <el-form-item :label="$t('admin.content.tag.minimumArticleCount')">
           <el-input-number v-model="query.min_count" :min="0" controls-position="right" style="width: 130px"/>
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Refresh" type="primary" @click="loadList">查询</el-button>
+          <el-button :icon="Refresh" type="primary" @click="loadList">{{ $t('admin.common.search') }}</el-button>
         </el-form-item>
       </el-form>
 
       <el-table v-loading="loading" :data="list" row-key="name">
-        <el-table-column label="标签" min-width="240" prop="name">
+        <el-table-column :label="$t('article.tags')" min-width="240" prop="name">
           <template #default="{row}">
             <el-tag size="small">{{ row.name }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="文章数" prop="count" width="120"/>
-        <el-table-column fixed="right" label="操作" width="180">
+        <el-table-column :label="$t('admin.content.tag.articleCount')" prop="count" width="120"/>
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="180">
           <template #default="{row}">
             <el-button v-auth="'module_content:tag:edit'" :icon="Edit" link type="primary" @click="openRename(row)">
               重命名
@@ -139,20 +141,21 @@ onMounted(loadList)
       <p class="hint">共 {{ total }} 个标签（最多显示 200 个，可用关键词筛选）</p>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" destroy-on-close title="重命名标签" width="480px">
+    <el-dialog v-model="dialogVisible" :title="$t('admin.content.tag.renameTag')" destroy-on-close width="480px">
       <el-form label-width="90px">
-        <el-form-item label="原标签">
+        <el-form-item :label="$t('admin.content.tag.originalTag')">
           <el-tag size="small">{{ oldName }}</el-tag>
         </el-form-item>
-        <el-form-item label="新标签" required>
-          <el-input v-model="newName" maxlength="100" placeholder="输入新的标签名" @input="checkMerge"/>
+        <el-form-item :label="$t('admin.content.tag.newTag')" required>
+          <el-input v-model="newName" :placeholder="$t('admin.content.tag.enterANewTagName2')" maxlength="100"
+                    @input="checkMerge"/>
         </el-form-item>
         <el-alert v-if="mergeHint" :closable="false" :title="mergeHint" type="warning"/>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitRename">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitRename">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>

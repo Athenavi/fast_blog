@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
   <button
     v-if="!open"
     class="perf-toggle"
-    title="性能面板 (Ctrl+Shift+P)"
+    :title="$t('admin.shared.admin.PerfDashboard.performancePanelCtrlShiftP')"
     type="button"
     @click="toggle"
   >
@@ -155,9 +155,14 @@ onBeforeUnmount(() => {
 
   <section v-else class="perf-panel">
     <header class="perf-panel__header">
-      <span class="perf-panel__title">性能面板</span>
-      <button class="perf-panel__action" type="button" @click="reset">清空</button>
-      <button class="perf-panel__action" type="button" @click="toggle">收起</button>
+      <span class="perf-panel__title">{{ $t('admin.shared.admin.PerfDashboard.performancePanel') }}</span>
+      <button class="perf-panel__action" type="button" @click="reset">{{
+          $t('admin.shared.admin.PerfDashboard.clear')
+        }}
+      </button>
+      <button class="perf-panel__action" type="button" @click="toggle">
+        {{ $t('admin.shared.admin.PerfDashboard.collapse') }}
+      </button>
     </header>
 
     <div class="perf-panel__body">
@@ -170,21 +175,21 @@ onBeforeUnmount(() => {
 
       <dl class="perf-panel__meta">
         <div>
-          <dt>长任务</dt>
+          <dt>{{ $t('admin.shared.admin.PerfDashboard.longTasks') }}</dt>
           <dd>{{ longTasks }}</dd>
         </div>
         <div v-if="heap">
-          <dt>JS 堆</dt>
+          <dt>{{ $t('admin.shared.admin.PerfDashboard.jsHeap') }}</dt>
           <dd>{{ formatBytes(heap.used) }} / {{ formatBytes(heap.limit) }}</dd>
         </div>
         <div>
-          <dt>样本</dt>
+          <dt>{{ $t('admin.shared.admin.PerfDashboard.samples') }}</dt>
           <dd>{{ samples.length }}</dd>
         </div>
       </dl>
 
       <div v-if="slowResources.length" class="perf-panel__slow">
-        <p class="perf-panel__label">慢资源（&gt;1s）</p>
+        <p class="perf-panel__label">{{ $t('admin.shared.admin.PerfDashboard.slowResourcesGt1S') }}</p>
         <ul>
           <li v-for="(item, index) in slowResources" :key="`${item.name}-${index}`">
             <span class="perf-panel__slow-name">{{ item.name.split('/').pop() }}</span>

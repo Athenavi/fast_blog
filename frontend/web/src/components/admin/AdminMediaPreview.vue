@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 
 import type {MediaItem} from '@/api'
@@ -98,9 +99,9 @@ async function copyLink(): Promise<void> {
   if (!url) return
   try {
     await navigator.clipboard.writeText(url)
-    ElMessage.success('链接已复制')
+    ElMessage.success(t('admin.shared.admin.AdminMediaPreview.linkCopied'))
   } catch {
-    ElMessage.warning('复制失败，请手动复制')
+    ElMessage.warning(t('admin.shared.admin.AdminMediaPreview.copyFailedCopyItManually'))
   }
 }
 
@@ -128,7 +129,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <div class="flex min-w-0 items-center gap-3">
         <Icon :name="typeIcon" class="h-4 w-4 flex-shrink-0 text-white/50"/>
         <span class="max-w-[12rem] truncate text-sm font-medium text-white/90 sm:max-w-md">
-          {{ current.original_filename || current.filename || '(未命名)' }}
+          {{ current.original_filename || current.filename || t('admin.shared.admin.AdminMediaPreview.unnamed') }}
         </span>
         <span v-if="props.files.length > 1" class="hidden flex-shrink-0 text-xs text-white/40 sm:inline">
           {{ currentIndex + 1 }} / {{ props.files.length }}
@@ -148,7 +149,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         <button
           v-if="current.file_url"
           class="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white/90"
-          title="复制文件链接"
+          :title="$t('admin.shared.admin.AdminMediaPreview.copyFileLink')"
           type="button"
           @click="copyLink"
         >
@@ -157,7 +158,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         <button
           v-if="kind === 'image'"
           class="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white/90"
-          title="编辑图片信息"
+          :title="$t('admin.shared.admin.AdminMediaPreview.editImageInformation')"
           type="button"
           @click="emit('edit', current)"
         >
@@ -168,13 +169,13 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           :href="current.file_url"
           class="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white/90"
           download
-          title="下载"
+          :title="$t('admin.shared.admin.AdminMediaPreview.download')"
         >
           <Icon class="h-4 w-4" name="download"/>
         </a>
         <button
           class="rounded-lg p-1.5 text-white/60 transition-colors hover:bg-white/10 hover:text-white"
-          title="关闭 (Esc)"
+          :title="$t('admin.shared.admin.AdminMediaPreview.closeEsc')"
           type="button"
           @click="emit('close')"
         >
@@ -188,7 +189,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <button
         v-if="canPrev"
         class="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white/70 transition-colors hover:bg-black/70 hover:text-white"
-        title="上一个 (←)"
+        :title="$t('admin.shared.admin.AdminMediaPreview.previous')"
         type="button"
         @click="go(-1)"
       >
@@ -217,7 +218,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         v-else-if="kind === 'pdf' && current.file_url"
         :src="current.file_url"
         class="h-full w-full max-w-5xl rounded border border-white/10 bg-white"
-        title="PDF 预览"
+        :title="$t('admin.shared.admin.AdminMediaPreview.pdfPreview')"
       />
       <pre
         v-else-if="kind === 'text' && textContent"
@@ -227,7 +228,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <div v-else class="flex flex-col items-center gap-3 text-center text-white/50">
         <Icon class="h-10 w-10" name="file-text"/>
         <p class="text-sm">
-          {{ kind === 'text' ? '文件过大或读取失败，暂不支持在线预览' : '该类型暂不支持在线预览' }}
+          {{
+            kind === 'text' ? t('admin.shared.admin.AdminMediaPreview.fileIsTooLargeOrFailedToReadOnlinePreviewIsUnavailable') : t('admin.shared.admin.AdminMediaPreview.thisTypeDoesNotSupportOnlinePreview')
+          }}
         </p>
         <a v-if="current.file_url" :href="current.file_url" class="text-sm text-blue-400 hover:underline" download>
           下载文件
@@ -237,7 +240,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       <button
         v-if="canNext"
         class="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white/70 transition-colors hover:bg-black/70 hover:text-white"
-        title="下一个 (→)"
+        :title="$t('admin.shared.admin.AdminMediaPreview.next')"
         type="button"
         @click="go(1)"
       >

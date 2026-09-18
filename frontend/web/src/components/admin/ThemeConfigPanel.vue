@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 import {computed, onMounted, ref} from 'vue'
 
 import {ElMessage} from '@/utils/feedback'
@@ -42,26 +43,26 @@ const props = defineProps<{
 const SLOT_DEFS = [
   {
     key: 'header',
-    label: '顶部导航',
+    label: t('admin.shared.admin.ThemeConfigPanel.topNavigation'),
     options: [
-      {value: 'floating', label: '浮动胶囊（默认）'},
-      {value: 'classic', label: '经典顶栏'},
+      {value: 'floating', label: t('admin.shared.admin.ThemeConfigPanel.floatingPillDefault')},
+      {value: 'classic', label: t('admin.shared.admin.ThemeConfigPanel.classicHeader')},
     ],
   },
   {
     key: 'articleCard',
-    label: '文章卡片',
+    label: t('admin.shared.admin.ThemeConfigPanel.articleCard'),
     options: [
-      {value: 'default', label: '标准卡片（默认）'},
-      {value: 'compact', label: '紧凑卡片'},
+      {value: 'default', label: t('admin.shared.admin.ThemeConfigPanel.standardCardDefault')},
+      {value: 'compact', label: t('admin.shared.admin.ThemeConfigPanel.compactCard')},
     ],
   },
   {
     key: 'footer',
-    label: '页脚',
+    label: t('admin.shared.admin.ThemeConfigPanel.footer'),
     options: [
-      {value: 'default', label: '标准（默认）'},
-      {value: 'minimal', label: '极简'},
+      {value: 'default', label: t('admin.shared.admin.ThemeConfigPanel.standardDefault')},
+      {value: 'minimal', label: t('admin.shared.admin.ThemeConfigPanel.minimal')},
     ],
   },
 ]
@@ -81,7 +82,7 @@ async function load(): Promise<void> {
   error.value = ''
   try {
     const result = await legacyGet<ThemeConfig>(`/themes/${props.pluginSlug}/config`)
-    if (!result.success) error.value = result.error || '读取主题配置失败'
+    if (!result.success) error.value = result.error || t('admin.shared.admin.ThemeConfigPanel.failedToLoadThemeConfiguration')
     config.value = result.data ?? {}
     settings.value = {...(result.data?.settings ?? {})}
     componentSlots.value = {...(result.data?.contract?.componentSlots ?? {})}
@@ -114,8 +115,8 @@ async function save(): Promise<void> {
       settings: settings.value,
       component_slots: componentSlots.value,
     })
-    if (result.success) ElMessage.success('主题配置已保存')
-    else ElMessage.error(result.error || '保存失败')
+    if (result.success) ElMessage.success(t('admin.shared.admin.ThemeConfigPanel.themeConfigurationSaved'))
+    else ElMessage.error(result.error || t('admin.shared.admin.ThemeConfigPanel.failedToSave'))
   } finally {
     saving.value = false
   }
@@ -225,8 +226,10 @@ onMounted(load)
       <div class="space-y-6 rounded-card border border-line bg-surface p-6">
         <div class="flex items-center gap-3">
           <Icon class="h-5 w-5 text-primary" name="layers"/>
-          <h3 class="text-lg font-medium text-fg">组件</h3>
-          <span class="text-xs text-fg-subtle">选择该主题下各组件使用的变体</span>
+          <h3 class="text-lg font-medium text-fg">{{ $t('admin.shared.admin.ThemeConfigPanel.component') }}</h3>
+          <span class="text-xs text-fg-subtle">{{
+              $t('admin.shared.admin.ThemeConfigPanel.chooseTheVariantUsedByEachComponentInThisTheme')
+            }}</span>
         </div>
 
         <div class="space-y-4 pl-2">

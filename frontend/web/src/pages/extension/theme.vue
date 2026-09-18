@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 主题管理
  *
@@ -17,7 +18,7 @@ import {themeApi, type ThemeConfig, type ThemeInfo} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '主题',
+  title: t('admin.extension.theme.themes'),
   permission: 'module_extension:theme:view',
 })
 
@@ -77,13 +78,13 @@ async function save(): Promise<void> {
   try {
     const parsedSettings = settingsText.value.trim() ? JSON.parse(settingsText.value) : {}
     if (parsedSettings === null || typeof parsedSettings !== 'object' || Array.isArray(parsedSettings)) {
-      throw new Error('设置必须是 JSON 对象')
+      throw new Error(t('admin.extension.theme.settingsMustBeAJsonObject'))
     }
     settings = parsedSettings as Record<string, unknown>
 
     const parsedSlots = slotsText.value.trim() ? JSON.parse(slotsText.value) : {}
     if (parsedSlots === null || typeof parsedSlots !== 'object' || Array.isArray(parsedSlots)) {
-      throw new Error('组件槽位必须是 JSON 对象')
+      throw new Error(t('admin.extension.theme.componentSlotsMustBeAJsonObject'))
     }
     slots = parsedSlots as Record<string, unknown>
   } catch (error) {
@@ -95,7 +96,7 @@ async function save(): Promise<void> {
   try {
     const result = await themeApi.saveConfig(settings, slots)
     config.value = result
-    ElMessage.success('主题配置已保存')
+    ElMessage.success(t('admin.extension.theme.themeConfigurationSaved'))
   } finally {
     saving.value = false
   }
@@ -112,15 +113,16 @@ onMounted(loadAll)
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>当前主题</span>
+              <span>{{ $t('admin.extension.theme.currentTheme') }}</span>
               <el-button :icon="Refresh" link @click="loadAll"/>
             </div>
           </template>
 
           <div v-loading="loading">
             <div v-if="active" class="theme">
-              <img v-if="active.screenshot" :src="String(active.screenshot)" alt="主题截图" class="theme__shot">
-              <div v-else class="theme__placeholder">无预览图</div>
+              <img v-if="active.screenshot" :alt="$t('admin.extension.theme.themeScreenshot')"
+                   :src="String(active.screenshot)" class="theme__shot">
+              <div v-else class="theme__placeholder">{{ $t('admin.extension.theme.noPreviewImage') }}</div>
 
               <p class="theme__name">{{ active.name || active.slug }}</p>
               <p class="theme__meta">
@@ -128,21 +130,22 @@ onMounted(loadAll)
                 <span v-if="active.author"> · {{ active.author }}</span>
               </p>
               <p v-if="active.description" class="theme__desc">{{ active.description }}</p>
-              <el-tag class="mt-2" size="small" type="success">使用中</el-tag>
+              <el-tag class="mt-2" size="small" type="success">{{ $t('admin.extension.theme.inUse') }}</el-tag>
             </div>
-            <el-empty v-else description="无法读取当前主题"/>
+            <el-empty v-else :description="$t('admin.extension.theme.unableToReadTheCurrentTheme')"/>
           </div>
         </el-card>
 
         <!-- schema 字段提示 -->
         <el-card class="mt-4" shadow="never">
-          <template #header><span>可用设置项</span></template>
+          <template #header><span>{{ $t('admin.extension.theme.availableSettings') }}</span></template>
           <el-table v-if="schemaFields.length" :data="schemaFields" border size="small">
-            <el-table-column label="键" min-width="120" prop="key"/>
-            <el-table-column label="类型" prop="type" width="90"/>
-            <el-table-column label="说明" min-width="140" prop="label" show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.extension.theme.key')" min-width="120" prop="key"/>
+            <el-table-column :label="$t('admin.cache.level')" prop="type" width="90"/>
+            <el-table-column :label="$t('admin.extension.theme.description')" min-width="140" prop="label"
+                             show-overflow-tooltip/>
           </el-table>
-          <el-empty v-else description="该主题未声明设置项"/>
+          <el-empty v-else :description="$t('admin.extension.theme.thisThemeDeclaresNoSettings')"/>
         </el-card>
       </el-col>
 
@@ -151,7 +154,7 @@ onMounted(loadAll)
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>主题配置</span>
+              <span>{{ $t('admin.extension.theme.themeConfiguration') }}</span>
               <el-button
                 v-auth="'module_extension:theme:customize'"
                 :icon="Check"
@@ -165,30 +168,31 @@ onMounted(loadAll)
           </template>
 
           <el-form label-position="top">
-            <el-form-item label="设置（JSON）">
+            <el-form-item :label="$t('admin.extension.theme.settingsJson')">
               <el-input v-model="settingsText" :rows="10" placeholder='{ "accent": "blue" }' type="textarea"/>
             </el-form-item>
-            <el-form-item label="组件槽位映射（JSON，可选）">
+            <el-form-item :label="$t('admin.extension.theme.componentSlotMappingJsonOptional')">
               <el-input v-model="slotsText" :rows="6" placeholder='{ "sidebar": ["recent-posts"] }' type="textarea"/>
             </el-form-item>
           </el-form>
 
           <el-alert
             :closable="false"
-            title="主题实现不支持的槽位会被忽略并记录告警，保存不会因此失败。"
+            :title="$t('admin.extension.theme.unsupportedSlotsAreIgnoredAndLoggedSavingWillStillSucceed')"
             type="info"
           />
         </el-card>
 
         <!-- 契约与 CSS -->
         <el-card class="mt-4" shadow="never">
-          <template #header><span>组件槽位契约与前台 CSS</span></template>
+          <template #header><span>{{ $t('admin.extension.theme.componentSlotContractAndFrontendCss') }}</span>
+          </template>
           <el-collapse>
-            <el-collapse-item name="contract" title="组件槽位契约（contract）">
+            <el-collapse-item :title="$t('admin.extension.theme.componentSlotContract')" name="contract">
               <pre class="code">{{ JSON.stringify(contract ?? {}, null, 2) }}</pre>
             </el-collapse-item>
-            <el-collapse-item name="css" title="前台注入的 CSS">
-              <pre class="code">{{ publicCss || '（该主题未提供自定义 CSS）' }}</pre>
+            <el-collapse-item :title="$t('admin.extension.theme.frontendInjectedCss')" name="css">
+              <pre class="code">{{ publicCss || t('admin.extension.theme.thisThemeDoesNotProvideCustomCss') }}</pre>
             </el-collapse-item>
           </el-collapse>
         </el-card>

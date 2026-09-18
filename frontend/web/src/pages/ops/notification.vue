@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 站内通知
  *
@@ -17,7 +18,7 @@ import {formatDateTime} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '通知',
+  title: t('admin.ops.notification.notifications'),
   permission: 'module_ops:notification:view',
 })
 
@@ -78,14 +79,14 @@ async function readAll(): Promise<void> {
 }
 
 async function removeRow(row: NotificationItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除通知「${row.title || row.id}」吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(`确定删除通知「${row.title || row.id}」吗？`, t('admin.common.notice'), {type: 'warning'})
   await notificationApi.remove(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.ops.notification.deleted'))
   await refresh()
 }
 
 async function cleanRead(): Promise<void> {
-  await ElMessageBox.confirm('确定清理全部已读通知吗？此操作不可撤销。', '提示', {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.ops.notification.clearAllReadNotificationsThisActionCannotBeUndone'), t('admin.common.notice'), {type: 'warning'})
   const result = await notificationApi.clean()
   ElMessage.success(`已清理 ${result?.affected ?? 0} 条`)
   await refresh()
@@ -106,19 +107,21 @@ onMounted(refresh)
     <el-card shadow="never">
       <div class="toolbar">
         <el-badge :hidden="unread === 0" :value="unread" class="badge">
-          <el-button :icon="Refresh" @click="refresh">刷新</el-button>
+          <el-button :icon="Refresh" @click="refresh">{{ $t('admin.common.refresh') }}</el-button>
         </el-badge>
 
         <el-switch
           v-model="unreadOnly"
-          active-text="仅未读"
+          :active-text="$t('admin.ops.notification.unreadOnly')"
           inline-prompt
           @change="onFilterChange"
         />
 
         <div class="spacer"/>
 
-        <el-button v-auth="'module_ops:notification:edit'" @click="readAll">全部标记已读</el-button>
+        <el-button v-auth="'module_ops:notification:edit'" @click="readAll">
+          {{ $t('admin.ops.notification.markAllAsRead') }}
+        </el-button>
         <el-button v-auth="'module_ops:notification:edit'" :icon="Delete" plain type="danger" @click="cleanRead">
           清理已读
         </el-button>
@@ -126,30 +129,35 @@ onMounted(refresh)
 
       <el-table v-loading="loading" :data="list" row-key="id">
         <el-table-column label="ID" prop="id" width="80"/>
-        <el-table-column label="类型" width="100">
+        <el-table-column :label="$t('admin.cache.level')" width="100">
           <template #default="{row}">
-            <el-tag :type="typeTag(row.type)" size="small">{{ row.type || '通知' }}</el-tag>
+            <el-tag :type="typeTag(row.type)" size="small">{{
+                row.type || t('admin.ops.notification.notifications')
+              }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="标题" min-width="200">
+        <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="200">
           <template #default="{row}">
             <span :class="row.is_read ? 'read' : 'unread'">{{ row.title || '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="内容" min-width="300" prop="message" show-overflow-tooltip/>
-        <el-table-column label="状态" width="90">
+        <el-table-column :label="$t('article.content')" min-width="300" prop="message" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.common.status')" width="90">
           <template #default="{row}">
             <el-tag :type="row.is_read ? 'info' : 'primary'" size="small">
-              {{ row.is_read ? '已读' : '未读' }}
+              {{ row.is_read ? t('admin.ops.notification.read') : t('admin.ops.notification.unread') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="时间" width="170">
+        <el-table-column :label="$t('admin.system.log.time')" width="170">
           <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="160">
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="160">
           <template #default="{row}">
-            <el-button v-if="!row.is_read" link type="primary" @click="markRead(row)">标记已读</el-button>
+            <el-button v-if="!row.is_read" link type="primary" @click="markRead(row)">
+              {{ $t('admin.ops.notification.markAsRead') }}
+            </el-button>
             <el-button
               v-auth="'module_ops:notification:edit'"
               :icon="Delete"
