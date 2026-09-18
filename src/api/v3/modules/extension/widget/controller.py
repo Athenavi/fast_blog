@@ -26,6 +26,7 @@ from fastapi import APIRouter
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.extension.widget.schema import (
     WidgetCreate,
@@ -52,7 +53,7 @@ async def public_widgets_by_area(area: str, db: DBSession) -> dict:
 @router.get("/types", response_model=ResponseModel, summary="可用部件类型")
 async def widget_types(
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.WIDGET_VIEW),
 ) -> dict:
     return resp.success(await widget_service.widget_types())
 
@@ -60,7 +61,7 @@ async def widget_types(
 @router.get("/areas", response_model=ResponseModel, summary="可用部件区域")
 async def widget_areas(
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.WIDGET_VIEW),
 ) -> dict:
     return resp.success(await widget_service.widget_areas())
 
@@ -71,7 +72,7 @@ async def reorder_widgets(
     payload: WidgetReorderRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.WIDGET_EDIT),
 ) -> dict:
     pairs = [(item.id, item.order_index) for item in payload.items]
     affected = await widget_service.reorder(db, pairs)
@@ -89,7 +90,7 @@ async def reorder_widgets(
 async def list_widgets(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.WIDGET_VIEW),
     area: str | None = None,
     widget_type: str | None = None,
     is_active: bool | None = None,
@@ -112,7 +113,7 @@ async def create_widget(
     payload: WidgetCreate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.WIDGET_EDIT),
 ) -> dict:
     return resp.success(await widget_service.create_widget(db, payload), msg="创建成功")
 
@@ -123,7 +124,7 @@ async def get_widget(
     widget_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.WIDGET_VIEW),
 ) -> dict:
     return resp.success(await widget_service.get_widget(db, widget_id))
 
@@ -140,7 +141,7 @@ async def update_widget(
     payload: WidgetUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.WIDGET_EDIT),
 ) -> dict:
     return resp.success(await widget_service.update_widget(db, widget_id, payload), msg="更新成功")
 
@@ -151,7 +152,7 @@ async def toggle_widget(
     payload: WidgetToggleRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.WIDGET_EDIT),
 ) -> dict:
     data = await widget_service.toggle_widget(db, widget_id, payload.is_active)
     return resp.success(data, msg="已启用" if payload.is_active else "已停用")
@@ -162,7 +163,7 @@ async def delete_widget(
     widget_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.WIDGET_EDIT),
 ) -> dict:
     await widget_service.delete_widget(db, widget_id)
     return resp.success(None, msg="已删除")

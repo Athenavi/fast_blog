@@ -1,8 +1,8 @@
 /**
  * 权限指令
  *
- *   <el-button v-auth="'article:create'">新建</el-button>
- *   <el-button v-auth="['article:edit', 'article:publish']">发布</el-button>   <!-- AND -->
+ *   <el-button v-auth="'module_content:article:create'">新建</el-button>
+ *   <el-button v-auth="['module_content:article:edit', 'module_content:article:publish']">发布</el-button>   <!-- AND -->
  *   <el-button v-role="['admin']">仅管理员可见</el-button>
  *
  * 权限码与后端 `capabilities.code` 一致（`resource:action`），超级管理员直接放行。

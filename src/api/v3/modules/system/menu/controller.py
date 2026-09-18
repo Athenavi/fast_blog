@@ -26,6 +26,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.system.menu.schema import (
     MenuCreate,
@@ -50,7 +51,7 @@ router = APIRouter(prefix="/menu", tags=["system-menu"], route_class=OperationLo
 async def list_menus(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:view"),
+    _perm=AuthControl(codes.NAVMENU_VIEW),
     is_active: Optional[bool] = Query(default=None),
 ) -> dict:
     menus = await menu_service.list_menus(db, is_active=is_active)
@@ -61,7 +62,7 @@ async def list_menus(
 async def menu_tree(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:view"),
+    _perm=AuthControl(codes.NAVMENU_VIEW),
     menu_id: Optional[int] = Query(default=None, description="留空返回全部菜单的树"),
 ) -> dict:
     return resp.success(await menu_service.tree(db, menu_id))
@@ -79,7 +80,7 @@ async def create_menu(
     payload: MenuCreate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:create"),
+    _perm=AuthControl(codes.NAVMENU_CREATE),
 ) -> dict:
     return resp.success(await menu_service.create_menu(db, payload), msg="创建成功")
 
@@ -91,7 +92,7 @@ async def update_menu_item(
     payload: MenuItemUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:edit"),
+    _perm=AuthControl(codes.NAVMENU_EDIT),
 ) -> dict:
     return resp.success(await menu_service.update_item(db, item_id, payload), msg="更新成功")
 
@@ -101,7 +102,7 @@ async def delete_menu_item(
     item_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:delete"),
+    _perm=AuthControl(codes.NAVMENU_DELETE),
 ) -> dict:
     await menu_service.delete_item(db, item_id)
     return resp.success(None, msg="已删除")
@@ -113,7 +114,7 @@ async def get_menu(
     menu_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:view"),
+    _perm=AuthControl(codes.NAVMENU_VIEW),
 ) -> dict:
     return resp.success(await menu_service.get_menu(db, menu_id))
 
@@ -130,7 +131,7 @@ async def update_menu(
     payload: MenuUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:edit"),
+    _perm=AuthControl(codes.NAVMENU_EDIT),
 ) -> dict:
     return resp.success(await menu_service.update_menu(db, menu_id, payload), msg="更新成功")
 
@@ -140,7 +141,7 @@ async def delete_menu(
     menu_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:delete"),
+    _perm=AuthControl(codes.NAVMENU_DELETE),
 ) -> dict:
     await menu_service.delete_menu(db, menu_id)
     return resp.success(None, msg="已删除")
@@ -152,7 +153,7 @@ async def add_menu_item(
     payload: MenuItemCreate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:create"),
+    _perm=AuthControl(codes.NAVMENU_CREATE),
 ) -> dict:
     return resp.success(await menu_service.add_item(db, menu_id, payload), msg="创建成功")
 
@@ -163,7 +164,7 @@ async def reorder_menu_items(
     payload: MenuItemOrderRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("menu:edit"),
+    _perm=AuthControl(codes.NAVMENU_EDIT),
 ) -> dict:
     order = [(item.id, item.order_index) for item in payload.items]
     return resp.success(await menu_service.reorder_items(db, menu_id, order), msg="排序已更新")

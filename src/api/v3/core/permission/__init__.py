@@ -9,10 +9,13 @@
 | `loader.py` | 权限码加载（PostgreSQL 递归 CTE 解析角色继承） |
 | `control.py` | `AuthPermission`：ANY 语义 + 通配 + 单点 superuser bypass + fail-closed |
 | `invalidate.py` | 失效与跨进程广播（覆盖所有权限变更点） |
+| `codes.py` | 权限码常量（单一真相；P4 三段式迁移只改这里 + seed） |
+| `scope.py` | 数据范围过滤（权限组）：`apply_data_scope` + `DATA_SCOPED_MODELS` 显式登记 + 组集合缓存 |
 
-> 数据范围（权限组）过滤将在后续阶段以 `scope.py` 加入本包。
+> 数据范围（权限组）过滤已在 `scope.py` 落地。
 """
 
+from src.api.v3.core.permission import codes
 from src.api.v3.core.permission.cache import memory_cache
 from src.api.v3.core.permission.constants import (
     DATA_SCOPE_ALL,
@@ -34,6 +37,7 @@ from src.api.v3.core.permission.invalidate import (
 from src.api.v3.core.permission.loader import load_codes, load_codes_from_db
 
 __all__ = [
+    "codes",
     # 常量
     "DATA_SCOPE_SELF",
     "DATA_SCOPE_GROUP_AND_CHILD",

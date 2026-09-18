@@ -23,6 +23,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.category.schema import CategoryCreate, CategoryUpdate
 from src.api.v3.modules.content.category.service import category_service
@@ -53,7 +54,7 @@ async def public_category_tree(db: DBSession) -> dict:
 async def list_categories(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("category:view"),
+    _perm=AuthControl(codes.CATEGORY_VIEW),
     is_visible: Optional[bool] = Query(default=None),
     keyword: Optional[str] = Query(default=None),
 ) -> dict:
@@ -65,7 +66,7 @@ async def list_categories(
 async def category_tree(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("category:view"),
+    _perm=AuthControl(codes.CATEGORY_VIEW),
     is_visible: Optional[bool] = Query(default=None),
 ) -> dict:
     return resp.success(await category_service.tree(db, is_visible=is_visible))
@@ -83,7 +84,7 @@ async def create_category(
     payload: CategoryCreate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("category:create"),
+    _perm=AuthControl(codes.CATEGORY_CREATE),
 ) -> dict:
     return resp.success(await category_service.create_category(db, payload), msg="创建成功")
 
@@ -98,7 +99,7 @@ async def create_category(
 async def delete_category_compat(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("category:delete"),
+    _perm=AuthControl(codes.CATEGORY_DELETE),
     category_id: int = Query(description="待删除分类 id"),
 ) -> dict:
     await category_service.delete_category(db, category_id)
@@ -117,7 +118,7 @@ async def get_category(
     category_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("category:view"),
+    _perm=AuthControl(codes.CATEGORY_VIEW),
 ) -> dict:
     category = await category_service.get_category(db, category_id)
     from src.api.v3.modules.content.category.schema import CategoryOut
@@ -137,7 +138,7 @@ async def update_category(
     payload: CategoryUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("category:edit"),
+    _perm=AuthControl(codes.CATEGORY_EDIT),
 ) -> dict:
     return resp.success(await category_service.update_category(db, category_id, payload), msg="更新成功")
 
@@ -147,7 +148,7 @@ async def delete_category(
     category_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("category:delete"),
+    _perm=AuthControl(codes.CATEGORY_DELETE),
 ) -> dict:
     await category_service.delete_category(db, category_id)
     return resp.success(None, msg="已删除")

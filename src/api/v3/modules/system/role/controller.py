@@ -23,6 +23,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.system.role.schema import (
     RoleCreate,
@@ -46,7 +47,7 @@ async def list_roles(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_VIEW),
     is_system: Optional[bool] = Query(default=None),
     is_active: Optional[bool] = Query(default=None),
 ) -> dict:
@@ -73,7 +74,7 @@ async def create_role(
     payload: RoleCreate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
     return resp.success(await role_service.create_role(db, payload), msg="创建成功")
 
@@ -88,7 +89,7 @@ async def create_role(
 async def delete_role_compat(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_EDIT),
     role_id: int = Query(description="待删除角色 id"),
 ) -> dict:
     await role_service.delete_role(db, role_id)
@@ -106,7 +107,7 @@ async def get_role_permissions_compat(
     role_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.ROLE_VIEW),
 ) -> dict:
     return resp.success(await role_service.get_permissions(db, role_id))
 
@@ -122,7 +123,7 @@ async def set_role_permissions_compat(
     payload: RolePermissionsRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
     codes = await role_service.set_permissions(db, role_id, payload.permission_codes)
     return resp.success(codes, msg="权限已更新")
@@ -140,7 +141,7 @@ async def get_role(
     role_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_VIEW),
 ) -> dict:
     return resp.success(await role_service.get_role_out(db, role_id))
 
@@ -157,7 +158,7 @@ async def update_role(
     payload: RoleUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
     return resp.success(await role_service.update_role(db, role_id, payload), msg="更新成功")
 
@@ -167,7 +168,7 @@ async def delete_role(
     role_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
     await role_service.delete_role(db, role_id)
     return resp.success(None, msg="已删除")
@@ -178,7 +179,7 @@ async def get_role_permissions(
     role_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.ROLE_VIEW),
 ) -> dict:
     return resp.success(await role_service.get_permissions(db, role_id))
 
@@ -189,7 +190,7 @@ async def set_role_permissions(
     payload: RolePermissionsRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
     codes = await role_service.set_permissions(db, role_id, payload.permission_codes)
     return resp.success(codes, msg="权限已更新")

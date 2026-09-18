@@ -124,6 +124,26 @@ def get_redis() -> Any:
     return _redis_singleton
 
 
+def native_client() -> Any:
+    """取原生 Redis 客户端（发布/订阅用）
+
+    注意：``redis_service`` 在**未连接**时其 ``.redis`` 属性会 **raise**（而不是返回 None），
+    因此这里必须捕获异常并统一降级为 None —— 否则"Redis 不可用时降级"的约定会被打破
+    （实测：未连接时直接抛 RuntimeError）。
+    """
+    redis = get_redis()
+    if redis is None:
+        return None
+    try:
+        client = getattr(redis, "redis", None)
+    except Exception:  # noqa: BLE001
+        return None
+    if client is not None:
+        return client
+    # 兼容"本身就是原生客户端"的形态（例如测试替身）
+    return redis if hasattr(redis, "publish") else None
+
+
 def reset_redis_singleton() -> None:
     """测试用：重置 Redis 单例解析状态"""
     global _redis_singleton, _redis_resolved
@@ -183,10 +203,9 @@ async def redis_publish_invalidate(user_id: Optional[int]) -> None:
     注意：`redis_service` 是封装类，**原生客户端在 `.redis` 属性上**；
     这里对两种形态都兼容，避免因封装差异导致广播静默失效。
     """
-    redis = get_redis()
-    if redis is None:
+    client = native_client()
+    if client is None:
         return
-    client = getattr(redis, "redis", None) or redis
     try:
         await client.publish(INVALIDATE_CHANNEL, "all" if user_id is None else str(user_id))
     except Exception as exc:  # noqa: BLE001
@@ -203,6 +222,7 @@ __all__ = [
     "get_request_codes",
     "set_request_codes",
     "get_redis",
+    "native_client",
     "redis_get_codes",
     "redis_set_codes",
     "redis_delete_codes",

@@ -4,7 +4,7 @@
 """
 
 from datetime import datetime
-from typing import List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Sequence, Tuple
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +14,7 @@ from shared.models.comment.comment import Comment
 from shared.models.comment.comment_vote import CommentVote
 from src.api.v3.core.exceptions import NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission.scope import ensure_object_in_scope
 from src.api.v3.modules.content.comment.crud import comment_crud
 from src.api.v3.modules.content.comment.schema import CommentCreate
 
@@ -94,6 +95,7 @@ class CommentService:
         is_approved: Optional[bool] = None,
         order_by: Optional[str] = None,
         order: str = "desc",
+        scope_user: Any = None,
     ) -> Tuple[List[dict], int]:
         items, total = await comment_crud.list(
             db,
@@ -103,18 +105,25 @@ class CommentService:
             filters={"article_id": article_id, "user_id": user_id, "is_approved": is_approved},
             order_by=order_by or "id",
             order=order,
+            scope_user=scope_user,
         )
         return [to_admin_out(comment) for comment in items], total
 
     async def list_pending(
-        self, db: AsyncSession, *, page: int = 1, page_size: int = 20
+        self, db: AsyncSession, *, page: int = 1, page_size: int = 20, scope_user: Any = None
     ) -> Tuple[List[dict], int]:
-        return await self.list_comments(db, page=page, page_size=page_size, is_approved=False)
+        return await self.list_comments(
+            db, page=page, page_size=page_size, is_approved=False, scope_user=scope_user
+        )
 
-    async def get_comment(self, db: AsyncSession, comment_id: int) -> dict:
+    async def get_comment(
+        self, db: AsyncSession, comment_id: int, *, scope_user: Any = None
+    ) -> dict:
         comment = await comment_crud.get(db, comment_id)
         if comment is None:
             raise NotFoundError("评论不存在")
+        if scope_user is not None:
+            await ensure_object_in_scope(db, Comment, comment, user=scope_user)
         return to_admin_out(comment)
 
     async def create_comment(

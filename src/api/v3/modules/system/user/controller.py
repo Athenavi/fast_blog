@@ -31,6 +31,7 @@ from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
 from src.api.v3.core.exceptions import BadRequestError
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.system.user.schema import (
     RoleAssignRequest,
@@ -62,7 +63,7 @@ async def list_users(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.USER_VIEW),
     is_active: Optional[bool] = Query(default=None, description="按启用状态过滤"),
     is_superuser: Optional[bool] = Query(default=None, description="按超管标记过滤"),
 ) -> dict:
@@ -89,7 +90,7 @@ async def create_user(
     payload: UserCreate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:create"),
+    _perm=AuthControl(codes.USER_CREATE),
 ) -> dict:
     user = await user_service.create_user(db, payload)
     return resp.success(_out(user), msg="创建成功")
@@ -105,7 +106,7 @@ async def create_user(
 async def delete_users_compat(
     db: DBSession,
     current: CurrentUser,
-    _perm=AuthControl("user:delete"),
+    _perm=AuthControl(codes.USER_DELETE),
     ids: List[int] = Query(default=[], description="待删除的用户 id 列表"),
     force: bool = Query(default=False, description="true=物理删除"),
 ) -> dict:
@@ -128,7 +129,7 @@ async def get_user(
     user_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.USER_VIEW),
 ) -> dict:
     user = await user_service.get_user(db, user_id)
     return resp.success(_out(user))
@@ -147,7 +148,7 @@ async def update_user(
     payload: UserUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:edit"),
+    _perm=AuthControl(codes.USER_EDIT),
 ) -> dict:
     user = await user_service.update_user(db, user_id, payload)
     return resp.success(_out(user), msg="更新成功")
@@ -159,7 +160,7 @@ async def delete_user(
     user_id: int,
     db: DBSession,
     current: CurrentUser,
-    _perm=AuthControl("user:delete"),
+    _perm=AuthControl(codes.USER_DELETE),
     force: bool = Query(default=False, description="true=物理删除；默认仅停用"),
 ) -> dict:
     await user_service.delete_user(db, user_id, current.id, force=force)
@@ -173,7 +174,7 @@ async def set_user_status(
     payload: UserStatusUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:edit"),
+    _perm=AuthControl(codes.USER_EDIT),
 ) -> dict:
     user = await user_service.set_status(db, user_id, payload.is_active)
     return resp.success(_out(user), msg="已启用" if payload.is_active else "已停用")
@@ -185,7 +186,7 @@ async def get_user_roles(
     user_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.USER_VIEW),
 ) -> dict:
     return resp.success(await user_service.get_user_roles(db, user_id))
 
@@ -196,7 +197,7 @@ async def set_user_roles(
     payload: RoleAssignRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:manage_roles"),
+    _perm=AuthControl(codes.USER_MANAGE_ROLES),
 ) -> dict:
     roles = await user_service.set_user_roles(db, user_id, payload.role_ids)
     return resp.success(roles, msg="角色已更新")
@@ -207,6 +208,6 @@ async def get_user_permissions(
     user_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.USER_VIEW),
 ) -> dict:
     return resp.success(await user_service.get_user_permissions(db, user_id))

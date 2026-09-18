@@ -20,6 +20,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.system.log.schema import AuditCleanupRequest
 from src.api.v3.modules.system.log.service import log_service
@@ -32,7 +33,7 @@ async def list_audit_logs(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.LOG_VIEW),
     user_id: Optional[int] = Query(default=None),
     action: Optional[str] = Query(default=None),
     level: Optional[str] = Query(default=None),
@@ -59,7 +60,7 @@ async def list_audit_logs(
 async def export_audit_logs(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.LOG_VIEW),
     output_format: str = Query(default="json", pattern="^(json|csv)$"),
     user_id: Optional[int] = Query(default=None),
     action: Optional[str] = Query(default=None),
@@ -84,7 +85,7 @@ async def cleanup_audit_logs(
     payload: AuditCleanupRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.LOG_EDIT),
 ) -> dict:
     deleted = await log_service.cleanup_audit_logs(db, payload.days)
     return resp.success({"deleted": deleted}, msg=f"已清理 {deleted} 条")
@@ -94,7 +95,7 @@ async def cleanup_audit_logs(
 async def locked_users(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.LOG_VIEW),
 ) -> dict:
     users = await log_service.locked_users(db)
     return resp.success_page(users, len(users), 1, len(users) or 1)
@@ -105,7 +106,7 @@ async def user_login_history(
     username: str,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.LOG_VIEW),
     limit: int = Query(default=50, ge=1, le=500),
 ) -> dict:
     history = await log_service.user_login_history(username, limit=limit, db=db)
@@ -117,7 +118,7 @@ async def user_security_stats(
     username: str,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.LOG_VIEW),
 ) -> dict:
     stats = await log_service.user_security_stats(username, db=db)
     return resp.success({"username": username, "stats": stats})

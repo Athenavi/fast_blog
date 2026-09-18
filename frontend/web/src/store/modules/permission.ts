@@ -3,7 +3,7 @@
 import {defineStore} from 'pinia'
 import type {RouteRecordRaw} from 'vue-router'
 
-import {asyncRoutes, type AppRouteMeta} from '@/router/routes'
+import {type AppRouteMeta, asyncRoutes} from '@/router/routes'
 
 export interface SidebarMenuItem {
   path: string
@@ -33,13 +33,25 @@ export const usePermissionStore = defineStore('permission', {
   }),
 
   actions: {
-    buildRoutes(permissions: string[], isSuperuser: boolean): void {
+    buildRoutes(permissions: string[], menuCodes: string[], isSuperuser: boolean): void {
       const owned = new Set(permissions)
-      const allowed = (permission?: string) => !permission || isSuperuser || owned.has(permission)
+      const ownedMenus = new Set(menuCodes)
+      // 菜单级授权门：后端尚未下发任何菜单授权时不启用，
+      // 避免"已迁移但未跑 seed_admin_menus"时菜单整片消失。
+      const menuGate = ownedMenus.size > 0
+
+      const allowed = (route: RouteRecordRaw): boolean => {
+        if (isSuperuser) return true
+        const meta = metaOf(route)
+        const permissionOk = !meta?.permission || owned.has(meta.permission)
+        // 菜单授权取路由 name，与后端 admin_menus.code 一一对应；两者是 AND 语义
+        const menuOk = !menuGate || (route.name != null && ownedMenus.has(String(route.name)))
+        return permissionOk && menuOk
+      }
 
       const filter = (routes: RouteRecordRaw[]): RouteRecordRaw[] =>
         routes
-          .filter((route) => allowed(metaOf(route)?.permission))
+          .filter((route) => allowed(route))
           .map((route) =>
             route.children ? {...route, children: filter(route.children)} : {...route},
           )

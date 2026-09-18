@@ -16,6 +16,7 @@ from shared.models.article.article_seo import ArticleSEO
 from src.api.v3.common.tags import normalize_tags
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission.scope import ensure_object_in_scope
 from src.api.v3.modules.content.article.crud import article_crud
 from src.api.v3.modules.content.article.schema import (
     STATUS_DELETED,
@@ -137,6 +138,7 @@ class ArticleService:
         is_sticky: Optional[bool] = None,
         order_by: Optional[str] = None,
         order: str = "desc",
+        scope_user: Any = None,
     ) -> Tuple[List[dict], int]:
         items, total = await article_crud.list(
             db,
@@ -153,6 +155,7 @@ class ArticleService:
             },
             order_by=order_by or "id",
             order=order,
+            scope_user=scope_user,
         )
         return [to_out(article) for article in items], total
 
@@ -163,10 +166,13 @@ class ArticleService:
         *,
         with_content: bool = True,
         language_code: Optional[str] = None,
+        scope_user: Any = None,
     ) -> dict:
         article = await article_crud.get(db, article_id)
         if article is None:
             raise NotFoundError("文章不存在")
+        if scope_user is not None:
+            await ensure_object_in_scope(db, Article, article, user=scope_user)
 
         data = to_out(article)
         if with_content:

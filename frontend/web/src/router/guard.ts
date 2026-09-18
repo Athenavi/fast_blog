@@ -35,7 +35,7 @@ export function setupRouterGuard(router: Router): void {
       }
 
       const permissionStore = usePermissionStore()
-      permissionStore.buildRoutes(userStore.permissions, userStore.isSuperuser)
+      permissionStore.buildRoutes(userStore.permissions, userStore.menuCodes, userStore.isSuperuser)
       registerDynamicRoutes(permissionStore.routes)
       registerCatchAll()
 

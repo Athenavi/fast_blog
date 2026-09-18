@@ -23,6 +23,7 @@ export const useUserStore = defineStore('user', {
     isLoggedIn: (state) => Boolean(state.token),
     isSuperuser: (state) => Boolean(state.userInfo?.is_superuser),
     permissions: (state) => state.userInfo?.permissions ?? [],
+    menuCodes: (state) => state.userInfo?.menu_codes ?? [],
     roles: (state) => state.userInfo?.roles ?? [],
     displayName: (state) => state.userInfo?.username || '未登录',
   },

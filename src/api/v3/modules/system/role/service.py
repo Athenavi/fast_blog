@@ -15,6 +15,7 @@ from shared.models.rbac.role_capability import RoleCapability
 from shared.models.rbac.user_role import UserRole
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission.invalidate import invalidate_all
 from src.api.v3.modules.system.role.crud import role_crud
 from src.api.v3.modules.system.role.schema import RoleCreate, RoleUpdate
 
@@ -97,6 +98,7 @@ class RoleService:
         )
         if payload.permission_codes:
             await self.set_permissions(db, role.id, payload.permission_codes)
+        await invalidate_all()
         return await self._to_out(db, role)
 
     async def update_role(self, db: AsyncSession, role_id: int, payload: RoleUpdate) -> dict:
@@ -107,6 +109,8 @@ class RoleService:
         if role.is_system and "name" in data and not data["name"]:
             raise BadRequestError("系统角色的名称不能为空")
         role = await role_crud.update(db, role, data)
+        # 父角色变更会影响继承，直接清空全部权限缓存（角色变更是低频操作）
+        await invalidate_all()
         return await self._to_out(db, role)
 
     async def delete_role(self, db: AsyncSession, role_id: int) -> None:
@@ -120,6 +124,7 @@ class RoleService:
 
         await db.execute(RoleCapability.__table__.delete().where(RoleCapability.role_id == role_id))
         await role_crud.remove(db, role)
+        await invalidate_all()
 
     async def get_permissions(self, db: AsyncSession, role_id: int) -> List[str]:
         await self.get_role(db, role_id)
@@ -157,6 +162,7 @@ class RoleService:
         for cap in caps:
             db.add(RoleCapability(role_id=role.id, capability_id=cap.id))
         await db.commit()
+        await invalidate_all()
         return await self.get_permissions(db, role.id)
 
 

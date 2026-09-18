@@ -5227,6 +5227,112 @@ models:
         columns:
           - created_at
         comment: 时间索引
+  AdminMenu:
+    description: 后台管理菜单模型（菜单级授权载体：目录/菜单/按钮三级，code 与前端路由 meta.menuCode 对应）
+    status: active
+    frontend_page: /admin/menus
+    properties:
+      id:
+        type: bigint
+        description: 菜单 ID
+      code:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 菜单稳定标识（与前端路由 meta.menuCode 一一对应）
+      title:
+        type: string
+        maxLength: 100
+        description: 菜单名称
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父菜单 ID（目录/菜单/按钮的树形层级）
+        foreignKey: AdminMenu
+      menu_type:
+        type: integer
+        default: 2
+        description: 菜单类型（1 目录 / 2 菜单 / 3 按钮）
+      permission_code:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 关联权限码（按钮级通常填写，与 capabilities.code 同构）
+      sort_order:
+        type: bigint
+        default: 0
+        description: 显示排序
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: rbac
+    orm: true
+    table: admin_menus
+    indexes:
+      - name: idx_admin_menus_code
+        columns:
+          - code
+        unique: true
+        comment: 菜单标识唯一索引
+      - name: idx_admin_menus_parent
+        columns:
+          - parent_id
+        comment: 父菜单索引（树形查询）
+      - name: idx_admin_menus_active
+        columns:
+          - is_active
+        comment: 激活状态索引
+      - name: idx_admin_menus_sort
+        columns:
+          - sort_order
+        comment: 排序索引
+  RoleAdminMenu:
+    description: 角色-后台菜单关联模型（菜单级授权）
+    status: active
+    frontend_page: /admin/menus
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      role_id:
+        type: bigint
+        description: 角色 ID
+        foreignKey: Role
+      admin_menu_id:
+        type: bigint
+        description: 菜单 ID
+        foreignKey: AdminMenu
+      created_at:
+        type: string
+        format: date-time
+        description: 授权时间
+    module: rbac
+    orm: true
+    table: role_admin_menus
+    indexes:
+      - name: idx_role_admin_menus_role
+        columns:
+          - role_id
+        comment: 角色授权查询索引
+      - name: idx_role_admin_menus_menu
+        columns:
+          - admin_menu_id
+        comment: 菜单被授权集合索引
+      - name: idx_role_admin_menus_unique
+        columns:
+          - role_id
+          - admin_menu_id
+        unique: true
+        comment: 防止重复授权
   PermissionGroup:
     description: 权限用户组模型（替代官方的“部门”，承载数据权限范围）
     status: active

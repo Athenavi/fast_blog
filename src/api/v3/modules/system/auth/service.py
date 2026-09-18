@@ -178,9 +178,17 @@ class AuthService:
         )
 
     async def build_current_user(self, db: AsyncSession, user: UserModel) -> dict:
-        """组装当前用户信息（含角色 slug 与权限码，供前端菜单/按钮权限使用）"""
+        """组装当前用户信息（含角色 slug、权限码与菜单授权，供前端菜单/按钮权限使用）"""
         permissions = sorted(await rbac_service.get_permission_codes_set(db, user.id))
         roles = [role.slug for role in await rbac_service.get_user_roles(db, user.id)]
+
+        # 菜单级授权（P3：后端管授权、前端管结构）。延迟导入避免模块加载环。
+        from src.api.v3.modules.system.admin_menu.service import admin_menu_service
+
+        menu_codes = await admin_menu_service.menu_codes_with_ancestors(
+            db, user.id, is_superuser=bool(user.is_superuser)
+        )
+
         return {
             "id": user.id,
             "username": user.username,
@@ -193,6 +201,7 @@ class AuthService:
             "profile_picture": user.profile_picture,
             "roles": roles,
             "permissions": permissions,
+            "menu_codes": menu_codes,
         }
 
 

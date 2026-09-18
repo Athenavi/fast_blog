@@ -32,8 +32,13 @@ export interface CurrentUser {
   profile_picture?: string | null
   /** 角色 slug 列表 */
   roles: string[]
-  /** 权限码（resource:action），前端 v-auth 与菜单过滤都基于它 */
+  /** 权限码（resource:action），前端 v-auth 与按钮级权限基于它 */
   permissions: string[]
+  /**
+   * 菜单授权标识（= 路由 name）。后端管授权、前端管结构：后端只下发"哪些菜单被授权"，
+   * 菜单长什么样仍由前端 routes.ts 决定。已由后端补齐祖先目录。
+   */
+  menu_codes?: string[]
 }
 
 export const authApi = {

@@ -21,6 +21,7 @@ from fastapi import APIRouter
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.extension.theme.schema import ThemeConfigUpdate
 from src.api.v3.modules.extension.theme.service import theme_ops_service
@@ -43,7 +44,7 @@ async def public_theme_config() -> dict:
 @router.get("/active", response_model=ResponseModel, summary="当前主题信息")
 async def active_theme(
     _current: CurrentUser,
-    _perm=AuthControl("theme:view"),
+    _perm=AuthControl(codes.THEME_VIEW),
 ) -> dict:
     return resp.success(await theme_ops_service.active_theme())
 
@@ -51,7 +52,7 @@ async def active_theme(
 @router.get("/active/config", response_model=ResponseModel, summary="当前主题配置")
 async def active_theme_config(
     _current: CurrentUser,
-    _perm=AuthControl("theme:view"),
+    _perm=AuthControl(codes.THEME_VIEW),
 ) -> dict:
     return resp.success(await theme_ops_service.active_config())
 
@@ -60,7 +61,7 @@ async def active_theme_config(
 async def update_theme_config(
     payload: ThemeConfigUpdate,
     _current: CurrentUser,
-    _perm=AuthControl("theme:customize"),
+    _perm=AuthControl(codes.THEME_CUSTOMIZE),
 ) -> dict:
     data = await theme_ops_service.update_config(
         settings=payload.settings, component_slots=payload.component_slots
@@ -71,7 +72,7 @@ async def update_theme_config(
 @router.get("/active/schema", response_model=ResponseModel, summary="主题配置 schema 与槽位")
 async def active_theme_schema(
     _current: CurrentUser,
-    _perm=AuthControl("theme:view"),
+    _perm=AuthControl(codes.THEME_VIEW),
 ) -> dict:
     return resp.success(await theme_ops_service.active_schema())
 
@@ -79,6 +80,6 @@ async def active_theme_schema(
 @router.get("/active/contract", response_model=ResponseModel, summary="主题契约")
 async def active_theme_contract(
     _current: CurrentUser,
-    _perm=AuthControl("theme:view"),
+    _perm=AuthControl(codes.THEME_VIEW),
 ) -> dict:
     return resp.success(await theme_ops_service.active_contract())

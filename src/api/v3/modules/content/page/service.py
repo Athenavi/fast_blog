@@ -4,13 +4,14 @@
 """
 
 from datetime import datetime
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.page.pages import Pages
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission.scope import ensure_object_in_scope
 from src.api.v3.modules.content.page.crud import page_crud
 from src.api.v3.modules.content.page.schema import (
     STATUS_DRAFT,
@@ -64,6 +65,7 @@ class PageService:
         parent_id: Optional[int] = None,
         order_by: Optional[str] = None,
         order: str = "asc",
+        scope_user: Any = None,
     ) -> Tuple[List[dict], int]:
         items, total = await page_crud.list(
             db,
@@ -73,13 +75,18 @@ class PageService:
             filters={"status": status, "parent_id": parent_id},
             order_by=order_by or "order_index",
             order=order,
+            scope_user=scope_user,
         )
         return [_out(page) for page in items], total
 
-    async def get_page(self, db: AsyncSession, page_id: int) -> dict:
+    async def get_page(
+        self, db: AsyncSession, page_id: int, *, scope_user: Any = None
+    ) -> dict:
         page = await page_crud.get(db, page_id)
         if page is None:
             raise NotFoundError("页面不存在")
+        if scope_user is not None:
+            await ensure_object_in_scope(db, Pages, page, user=scope_user)
         return _out(page, with_content=True)
 
     async def create_page(

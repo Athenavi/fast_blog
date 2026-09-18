@@ -17,6 +17,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.tag.schema import TagDeleteRequest, TagRenameRequest
 from src.api.v3.modules.content.tag.service import tag_service
@@ -71,7 +72,7 @@ async def public_articles_by_tag(
 async def list_tags(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.TAG_VIEW),
     limit: int = Query(default=200, ge=1, le=1000),
     min_count: int = Query(default=1, ge=1),
     keyword: Optional[str] = Query(default=None),
@@ -88,7 +89,7 @@ async def rename_tag(
     payload: TagRenameRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:edit"),
+    _perm=AuthControl(codes.TAG_EDIT),
 ) -> dict:
     result = await tag_service.rename_tag(db, payload.old_name, payload.new_name)
     return resp.success(result, msg="重命名完成")
@@ -99,7 +100,7 @@ async def delete_tag(
     payload: TagDeleteRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:edit"),
+    _perm=AuthControl(codes.TAG_EDIT),
 ) -> dict:
     result = await tag_service.delete_tag(db, payload.name)
     return resp.success(result, msg="已从文章中移除")
@@ -110,7 +111,7 @@ async def articles_by_tag(
     tag: str,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.TAG_VIEW),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=20, ge=1, le=100),
     published_only: bool = Query(default=False),

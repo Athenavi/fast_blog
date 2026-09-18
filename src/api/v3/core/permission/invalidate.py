@@ -10,13 +10,14 @@
 """
 
 import asyncio
-from typing import Any, Optional
+from typing import Optional
 
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission.cache import (
     INVALIDATE_CHANNEL,
     get_redis,
     memory_cache,
+    native_client,
     redis_delete_codes,
     redis_publish_invalidate,
 )
@@ -45,18 +46,11 @@ async def invalidate_all() -> None:
     await redis_publish_invalidate(None)
 
 
-def _native_client(redis: Any) -> Any:
-    """取原生 Redis 客户端（订阅/发布用）"""
-    if redis is None:
-        return None
-    return getattr(redis, "redis", None) or redis
-
-
 async def _subscribe_forever() -> None:
     global _subscriber_running
 
     redis = get_redis()
-    client = _native_client(redis)
+    client = native_client()
     if client is None:
         logger.info("Redis 不可用，跳过权限缓存失效频道订阅（降级为 TTL 过期）")
         return
@@ -65,7 +59,7 @@ async def _subscribe_forever() -> None:
     if getattr(redis, "_redis", None) is None and hasattr(redis, "connect"):
         try:
             await redis.connect()
-            client = _native_client(redis) or client
+            client = native_client() or client
         except Exception as exc:  # noqa: BLE001
             logger.info("Redis 未连接，跳过权限失效频道订阅：%s", exc)
             return

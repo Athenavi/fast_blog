@@ -17,6 +17,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.modules.analytics.search.service import search_analytics_service
 
 router = APIRouter(prefix="/search", tags=["analytics-search"])
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/search", tags=["analytics-search"])
 async def search_summary(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SEARCH_VIEW),
     days: Optional[int] = Query(default=None, ge=1, le=365),
 ) -> dict:
     return resp.success(await search_analytics_service.summary(db, days=days))
@@ -36,7 +37,7 @@ async def search_summary(
 async def popular_keywords(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SEARCH_VIEW),
     limit: int = Query(default=20, ge=1, le=200),
     days: Optional[int] = Query(default=None, ge=1, le=365),
 ) -> dict:
@@ -47,7 +48,7 @@ async def popular_keywords(
 async def zero_result_keywords(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SEARCH_VIEW),
     limit: int = Query(default=20, ge=1, le=200),
     days: Optional[int] = Query(default=None, ge=1, le=365),
 ) -> dict:
@@ -58,7 +59,7 @@ async def zero_result_keywords(
 async def search_trend(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SEARCH_VIEW),
     days: int = Query(default=30, ge=1, le=365),
 ) -> dict:
     return resp.success(await search_analytics_service.trend(db, days=days))

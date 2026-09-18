@@ -15,100 +15,41 @@ from datetime import datetime
 from sqlalchemy import select
 
 from shared.models.rbac import Capability, Role, RoleCapability
+from src.api.v3.core.permission import codes as C
+from src.api.v3.core.permission.codes import CODE_LABELS
 from src.utils.database.main import get_async_session_context
+
 
 # ============================================================
 # 预定义权限列表（与已删除的 permission_system.py 一致）
 # ============================================================
-PERMISSIONS = {
-    "article": {
-        "view": "查看文章",
-        "create": "创建文章",
-        "edit": "编辑文章",
-        "delete": "删除文章",
-        "publish": "发布文章",
-        "edit_others": "编辑他人文章",
-        "delete_others": "删除他人文章",
-    },
-    "category": {
-        "view": "查看分类",
-        "create": "创建分类",
-        "edit": "编辑分类",
-        "delete": "删除分类",
-    },
-    "page": {
-        "view": "查看页面",
-        "create": "创建页面",
-        "edit": "编辑页面",
-        "delete": "删除页面",
-        "publish": "发布页面",
-    },
-    "menu": {
-        "view": "查看菜单",
-        "create": "创建菜单",
-        "edit": "编辑菜单",
-        "delete": "删除菜单",
-    },
-    "media": {
-        "view": "查看媒体",
-        "upload": "上传文件",
-        "delete": "删除文件",
-    },
-    "user": {
-        "view": "查看用户",
-        "create": "创建用户",
-        "edit": "编辑用户",
-        "delete": "删除用户",
-        "manage_roles": "管理角色",
-    },
-    "plugin": {
-        "view": "查看插件",
-        "install": "安装插件",
-        "activate": "激活/停用插件",
-        "delete": "删除插件",
-        "configure": "配置插件",
-    },
-    "theme": {
-        "view": "查看主题",
-        "install": "安装主题",
-        "activate": "激活主题",
-        "delete": "删除主题",
-        "customize": "自定义主题",
-    },
-    "settings": {
-        "view": "查看设置",
-        "edit": "编辑设置",
-    },
-    "backup": {
-        "create": "创建备份",
-        "restore": "恢复备份",
-        "delete": "删除备份",
-    },
-    "comment": {
-        "view": "查看评论",
-        "approve": "审核评论",
-        "edit": "编辑评论",
-        "delete": "删除评论",
-    },
-}
+# ============================================================
+# 权限清单：**唯一真相在 src/api/v3/core/permission/codes.py**
+# 这里只做 (code, label) → (code, name, resource_type, action) 的展开
+# ============================================================
 
 
 def _build_capability_list():
-    """将 PERMISSIONS 字典展开为 (code, name, resource_type, action) 列表"""
+    """把 CODE_LABELS 展开为 (code, name, resource_type, action) 列表
+
+    ``resource_type`` / ``action`` 由三段码自身解析：``module_{域}:{模块}:{动作}``。
+    """
     result = []
-    for resource, actions in PERMISSIONS.items():
-        for action, label in actions.items():
-            code = f"{resource}:{action}"
-            result.append((code, label, resource, action))
+    for code, label in CODE_LABELS.items():
+        parts = code.split(":")
+        if len(parts) != 3:
+            raise ValueError(f"权限码必须是三段式 module_{{域}}:{{模块}}:{{动作}}，收到：{code}")
+        _domain, module, action = parts
+        result.append((code, label, module, action))
     return result
 
 
 ALL_CAPABILITIES = _build_capability_list()
 
 
-def _cap_codes(*specs):
-    """根据 (resource, action) 对生成 capability code 列表"""
-    return [f"{r}:{a}" for r, a in specs]
+def _cap_codes(*codes: str) -> list[str]:
+    """角色能力清单（直接写三段码常量，见 codes.py）"""
+    return list(codes)
 
 
 # ============================================================
@@ -119,32 +60,44 @@ ROLE_DEFS = [
         "slug": "superadmin",
         "name": "超级管理员",
         "description": "拥有系统所有权限",
-        "capability_codes": [c[0] for c in ALL_CAPABILITIES],
+        "capability_codes": list(CODE_LABELS),
     },
     {
         "slug": "admin",
         "name": "管理员",
-        "description": "管理类权限，不含敏感系统设置",
+        "description": "管理类权限，不含敏感系统设置（不可编辑系统设置、不可恢复/删除备份）",
         "capability_codes": _cap_codes(
-            ("article", "view"), ("article", "create"), ("article", "edit"),
-            ("article", "delete"), ("article", "publish"), ("article", "edit_others"),
-            ("article", "delete_others"),
-            ("category", "view"), ("category", "create"), ("category", "edit"),
-            ("category", "delete"),
-            ("page", "view"), ("page", "create"), ("page", "edit"),
-            ("page", "delete"), ("page", "publish"),
-            ("menu", "view"), ("menu", "create"), ("menu", "edit"), ("menu", "delete"),
-            ("media", "view"), ("media", "upload"), ("media", "delete"),
-            ("user", "view"), ("user", "create"), ("user", "edit"),
-            ("user", "delete"), ("user", "manage_roles"),
-            ("plugin", "view"), ("plugin", "install"), ("plugin", "activate"),
-            ("plugin", "delete"), ("plugin", "configure"),
-            ("theme", "view"), ("theme", "install"), ("theme", "activate"),
-            ("theme", "delete"), ("theme", "customize"),
-            ("backup", "create"), ("backup", "restore"), ("backup", "delete"),
-            ("comment", "view"), ("comment", "approve"),
-            ("comment", "edit"), ("comment", "delete"),
-            ("settings", "view"),   # 可查看设置但不能编辑
+            # 内容：全套
+            C.ARTICLE_VIEW, C.ARTICLE_CREATE, C.ARTICLE_EDIT, C.ARTICLE_DELETE,
+            C.ARTICLE_PUBLISH, C.ARTICLE_EDIT_OTHERS, C.ARTICLE_DELETE_OTHERS,
+            C.CATEGORY_VIEW, C.CATEGORY_CREATE, C.CATEGORY_EDIT, C.CATEGORY_DELETE,
+            C.TAG_VIEW, C.TAG_EDIT,
+            C.PAGE_VIEW, C.PAGE_CREATE, C.PAGE_EDIT, C.PAGE_DELETE, C.PAGE_PUBLISH,
+            C.COMMENT_VIEW, C.COMMENT_APPROVE, C.COMMENT_EDIT, C.COMMENT_DELETE,
+            C.MEDIA_VIEW, C.MEDIA_UPLOAD, C.MEDIA_DELETE,
+            # 系统：管理类
+            C.USER_VIEW, C.USER_CREATE, C.USER_EDIT, C.USER_DELETE, C.USER_MANAGE_ROLES,
+            C.ROLE_VIEW, C.ROLE_EDIT,
+            C.NAVMENU_VIEW, C.NAVMENU_CREATE, C.NAVMENU_EDIT, C.NAVMENU_DELETE,
+            C.MENU_VIEW, C.MENU_CREATE, C.MENU_EDIT, C.MENU_DELETE, C.MENU_GRANT,
+            C.GROUP_VIEW, C.GROUP_CREATE, C.GROUP_EDIT, C.GROUP_DELETE,
+            C.GROUP_MANAGE_MEMBERS, C.GROUP_MANAGE_ROLES,
+            C.PERMISSION_VIEW,
+            C.SETTING_VIEW,  # 只能看，不能改
+            C.LOG_VIEW,
+            C.DASHBOARD_VIEW,
+            # 数据与 SEO
+            C.SEO_VIEW, C.SEO_EDIT, C.SEARCH_VIEW,
+            # 扩展
+            C.PLUGIN_VIEW, C.PLUGIN_INSTALL, C.PLUGIN_ACTIVATE, C.PLUGIN_DELETE,
+            C.PLUGIN_CONFIGURE,
+            C.THEME_VIEW, C.THEME_INSTALL, C.THEME_ACTIVATE, C.THEME_DELETE,
+            C.THEME_CUSTOMIZE,
+            C.WIDGET_VIEW, C.WIDGET_EDIT,
+            # 运维：可建备份，不可恢复/删除
+            C.BACKUP_VIEW, C.BACKUP_CREATE,
+            C.WEBHOOK_VIEW, C.WEBHOOK_EDIT,
+            C.NOTIFICATION_VIEW, C.NOTIFICATION_EDIT,
         ),
     },
     {
@@ -152,15 +105,15 @@ ROLE_DEFS = [
         "name": "编辑者",
         "description": "内容管理权限",
         "capability_codes": _cap_codes(
-            ("article", "view"), ("article", "create"), ("article", "edit"),
-            ("article", "delete"), ("article", "publish"),
-            ("category", "view"), ("category", "create"), ("category", "edit"),
-            ("page", "view"), ("page", "create"), ("page", "edit"),
-            ("page", "delete"), ("page", "publish"),
-            ("menu", "view"),
-            ("media", "view"), ("media", "upload"), ("media", "delete"),
-            ("comment", "view"), ("comment", "approve"),
-            ("comment", "edit"), ("comment", "delete"),
+            C.ARTICLE_VIEW, C.ARTICLE_CREATE, C.ARTICLE_EDIT, C.ARTICLE_DELETE,
+            C.ARTICLE_PUBLISH,
+            C.CATEGORY_VIEW, C.CATEGORY_CREATE, C.CATEGORY_EDIT,
+            C.TAG_VIEW, C.TAG_EDIT,
+            C.PAGE_VIEW, C.PAGE_CREATE, C.PAGE_EDIT, C.PAGE_DELETE, C.PAGE_PUBLISH,
+            C.COMMENT_VIEW, C.COMMENT_APPROVE, C.COMMENT_EDIT, C.COMMENT_DELETE,
+            C.MEDIA_VIEW, C.MEDIA_UPLOAD, C.MEDIA_DELETE,
+            C.NAVMENU_VIEW,
+            C.DASHBOARD_VIEW,
         ),
     },
     {
@@ -168,11 +121,13 @@ ROLE_DEFS = [
         "name": "普通用户",
         "description": "基础浏览和互动权限",
         "capability_codes": _cap_codes(
-            ("article", "view"),
-            ("category", "view"),
-            ("page", "view"),
-            ("media", "view"), ("media", "upload"),
-            ("comment", "view"), ("comment", "edit"),
+            C.ARTICLE_VIEW,
+            C.CATEGORY_VIEW,
+            C.TAG_VIEW,
+            C.PAGE_VIEW,
+            C.MEDIA_VIEW, C.MEDIA_UPLOAD,
+            C.COMMENT_VIEW, C.COMMENT_EDIT,
+            C.DASHBOARD_VIEW,
         ),
     },
 ]

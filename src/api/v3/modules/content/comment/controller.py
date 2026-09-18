@@ -29,6 +29,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.comment.schema import (
     CommentBatchDeleteRequest,
@@ -78,10 +79,10 @@ async def pending_comments(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:view"),
+    _perm=AuthControl(codes.COMMENT_VIEW),
 ) -> dict:
     items, total = await comment_service.list_pending(
-        db, page=page.page, page_size=page.page_size
+        db, page=page.page, page_size=page.page_size, scope_user=_current
     )
     return resp.success_page(items, total, page.page, page.page_size)
 
@@ -91,7 +92,7 @@ async def batch_delete_comments(
     payload: CommentBatchDeleteRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:delete"),
+    _perm=AuthControl(codes.COMMENT_DELETE),
 ) -> dict:
     affected = await comment_service.batch_delete(db, payload.ids)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 条")
@@ -109,7 +110,7 @@ async def list_comments(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:view"),
+    _perm=AuthControl(codes.COMMENT_VIEW),
     article_id: Optional[int] = Query(default=None),
     user_id: Optional[int] = Query(default=None),
     is_approved: Optional[bool] = Query(default=None),
@@ -124,6 +125,7 @@ async def list_comments(
         is_approved=is_approved,
         order_by=page.order_by,
         order=page.order,
+        scope_user=_current,
     )
     return resp.success_page(items, total, page.page, page.page_size)
 
@@ -134,9 +136,9 @@ async def get_comment(
     comment_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:view"),
+    _perm=AuthControl(codes.COMMENT_VIEW),
 ) -> dict:
-    return resp.success(await comment_service.get_comment(db, comment_id))
+    return resp.success(await comment_service.get_comment(db, comment_id, scope_user=_current))
 
 
 @router.put("/{comment_id}", response_model=ResponseModel, summary="编辑评论")
@@ -145,7 +147,7 @@ async def update_comment(
     payload: CommentUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:edit"),
+    _perm=AuthControl(codes.COMMENT_EDIT),
 ) -> dict:
     return resp.success(await comment_service.update_comment(db, comment_id, payload.content), msg="更新成功")
 
@@ -155,7 +157,7 @@ async def delete_comment(
     comment_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:delete"),
+    _perm=AuthControl(codes.COMMENT_DELETE),
 ) -> dict:
     await comment_service.delete_comment(db, comment_id)
     return resp.success(None, msg="已删除")
@@ -176,7 +178,7 @@ async def approve_comment(
     comment_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:approve"),
+    _perm=AuthControl(codes.COMMENT_APPROVE),
 ) -> dict:
     return resp.success(await comment_service.set_approved(db, comment_id, True), msg="已通过")
 
@@ -186,6 +188,6 @@ async def reject_comment(
     comment_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:approve"),
+    _perm=AuthControl(codes.COMMENT_APPROVE),
 ) -> dict:
     return resp.success(await comment_service.set_approved(db, comment_id, False), msg="已拒绝")

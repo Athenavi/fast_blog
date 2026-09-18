@@ -21,6 +21,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.extension.plugin.schema import PluginSettingsUpdate
 from src.api.v3.modules.extension.plugin.service import plugin_ops_service, require_confirm
@@ -37,7 +38,7 @@ CONFIRM_QUERY = Query(
 @router.get("/scan", response_model=ResponseModel, summary="扫描新插件")
 async def scan_plugins(
     _current: CurrentUser,
-    _perm=AuthControl("plugin:view"),
+    _perm=AuthControl(codes.PLUGIN_VIEW),
 ) -> dict:
     return resp.success(await plugin_ops_service.scan_new())
 
@@ -52,7 +53,7 @@ async def scan_plugins(
 )
 async def list_plugins(
     _current: CurrentUser,
-    _perm=AuthControl("plugin:view"),
+    _perm=AuthControl(codes.PLUGIN_VIEW),
 ) -> dict:
     items = await plugin_ops_service.list_plugins()
     return resp.success_page(items, len(items), 1, len(items) or 1)
@@ -69,7 +70,7 @@ async def list_plugins(
 async def get_plugin(
     slug: str,
     _current: CurrentUser,
-    _perm=AuthControl("plugin:view"),
+    _perm=AuthControl(codes.PLUGIN_VIEW),
 ) -> dict:
     return resp.success(await plugin_ops_service.get_plugin(slug))
 
@@ -78,7 +79,7 @@ async def get_plugin(
 async def get_plugin_settings(
     slug: str,
     _current: CurrentUser,
-    _perm=AuthControl("plugin:configure"),
+    _perm=AuthControl(codes.PLUGIN_CONFIGURE),
 ) -> dict:
     return resp.success(await plugin_ops_service.plugin_settings(slug))
 
@@ -88,7 +89,7 @@ async def update_plugin_settings(
     slug: str,
     payload: PluginSettingsUpdate,
     _current: CurrentUser,
-    _perm=AuthControl("plugin:configure"),
+    _perm=AuthControl(codes.PLUGIN_CONFIGURE),
 ) -> dict:
     return resp.success(await plugin_ops_service.update_settings(slug, payload.settings), msg="已保存")
 
@@ -98,7 +99,7 @@ async def update_plugin_settings(
 async def install_plugin(
     slug: str,
     _current: CurrentUser,
-    _perm=AuthControl("plugin:install"),
+    _perm=AuthControl(codes.PLUGIN_INSTALL),
     confirm: bool = CONFIRM_QUERY,
 ) -> dict:
     require_confirm(confirm, "安装插件")
@@ -109,7 +110,7 @@ async def install_plugin(
 async def activate_plugin(
     slug: str,
     _current: CurrentUser,
-    _perm=AuthControl("plugin:activate"),
+    _perm=AuthControl(codes.PLUGIN_ACTIVATE),
     confirm: bool = CONFIRM_QUERY,
 ) -> dict:
     require_confirm(confirm, "激活插件")
@@ -120,7 +121,7 @@ async def activate_plugin(
 async def deactivate_plugin(
     slug: str,
     _current: CurrentUser,
-    _perm=AuthControl("plugin:activate"),
+    _perm=AuthControl(codes.PLUGIN_ACTIVATE),
     confirm: bool = CONFIRM_QUERY,
 ) -> dict:
     require_confirm(confirm, "停用插件")
@@ -131,7 +132,7 @@ async def deactivate_plugin(
 async def uninstall_plugin(
     slug: str,
     _current: CurrentUser,
-    _perm=AuthControl("plugin:delete"),
+    _perm=AuthControl(codes.PLUGIN_DELETE),
     confirm: bool = CONFIRM_QUERY,
 ) -> dict:
     require_confirm(confirm, "卸载插件")

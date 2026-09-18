@@ -21,6 +21,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.modules.system.permission.schema import (
     CapabilityOut,
     PermissionCheckRequest,
@@ -41,7 +42,7 @@ router = APIRouter(prefix="/permission", tags=["system-permission"])
 async def list_capabilities(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.PERMISSION_VIEW),
     resource_type: Optional[str] = Query(default=None, description="按资源类型过滤，如 article"),
     keyword: Optional[str] = Query(default=None, description="按 code/name 模糊搜索"),
     is_active: Optional[bool] = Query(default=None),
@@ -58,7 +59,7 @@ async def list_capabilities(
 async def grouped_capabilities(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("user:view"),
+    _perm=AuthControl(codes.PERMISSION_VIEW),
 ) -> dict:
     return resp.success(await permission_service.grouped(db))
 
@@ -82,7 +83,7 @@ async def check_permissions(
 @router.get("/cache-stats", response_model=ResponseModel, summary="权限缓存统计")
 async def cache_stats(
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.PERMISSION_VIEW),
 ) -> dict:
     return resp.success(await permission_service.cache_stats())
 
@@ -90,7 +91,7 @@ async def cache_stats(
 @router.post("/cache/invalidate", response_model=ResponseModel, summary="失效权限缓存")
 async def invalidate_cache(
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.PERMISSION_EDIT),
     user_id: Optional[int] = Query(default=None, description="留空表示清空全部缓存"),
 ) -> dict:
     await permission_service.invalidate_cache(user_id)

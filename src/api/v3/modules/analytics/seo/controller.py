@@ -19,6 +19,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.modules.analytics.seo.schema import BulkCheckRequest, SEOAnalyzeRequest
 from src.api.v3.modules.analytics.seo.service import seo_service
 
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/seo", tags=["analytics-seo"])
 async def analyze_content(
     payload: SEOAnalyzeRequest,
     _current: CurrentUser,
-    _perm=AuthControl("article:edit"),
+    _perm=AuthControl(codes.SEO_EDIT),
 ) -> dict:
     return resp.success(await seo_service.analyze_content(payload))
 
@@ -38,7 +39,7 @@ async def analyze_content(
 async def keywords(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SEO_VIEW),
     limit: int = Query(default=50, ge=1, le=500),
     scan_limit: int = Query(default=300, ge=1, le=1000, description="参与统计的文章篇数上限"),
 ) -> dict:
@@ -49,7 +50,7 @@ async def keywords(
 async def orphan_articles(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.SEO_VIEW),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> dict:
     return resp.success(await seo_service.orphan_articles(db, limit=limit))
@@ -59,7 +60,7 @@ async def orphan_articles(
 async def link_distribution(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SEO_VIEW),
 ) -> dict:
     return resp.success(await seo_service.link_distribution(db))
 
@@ -68,7 +69,7 @@ async def link_distribution(
 async def seo_report(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SEO_VIEW),
     limit: int = Query(default=100, ge=1, le=500),
 ) -> dict:
     return resp.success(await seo_service.report(db, limit=limit))
@@ -79,7 +80,7 @@ async def bulk_check(
     payload: BulkCheckRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.SEO_EDIT),
 ) -> dict:
     return resp.success(await seo_service.bulk_check(db, payload))
 
@@ -89,7 +90,7 @@ async def analyze_article(
     article_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.SEO_VIEW),
 ) -> dict:
     return resp.success(await seo_service.analyze_article(db, article_id))
 
@@ -103,6 +104,6 @@ async def internal_link_suggestions(
     article_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.SEO_VIEW),
 ) -> dict:
     return resp.success(await seo_service.internal_link_suggestions(db, article_id))

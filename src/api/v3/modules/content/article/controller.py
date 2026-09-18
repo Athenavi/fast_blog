@@ -32,6 +32,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.article.schema import (
     ArticleBatchDeleteRequest,
@@ -104,7 +105,7 @@ async def list_articles(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.ARTICLE_VIEW),
     status: Optional[int] = Query(default=None, description="-1 删除 / 0 草稿 / 1 已发布"),
     category_id: Optional[int] = Query(default=None),
     user_id: Optional[int] = Query(default=None),
@@ -125,6 +126,7 @@ async def list_articles(
         is_sticky=is_sticky,
         order_by=page.order_by,
         order=page.order,
+        scope_user=_current,
     )
     return resp.success_page(items, total, page.page, page.page_size)
 
@@ -141,7 +143,7 @@ async def create_article(
     payload: ArticleCreate,
     db: DBSession,
     current: CurrentUser,
-    _perm=AuthControl("article:create"),
+    _perm=AuthControl(codes.ARTICLE_CREATE),
 ) -> dict:
     data = await article_service.create_article(db, payload, user_id=current.id)
     return resp.success(data, msg="创建成功")
@@ -153,7 +155,7 @@ async def batch_delete_articles(
     payload: ArticleBatchDeleteRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:delete"),
+    _perm=AuthControl(codes.ARTICLE_DELETE),
 ) -> dict:
     affected = await article_service.batch_delete(db, payload.ids)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 篇")
@@ -164,7 +166,7 @@ async def reorder_articles(
     items: List[dict],
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:edit"),
+    _perm=AuthControl(codes.ARTICLE_EDIT),
 ) -> dict:
     pairs = [(int(item["id"]), int(item.get("sort_order", 0))) for item in items if "id" in item]
     affected = await article_service.reorder(db, pairs)
@@ -183,10 +185,14 @@ async def get_article(
     article_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.ARTICLE_VIEW),
     language_code: Optional[str] = Query(default=None),
 ) -> dict:
-    return resp.success(await article_service.get_article(db, article_id, language_code=language_code))
+    return resp.success(
+        await article_service.get_article(
+            db, article_id, language_code=language_code, scope_user=_current
+        )
+    )
 
 
 @router.put("/{article_id}", response_model=ResponseModel, summary="更新文章")
@@ -201,7 +207,7 @@ async def update_article(
     payload: ArticleUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:edit"),
+    _perm=AuthControl(codes.ARTICLE_EDIT),
 ) -> dict:
     return resp.success(await article_service.update_article(db, article_id, payload), msg="更新成功")
 
@@ -211,7 +217,7 @@ async def delete_article(
     article_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:delete"),
+    _perm=AuthControl(codes.ARTICLE_DELETE),
 ) -> dict:
     await article_service.delete_article(db, article_id)
     return resp.success(None, msg="已删除")
@@ -223,7 +229,7 @@ async def publish_article(
     payload: ArticlePublishRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:publish"),
+    _perm=AuthControl(codes.ARTICLE_PUBLISH),
 ) -> dict:
     data = await article_service.set_published(db, article_id, payload.publish)
     return resp.success(data, msg="已发布" if payload.publish else "已转草稿")

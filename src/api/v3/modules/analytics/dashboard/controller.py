@@ -18,6 +18,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.modules.analytics.dashboard.service import dashboard_service
 
 router = APIRouter(prefix="/dashboard", tags=["analytics-dashboard"])
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/dashboard", tags=["analytics-dashboard"])
 async def overview(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.DASHBOARD_VIEW),
 ) -> dict:
     return resp.success(await dashboard_service.overview(db))
 
@@ -36,7 +37,7 @@ async def overview(
 async def trend(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.DASHBOARD_VIEW),
     days: int = Query(default=30, ge=1, le=365),
 ) -> dict:
     return resp.success(await dashboard_service.trend(db, days=days))
@@ -46,7 +47,7 @@ async def trend(
 async def recent_articles(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.DASHBOARD_VIEW),
     limit: int = Query(default=5, ge=1, le=50),
 ) -> dict:
     return resp.success(await dashboard_service.recent_articles(db, limit=limit))
@@ -56,7 +57,7 @@ async def recent_articles(
 async def recent_comments(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("comment:view"),
+    _perm=AuthControl(codes.DASHBOARD_VIEW),
     limit: int = Query(default=5, ge=1, le=50),
 ) -> dict:
     return resp.success(await dashboard_service.recent_comments(db, limit=limit))
@@ -66,7 +67,7 @@ async def recent_comments(
 async def top_articles(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("article:view"),
+    _perm=AuthControl(codes.DASHBOARD_VIEW),
     limit: int = Query(default=10, ge=1, le=100),
     days: Optional[int] = Query(default=None, ge=1, le=365),
 ) -> dict:

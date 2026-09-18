@@ -20,6 +20,7 @@ from shared.services.users.user_manager import (
 )
 from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission.invalidate import invalidate_user
 from src.api.v3.modules.system.user.crud import user_crud
 from src.api.v3.modules.system.user.schema import UserCreate, UserUpdate
 
@@ -108,6 +109,8 @@ class UserService:
         user = await self.get_user(db, user_id)
         if force:
             await user_crud.remove(db, user)
+            # 用户被删除后必须清掉其权限缓存，否则残留缓存会继续放行
+            await invalidate_user(user_id)
             return
 
         await deactivate_user(db, user_id)
@@ -138,6 +141,7 @@ class UserService:
         for role_id in current - target:
             await rbac_service.remove_role_by_id(db, user_id, role_id)
 
+        await invalidate_user(user_id)
         return await self.get_user_roles(db, user_id)
 
     async def get_user_permissions(self, db: AsyncSession, user_id: int) -> List[str]:

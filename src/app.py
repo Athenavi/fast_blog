@@ -252,6 +252,20 @@ def register_all_routes(app: FastAPI, worker_info: str):
         f"域: {len(v3_summary['domains'])})"
     )
 
+    # P4：启动期权限审计
+    #   1) 写操作端点必须声明权限码，否则须在 EXEMPT_WRITE_ENDPOINTS 中显式承认
+    #   2) 端点用到的权限码必须已登记在 codes.CODE_LABELS
+    # 默认只告警（便于渐进修复）；设 PERMISSION_AUDIT_STRICT=1 则问题即拒绝启动
+    try:
+        from src.api.v3.core.permission.audit import audit_permissions
+
+        strict = os.getenv("PERMISSION_AUDIT_STRICT", "").strip().lower() in {"1", "true", "yes"}
+        audit_permissions(app, strict=strict)
+    except RuntimeError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(f"{worker_info} 权限审计执行失败（不影响启动）：{exc}")
+
 
 # ---------- 生命周期 ----------
 @asynccontextmanager
@@ -322,7 +336,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info(f"[lifespan] 权限缓存预热耗时: {_time.monotonic() - step_start:.2f}s")
         # 启动 Redis 广播订阅（后台任务）
         asyncio.ensure_future(_start_redis_subscriber())
-        logger.info(f"[lifespan] Redis 广播订阅已启动")
+        logger.info("[lifespan] Redis 广播订阅已启动")
 
     total_elapsed = _time.monotonic() - lifespan_start
     logger.info(f"[lifespan] 应用启动完成，总耗时: {total_elapsed:.2f}s")
@@ -368,7 +382,7 @@ async def _warm_permission_cache():
         async with db_manager.get_session() as db:
             # 找出所有 superuser
             result = await db.execute(
-                select(User.id).where(User.is_superuser == True, User.is_active == True)
+                select(User.id).where(User.is_superuser, User.is_active)
             )
             superadmin_ids = [row[0] for row in result.all()]
 
@@ -470,8 +484,6 @@ def _make_lazy_middleware(module_path: str, class_name: str):
 def register_middleware(app: FastAPI):
     """统一注册所有中间件（调试、安全、缓存等）"""
     # 获取 worker 信息（用于日志）
-    from shared.config.settings import _get_worker_info
-    worker_info = _get_worker_info()
     from starlette.middleware.base import BaseHTTPMiddleware
 
     # CORS（从环境变量或默认值）

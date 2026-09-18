@@ -39,7 +39,18 @@ MODULES_PACKAGE = "src.api.v3.modules"
 
 #: 域 → 已登记模块（唯一路由事实来源；新模块必须登记到这里）
 DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
-    "/system": ("auth", "health", "log", "menu", "permission", "role", "setting", "user"),
+    "/system": (
+        "admin_menu",
+        "auth",
+        "group",
+        "health",
+        "log",
+        "menu",
+        "permission",
+        "role",
+        "setting",
+        "user",
+    ),
     "/content": ("article", "category", "comment", "media", "page", "tag"),
     "/analytics": ("dashboard", "search", "seo"),
     "/ops": ("backup", "notification", "webhook"),

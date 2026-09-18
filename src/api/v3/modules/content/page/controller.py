@@ -22,6 +22,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.page.schema import (
     PageBatchDeleteRequest,
@@ -62,7 +63,7 @@ async def list_pages(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("page:view"),
+    _perm=AuthControl(codes.PAGE_VIEW),
     status: Optional[int] = Query(default=None),
     parent_id: Optional[int] = Query(default=None),
 ) -> dict:
@@ -75,6 +76,7 @@ async def list_pages(
         parent_id=parent_id,
         order_by=page.order_by,
         order=page.order or "asc",
+        scope_user=_current,
     )
     return resp.success_page(items, total, page.page, page.page_size)
 
@@ -91,7 +93,7 @@ async def create_page(
     payload: PageCreate,
     db: DBSession,
     current: CurrentUser,
-    _perm=AuthControl("page:create"),
+    _perm=AuthControl(codes.PAGE_CREATE),
 ) -> dict:
     return resp.success(await page_service.create_page(db, payload, author_id=current.id), msg="创建成功")
 
@@ -102,7 +104,7 @@ async def batch_delete_pages(
     payload: PageBatchDeleteRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("page:delete"),
+    _perm=AuthControl(codes.PAGE_DELETE),
 ) -> dict:
     affected = await page_service.batch_delete(db, payload.ids)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 个页面")
@@ -120,9 +122,9 @@ async def get_page(
     page_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("page:view"),
+    _perm=AuthControl(codes.PAGE_VIEW),
 ) -> dict:
-    return resp.success(await page_service.get_page(db, page_id))
+    return resp.success(await page_service.get_page(db, page_id, scope_user=_current))
 
 
 @router.put("/{page_id}", response_model=ResponseModel, summary="更新页面")
@@ -137,7 +139,7 @@ async def update_page(
     payload: PageUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("page:edit"),
+    _perm=AuthControl(codes.PAGE_EDIT),
 ) -> dict:
     return resp.success(await page_service.update_page(db, page_id, payload), msg="更新成功")
 
@@ -147,7 +149,7 @@ async def delete_page(
     page_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("page:delete"),
+    _perm=AuthControl(codes.PAGE_DELETE),
 ) -> dict:
     await page_service.delete_page(db, page_id)
     return resp.success(None, msg="已删除")
@@ -159,7 +161,7 @@ async def publish_page(
     payload: PagePublishRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("page:publish"),
+    _perm=AuthControl(codes.PAGE_PUBLISH),
 ) -> dict:
     data = await page_service.set_published(db, page_id, payload.publish)
     return resp.success(data, msg="已发布" if payload.publish else "已转草稿")

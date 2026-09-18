@@ -24,7 +24,7 @@
       </el-form>
 
       <div class="table-toolbar">
-        <el-button v-auth="'user:manage_roles'" type="primary" :icon="Plus" @click="openCreate">
+        <el-button v-auth="'module_system:role:edit'" :icon="Plus" type="primary" @click="openCreate">
           新建角色
         </el-button>
         <span class="table-toolbar__total">共 {{ total }} 条</span>
@@ -46,11 +46,11 @@
         <el-table-column label="操作" width="230" fixed="right">
           <template #default="{ row }">
             <el-button link type="primary" @click="openPermissions(row as RoleItem)">权限配置</el-button>
-            <el-button v-auth="'user:manage_roles'" link type="primary" @click="openEdit(row as RoleItem)">
+            <el-button v-auth="'module_system:role:edit'" link type="primary" @click="openEdit(row as RoleItem)">
               编辑
             </el-button>
             <el-button
-              v-auth="'user:manage_roles'"
+              v-auth="'module_system:role:edit'"
               link
               type="danger"
               :disabled="row.is_system"
@@ -146,13 +146,7 @@ import {Plus, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
 import {computed, onMounted, reactive, ref} from 'vue'
 
-import {
-  permissionApi,
-  roleApi,
-  type CapabilityGroup,
-  type RoleItem,
-  type RoleQuery,
-} from '@/api'
+import {type CapabilityGroup, permissionApi, roleApi, type RoleItem, type RoleQuery,} from '@/api'
 import {useTable} from '@/hooks/useTable'
 
 /** 查询表单（在 PageQuery 基础上补齐页面字段，避免 v-model 绑到 unknown） */

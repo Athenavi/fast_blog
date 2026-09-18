@@ -23,6 +23,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.ops.backup.schema import RestoreRequest, ScheduleUpdate
 from src.api.v3.modules.ops.backup.service import backup_ops_service
@@ -39,7 +40,7 @@ router = APIRouter(prefix="/backup", tags=["ops-backup"], route_class=OperationL
 )
 async def list_backups(
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.BACKUP_VIEW),
     backup_type: Optional[str] = Query(default=None, description="full / database / files"),
     limit: Optional[int] = Query(default=None, ge=1, le=500),
 ) -> dict:
@@ -50,7 +51,7 @@ async def list_backups(
 @router.post("/database", response_model=ResponseModel, summary="数据库备份")
 async def backup_database(
     _current: CurrentUser,
-    _perm=AuthControl("backup:create"),
+    _perm=AuthControl(codes.BACKUP_CREATE),
     backup_type: str = Query(default="full", description="full / schema / data"),
 ) -> dict:
     return resp.success(await backup_ops_service.create_database_backup(backup_type), msg="备份完成")
@@ -59,7 +60,7 @@ async def backup_database(
 @router.post("/files", response_model=ResponseModel, summary="文件备份")
 async def backup_files(
     _current: CurrentUser,
-    _perm=AuthControl("backup:create"),
+    _perm=AuthControl(codes.BACKUP_CREATE),
 ) -> dict:
     return resp.success(await backup_ops_service.create_files_backup(), msg="备份完成")
 
@@ -67,7 +68,7 @@ async def backup_files(
 @router.post("/full", response_model=ResponseModel, summary="全量备份")
 async def backup_full(
     _current: CurrentUser,
-    _perm=AuthControl("backup:create"),
+    _perm=AuthControl(codes.BACKUP_CREATE),
 ) -> dict:
     return resp.success(await backup_ops_service.create_full_backup(), msg="备份完成")
 
@@ -76,7 +77,7 @@ async def backup_full(
 async def restore_backup(
     payload: RestoreRequest,
     _current: CurrentUser,
-    _perm=AuthControl("backup:restore"),
+    _perm=AuthControl(codes.BACKUP_RESTORE),
 ) -> dict:
     result = await backup_ops_service.restore(payload.backup_file, payload.backup_type)
     return resp.success(result, msg="恢复完成")
@@ -85,7 +86,7 @@ async def restore_backup(
 @router.post("/cleanup", response_model=ResponseModel, summary="清理过期备份")
 async def cleanup_backups(
     _current: CurrentUser,
-    _perm=AuthControl("backup:delete"),
+    _perm=AuthControl(codes.BACKUP_DELETE),
     days_to_keep: Optional[int] = Query(default=None, ge=1, le=3650),
 ) -> dict:
     return resp.success(await backup_ops_service.cleanup(days_to_keep), msg="清理完成")
@@ -94,7 +95,7 @@ async def cleanup_backups(
 @router.get("/stats", response_model=ResponseModel, summary="备份统计")
 async def backup_stats(
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.BACKUP_VIEW),
 ) -> dict:
     return resp.success(await backup_ops_service.stats())
 
@@ -102,7 +103,7 @@ async def backup_stats(
 @router.get("/schedule", response_model=ResponseModel, summary="备份计划")
 async def get_schedule(
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.BACKUP_VIEW),
 ) -> dict:
     return resp.success(await backup_ops_service.schedule())
 
@@ -111,7 +112,7 @@ async def get_schedule(
 async def update_schedule(
     payload: ScheduleUpdate,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.BACKUP_CREATE),
 ) -> dict:
     config = payload.model_dump(exclude_unset=True)
     return resp.success(await backup_ops_service.update_schedule(config), msg="已保存")
@@ -120,7 +121,7 @@ async def update_schedule(
 @router.delete("", response_model=ResponseModel, summary="删除某个备份")
 async def delete_backup(
     _current: CurrentUser,
-    _perm=AuthControl("backup:delete"),
+    _perm=AuthControl(codes.BACKUP_DELETE),
     backup_path: str = Query(description="备份文件路径（来自列表的 path 字段）"),
 ) -> dict:
     deleted = await backup_ops_service.delete_backup(backup_path)

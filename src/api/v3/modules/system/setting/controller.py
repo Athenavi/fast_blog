@@ -21,6 +21,7 @@ from fastapi import APIRouter, Query
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.system.setting.schema import (
     SettingBatchUpsert,
@@ -49,7 +50,7 @@ async def public_settings(db: DBSession) -> dict:
 async def list_settings(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SETTING_VIEW),
     is_public: Optional[bool] = Query(default=None),
     keyword: Optional[str] = Query(default=None),
 ) -> dict:
@@ -63,7 +64,7 @@ async def batch_upsert_settings(
     payload: SettingBatchUpsert,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.SETTING_EDIT),
 ) -> dict:
     return resp.success(await setting_service.batch_upsert(db, payload.items), msg="保存成功")
 
@@ -74,7 +75,7 @@ async def get_setting(
     key: str,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:view"),
+    _perm=AuthControl(codes.SETTING_VIEW),
 ) -> dict:
     return resp.success(await setting_service.get_setting(db, key))
 
@@ -85,7 +86,7 @@ async def put_setting(
     payload: SettingValueUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.SETTING_EDIT),
 ) -> dict:
     data = await setting_service.upsert(
         db,
@@ -108,7 +109,7 @@ async def create_setting(
     payload: SettingUpsert,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.SETTING_EDIT),
 ) -> dict:
     data = await setting_service.upsert(
         db,
@@ -126,7 +127,7 @@ async def delete_setting(
     key: str,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("settings:edit"),
+    _perm=AuthControl(codes.SETTING_EDIT),
 ) -> dict:
     await setting_service.delete_setting(db, key)
     return resp.success(None, msg="已删除")

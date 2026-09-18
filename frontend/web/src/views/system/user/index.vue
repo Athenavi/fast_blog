@@ -26,7 +26,7 @@
 
       <!-- 操作区 -->
       <div class="table-toolbar">
-        <el-button v-auth="'user:create'" type="primary" :icon="Plus" @click="openCreate">
+        <el-button v-auth="'module_system:user:create'" :icon="Plus" type="primary" @click="openCreate">
           新建用户
         </el-button>
         <span class="table-toolbar__total">共 {{ total }} 条</span>
@@ -59,21 +59,22 @@
         </el-table-column>
         <el-table-column label="操作" width="260" fixed="right">
           <template #default="{ row }">
-            <el-button v-auth="'user:edit'" link type="primary" @click="openEdit(row as UserItem)">
+            <el-button v-auth="'module_system:user:edit'" link type="primary" @click="openEdit(row as UserItem)">
               编辑
             </el-button>
-            <el-button v-auth="'user:manage_roles'" link type="primary" @click="openRoles(row as UserItem)">
+            <el-button v-auth="'module_system:user:manage_roles'" link type="primary"
+                       @click="openRoles(row as UserItem)">
               角色
             </el-button>
             <el-button
-              v-auth="'user:edit'"
+              v-auth="'module_system:user:edit'"
               link
               :type="row.is_active ? 'warning' : 'success'"
               @click="toggleStatus(row as UserItem)"
             >
               {{ row.is_active ? '停用' : '启用' }}
             </el-button>
-            <el-button v-auth="'user:delete'" link type="danger" @click="onDelete(row as UserItem)">
+            <el-button v-auth="'module_system:user:delete'" link type="danger" @click="onDelete(row as UserItem)">
               删除
             </el-button>
           </template>
@@ -164,7 +165,7 @@ import {Plus, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
 import {computed, onMounted, reactive, ref} from 'vue'
 
-import {roleApi, userApi, type RoleItem, type UserItem, type UserQuery} from '@/api'
+import {roleApi, type RoleItem, userApi, type UserItem, type UserQuery} from '@/api'
 import {useTable} from '@/hooks/useTable'
 import {formatDateTime} from '@/utils/format'
 

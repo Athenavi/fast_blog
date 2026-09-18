@@ -5,7 +5,7 @@
 不重写校验与落盘逻辑，避免两套行为漂移。
 """
 
-from typing import List, Optional, Sequence, Tuple
+from typing import Any, List, Optional, Sequence, Tuple
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +16,7 @@ from shared.models.media.media_folder import MediaFolder
 from src.api.v3.common.tags import normalize_tags
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission.scope import ensure_object_in_scope
 from src.api.v3.modules.content.media.crud import media_crud, media_folder_crud
 from src.api.v3.modules.content.media.schema import (
     MediaFolderCreate,
@@ -108,6 +109,7 @@ class MediaService:
         category: Optional[str] = None,
         order_by: Optional[str] = None,
         order: str = "desc",
+        scope_user: Any = None,
     ) -> Tuple[List[dict], int]:
         items, total = await media_crud.list(
             db,
@@ -123,13 +125,18 @@ class MediaService:
             },
             order_by=order_by or "id",
             order=order,
+            scope_user=scope_user,
         )
         return [to_out(item) for item in items], total
 
-    async def get_media(self, db: AsyncSession, media_id: int) -> dict:
+    async def get_media(
+        self, db: AsyncSession, media_id: int, *, scope_user: Any = None
+    ) -> dict:
         media = await media_crud.get(db, media_id)
         if media is None:
             raise NotFoundError("媒体不存在")
+        if scope_user is not None:
+            await ensure_object_in_scope(db, Media, media, user=scope_user)
         return to_out(media)
 
     # ------------------------------------------------------------------ 上传

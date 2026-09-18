@@ -120,6 +120,20 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         stmt = self._apply_keyword(stmt, keyword)
         return stmt
 
+    async def _apply_scope(self, stmt: Select, db: AsyncSession, scope_user: Any) -> Select:
+        """可选的数据范围过滤（``scope_user`` 为空时不做任何处理）
+
+        只在**管理端**查询上传入 ``scope_user``；公开读（前台）不得带范围过滤，
+        否则前台会看不到本该公开的内容。
+        """
+        if scope_user is None:
+            return stmt
+
+        # 延迟导入：core 层不反向依赖 models
+        from src.api.v3.core.permission.scope import apply_data_scope
+
+        return await apply_data_scope(stmt, self.model, db=db, user=scope_user)
+
     # ------------------------------------------------------------------ 读
     async def get(self, db: AsyncSession, pk: Any) -> Optional[ModelType]:
         """按主键取单条（软删除记录视为不存在）"""
@@ -135,13 +149,16 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         """是否存在满足条件的记录"""
         return await self.count(db, **filters) > 0
 
-    async def count(self, db: AsyncSession, **filters: Any) -> int:
+    async def count(
+        self, db: AsyncSession, *, scope_user: Any = None, **filters: Any
+    ) -> int:
         """计数（支持 keyword，与 list 的过滤条件保持一致）"""
         keyword = filters.pop("keyword", None)
         stmt = select(func.count()).select_from(self.model)
         stmt = self._apply_soft_delete(stmt)
         stmt = self._apply_filters(stmt, filters)
         stmt = self._apply_keyword(stmt, keyword)
+        stmt = await self._apply_scope(stmt, db, scope_user)
         return int((await db.execute(stmt)).scalar() or 0)
 
     async def list(
@@ -155,13 +172,18 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         order_by: Optional[str] = None,
         order: str = "desc",
         options: Optional[Sequence[Any]] = None,
+        scope_user: Any = None,
     ) -> tuple[list[ModelType], int]:
         """分页列表，返回 ``(items, total)``
 
         ``options`` 用于传 ``selectinload`` 等加载策略；``page_size <= 0`` 表示不分页。
+        ``scope_user`` 非空时按该用户的数据范围过滤（管理端使用）。
         """
-        total = await self.count(db, keyword=keyword, **(dict(filters) if filters else {}))
+        total = await self.count(
+            db, keyword=keyword, scope_user=scope_user, **(dict(filters) if filters else {})
+        )
         stmt = self._build_query(filters, keyword)
+        stmt = await self._apply_scope(stmt, db, scope_user)
         stmt = self._apply_order(stmt, order_by, order)
         if options:
             stmt = stmt.options(*options)

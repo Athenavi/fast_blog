@@ -27,6 +27,7 @@ from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
 from src.api.v3.core.exceptions import BadRequestError
+from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.media.schema import (
     MediaBatchDeleteRequest,
@@ -44,7 +45,7 @@ router = APIRouter(prefix="/media", tags=["content-media"], route_class=Operatio
 async def upload_media(
     db: DBSession,
     current: CurrentUser,
-    _perm=AuthControl("media:upload"),
+    _perm=AuthControl(codes.MEDIA_UPLOAD),
     files: List[UploadFile] = File(..., description="可多选"),
 ) -> dict:
     if not files:
@@ -60,7 +61,7 @@ async def batch_delete_media(
     payload: MediaBatchDeleteRequest,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:delete"),
+    _perm=AuthControl(codes.MEDIA_DELETE),
 ) -> dict:
     affected = await media_service.batch_delete(db, payload.ids)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 项")
@@ -71,7 +72,7 @@ async def batch_delete_media(
 async def list_folders(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:view"),
+    _perm=AuthControl(codes.MEDIA_VIEW),
     user_id: Optional[int] = Query(default=None),
     is_public: Optional[bool] = Query(default=None),
 ) -> dict:
@@ -83,7 +84,7 @@ async def list_folders(
 async def folder_tree(
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:view"),
+    _perm=AuthControl(codes.MEDIA_VIEW),
     user_id: Optional[int] = Query(default=None),
 ) -> dict:
     return resp.success(await media_service.folder_tree(db, user_id=user_id))
@@ -94,7 +95,7 @@ async def create_folder(
     payload: MediaFolderCreate,
     db: DBSession,
     current: CurrentUser,
-    _perm=AuthControl("media:upload"),
+    _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
     return resp.success(
         await media_service.create_folder(db, payload, user_id=current.id), msg="创建成功"
@@ -107,7 +108,7 @@ async def update_folder(
     payload: MediaFolderUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:upload"),
+    _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
     return resp.success(await media_service.update_folder(db, folder_id, payload), msg="更新成功")
 
@@ -117,7 +118,7 @@ async def delete_folder(
     folder_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:upload"),
+    _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
     await media_service.delete_folder(db, folder_id)
     return resp.success(None, msg="已删除")
@@ -135,7 +136,7 @@ async def list_media(
     page: PageDep,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:view"),
+    _perm=AuthControl(codes.MEDIA_VIEW),
     folder_id: Optional[int] = Query(default=None),
     mime_type: Optional[str] = Query(default=None),
     user_id: Optional[int] = Query(default=None),
@@ -154,6 +155,7 @@ async def list_media(
         category=category,
         order_by=page.order_by,
         order=page.order,
+        scope_user=_current,
     )
     return resp.success_page(items, total, page.page, page.page_size)
 
@@ -170,9 +172,9 @@ async def get_media(
     media_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:view"),
+    _perm=AuthControl(codes.MEDIA_VIEW),
 ) -> dict:
-    return resp.success(await media_service.get_media(db, media_id))
+    return resp.success(await media_service.get_media(db, media_id, scope_user=_current))
 
 
 @router.put("/{media_id}", response_model=ResponseModel, summary="更新媒体元信息")
@@ -187,7 +189,7 @@ async def update_media(
     payload: MediaUpdate,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:upload"),
+    _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
     return resp.success(await media_service.update_media(db, media_id, payload), msg="更新成功")
 
@@ -197,7 +199,7 @@ async def delete_media(
     media_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl("media:delete"),
+    _perm=AuthControl(codes.MEDIA_DELETE),
 ) -> dict:
     await media_service.delete_media(db, media_id)
     return resp.success(None, msg="已删除")
