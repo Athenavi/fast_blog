@@ -4,13 +4,18 @@ const year = new Date().getFullYear()
 </script>
 
 <template>
-  <footer class="border-t border-slate-200 bg-slate-50">
+  <footer class="border-t border-line bg-surface-soft">
     <div
-      class="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-      <p>© {{ year }} {{ props.siteName || 'FastBlog' }}. All rights reserved.</p>
-      <p v-if="props.footer" class="text-slate-400">{{ props.footer }}</p>
-      <a v-if="props.icp" class="text-slate-400 hover:text-slate-600" href="https://beian.miit.gov.cn" rel="noopener"
-         target="_blank">
+      class="mx-auto flex max-w-wide flex-col gap-2 px-4 py-8 text-sm text-fg-muted sm:flex-row sm:items-center sm:justify-between">
+      <p>© {{ year }} {{ props.siteName || 'FastBlog' }}</p>
+      <p v-if="props.footer" class="text-fg-subtle">{{ props.footer }}</p>
+      <a
+        v-if="props.icp"
+        class="text-fg-subtle transition-colors hover:text-fg-muted"
+        href="https://beian.miit.gov.cn"
+        rel="noopener"
+        target="_blank"
+      >
         {{ props.icp }}
       </a>
     </div>

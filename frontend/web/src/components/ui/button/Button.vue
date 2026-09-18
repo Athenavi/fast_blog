@@ -3,15 +3,23 @@ import {type VariantProps, cva} from 'class-variance-authority'
 
 import {cn} from '@/lib/utils'
 
+/**
+ * 按钮
+ *
+ * 颜色只引用语义令牌（`primary` / `surface` / `line` / `fg`…），
+ * 因此换主题或切换用户自选配色时无需改动本文件。
+ */
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-control text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-canvas disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: 'bg-slate-900 text-white hover:bg-slate-800',
-        outline: 'border border-slate-200 bg-white text-slate-900 hover:bg-slate-50',
-        ghost: 'text-slate-700 hover:bg-slate-100',
-        link: 'text-slate-900 underline-offset-4 hover:underline',
+        default: 'bg-primary text-primary-fg hover:bg-primary-hover',
+        outline: 'border border-line bg-surface text-fg hover:bg-surface-soft',
+        ghost: 'text-fg-muted hover:bg-surface-soft hover:text-fg',
+        soft: 'bg-primary-soft text-primary hover:opacity-90',
+        danger: 'bg-danger text-primary-fg hover:opacity-90',
+        link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
         sm: 'h-8 px-3 text-xs',
@@ -27,13 +35,21 @@ const buttonVariants = cva(
 type ButtonVariants = VariantProps<typeof buttonVariants>
 
 const props = withDefaults(
-  defineProps<{ variant?: ButtonVariants['variant']; size?: ButtonVariants['size']; class?: string }>(),
-  {variant: 'default', size: 'default'},
+  defineProps<{
+    variant?: ButtonVariants['variant']
+    size?: ButtonVariants['size']
+    class?: string
+    type?: 'button' | 'submit' | 'reset'
+  }>(),
+  {variant: 'default', size: 'default', type: 'button'},
 )
 </script>
 
 <template>
-  <button :class="cn(buttonVariants({variant: props.variant, size: props.size}), props.class)">
+  <button
+    :class="cn(buttonVariants({variant: props.variant, size: props.size}), props.class)"
+    :type="props.type"
+  >
     <slot/>
   </button>
 </template>

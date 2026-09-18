@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-/** 前台布局：顶部导航 + 内容 + 页脚 */
+/** 前台布局：顶部导航 + 正文区 + 页脚 */
 const site = await useSiteInfo()
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-white">
+  <div class="flex min-h-screen flex-col bg-canvas">
     <SiteHeader :site-name="site.site_name"/>
     <main class="flex-1">
       <slot/>

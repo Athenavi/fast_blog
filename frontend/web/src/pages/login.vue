@@ -1,152 +1,107 @@
-<template>
-  <div class="login">
-    <el-card class="login__card" shadow="always">
-      <template #header>
-        <div class="login__title">
-          <h2>FastBlog 管理后台</h2>
-          <p>请使用管理员账号登录</p>
-        </div>
-      </template>
-
-      <el-form
-        ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-position="top"
-        size="large"
-        @keyup.enter="onSubmit"
-      >
-        <el-form-item label="用户名 / 邮箱" prop="identifier">
-          <el-input v-model="form.identifier" :prefix-icon="User" placeholder="请输入用户名或邮箱"/>
-        </el-form-item>
-
-        <el-form-item label="密码" prop="password">
-          <el-input
-            v-model="form.password"
-            :prefix-icon="Lock"
-            placeholder="请输入密码"
-            show-password
-            type="password"
-          />
-        </el-form-item>
-
-        <el-form-item>
-          <el-checkbox v-model="form.remember_me">保持登录（签发 refresh token）</el-checkbox>
-        </el-form-item>
-
-        <el-form-item v-if="requires2fa">
-          <el-alert
-            :closable="false"
-            description="请在移动端或认证器完成二次验证（后台暂未提供 2FA 输入界面，属二期）。"
-            title="该账号启用了双因素认证"
-            type="warning"
-          />
-        </el-form-item>
-
-        <el-button
-          :loading="loading"
-          class="login__submit"
-          type="primary"
-          @click="onSubmit"
-        >
-          登录
-        </el-button>
-      </el-form>
-    </el-card>
-  </div>
-</template>
-
 <script lang="ts" setup>
-import {Lock, User} from '@element-plus/icons-vue'
-import {ElMessage, type FormInstance, type FormRules} from 'element-plus'
-import {reactive, ref} from 'vue'
+/**
+ * 统一登录页
+ *
+ * 前台读者与后台管理员共用：登录后按是否具备后台权限分流。
+ * 只使用 Tailwind + shadcn-vue，保证前台访客看到的风格一致（Element Plus 仅用于后台页面）。
+ */
 
 import {HOME_PATH} from '@/constants'
 import {useUserStore} from '@/store/modules/user'
 
-const router = useRouter()
+definePageMeta({layout: false, title: '登录'})
+
+useSeoMeta({title: '登录 - FastBlog', robots: 'noindex'})
+
 const route = useRoute()
 const userStore = useUserStore()
 
-const formRef = ref<FormInstance>()
+const form = reactive({identifier: '', password: '', remember_me: true})
 const loading = ref(false)
-const requires2fa = ref(false)
-
-const form = reactive({
-  identifier: '',
-  password: '',
-  remember_me: true,
-})
-
-const rules: FormRules = {
-  identifier: [{required: true, message: '请输入用户名或邮箱', trigger: 'blur'}],
-  password: [{required: true, message: '请输入密码', trigger: 'blur'}],
-}
+const error = ref('')
 
 async function onSubmit(): Promise<void> {
-  const valid = await formRef.value?.validate().catch(() => false)
-  if (!valid) return
+  error.value = ''
+  if (!form.identifier.trim() || !form.password) {
+    error.value = '请输入用户名（或邮箱）与密码'
+    return
+  }
 
   loading.value = true
-  requires2fa.value = false
   try {
-    // 后端同时接受 username / email，这里统一按 identifier 传（填了 @ 就当邮箱）
     const payload = form.identifier.includes('@')
-      ? {email: form.identifier, password: form.password, remember_me: form.remember_me}
-      : {username: form.identifier, password: form.password, remember_me: form.remember_me}
+      ? {email: form.identifier.trim(), password: form.password, remember_me: form.remember_me}
+      : {username: form.identifier.trim(), password: form.password, remember_me: form.remember_me}
 
     const result = await userStore.login(payload)
-
     if (result.requires2fa) {
-      requires2fa.value = true
-      ElMessage.warning('该账号需要双因素验证')
+      error.value = '该账号启用了双因素认证，请前往移动端完成二次验证'
       return
     }
 
-    ElMessage.success('登录成功')
-    // 统一登录页：管理员进后台，普通读者回前台
+    // 管理员进后台，普通读者回前台
     const hasAdminAccess = userStore.isSuperuser || userStore.permissions.length > 0
     const fallback = hasAdminAccess ? HOME_PATH : '/'
-    const redirect = (route.query.redirect as string | undefined) || fallback
-    await router.replace(redirect)
+    await navigateTo(String(route.query.redirect || fallback), {replace: true})
   } catch {
-    // 错误提示已由 request 拦截器统一处理
+    // 具体错误由 request 拦截器提示，这里给出兜底文案
+    error.value = error.value || '登录失败，请检查用户名与密码'
   } finally {
     loading.value = false
   }
 }
 </script>
 
-<style scoped>
-.login {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-}
+<template>
+  <div class="flex min-h-screen items-center justify-center bg-surface-soft px-4">
+    <div class="w-full max-w-sm">
+      <div class="mb-6 text-center">
+        <NuxtLink class="text-xl font-semibold tracking-tight text-fg" to="/">FastBlog</NuxtLink>
+        <p class="mt-1.5 text-sm text-fg-muted">登录后可参与评论，管理员可进入后台</p>
+      </div>
 
-.login__card {
-  width: 400px;
-  border-radius: 10px;
-}
+      <Card>
+        <CardContent class="p-6">
+          <form class="space-y-4" @submit.prevent="onSubmit">
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-fg">用户名 / 邮箱</label>
+              <div class="relative">
+                <Icon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" name="user"/>
+                <Input v-model="form.identifier" class="pl-9" placeholder="用户名或邮箱"/>
+              </div>
+            </div>
 
-.login__title {
-  text-align: center;
-}
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-fg">密码</label>
+              <div class="relative">
+                <Icon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" name="lock"/>
+                <Input v-model="form.password" class="pl-9" placeholder="请输入密码" type="password"/>
+              </div>
+            </div>
 
-.login__title h2 {
-  margin: 0 0 6px;
-  font-size: 20px;
-}
+            <label class="flex cursor-pointer items-center gap-2 text-sm text-fg-muted">
+              <input v-model="form.remember_me" class="h-4 w-4 rounded border-line-strong" type="checkbox">
+              保持登录
+            </label>
 
-.login__title p {
-  margin: 0;
-  font-size: 13px;
-  color: #6b7280;
-}
+            <p v-if="error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
 
-.login__submit {
-  width: 100%;
-}
-</style>
+            <Button :disabled="loading" class="w-full" type="submit">
+              <Icon v-if="loading" class="h-4 w-4 animate-spin" name="loader-circle"/>
+              {{ loading ? '登录中…' : '登录' }}
+            </Button>
+          </form>
+
+          <p class="mt-5 text-center text-sm text-fg-muted">
+            还没有账号？
+            <NuxtLink class="font-medium text-fg hover:underline" to="/register">立即注册</NuxtLink>
+          </p>
+        </CardContent>
+      </Card>
+
+      <p class="mt-6 text-center text-sm">
+        <NuxtLink class="text-fg-subtle hover:text-fg-muted" to="/">← 返回首页</NuxtLink>
+      </p>
+    </div>
+  </div>
+</template>

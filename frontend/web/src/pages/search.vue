@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 /** 搜索：关键词作为查询参数，便于分享与回退 */
-import {Search} from '@lucide/vue'
 
 import type {ArticleItem} from '@/types/content'
 
@@ -47,18 +46,18 @@ useSeoMeta({
 
 <template>
   <div class="mx-auto max-w-5xl px-4 py-10">
-    <h1 class="text-2xl font-bold tracking-tight text-slate-900">搜索</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-fg">搜索</h1>
 
     <form class="mt-5 flex max-w-xl gap-2" @submit.prevent="submit">
       <Input v-model="input" placeholder="输入关键词后回车"/>
       <Button class="shrink-0" type="submit">
-        <Search class="h-4 w-4"/>
+        <Icon class="h-4 w-4" name="search"/>
         搜索
       </Button>
     </form>
 
-    <p v-if="keyword" class="mt-6 text-sm text-slate-500">
-      关键词 “<span class="font-medium text-slate-900">{{ keyword }}</span>” 共
+    <p v-if="keyword" class="mt-6 text-sm text-fg-muted">
+      关键词 “<span class="font-medium text-fg">{{ keyword }}</span>” 共
       {{ pageData?.total ?? 0 }} 条结果
     </p>
 

@@ -1,20 +1,31 @@
 <script lang="ts" setup>
 import {cn} from '@/lib/utils'
 
-const props = withDefaults(defineProps<{ variant?: 'default' | 'secondary' | 'outline'; class?: string }>(), {
-  variant: 'default',
-})
+type BadgeVariant = 'default' | 'secondary' | 'outline' | 'success' | 'warning' | 'danger'
 
-const VARIANTS: Record<string, string> = {
-  default: 'bg-slate-900 text-white hover:bg-slate-800',
-  secondary: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
-  outline: 'border border-slate-200 text-slate-700',
+const props = withDefaults(
+  defineProps<{ variant?: BadgeVariant; class?: string }>(),
+  {variant: 'default'},
+)
+
+/** 变体到语义令牌的映射，避免任何写死色值 */
+const VARIANTS: Record<BadgeVariant, string> = {
+  default: 'bg-primary text-primary-fg',
+  secondary: 'bg-surface-soft text-fg-muted',
+  outline: 'border border-line text-fg-muted',
+  success: 'bg-success-soft text-success',
+  warning: 'bg-warning-soft text-warning',
+  danger: 'bg-danger-soft text-danger',
 }
 </script>
 
 <template>
   <span
-    :class="cn('inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors', VARIANTS[props.variant], props.class)"
+    :class="cn(
+      'inline-flex items-center rounded-pill px-2.5 py-0.5 text-xs font-medium transition-colors',
+      VARIANTS[props.variant ?? 'default'],
+      props.class,
+    )"
   >
     <slot/>
   </span>

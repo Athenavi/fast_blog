@@ -1,11 +1,115 @@
 @import 'tailwindcss';
 
-/**
- * 全局基础样式
+/* ============================================================================
+ * 设计令牌（Design Tokens）
  *
- * 前台与后台共用；两者的视觉差异由各自的布局负责
- * （前台 `layouts/default.vue` / 后台 `layouts/admin.vue`）。
- */
+ * 约定：**组件里不写死任何色值/字号/圆角**，一律使用下面的语义变量。
+ *  - 换主题：覆盖 `[data-theme=...]` 下的变量；
+ *  - 用户自选配色：切换 `[data-accent=...]`，只影响主色系；
+ *  - 深浅色跟随系统：`data-theme` 设为 `system` 时由脚本解析为 light/dark。
+ * ========================================================================== */
+@theme {
+  /* ---- 语义色：浅色为默认 ---- */
+  --color-canvas: oklch(99% 0.002 250);        /* 页面底色 */
+  --color-surface: oklch(100% 0 0);            /* 卡片/容器 */
+  --color-surface-soft: oklch(97.2% 0.004 250);/* 次级容器/代码块底 */
+  --color-fg: oklch(23% 0.02 260);             /* 主文本 */
+  --color-fg-muted: oklch(50% 0.015 260);      /* 次要文本 */
+  --color-fg-subtle: oklch(68% 0.012 260);     /* 弱化文本/占位 */
+  --color-line: oklch(92.5% 0.006 260);        /* 分隔线/边框 */
+  --color-line-strong: oklch(86% 0.01 260);    /* 强调边框 */
+  --color-primary: oklch(52% 0.18 258);        /* 主色（由 data-accent 覆盖） */
+  --color-primary-fg: oklch(100% 0 0);         /* 主色之上的文字 */
+  --color-primary-soft: oklch(96% 0.03 258);   /* 主色浅底 */
+  --color-primary-hover: oklch(46% 0.18 258);
+
+  --color-danger: oklch(58% 0.2 25);
+  --color-danger-soft: oklch(96% 0.03 25);
+  --color-success: oklch(56% 0.14 155);
+  --color-success-soft: oklch(96% 0.04 155);
+  --color-warning: oklch(68% 0.15 75);
+  --color-warning-soft: oklch(97% 0.04 85);
+
+  /* ---- 排版 ---- */
+  --font-sans: 'Inter', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-serif: 'Noto Serif SC', Georgia, 'Songti SC', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ---- 圆角 ---- */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  /* ---- 阅读宽度 ---- */
+  --container-read: 46rem;   /* 正文最佳阅读宽度 */
+  --container-wide: 72rem;   /* 列表/导航宽度 */
+}
+
+/* ---------------------------------------------------------------- 深浅色 */
+:root {
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-canvas: oklch(19% 0.015 260);
+  --color-surface: oklch(23% 0.015 260);
+  --color-surface-soft: oklch(26% 0.015 260);
+  --color-fg: oklch(94% 0.008 250);
+  --color-fg-muted: oklch(72% 0.015 255);
+  --color-fg-subtle: oklch(58% 0.015 255);
+  --color-line: oklch(31% 0.015 260);
+  --color-line-strong: oklch(40% 0.02 260);
+
+  --color-primary-soft: oklch(30% 0.05 258);
+  --color-danger-soft: oklch(30% 0.06 25);
+  --color-success-soft: oklch(30% 0.05 155);
+  --color-warning-soft: oklch(32% 0.05 85);
+}
+
+/* ---------------------------------------------------------------- 自选配色 */
+[data-accent='violet'] {
+  --color-primary: oklch(52% 0.2 300);
+  --color-primary-hover: oklch(46% 0.2 300);
+  --color-primary-soft: oklch(96% 0.03 300);
+}
+
+[data-accent='emerald'] {
+  --color-primary: oklch(55% 0.14 165);
+  --color-primary-hover: oklch(49% 0.14 165);
+  --color-primary-soft: oklch(96% 0.04 165);
+}
+
+[data-accent='rose'] {
+  --color-primary: oklch(58% 0.18 15);
+  --color-primary-hover: oklch(52% 0.18 15);
+  --color-primary-soft: oklch(96% 0.03 15);
+}
+
+[data-accent='amber'] {
+  --color-primary: oklch(64% 0.15 72);
+  --color-primary-hover: oklch(57% 0.15 72);
+  --color-primary-soft: oklch(97% 0.04 80);
+}
+
+[data-theme='dark'][data-accent='violet'] {
+  --color-primary-soft: oklch(30% 0.05 300);
+}
+
+[data-theme='dark'][data-accent='emerald'] {
+  --color-primary-soft: oklch(30% 0.05 165);
+}
+
+[data-theme='dark'][data-accent='rose'] {
+  --color-primary-soft: oklch(30% 0.05 15);
+}
+
+[data-theme='dark'][data-accent='amber'] {
+  --color-primary-soft: oklch(32% 0.05 80);
+}
+
+/* ---------------------------------------------------------------- 基础样式 */
 html,
 body,
 #__nuxt {
@@ -15,13 +119,29 @@ body,
 }
 
 body {
-  font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--color-fg);
+  background-color: var(--color-canvas);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* 主题切换时的过渡（避免生硬跳变） */
+body,
+body * {
+  transition-property: background-color, border-color, color;
+  transition-duration: 150ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body * {
+    transition: none;
+  }
 }
 
 /* ---------------- 后台（Element Plus）---------------- */
@@ -36,7 +156,112 @@ a {
 }
 
 .page-card {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 6px;
   padding: 16px;
+}
+
+/* ---------------- 富文本正文（文章详情 / 单页共用）----------------
+ * 全部使用语义令牌，因此深浅色与自选配色自动生效。
+ * 放在全局而非组件 scoped 里，避免多个页面重复定义。
+ */
+.prose-content {
+  color: var(--color-fg);
+  font-size: 1.0625rem;
+  line-height: 1.85;
+}
+
+.prose-content h2 {
+  margin: 2.25rem 0 0.75rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.prose-content h3 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.prose-content p {
+  margin: 0 0 1.15rem;
+}
+
+.prose-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-content img {
+  max-width: 100%;
+  margin: 1.25rem 0;
+  border-radius: var(--radius-card);
+}
+
+.prose-content pre {
+  margin: 1.25rem 0;
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-soft);
+}
+
+.prose-content code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.prose-content :not(pre) > code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--color-surface-soft);
+}
+
+.prose-content blockquote {
+  margin: 1.25rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid var(--color-line-strong);
+  color: var(--color-fg-muted);
+}
+
+.prose-content ul,
+.prose-content ol {
+  margin: 1rem 0 1.15rem 1.35rem;
+}
+
+.prose-content ul {
+  list-style: disc;
+}
+
+.prose-content ol {
+  list-style: decimal;
+}
+
+.prose-content li {
+  margin-bottom: 0.4rem;
+}
+
+.prose-content hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.prose-content table {
+  width: 100%;
+  margin: 1.25rem 0;
+  border-collapse: collapse;
+}
+
+.prose-content th,
+.prose-content td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-line);
+}
+
+.prose-content th {
+  background: var(--color-surface-soft);
+  font-weight: 600;
 }

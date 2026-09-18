@@ -1,6 +1,16 @@
 <script lang="ts" setup>
-/** 首页：站点简介 + 最新文章 + 分类入口 */
-import {ArrowRight} from '@lucide/vue'
+/**
+ * 首页（阅读优先）
+ *
+ * 数据源（均为 v3 公开接口）：
+ *  - `/content/article/public/list` 最新文章
+ *  - `/content/category/public`     分类
+ *  - `/system/setting/public`       站点信息（见 useSiteInfo）
+ *
+ * 说明：astro 旧版的「推荐 / 热门」依赖 `/home/featured`、`/home/popular`（v2），
+ * v3 的公开列表暂不支持按推荐位/热度排序，故首页先只呈现最新文章与分类；
+ * 后端补上排序参数后，这里只需增加一次请求。
+ */
 
 import type {ArticleItem, CategoryItem} from '@/types/content'
 
@@ -25,53 +35,59 @@ useSeoMeta({
 
 <template>
   <div>
-    <!-- Hero -->
-    <section class="border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white">
-      <div class="mx-auto max-w-5xl px-4 py-16 sm:py-24">
-        <h1 class="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+    <!-- Hero：留白优先，避免任何装饰性硬编码色 -->
+    <section class="border-b border-line">
+      <div class="mx-auto max-w-wide px-4 py-20 sm:py-28">
+        <h1 class="max-w-read text-3xl font-bold tracking-tight text-fg sm:text-4xl">
           {{ site.site_name || 'FastBlog' }}
         </h1>
-        <p class="mt-3 max-w-2xl text-base text-slate-600">
+        <p class="mt-4 max-w-read text-base leading-relaxed text-fg-muted">
           {{ site.site_description || '记录技术、思考与生活。' }}
         </p>
-        <div class="mt-6 flex flex-wrap gap-3">
+        <div class="mt-8 flex flex-wrap gap-3">
           <NuxtLink to="/articles">
-            <Button>浏览文章
-              <ArrowRight class="h-4 w-4"/>
+            <Button size="lg">浏览文章
+              <Icon class="h-4 w-4" name="arrow-right"/>
             </Button>
           </NuxtLink>
           <NuxtLink to="/about">
-            <Button variant="outline">关于本站</Button>
+            <Button size="lg" variant="outline">关于本站</Button>
           </NuxtLink>
         </div>
       </div>
     </section>
 
     <!-- 最新文章 -->
-    <section class="mx-auto max-w-5xl px-4 py-12">
-      <div class="mb-6 flex items-end justify-between">
-        <h2 class="text-xl font-semibold text-slate-900">最新文章</h2>
-        <NuxtLink class="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900" to="/articles">
+    <section class="mx-auto max-w-wide px-4 py-14">
+      <div class="mb-8 flex items-end justify-between">
+        <h2 class="text-lg font-semibold tracking-tight text-fg">最新文章</h2>
+        <NuxtLink
+          class="inline-flex items-center gap-1 text-sm text-fg-muted transition-colors hover:text-primary"
+          to="/articles"
+        >
           全部文章
-          <ArrowRight class="h-3.5 w-3.5"/>
+          <Icon class="h-3.5 w-3.5" name="arrow-right"/>
         </NuxtLink>
       </div>
 
-      <div v-if="articles.length" class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-        <ArticleCard v-for="article in articles" :key="article.id" :article="article"/>
-      </div>
-      <EmptyState v-else description="发布第一篇文章后，它会出现在这里。" title="还没有已发布的文章"/>
+      <ArticleListSection
+        :articles="articles"
+        :page="1"
+        :pages="0"
+        empty-description="发布第一篇文章后，它会出现在这里。"
+        empty-title="还没有已发布的文章"
+      />
     </section>
 
     <!-- 分类 -->
-    <section v-if="(categories || []).length" class="border-t border-slate-100 bg-slate-50">
-      <div class="mx-auto max-w-5xl px-4 py-12">
-        <h2 class="mb-6 text-xl font-semibold text-slate-900">分类</h2>
+    <section v-if="(categories || []).length" class="border-t border-line bg-surface-soft">
+      <div class="mx-auto max-w-wide px-4 py-14">
+        <h2 class="mb-6 text-lg font-semibold tracking-tight text-fg">分类</h2>
         <div class="flex flex-wrap gap-2">
           <NuxtLink v-for="category in categories || []" :key="category.id" :to="`/category/${category.id}`">
-            <Badge class="bg-white px-3 py-1 text-sm" variant="outline">
+            <Badge class="bg-surface px-3 py-1 text-sm" variant="outline">
               {{ category.name }}
-              <span v-if="category.article_count" class="ml-1 text-slate-400">{{ category.article_count }}</span>
+              <span v-if="category.article_count" class="ml-1 text-fg-subtle">{{ category.article_count }}</span>
             </Badge>
           </NuxtLink>
         </div>

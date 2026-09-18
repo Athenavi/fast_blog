@@ -102,3 +102,14 @@ export type {WebhookItem, WebhookPayload} from './modules/webhook'
 
 export {notificationApi} from './modules/notification'
 export type {NotificationItem} from './modules/notification'
+
+// ---------------------------------------------------------------- mobile（前台用户端）
+export {mobileApi} from './modules/mobile'
+export type {
+  MobileLoginPayload,
+  MobileProfile,
+  MobileProfileUpdate,
+  MobileTokenData,
+  MobileUserStats,
+  RegisterPayload,
+} from './modules/mobile'

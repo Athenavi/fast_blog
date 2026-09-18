@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-/** 分页条：首页/列表/搜索共用 */
+/** 分页条：多列表场景复用 */
 const props = defineProps<{ page: number; pages: number }>()
 const emit = defineEmits<{ (e: 'change', page: number): void }>()
 
@@ -21,7 +21,7 @@ const items = computed(() => {
       上一页
     </Button>
     <template v-for="(item, index) in items" :key="index">
-      <span v-if="item === '...'" class="px-2 text-sm text-slate-400">…</span>
+      <span v-if="item === '...'" class="px-2 text-sm text-fg-subtle">…</span>
       <Button
         v-else
         :variant="item === props.page ? 'default' : 'ghost'"
