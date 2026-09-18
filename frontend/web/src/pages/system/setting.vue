@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 系统设置（键值对管理）
  *
@@ -16,14 +17,14 @@ import {formatDateTime} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '系统设置',
+  title: t('admin.system.setting.title'),
   permission: 'module_system:setting:view',
 })
 
 const TYPES = [
-  {label: '字符串', value: 'string'},
-  {label: '数字', value: 'number'},
-  {label: '布尔', value: 'boolean'},
+  {label: t('admin.system.setting.typeString'), value: 'string'},
+  {label: t('admin.system.setting.typeNumber'), value: 'number'},
+  {label: t('admin.system.setting.typeBoolean'), value: 'boolean'},
   {label: 'JSON', value: 'json'},
 ]
 
@@ -90,11 +91,11 @@ function openEdit(row: SettingItem): void {
 async function submitForm(): Promise<void> {
   const key = form.setting_key.trim()
   if (!key) {
-    ElMessage.warning('请填写设置键')
+    ElMessage.warning(t('admin.system.setting.keyRequired'))
     return
   }
   if (!/^[\w.:-]+$/.test(key)) {
-    ElMessage.warning('设置键只能包含字母、数字、下划线、点、冒号与连字符')
+    ElMessage.warning(t('admin.system.setting.keyCharset'))
     return
   }
 
@@ -107,7 +108,7 @@ async function submitForm(): Promise<void> {
       description: form.description,
       is_public: form.is_public,
     })
-    ElMessage.success('已保存')
+    ElMessage.success(t('admin.system.setting.saved'))
     dialogVisible.value = false
     await loadList()
   } finally {
@@ -116,9 +117,9 @@ async function submitForm(): Promise<void> {
 }
 
 async function removeRow(row: SettingItem): Promise<void> {
-  await ElMessageBox.confirm(`确定删除设置项「${row.setting_key}」吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.system.setting.confirmDelete', {key: row.setting_key}), t('admin.common.notice'), {type: 'warning'})
   await settingApi.remove(row.setting_key)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.system.setting.deleted'))
   await loadList()
 }
 
@@ -129,50 +130,54 @@ onMounted(loadList)
   <div class="page-container">
     <el-card shadow="never">
       <el-form :inline="true" @submit.prevent>
-        <el-form-item label="关键词">
-          <el-input v-model="query.keyword" clearable placeholder="键或描述包含" style="width: 220px"
+        <el-form-item :label="$t('admin.system.setting.keyword')">
+          <el-input v-model="query.keyword" :placeholder="$t('admin.system.setting.keywordPlaceholder')" clearable
+                    style="width: 220px"
                     @keyup.enter="loadList"/>
         </el-form-item>
-        <el-form-item label="公开">
-          <el-select v-model="query.is_public" clearable placeholder="全部" style="width: 130px">
-            <el-option :value="true" label="公开"/>
-            <el-option :value="false" label="仅后台"/>
+        <el-form-item :label="$t('admin.system.setting.publicLabel')">
+          <el-select v-model="query.is_public" :placeholder="$t('admin.common.all')" clearable style="width: 130px">
+            <el-option :label="$t('admin.system.setting.publicLabel')" :value="true"/>
+            <el-option :label="$t('admin.system.setting.adminOnly')" :value="false"/>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Refresh" type="primary" @click="loadList">查询</el-button>
+          <el-button :icon="Refresh" type="primary" @click="loadList">{{ $t('admin.common.search') }}</el-button>
         </el-form-item>
       </el-form>
 
       <div class="toolbar">
         <el-button v-auth="'module_system:setting:edit'" :icon="Plus" type="primary" @click="openCreate">
-          新增设置
+          {{ $t('admin.system.setting.createTitle') }}
         </el-button>
         <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
       </div>
 
       <el-table v-loading="loading" :data="list" row-key="setting_key">
-        <el-table-column label="设置键" min-width="220">
+        <el-table-column :label="$t('admin.system.setting.key')" min-width="220">
           <template #default="{row}">
             <code class="key">{{ row.setting_key }}</code>
           </template>
         </el-table-column>
-        <el-table-column label="值" min-width="240">
+        <el-table-column :label="$t('admin.system.setting.value')" min-width="240">
           <template #default="{row}">
             <span class="setting-value">{{ row.setting_value ?? '-' }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="类型" prop="setting_type" width="90"/>
-        <el-table-column label="描述" min-width="180" prop="description" show-overflow-tooltip/>
-        <el-table-column label="公开" width="80">
+        <el-table-column :label="$t('admin.system.setting.type')" prop="setting_type" width="90"/>
+        <el-table-column :label="$t('admin.common.description')" min-width="180" prop="description"
+                         show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.system.setting.publicLabel')" width="80">
           <template #default="{row}">
-            <el-tag :type="row.is_public ? 'success' : 'info'" size="small">{{ row.is_public ? '是' : '否' }}</el-tag>
+            <el-tag :type="row.is_public ? 'success' : 'info'" size="small">
+              {{ row.is_public ? t('admin.common.yes') : t('admin.common.no') }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="更新时间" width="170">
+        <el-table-column :label="$t('admin.common.updatedAt')" width="170">
           <template #default="{row}">{{ formatDateTime(row.updated_at) }}</template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="150">
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
           <template #default="{row}">
             <el-button v-auth="'module_system:setting:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
               编辑
@@ -185,40 +190,42 @@ onMounted(loadList)
       </el-table>
 
       <p class="hint">
-        共 {{ total }} 项；标记为「公开」的设置会随 <code>/system/setting/public</code> 下发给前台
+        {{ $t('admin.system.setting.listSummary', {n: total}) }}
       </p>
     </el-card>
 
     <el-dialog
       v-model="dialogVisible"
-      :title="editingKey ? '编辑设置' : '新增设置'"
+      :title="editingKey ? t('admin.system.setting.editTitle') : t('admin.system.setting.createTitle')"
       destroy-on-close
       width="560px"
     >
       <el-form :model="form" label-width="90px">
-        <el-form-item label="设置键" required>
-          <el-input v-model="form.setting_key" :disabled="Boolean(editingKey)" placeholder="如 site_name"/>
+        <el-form-item :label="$t('admin.system.setting.key')" required>
+          <el-input v-model="form.setting_key" :disabled="Boolean(editingKey)"
+                    :placeholder="$t('admin.system.setting.keyPlaceholder')"/>
         </el-form-item>
-        <el-form-item label="值">
-          <el-input v-model="form.setting_value" :rows="3" placeholder="JSON 类型请填合法 JSON" type="textarea"/>
+        <el-form-item :label="$t('admin.system.setting.value')">
+          <el-input v-model="form.setting_value" :placeholder="$t('admin.system.setting.valuePlaceholder')" :rows="3"
+                    type="textarea"/>
         </el-form-item>
-        <el-form-item label="类型">
+        <el-form-item :label="$t('admin.system.setting.type')">
           <el-select v-model="form.setting_type" style="width: 100%">
             <el-option v-for="item in TYPES" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="$t('admin.common.description')">
           <el-input v-model="form.description" maxlength="255" show-word-limit/>
         </el-form-item>
-        <el-form-item label="公开">
+        <el-form-item :label="$t('admin.system.setting.publicLabel')">
           <el-switch v-model="form.is_public"/>
-          <span class="switch-hint">开启后前台可通过公开接口读取</span>
+          <span class="switch-hint">{{ $t('admin.system.setting.publicHint') }}</span>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitForm">保存</el-button>
+        <el-button @click="dialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>

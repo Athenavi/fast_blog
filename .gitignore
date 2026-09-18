@@ -74,6 +74,9 @@ frontend/web/*.tsbuildinfo
 frontend/web/src/.plugin-pages/
 frontend/web/src/.plugin-registry.ts
 
+# i18n 工具的草稿产物（scripts/i18n_tool.py extract 生成，用完即弃）
+frontend/web/i18n-draft.json
+
 frontend-next/.next/
 frontend-next/node_modules/
 

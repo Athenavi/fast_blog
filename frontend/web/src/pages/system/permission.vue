@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 权限码总览
  *
@@ -14,7 +15,7 @@ import {type CapabilityGroup, permissionApi} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '权限码',
+  title: t('admin.system.permission.title'),
   permission: 'module_system:permission:view',
 })
 
@@ -57,9 +58,9 @@ const totalCount = computed(() =>
 )
 
 async function invalidateCache(): Promise<void> {
-  await ElMessageBox.confirm('确定清空全部用户的权限缓存吗？', '提示', {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.system.permission.clearConfirm'), t('admin.common.notice'), {type: 'warning'})
   await permissionApi.invalidateCache()
-  ElMessage.success('缓存已失效，将在下次请求时重建')
+  ElMessage.success(t('admin.system.permission.cacheCleared'))
   await load()
 }
 
@@ -70,7 +71,8 @@ onMounted(load)
   <div class="page-container">
     <el-card shadow="never">
       <div class="toolbar">
-        <el-input v-model="keyword" clearable placeholder="按权限码或名称过滤" style="width: 260px"/>
+        <el-input v-model="keyword" :placeholder="$t('admin.system.permission.filterPlaceholder')" clearable
+                  style="width: 260px"/>
         <el-button :icon="Refresh" circle @click="load"/>
         <span class="count">共 {{ totalCount }} 个权限码，{{ groups.length }} 个资源域</span>
         <el-button
@@ -81,7 +83,7 @@ onMounted(load)
           type="warning"
           @click="invalidateCache"
         >
-          清空权限缓存
+          {{ $t('admin.system.permission.clearCache') }}
         </el-button>
       </div>
 
@@ -97,13 +99,13 @@ onMounted(load)
           </template>
 
           <el-table :data="group.capabilities" border size="small">
-            <el-table-column label="权限码" min-width="280" prop="code"/>
-            <el-table-column label="名称" min-width="160" prop="name"/>
-            <el-table-column label="动作" prop="action" width="130"/>
-            <el-table-column label="状态" width="90">
+            <el-table-column :label="$t('admin.system.permission.code')" min-width="280" prop="code"/>
+            <el-table-column :label="$t('admin.common.name')" min-width="160" prop="name"/>
+            <el-table-column :label="$t('admin.system.permission.action')" prop="action" width="130"/>
+            <el-table-column :label="$t('admin.common.status')" width="90">
               <template #default="{row}">
                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                  {{ row.is_active ? '启用' : '停用' }}
+                  {{ row.is_active ? t('admin.common.enabled') : t('admin.common.disabled') }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -111,7 +113,7 @@ onMounted(load)
         </el-collapse-item>
       </el-collapse>
 
-      <el-empty v-if="!loading && !filteredGroups.length" description="没有匹配的权限码"/>
+      <el-empty v-if="!loading && !filteredGroups.length" :description="$t('admin.system.permission.empty')"/>
     </el-card>
   </div>
 </template>

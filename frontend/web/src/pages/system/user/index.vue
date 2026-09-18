@@ -3,31 +3,32 @@
     <el-card shadow="never">
       <!-- 搜索区 -->
       <el-form :inline="true" :model="query" @submit.prevent="search()">
-        <el-form-item label="关键词">
+        <el-form-item :label="$t('admin.system.user.keyword')">
           <el-input
             v-model="query.keyword"
             clearable
-            placeholder="用户名或邮箱"
+            :placeholder="$t('admin.system.user.keywordPlaceholder')"
             style="width: 220px"
             @keyup.enter="search()"
           />
         </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.is_active" clearable placeholder="全部" style="width: 120px">
-            <el-option :value="true" label="启用"/>
-            <el-option :value="false" label="停用"/>
+        <el-form-item :label="$t('admin.system.user.status')">
+          <el-select v-model="query.is_active" :placeholder="$t('admin.system.user.allPlaceholder')" clearable
+                     style="width: 120px">
+            <el-option :label="$t('admin.system.user.activeLabel')" :value="true"/>
+            <el-option :label="$t('admin.system.user.inactiveLabel')" :value="false"/>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">查询</el-button>
-          <el-button :icon="Refresh" @click="reset()">重置</el-button>
+          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.system.user.search') }}</el-button>
+          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.system.user.reset') }}</el-button>
         </el-form-item>
       </el-form>
 
       <!-- 操作区 -->
       <div class="table-toolbar">
         <el-button v-auth="'module_system:user:create'" :icon="Plus" type="primary" @click="openCreate">
-          新建用户
+          {{ $t('admin.system.user.createTitle') }}
         </el-button>
         <span class="table-toolbar__total">共 {{ total }} 条</span>
       </div>
@@ -35,36 +36,37 @@
       <!-- 表格 -->
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="80"/>
-        <el-table-column label="用户名" min-width="140" prop="username" show-overflow-tooltip/>
-        <el-table-column label="邮箱" min-width="200" prop="email" show-overflow-tooltip/>
-        <el-table-column label="状态" width="90">
+        <el-table-column :label="$t('admin.system.user.username')" min-width="140" prop="username"
+                         show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.system.user.email')" min-width="200" prop="email" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.system.user.status')" width="90">
           <template #default="{ row }">
             <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-              {{ row.is_active ? '启用' : '停用' }}
+              {{ row.is_active ? t('admin.system.user.active') : t('admin.system.user.inactive') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="身份" width="120">
+        <el-table-column :label="$t('admin.system.user.identity')" width="120">
           <template #default="{ row }">
-            <el-tag v-if="row.is_superuser" size="small" type="danger">超管</el-tag>
-            <el-tag v-else-if="row.is_staff" size="small" type="warning">员工</el-tag>
-            <span v-else class="text-muted">普通</span>
+            <el-tag v-if="row.is_superuser" size="small" type="danger">{{ $t('admin.system.user.superuser') }}</el-tag>
+            <el-tag v-else-if="row.is_staff" size="small" type="warning">{{ $t('admin.system.user.staffTag') }}</el-tag>
+            <span v-else class="text-muted">{{ $t('admin.system.user.normal') }}</span>
           </template>
         </el-table-column>
         <el-table-column label="VIP" width="80">
           <template #default="{ row }">Lv{{ row.vip_level ?? 0 }}</template>
         </el-table-column>
-        <el-table-column label="最后登录" width="170">
+        <el-table-column :label="$t('admin.system.user.lastLogin')" width="170">
           <template #default="{ row }">{{ formatDateTime(row.last_login_at) }}</template>
         </el-table-column>
-        <el-table-column fixed="right" label="操作" width="260">
+        <el-table-column :label="$t('admin.system.user.actions')" fixed="right" width="260">
           <template #default="{ row }">
             <el-button v-auth="'module_system:user:edit'" link type="primary" @click="openEdit(row as UserItem)">
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button v-auth="'module_system:user:manage_roles'" link type="primary"
                        @click="openRoles(row as UserItem)">
-              角色
+              {{ $t('admin.system.user.assignRoles') }}
             </el-button>
             <el-button
               v-auth="'module_system:user:edit'"
@@ -72,10 +74,10 @@
               link
               @click="toggleStatus(row as UserItem)"
             >
-              {{ row.is_active ? '停用' : '启用' }}
+              {{ row.is_active ? t('admin.system.user.inactive') : t('admin.system.user.active') }}
             </el-button>
             <el-button v-auth="'module_system:user:delete'" link type="danger" @click="onDelete(row as UserItem)">
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -98,28 +100,30 @@
     <!-- 新建 / 编辑 -->
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="520px">
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="form.username" :disabled="isEdit" placeholder="3-30 位字母数字下划线"/>
+        <el-form-item :label="$t('admin.system.user.username')" prop="username">
+          <el-input v-model="form.username" :disabled="isEdit" :placeholder="$t('admin.system.user.usernameHint')"/>
         </el-form-item>
-        <el-form-item label="邮箱" prop="email">
+        <el-form-item :label="$t('admin.system.user.email')" prop="email">
           <el-input v-model="form.email" placeholder="user@example.com"/>
         </el-form-item>
-        <el-form-item :prop="isEdit ? undefined : 'password'" label="密码">
+        <el-form-item :label="$t('admin.system.user.password')" :prop="isEdit ? undefined : 'password'">
           <el-input
             v-model="form.password"
-            :placeholder="isEdit ? '留空表示不修改' : '至少 8 位'"
+            :placeholder="isEdit ? t('admin.system.user.passwordEditHint') : t('admin.system.user.passwordHint')"
             show-password
             type="password"
           />
         </el-form-item>
-        <el-form-item label="状态">
-          <el-switch v-model="form.is_active" active-text="启用" inactive-text="停用"/>
+        <el-form-item :label="$t('admin.system.user.status')">
+          <el-switch v-model="form.is_active" :active-text="$t('admin.system.user.activeText')"
+                     :inactive-text="$t('admin.system.user.inactiveText')"/>
         </el-form-item>
-        <el-form-item label="员工">
+        <el-form-item :label="$t('admin.system.user.staffLabel')">
           <el-switch v-model="form.is_staff"/>
         </el-form-item>
-        <el-form-item v-if="!isEdit" label="初始角色">
-          <el-select v-model="form.role_ids" multiple placeholder="可多选" style="width: 100%">
+        <el-form-item v-if="!isEdit" :label="$t('admin.system.user.initialRoles')">
+          <el-select v-model="form.role_ids" :placeholder="$t('admin.system.user.multiSelect')" multiple
+                     style="width: 100%">
             <el-option
               v-for="role in roleOptions"
               :key="role.id"
@@ -131,20 +135,21 @@
       </el-form>
 
       <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitForm">保存</el-button>
+        <el-button @click="formVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.system.user.save') }}</el-button>
       </template>
     </el-drawer>
 
     <!-- 角色分配 -->
-    <el-dialog v-model="rolesVisible" title="分配角色" width="480px">
+    <el-dialog v-model="rolesVisible" :title="$t('admin.system.user.assignRoles')" width="480px">
       <el-alert
         :closable="false"
         class="mb-3"
-        title="角色决定该用户拥有的权限码；超级管理员不受角色限制。"
+        :title="$t('admin.system.user.assignRolesHint')"
         type="info"
       />
-      <el-select v-model="selectedRoleIds" multiple placeholder="选择角色" style="width: 100%">
+      <el-select v-model="selectedRoleIds" :placeholder="$t('admin.system.user.selectRoles')" multiple
+                 style="width: 100%">
         <el-option
           v-for="role in roleOptions"
           :key="role.id"
@@ -153,14 +158,15 @@
         />
       </el-select>
       <template #footer>
-        <el-button @click="rolesVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitRoles">保存</el-button>
+        <el-button @click="rolesVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitRoles">{{ $t('admin.system.user.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
+const {t} = useI18n()
 import {Plus, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
@@ -223,18 +229,18 @@ const form = reactive({
 
 const formRules: FormRules = {
   username: [
-    {required: true, message: '请输入用户名', trigger: 'blur'},
-    {min: 3, max: 30, message: '长度 3-30', trigger: 'blur'},
-    {pattern: /^[a-zA-Z0-9_]+$/, message: '仅允许字母、数字、下划线', trigger: 'blur'},
+    {required: true, message: t('admin.system.user.usernameRequired'), trigger: 'blur'},
+    {min: 3, max: 30, message: t('admin.system.user.usernameLength'), trigger: 'blur'},
+    {pattern: /^[a-zA-Z0-9_]+$/, message: t('admin.system.user.usernameCharset'), trigger: 'blur'},
   ],
   email: [
-    {required: true, message: '请输入邮箱', trigger: 'blur'},
-    {type: 'email', message: '邮箱格式不正确', trigger: 'blur'},
+    {required: true, message: t('admin.system.user.emailRequired'), trigger: 'blur'},
+    {type: 'email', message: t('admin.system.user.emailInvalid'), trigger: 'blur'},
   ],
-  password: [{min: 8, message: '至少 8 位', trigger: 'blur'}],
+  password: [{min: 8, message: t('admin.system.user.passwordHint'), trigger: 'blur'}],
 }
 
-const formTitle = computed(() => (isEdit.value ? '编辑用户' : '新建用户'))
+const formTitle = computed(() => (isEdit.value ? t('admin.system.user.editTitle') : t('admin.system.user.createTitle')))
 
 function resetForm(): void {
   form.username = ''
@@ -292,7 +298,7 @@ async function submitForm(): Promise<void> {
         role_ids: form.role_ids,
       })
     }
-    ElMessage.success('保存成功')
+    ElMessage.success(t('admin.system.user.saveSuccess'))
     formVisible.value = false
     await (isEdit.value ? load() : search())
   } catch {
@@ -306,18 +312,18 @@ async function submitForm(): Promise<void> {
 async function toggleStatus(row: UserItem): Promise<void> {
   await remove(
     () => userApi.setStatus(row.id, !row.is_active),
-    `确定要${row.is_active ? '停用' : '启用'}用户「${row.username}」吗？`,
-    '确认操作',
-    row.is_active ? '已停用' : '已启用',
+    t(row.is_active ? 'admin.system.user.confirmDisable' : 'admin.system.user.confirmEnable', {name: row.username}),
+    t('admin.system.user.confirmTitle'),
+    row.is_active ? t('admin.system.user.disabled') : t('admin.system.user.enabled'),
   )
 }
 
 async function onDelete(row: UserItem): Promise<void> {
   await remove(
     () => userApi.remove(row.id, false),
-    `将停用用户「${row.username}」（保留数据）。如需彻底删除请联系后端用 force=true。`,
-    '确认删除',
-    '已停用',
+    t('admin.system.user.confirmRemove', {name: row.username}),
+    t('admin.system.user.confirmDelete'),
+    t('admin.system.user.disabled'),
   )
 }
 
@@ -342,7 +348,7 @@ async function submitRoles(): Promise<void> {
   saving.value = true
   try {
     await userApi.setRoles(roleTargetId.value, selectedRoleIds.value)
-    ElMessage.success('角色已更新')
+    ElMessage.success(t('admin.system.user.rolesUpdated'))
     rolesVisible.value = false
     await load()
   } catch {

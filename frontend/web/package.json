@@ -14,7 +14,8 @@
     "generate": "nuxt generate --dotenv .env.production",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "type-check": "npm run prescan && nuxt typecheck"
+    "type-check": "npm run prescan && nuxt typecheck",
+    "check:i18n": "node scripts/check-i18n.mjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",

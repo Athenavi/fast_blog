@@ -2,52 +2,55 @@
   <div class="page-container">
     <el-card shadow="never">
       <el-form :inline="true" @submit.prevent="search()">
-        <el-form-item label="关键词">
+        <el-form-item :label="$t('admin.system.role.keyword')">
           <el-input
             v-model="query.keyword"
             clearable
-            placeholder="名称或标识"
+            :placeholder="$t('admin.system.role.keywordPlaceholder')"
             style="width: 200px"
             @keyup.enter="search()"
           />
         </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="query.is_system" clearable placeholder="全部" style="width: 130px">
-            <el-option :value="true" label="系统内置"/>
-            <el-option :value="false" label="自定义"/>
+        <el-form-item :label="$t('admin.system.role.type')">
+          <el-select v-model="query.is_system" :placeholder="$t('admin.common.all')" clearable style="width: 130px">
+            <el-option :label="$t('admin.system.role.builtinLabel')" :value="true"/>
+            <el-option :label="$t('admin.system.role.customLabel')" :value="false"/>
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">查询</el-button>
-          <el-button :icon="Refresh" @click="reset()">重置</el-button>
+          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
+          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
         </el-form-item>
       </el-form>
 
       <div class="table-toolbar">
         <el-button v-auth="'module_system:role:edit'" :icon="Plus" type="primary" @click="openCreate">
-          新建角色
+          {{ $t('admin.system.role.createTitle') }}
         </el-button>
         <span class="table-toolbar__total">共 {{ total }} 条</span>
       </div>
 
       <el-table v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
-        <el-table-column label="名称" min-width="140" prop="name" show-overflow-tooltip/>
-        <el-table-column label="标识" prop="slug" width="150"/>
-        <el-table-column label="描述" min-width="200" prop="description" show-overflow-tooltip/>
-        <el-table-column label="类型" width="100">
+        <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.system.role.code')" prop="slug" width="150"/>
+        <el-table-column :label="$t('admin.common.description')" min-width="200" prop="description"
+                         show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.system.role.type')" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.is_system" size="small" type="warning">系统内置</el-tag>
-            <el-tag v-else size="small" type="info">自定义</el-tag>
+            <el-tag v-if="row.is_system" size="small" type="warning">{{ $t('admin.system.role.builtinTag') }}</el-tag>
+            <el-tag v-else size="small" type="info">{{ $t('admin.system.role.customTag') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="权限数" prop="permission_count" width="90"/>
-        <el-table-column label="用户数" prop="user_count" width="90"/>
-        <el-table-column fixed="right" label="操作" width="230">
+        <el-table-column :label="$t('admin.system.role.permissionCount')" prop="permission_count" width="90"/>
+        <el-table-column :label="$t('admin.system.role.userCount')" prop="user_count" width="90"/>
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="230">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openPermissions(row as RoleItem)">权限配置</el-button>
+            <el-button link type="primary" @click="openPermissions(row as RoleItem)">
+              {{ $t('admin.system.role.permissionConfig') }}
+            </el-button>
             <el-button v-auth="'module_system:role:edit'" link type="primary" @click="openEdit(row as RoleItem)">
-              编辑
+              {{ $t('admin.common.edit') }}
             </el-button>
             <el-button
               v-auth="'module_system:role:edit'"
@@ -56,7 +59,7 @@
               type="danger"
               @click="onDelete(row as RoleItem)"
             >
-              删除
+              {{ $t('admin.common.delete') }}
             </el-button>
           </template>
         </el-table-column>
@@ -78,22 +81,22 @@
     <!-- 新建 / 编辑 -->
     <el-dialog v-model="formVisible" :title="formTitle" destroy-on-close width="520px">
       <el-form ref="formRef" :model="form" :rules="formRules" label-width="90px">
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="form.name" placeholder="如：内容编辑"/>
+        <el-form-item :label="$t('admin.common.name')" prop="name">
+          <el-input v-model="form.name" :placeholder="$t('admin.system.role.namePlaceholder')"/>
         </el-form-item>
-        <el-form-item label="标识" prop="slug">
-          <el-input v-model="form.slug" :disabled="isEdit" placeholder="如：editor（唯一）"/>
+        <el-form-item :label="$t('admin.system.role.code')" prop="slug">
+          <el-input v-model="form.slug" :disabled="isEdit" :placeholder="$t('admin.system.role.codePlaceholder')"/>
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="$t('admin.common.description')">
           <el-input v-model="form.description" :rows="2" type="textarea"/>
         </el-form-item>
-        <el-form-item label="启用">
+        <el-form-item :label="$t('admin.common.enabled')">
           <el-switch v-model="form.is_active"/>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitForm">保存</el-button>
+        <el-button @click="formVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
 
@@ -102,7 +105,7 @@
       <el-alert
         :closable="false"
         class="mb-3"
-        title="权限码格式为 resource:action（与后端 capabilities.code 一致）。保存时会全量覆盖该角色的权限。"
+        :title="$t('admin.system.role.permissionHint')"
         type="info"
       />
 
@@ -134,14 +137,15 @@
       </div>
 
       <template #footer>
-        <el-button @click="permVisible = false">取消</el-button>
-        <el-button :loading="saving" type="primary" @click="submitPermissions">保存</el-button>
+        <el-button @click="permVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="saving" type="primary" @click="submitPermissions">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-drawer>
   </div>
 </template>
 
 <script lang="ts" setup>
+const {t} = useI18n()
 import {Plus, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
@@ -188,14 +192,14 @@ const form = reactive({
 })
 
 const formRules: FormRules = {
-  name: [{required: true, message: '请输入角色名称', trigger: 'blur'}],
+  name: [{required: true, message: t('admin.system.role.nameRequired'), trigger: 'blur'}],
   slug: [
-    {required: true, message: '请输入角色标识', trigger: 'blur'},
-    {pattern: /^[a-z0-9_-]+$/, message: '仅允许小写字母、数字、下划线、短横线', trigger: 'blur'},
+    {required: true, message: t('admin.system.role.codeRequired'), trigger: 'blur'},
+    {pattern: /^[a-z0-9_-]+$/, message: t('admin.system.role.codeCharset'), trigger: 'blur'},
   ],
 }
 
-const formTitle = computed(() => (isEdit.value ? '编辑角色' : '新建角色'))
+const formTitle = computed(() => (isEdit.value ? t('admin.system.role.editTitle') : t('admin.system.role.createTitle')))
 
 function openCreate(): void {
   isEdit.value = false
@@ -235,7 +239,7 @@ async function submitForm(): Promise<void> {
         description: form.description,
       })
     }
-    ElMessage.success('保存成功')
+    ElMessage.success(t('admin.system.role.saveSuccess'))
     formVisible.value = false
     await (isEdit.value ? load() : search())
   } catch {
@@ -248,8 +252,8 @@ async function submitForm(): Promise<void> {
 async function onDelete(row: RoleItem): Promise<void> {
   await remove(
     () => roleApi.remove(row.id),
-    `确定要删除角色「${row.name}」吗？仍有用户使用时会拒绝删除。`,
-    '确认删除',
+    t('admin.system.role.confirmDelete', {name: row.name}),
+    t('admin.system.role.confirmDelete'),
   )
 }
 
@@ -262,7 +266,7 @@ const checkedCodes = ref<string[]>([])
 const activeGroups = ref<string[]>([])
 
 const permTitle = computed(() =>
-  permTarget.value ? `权限配置 - ${permTarget.value.name}` : '权限配置',
+  permTarget.value ? t('admin.system.role.permissionConfigFor', {name: permTarget.value.name}) : t('admin.system.role.permissionConfigTitle'),
 )
 
 function countChecked(group: CapabilityGroup): number {
@@ -295,7 +299,7 @@ async function submitPermissions(): Promise<void> {
   saving.value = true
   try {
     await roleApi.setPermissions(permTarget.value.id, checkedCodes.value)
-    ElMessage.success('权限已更新')
+    ElMessage.success(t('admin.system.role.permissionsUpdated'))
     permVisible.value = false
     await load()
   } catch {

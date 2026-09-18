@@ -22,10 +22,16 @@ definePageMeta({
   permission: 'module_system:cache:view',
 })
 
-const LEVEL_LABELS: Record<string, string> = {
-  L1_memory: 'L1 · 内存',
-  L2_redis: 'L2 · Redis',
-  L3_file: 'L3 · 文件',
+const {t} = useI18n()
+
+/** 层级名走 i18n；未知层级原样显示 */
+function levelLabel(key: string): string {
+  const map: Record<string, string> = {
+    L1_memory: t('admin.cache.levelL1'),
+    L2_redis: t('admin.cache.levelL2'),
+    L3_file: t('admin.cache.levelL3'),
+  }
+  return map[key] ?? key
 }
 
 const loading = ref(false)
@@ -56,12 +62,12 @@ async function load(): Promise<void> {
 
 async function clearAll(): Promise<void> {
   await ElMessageBox.confirm(
-    '将清空 L1 / L2 / L3 全部缓存。清空后短期内请求会全部回源，确定继续吗？',
-    '危险操作',
-    {type: 'warning', confirmButtonText: '确认清空'},
+    t('admin.cache.clearConfirm'),
+    t('admin.common.danger'),
+    {type: 'warning', confirmButtonText: t('admin.cache.clearConfirmOk')},
   )
   await cacheApi.clear()
-  ElMessage.success('缓存已清空')
+  ElMessage.success(t('admin.cache.cleared'))
   await load()
 }
 
@@ -91,14 +97,14 @@ async function writeItem(): Promise<void> {
     // 不是合法 JSON 就按字符串写入
   }
   await cacheApi.setItem(itemKey.value, parsed, itemTtl.value)
-  ElMessage.success('已写入')
+  ElMessage.success(t('admin.cache.written'))
   await load()
 }
 
 async function removeItem(): Promise<void> {
   if (!itemKey.value) return
   await cacheApi.removeItem(itemKey.value)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.cache.removed'))
   readResult.value = ''
   await load()
 }
@@ -112,15 +118,15 @@ async function doWarmup(): Promise<void> {
   try {
     parsed = JSON.parse(warmupText.value)
   } catch {
-    ElMessage.error('JSON 格式有误')
+    ElMessage.error(t('admin.cache.jsonInvalid'))
     return
   }
   if (!Array.isArray(parsed) || !parsed.length) {
-    ElMessage.warning('请至少填一条预热数据')
+    ElMessage.warning(t('admin.cache.warmupEmpty'))
     return
   }
   const result = await cacheApi.warmup(parsed as Array<{ key: string; value: unknown; ttl?: number | null }>)
-  ElMessage.success(`已预热 ${result?.warmed ?? 0} 条`)
+  ElMessage.success(t('admin.cache.warmed', {n: result?.warmed ?? 0}))
   warmupOpen.value = false
   await load()
 }
@@ -134,68 +140,68 @@ onMounted(load)
     <div class="mb-3 flex flex-wrap items-center gap-3">
       <el-button :loading="loading" @click="load">
         <Icon class="mr-1 h-3.5 w-3.5" name="refresh-cw"/>
-        刷新
+        {{ $t('admin.cache.refresh') }}
       </el-button>
       <el-button @click="warmupOpen = true">
         <Icon class="mr-1 h-3.5 w-3.5" name="upload"/>
-        批量预热
+        {{ $t('admin.cache.warmup') }}
       </el-button>
       <el-button class="ml-auto" type="danger" @click="clearAll">
         <Icon class="mr-1 h-3.5 w-3.5" name="trash-2"/>
-        清空全部缓存
+        {{ $t('admin.cache.clearAll') }}
       </el-button>
     </div>
 
     <!-- 多级缓存概览 -->
     <el-card class="mb-4" shadow="never">
       <template #header>
-        <span class="font-medium">多级缓存</span>
+        <span class="font-medium">{{ $t('admin.cache.multiLevel') }}</span>
       </template>
 
       <p v-if="multiLevel.error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
-        统计失败：{{ multiLevel.error }}
+        {{ $t('admin.common.statsFailed', {error: multiLevel.error}) }}
       </p>
 
       <div v-else class="mb-4 grid grid-cols-2 gap-4 md:grid-cols-3">
         <div class="stat">
-          <p class="stat__label">总请求</p>
+          <p class="stat__label">{{ $t('admin.cache.totalRequests') }}</p>
           <p class="stat__value">{{ multiLevel.total_requests ?? '—' }}</p>
         </div>
         <div class="stat">
-          <p class="stat__label">总命中</p>
+          <p class="stat__label">{{ $t('admin.cache.totalHits') }}</p>
           <p class="stat__value">{{ multiLevel.total_hits ?? '—' }}</p>
         </div>
         <div class="stat">
-          <p class="stat__label">命中率</p>
+          <p class="stat__label">{{ $t('admin.cache.hitRate') }}</p>
           <p class="stat__value">{{ multiLevel.hit_rate ?? '—' }}</p>
         </div>
       </div>
 
       <el-table :data="levelEntries" border size="small">
-        <el-table-column label="层级" width="140">
-          <template #default="{row}">{{ LEVEL_LABELS[row[0]] || row[0] }}</template>
+        <el-table-column :label="$t('admin.cache.level')" width="140">
+          <template #default="{row}">{{ levelLabel(row[0]) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="120">
+        <el-table-column :label="$t('admin.cache.status')" width="120">
           <template #default="{row}">
             <template v-if="row[1].enabled === undefined">—</template>
             <el-tag v-else :type="row[1].available === false ? 'warning' : 'success'" size="small">
-              {{ row[1].available === false ? '不可用' : '启用' }}
+              {{ row[1].available === false ? $t('admin.cache.unavailable') : $t('admin.cache.enabled') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="命中" width="90">
+        <el-table-column :label="$t('admin.cache.hits')" width="90">
           <template #default="{row}">{{ row[1].hits ?? '—' }}</template>
         </el-table-column>
-        <el-table-column label="未命中" width="90">
+        <el-table-column :label="$t('admin.cache.misses')" width="90">
           <template #default="{row}">{{ row[1].misses ?? '—' }}</template>
         </el-table-column>
-        <el-table-column label="写入" width="90">
+        <el-table-column :label="$t('admin.cache.sets')" width="90">
           <template #default="{row}">{{ row[1].sets ?? '—' }}</template>
         </el-table-column>
-        <el-table-column label="条目/错误">
+        <el-table-column :label="$t('admin.cache.sizeOrErrors')">
           <template #default="{row}">
-            <span v-if="row[1].size !== undefined">条目 {{ row[1].size }}</span>
-            <span v-else-if="row[1].errors !== undefined">错误 {{ row[1].errors }}</span>
+            <span v-if="row[1].size !== undefined">{{ $t('admin.cache.entries') }} {{ row[1].size }}</span>
+            <span v-else-if="row[1].errors !== undefined">{{ $t('admin.cache.errors') }} {{ row[1].errors }}</span>
             <span v-else>—</span>
           </template>
         </el-table-column>
@@ -205,26 +211,27 @@ onMounted(load)
     <!-- 权限缓存 -->
     <el-card class="mb-4" shadow="never">
       <template #header>
-        <span class="font-medium">权限缓存</span>
+        <span class="font-medium">{{ $t('admin.cache.permissionCache') }}</span>
       </template>
       <el-table v-if="permissionRows.length" :data="permissionRows" border size="small">
-        <el-table-column label="项" min-width="180" prop="key"/>
-        <el-table-column label="值" prop="value"/>
+        <el-table-column :label="$t('admin.cache.item')" min-width="180" prop="key"/>
+        <el-table-column :label="$t('admin.cache.value')" prop="value"/>
       </el-table>
-      <p v-else class="text-sm text-fg-muted">暂无权限缓存统计</p>
+      <p v-else class="text-sm text-fg-muted">{{ $t('admin.cache.noPermissionStats') }}</p>
     </el-card>
 
     <!-- 单键操作 -->
     <el-card shadow="never">
       <template #header>
-        <span class="font-medium">单键读写</span>
-        <span class="ml-2 text-xs text-fg-subtle">用于排查具体缓存内容</span>
+        <span class="font-medium">{{ $t('admin.cache.singleKey') }}</span>
+        <span class="ml-2 text-xs text-fg-subtle">{{ $t('admin.cache.singleKeyHint') }}</span>
       </template>
 
       <div class="flex flex-wrap items-center gap-3">
-        <el-input v-model="itemKey" class="max-w-xs" placeholder="缓存键" @keyup.enter="readItem"/>
-        <el-button @click="readItem">读取</el-button>
-        <el-button type="danger" @click="removeItem">删除</el-button>
+        <el-input v-model="itemKey" :placeholder="$t('admin.cache.keyPlaceholder')" class="max-w-xs"
+                  @keyup.enter="readItem"/>
+        <el-button @click="readItem">{{ $t('admin.cache.read') }}</el-button>
+        <el-button type="danger" @click="removeItem">{{ $t('admin.cache.remove') }}</el-button>
       </div>
 
       <pre v-if="readResult" class="mt-3 overflow-auto rounded-control bg-surface-soft p-3 text-xs">{{
@@ -235,22 +242,22 @@ onMounted(load)
         <el-input
           v-model="itemValue"
           class="min-w-[240px] flex-1"
-          placeholder="要写入的值（JSON 或纯字符串）"
+          :placeholder="$t('admin.cache.valuePlaceholder')"
         />
-        <el-input v-model.number="itemTtl" class="w-32" placeholder="TTL 秒（可空）"/>
-        <el-button type="primary" @click="writeItem">写入</el-button>
+        <el-input v-model.number="itemTtl" :placeholder="$t('admin.cache.ttlPlaceholder')" class="w-32"/>
+        <el-button type="primary" @click="writeItem">{{ $t('admin.cache.write') }}</el-button>
       </div>
     </el-card>
 
     <!-- 预热弹窗 -->
-    <el-dialog v-model="warmupOpen" title="批量预热缓存" width="620px">
+    <el-dialog v-model="warmupOpen" :title="$t('admin.cache.warmupTitle')" width="620px">
       <p class="mb-2 text-sm text-fg-muted">
-        填一个 JSON 数组，每项形如 <code>{"key": "...", "value": ..., "ttl": 60}</code>（ttl 可省略）。
+        {{ $t('admin.cache.warmupHint') }}
       </p>
       <el-input v-model="warmupText" :rows="10" type="textarea"/>
       <template #footer>
-        <el-button @click="warmupOpen = false">取消</el-button>
-        <el-button type="primary" @click="doWarmup">开始预热</el-button>
+        <el-button @click="warmupOpen = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button type="primary" @click="doWarmup">{{ $t('admin.cache.warmupStart') }}</el-button>
       </template>
     </el-dialog>
   </div>

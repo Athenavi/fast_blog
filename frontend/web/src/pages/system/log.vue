@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 操作日志
  *
@@ -15,14 +16,14 @@ import {formatDateTime} from '@/utils/format'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '日志',
+  title: t('admin.system.log.title'),
   permission: 'module_system:log:view',
 })
 
 const LEVELS = [
-  {label: '信息', value: 'info'},
-  {label: '警告', value: 'warning'},
-  {label: '错误', value: 'error'},
+  {label: t('admin.system.log.levelInfo'), value: 'info'},
+  {label: t('admin.system.log.levelWarning'), value: 'warning'},
+  {label: t('admin.system.log.levelError'), value: 'error'},
 ]
 
 const loading = ref(false)
@@ -90,7 +91,7 @@ function levelTag(level?: string | null): 'success' | 'warning' | 'danger' | 'in
 async function exportLogs(): Promise<void> {
   const data = await logApi.exportAudit(buildParams())
   if (!data?.content) {
-    ElMessage.warning('没有可导出的日志')
+    ElMessage.warning(t('admin.system.log.nothingToExport'))
     return
   }
   const isJson = data.format === 'json'
@@ -103,19 +104,19 @@ async function exportLogs(): Promise<void> {
   link.download = `audit-logs.${isJson ? 'json' : 'csv'}`
   link.click()
   URL.revokeObjectURL(url)
-  ElMessage.success(`已导出 ${data.count} 条日志`)
+  ElMessage.success(t('admin.system.log.exported', {n: data.count}))
 }
 
 async function cleanup(): Promise<void> {
-  const input = await ElMessageBox.prompt('删除多少天之前的日志？', '清理日志', {
+  const input = await ElMessageBox.prompt(t('admin.system.log.purgePrompt'), t('admin.system.log.purgeTitle'), {
     inputValue: '90',
     inputPattern: /^\d+$/,
-    inputErrorMessage: '请输入正整数天数',
+    inputErrorMessage: t('admin.system.log.purgeInvalid'),
     type: 'warning',
   })
   const days = Number(input.value)
   await logApi.cleanup(days)
-  ElMessage.success(`已清理 ${days} 天前的日志`)
+  ElMessage.success(t('admin.system.log.cleaned', {n: days}))
   await loadList()
 }
 
@@ -126,60 +127,62 @@ onMounted(loadList)
   <div class="page-container">
     <el-card shadow="never">
       <el-form :inline="true" @submit.prevent>
-        <el-form-item label="用户 ID">
+        <el-form-item :label="$t('admin.system.log.userId')">
           <el-input-number v-model="query.user_id" :min="1" controls-position="right" style="width: 120px"/>
         </el-form-item>
-        <el-form-item label="动作">
-          <el-input v-model="query.action" clearable placeholder="如 create" style="width: 140px"
+        <el-form-item :label="$t('admin.system.log.action')">
+          <el-input v-model="query.action" :placeholder="$t('admin.system.log.actionPlaceholder')" clearable
+                    style="width: 140px"
                     @keyup.enter="onSearch"/>
         </el-form-item>
-        <el-form-item label="级别">
-          <el-select v-model="query.level" clearable placeholder="全部" style="width: 120px">
+        <el-form-item :label="$t('admin.system.log.level')">
+          <el-select v-model="query.level" :placeholder="$t('admin.common.all')" clearable style="width: 120px">
             <el-option v-for="item in LEVELS" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="资源类型">
-          <el-input v-model="query.resource_type" clearable placeholder="如 article" style="width: 140px"
+        <el-form-item :label="$t('admin.system.log.resourceType')">
+          <el-input v-model="query.resource_type" :placeholder="$t('admin.system.log.resourcePlaceholder')" clearable
+                    style="width: 140px"
                     @keyup.enter="onSearch"/>
         </el-form-item>
-        <el-form-item label="时间">
+        <el-form-item :label="$t('admin.system.log.time')">
           <el-date-picker
             v-model="dateRange"
-            end-placeholder="结束"
-            start-placeholder="开始"
+            :end-placeholder="$t('admin.system.log.endPlaceholder')"
+            :start-placeholder="$t('admin.system.log.startPlaceholder')"
             style="width: 250px"
             type="daterange"
             value-format="YYYY-MM-DD"
           />
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Search" type="primary" @click="onSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="onReset">重置</el-button>
+          <el-button :icon="Search" type="primary" @click="onSearch">{{ $t('admin.common.search') }}</el-button>
+          <el-button :icon="Refresh" @click="onReset">{{ $t('admin.common.reset') }}</el-button>
         </el-form-item>
       </el-form>
 
       <div class="toolbar">
-        <el-button :icon="Download" @click="exportLogs">导出</el-button>
+        <el-button :icon="Download" @click="exportLogs">{{ $t('admin.system.log.export') }}</el-button>
         <el-button v-auth="'module_system:log:edit'" :icon="Delete" plain type="danger" @click="cleanup">
-          清理历史日志
+          {{ $t('admin.system.log.purgeAction') }}
         </el-button>
         <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
       </div>
 
       <el-table v-loading="loading" :data="list" row-key="id">
         <el-table-column label="ID" prop="id" width="80"/>
-        <el-table-column label="用户" width="150">
+        <el-table-column :label="$t('admin.system.log.user')" width="150">
           <template #default="{row}">
             {{ row.user_name || (row.user_id ? `#${row.user_id}` : '-') }}
           </template>
         </el-table-column>
-        <el-table-column label="动作" prop="action" width="120"/>
-        <el-table-column label="级别" width="90">
+        <el-table-column :label="$t('admin.system.log.action')" prop="action" width="120"/>
+        <el-table-column :label="$t('admin.system.log.level')" width="90">
           <template #default="{row}">
             <el-tag :type="levelTag(row.level)" size="small">{{ row.level || '-' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="资源" width="180">
+        <el-table-column :label="$t('admin.system.log.resource')" width="180">
           <template #default="{row}">
             <span v-if="row.resource_type">
               {{ row.resource_type }}<span v-if="row.resource_id">#{{ row.resource_id }}</span>
@@ -187,9 +190,10 @@ onMounted(loadList)
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="描述" min-width="240" prop="description" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.common.description')" min-width="240" prop="description"
+                         show-overflow-tooltip/>
         <el-table-column label="IP" prop="ip_address" width="140"/>
-        <el-table-column label="时间" width="170">
+        <el-table-column :label="$t('admin.system.log.time')" width="170">
           <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
       </el-table>

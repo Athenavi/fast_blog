@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
  * 前台导航菜单管理
  *
@@ -15,13 +16,13 @@ import {menuApi, type MenuItemNode, type MenuNode} from '@/api'
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: '菜单',
+  title: t('admin.system.menu.title'),
   permission: 'module_system:navmenu:view',
 })
 
 const TARGETS = [
-  {label: '当前窗口', value: '_self'},
-  {label: '新窗口', value: '_blank'},
+  {label: t('admin.system.menu.targetSelf'), value: '_self'},
+  {label: t('admin.system.menu.targetBlank'), value: '_blank'},
 ]
 
 // ---------------------------------------------------------------- 菜单容器
@@ -96,7 +97,7 @@ async function submitMenu(): Promise<void> {
   const name = menuForm.name.trim()
   const slug = menuForm.slug.trim()
   if (!name || !slug) {
-    ElMessage.warning('请填写名称与标识')
+    ElMessage.warning(t('admin.system.menu.nameAndCodeRequired'))
     return
   }
 
@@ -108,10 +109,10 @@ async function submitMenu(): Promise<void> {
         description: menuForm.description,
         is_active: menuForm.is_active,
       })
-      ElMessage.success('已保存')
+      ElMessage.success(t('admin.system.menu.saved'))
     } else {
       const created = await menuApi.create({name, slug, description: menuForm.description})
-      ElMessage.success('已创建')
+      ElMessage.success(t('admin.system.menu.created'))
       activeMenuId.value = created.id
     }
     menuDialog.value = false
@@ -122,11 +123,11 @@ async function submitMenu(): Promise<void> {
 }
 
 async function removeMenu(row: MenuNode): Promise<void> {
-  await ElMessageBox.confirm(`确定删除菜单「${row.name}」及其全部菜单项吗？`, '提示', {
+  await ElMessageBox.confirm(t('admin.system.menu.confirmRemoveMenu', {name: row.name}), t('admin.common.notice'), {
     type: 'warning',
   })
   await menuApi.remove(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.system.menu.deleted'))
   await loadMenus()
 }
 
@@ -175,11 +176,11 @@ function openItemEdit(row: MenuItemNode): void {
 async function submitItem(): Promise<void> {
   const title = itemForm.title.trim()
   if (!title) {
-    ElMessage.warning('请填写标题')
+    ElMessage.warning(t('admin.system.menu.itemTitleRequired'))
     return
   }
   if (!activeMenuId.value) {
-    ElMessage.warning('请先选择菜单')
+    ElMessage.warning(t('admin.system.menu.menuRequired'))
     return
   }
 
@@ -195,10 +196,10 @@ async function submitItem(): Promise<void> {
     }
     if (editingItemId.value) {
       await menuApi.updateItem(editingItemId.value, payload)
-      ElMessage.success('已保存')
+      ElMessage.success(t('admin.system.menu.saved'))
     } else {
       await menuApi.addItem(activeMenuId.value, payload)
-      ElMessage.success('已创建')
+      ElMessage.success(t('admin.system.menu.created'))
     }
     itemDialog.value = false
     await loadItems()
@@ -208,9 +209,9 @@ async function submitItem(): Promise<void> {
 }
 
 async function removeItem(row: MenuItemNode): Promise<void> {
-  await ElMessageBox.confirm(`确定删除菜单项「${row.title}」吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.system.menu.confirmRemoveItem', {title: row.title}), t('admin.common.notice'), {type: 'warning'})
   await menuApi.removeItem(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('admin.system.menu.deleted'))
   await loadItems()
 }
 
@@ -224,10 +225,10 @@ onMounted(loadMenus)
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>导航菜单</span>
+              <span>{{ $t('admin.system.menu.navMenus') }}</span>
               <el-button v-auth="'module_system:navmenu:create'" :icon="Plus" link type="primary"
                          @click="openMenuCreate">
-                新建
+                {{ $t('admin.common.create') }}
               </el-button>
             </div>
           </template>
@@ -245,14 +246,14 @@ onMounted(loadMenus)
                 <code class="menu-slug">{{ menu.slug }}</code>
               </div>
               <div class="menu-actions" @click.stop>
-                <el-tag v-if="!menu.is_active" size="small" type="info">停用</el-tag>
+                <el-tag v-if="!menu.is_active" size="small" type="info">{{ $t('admin.common.disabled') }}</el-tag>
                 <el-button v-auth="'module_system:navmenu:edit'" :icon="Edit" link type="primary"
                            @click="openMenuEdit(menu)"/>
                 <el-button v-auth="'module_system:navmenu:delete'" :icon="Delete" link type="danger"
                            @click="removeMenu(menu)"/>
               </div>
             </div>
-            <el-empty v-if="!loading && !menus.length" description="还没有导航菜单"/>
+            <el-empty v-if="!loading && !menus.length" :description="$t('admin.system.menu.emptyMenus')"/>
           </div>
 
           <p class="hint">共 {{ total }} 个菜单</p>
@@ -263,7 +264,7 @@ onMounted(loadMenus)
         <el-card shadow="never">
           <template #header>
             <div class="card-header">
-              <span>菜单项</span>
+              <span>{{ $t('admin.system.menu.menuItems') }}</span>
               <div>
                 <el-button
                   v-auth="'module_system:navmenu:create'"
@@ -273,7 +274,7 @@ onMounted(loadMenus)
                   type="primary"
                   @click="openItemCreate()"
                 >
-                  新增菜单项
+                  {{ $t('admin.system.menu.createItem') }}
                 </el-button>
                 <el-button :icon="Refresh" link @click="loadItems"/>
               </div>
@@ -287,20 +288,22 @@ onMounted(loadMenus)
             default-expand-all
             row-key="id"
           >
-            <el-table-column label="标题" min-width="180" prop="title"/>
-            <el-table-column label="链接" min-width="200" prop="url" show-overflow-tooltip/>
-            <el-table-column label="打开方式" width="110">
-              <template #default="{row}">{{ row.target === '_blank' ? '新窗口' : '当前窗口' }}</template>
+            <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="180" prop="title"/>
+            <el-table-column :label="$t('admin.system.menu.itemUrl')" min-width="200" prop="url" show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.system.menu.itemTarget')" width="110">
+              <template #default="{row}">
+                {{ row.target === '_blank' ? t('admin.system.menu.targetBlank') : t('admin.system.menu.targetSelf') }}
+              </template>
             </el-table-column>
-            <el-table-column label="排序" prop="order_index" width="80"/>
-            <el-table-column label="启用" width="80">
+            <el-table-column :label="$t('admin.system.menu.itemOrder')" prop="order_index" width="80"/>
+            <el-table-column :label="$t('admin.common.enabled')" width="80">
               <template #default="{row}">
                 <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                  {{ row.is_active ? '是' : '否' }}
+                  {{ row.is_active ? t('admin.common.yes') : t('admin.common.no') }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column fixed="right" label="操作" width="200">
+            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="200">
               <template #default="{row}">
                 <el-button
                   v-auth="'module_system:navmenu:create'"
@@ -309,86 +312,88 @@ onMounted(loadMenus)
                   type="primary"
                   @click="openItemCreate(row)"
                 >
-                  子项
+                  {{ $t('admin.system.menu.childItems') }}
                 </el-button>
                 <el-button v-auth="'module_system:navmenu:edit'" :icon="Edit" link type="primary"
                            @click="openItemEdit(row)">
-                  编辑
+                  {{ $t('admin.common.edit') }}
                 </el-button>
                 <el-button v-auth="'module_system:navmenu:delete'" :icon="Delete" link type="danger"
                            @click="removeItem(row)">
-                  删除
+                  {{ $t('admin.common.delete') }}
                 </el-button>
               </template>
             </el-table-column>
           </el-table>
 
-          <el-empty v-if="!itemsLoading && !items.length" description="该菜单下还没有菜单项"/>
+          <el-empty v-if="!itemsLoading && !items.length" :description="$t('admin.system.menu.emptyItems')"/>
         </el-card>
       </el-col>
     </el-row>
 
     <el-dialog
       v-model="menuDialog"
-      :title="editingMenuId ? '编辑菜单' : '新建菜单'"
+      :title="editingMenuId ? t('admin.system.menu.editMenu') : t('admin.system.menu.createMenu')"
       destroy-on-close
       width="520px"
     >
       <el-form :model="menuForm" label-width="90px">
-        <el-form-item label="名称" required>
-          <el-input v-model="menuForm.name" placeholder="如 主导航"/>
+        <el-form-item :label="$t('admin.common.name')" required>
+          <el-input v-model="menuForm.name" :placeholder="$t('admin.system.menu.namePlaceholder')"/>
         </el-form-item>
-        <el-form-item label="标识" required>
-          <el-input v-model="menuForm.slug" :disabled="Boolean(editingMenuId)" placeholder="如 main / footer"/>
+        <el-form-item :label="$t('admin.system.menu.code')" required>
+          <el-input v-model="menuForm.slug" :disabled="Boolean(editingMenuId)"
+                    :placeholder="$t('admin.system.menu.codePlaceholder')"/>
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item :label="$t('admin.common.description')">
           <el-input v-model="menuForm.description" :rows="2" type="textarea"/>
         </el-form-item>
-        <el-form-item v-if="editingMenuId" label="启用">
+        <el-form-item v-if="editingMenuId" :label="$t('admin.common.enabled')">
           <el-switch v-model="menuForm.is_active"/>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="menuDialog = false">取消</el-button>
-        <el-button :loading="menuSaving" type="primary" @click="submitMenu">保存</el-button>
+        <el-button @click="menuDialog = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="menuSaving" type="primary" @click="submitMenu">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="itemDialog"
-      :title="editingItemId ? '编辑菜单项' : '新建菜单项'"
+      :title="editingItemId ? t('admin.system.menu.editItem') : t('admin.system.menu.createItem')"
       destroy-on-close
       width="520px"
     >
       <el-form :model="itemForm" label-width="90px">
-        <el-form-item label="标题" required>
+        <el-form-item :label="$t('admin.system.menu.itemTitle')" required>
           <el-input v-model="itemForm.title"/>
         </el-form-item>
-        <el-form-item label="链接">
-          <el-input v-model="itemForm.url" placeholder="如 /articles"/>
+        <el-form-item :label="$t('admin.system.menu.itemUrl')">
+          <el-input v-model="itemForm.url" :placeholder="$t('admin.system.menu.urlPlaceholder')"/>
         </el-form-item>
-        <el-form-item label="父级">
-          <el-select v-model="itemForm.parent_id" clearable placeholder="顶级菜单项" style="width: 100%">
+        <el-form-item :label="$t('admin.system.menu.parent')">
+          <el-select v-model="itemForm.parent_id" :placeholder="$t('admin.system.menu.parentPlaceholder')" clearable
+                     style="width: 100%">
             <el-option v-for="item in parentOptions" :key="item.id" :label="item.title" :value="item.id"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="打开方式">
+        <el-form-item :label="$t('admin.system.menu.itemTarget')">
           <el-select v-model="itemForm.target" style="width: 100%">
             <el-option v-for="item in TARGETS" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </el-form-item>
-        <el-form-item label="排序">
+        <el-form-item :label="$t('admin.system.menu.itemOrder')">
           <el-input-number v-model="itemForm.order_index" :min="0"/>
         </el-form-item>
-        <el-form-item label="启用">
+        <el-form-item :label="$t('admin.common.enabled')">
           <el-switch v-model="itemForm.is_active"/>
         </el-form-item>
       </el-form>
 
       <template #footer>
-        <el-button @click="itemDialog = false">取消</el-button>
-        <el-button :loading="itemSaving" type="primary" @click="submitItem">保存</el-button>
+        <el-button @click="itemDialog = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="itemSaving" type="primary" @click="submitItem">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
