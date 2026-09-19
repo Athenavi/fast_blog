@@ -87,6 +87,29 @@ export type {BlockPatternItem, BlockPatternPayload} from './modules/blockPattern
 export {customPostTypeApi} from './modules/customPostType'
 export type {CustomPostTypeItem, CustomPostTypePayload} from './modules/customPostType'
 
+// ---------------------------------------------------------------- 批次 2
+export {approvalApi} from './modules/approval'
+export type {
+  ApprovalRecordItem,
+  ApprovalRecordQuery,
+  ApprovalStepItem,
+} from './modules/approval'
+
+export {formApi} from './modules/form'
+export type {
+  FormFieldItem,
+  FormFieldPayload,
+  FormItem,
+  FormPayload,
+  FormSubmissionItem,
+} from './modules/form'
+
+export {migrationApi} from './modules/migration'
+export type {MigrationLogItem, MigrationTaskItem, MigrationTaskPayload} from './modules/migration'
+
+export {emailApi} from './modules/email'
+export type {EmailConfigItem, EmailConfigPayload, EmailSubscriptionItem} from './modules/email'
+
 export {monitorApi} from './modules/monitor'
 export type {
   CpuInfo,

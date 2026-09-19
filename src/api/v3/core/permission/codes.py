@@ -53,6 +53,10 @@ MEDIA_UPLOAD = "module_content:media:upload"
 MEDIA_DELETE = "module_content:media:delete"
 
 CPT_VIEW = "module_content:custom_post_type:view"
+
+APPROVAL_VIEW = "module_content:approval:view"
+APPROVAL_ACT = "module_content:approval:act"
+APPROVAL_DELETE = "module_content:approval:delete"
 CPT_CREATE = "module_content:custom_post_type:create"
 CPT_EDIT = "module_content:custom_post_type:edit"
 CPT_DELETE = "module_content:custom_post_type:delete"
@@ -154,7 +158,21 @@ VIP_CREATE = "module_marketing:vip:create"
 VIP_EDIT = "module_marketing:vip:edit"
 VIP_DELETE = "module_marketing:vip:delete"
 
+FORM_VIEW = "module_marketing:form:view"
+FORM_CREATE = "module_marketing:form:create"
+FORM_EDIT = "module_marketing:form:edit"
+FORM_DELETE = "module_marketing:form:delete"
+
 # ============================================================ ops 域
+MIGRATION_VIEW = "module_ops:migration:view"
+MIGRATION_CREATE = "module_ops:migration:create"
+MIGRATION_EDIT = "module_ops:migration:edit"
+MIGRATION_DELETE = "module_ops:migration:delete"
+
+EMAIL_VIEW = "module_ops:email:view"
+EMAIL_EDIT = "module_ops:email:edit"
+EMAIL_DELETE = "module_ops:email:delete"
+
 BACKUP_VIEW = "module_ops:backup:view"
 BACKUP_CREATE = "module_ops:backup:create"
 BACKUP_RESTORE = "module_ops:backup:restore"
@@ -237,6 +255,9 @@ CODE_LABELS: dict[str, str] = {
     CPT_CREATE: "创建内容类型",
     CPT_EDIT: "编辑内容类型",
     CPT_DELETE: "删除内容类型",
+    APPROVAL_VIEW: "查看审批",
+    APPROVAL_ACT: "处理审批",
+    APPROVAL_DELETE: "删除审批单",
     PAGE_VIEW: "查看页面",
     PAGE_CREATE: "创建页面",
     PAGE_EDIT: "编辑页面",
@@ -312,7 +333,18 @@ CODE_LABELS: dict[str, str] = {
     VIP_CREATE: "创建 VIP 套餐/订阅",
     VIP_EDIT: "编辑 VIP 套餐/订阅",
     VIP_DELETE: "删除 VIP 套餐/订阅",
+    FORM_VIEW: "查看表单",
+    FORM_CREATE: "创建表单",
+    FORM_EDIT: "编辑表单",
+    FORM_DELETE: "删除表单",
     # ---- ops ----
+    MIGRATION_VIEW: "查看迁移任务",
+    MIGRATION_CREATE: "创建迁移任务",
+    MIGRATION_EDIT: "编辑迁移任务",
+    MIGRATION_DELETE: "删除迁移任务",
+    EMAIL_VIEW: "查看邮件服务",
+    EMAIL_EDIT: "编辑邮件服务",
+    EMAIL_DELETE: "删除邮件服务配置",
     BACKUP_VIEW: "查看备份",
     BACKUP_CREATE: "创建备份",
     BACKUP_RESTORE: "恢复备份",

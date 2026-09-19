@@ -52,6 +52,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '内容类型',
         permission: 'module_content:custom_post_type:view'
       },
+      {name: 'Approvals', path: '/content/approvals', title: '内容审批', permission: 'module_content:approval:view'},
     ],
   },
   {
@@ -125,6 +126,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     children: [
       {name: 'AdsPage', path: '/marketing/ads', title: '广告管理', permission: 'module_marketing:ad:view'},
       {name: 'VipPage', path: '/marketing/vip', title: 'VIP 会员', permission: 'module_marketing:vip:view'},
+      {name: 'FormsPage', path: '/marketing/forms', title: '表单', permission: 'module_marketing:form:view'},
     ],
   },
   {
@@ -137,6 +139,8 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'NotificationList', path: '/ops/notification', title: '通知'},
       {name: 'BackupList', path: '/ops/backup', title: '备份', permission: 'module_ops:backup:view'},
       {name: 'WebhookList', path: '/ops/webhook', title: 'Webhook', permission: 'module_ops:webhook:view'},
+      {name: 'Migrations', path: '/ops/migrations', title: '数据迁移', permission: 'module_ops:migration:view'},
+      {name: 'EmailService', path: '/ops/email', title: '邮件服务', permission: 'module_ops:email:view'},
     ],
   },
 ]
