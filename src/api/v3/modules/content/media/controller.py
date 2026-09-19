@@ -27,7 +27,7 @@ from fastapi import APIRouter, File, Query, Request, UploadFile
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser, PageDep
-from src.api.v3.core.exceptions import BadRequestError
+from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.media.schema import (
@@ -207,6 +207,43 @@ async def delete_media(
 
 
 # ─────────────────────────── 文件本体 ───────────────────────────
+@router.get("/cover/{cover_filename}", summary="封面图片（公开，自动生成的封面缓存）")
+async def get_cover_image(cover_filename: str):
+    """自 v2 ``/api/v2/media/cover/{filename}`` 平移（T5-12）。
+
+    供 ``cover_image_service`` 生成的封面缓存文件（``storage/cache/cover``），
+    文件名格式 ``{media_id}_{hash}.{ext}``，公开可读、强缓存。
+    """
+    from pathlib import Path
+
+    from fastapi.responses import FileResponse
+
+    cover_dir = Path("storage/cache/cover")
+    if not cover_filename or '/' in cover_filename or '\\' in cover_filename or '..' in cover_filename:
+        raise BadRequestError("非法的文件路径")
+    cover_path = cover_dir / cover_filename
+    if not cover_path.exists():
+        raise NotFoundError("封面图片不存在")
+    try:
+        cover_path.resolve().relative_to(cover_dir.resolve())
+    except ValueError:
+        raise BadRequestError("非法的文件路径")
+
+    mime_types = {
+        '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+        '.webp': 'image/webp', '.gif': 'image/gif',
+    }
+    content_type = mime_types.get(cover_path.suffix.lower(), 'image/jpeg')
+    return FileResponse(
+        path=cover_path,
+        media_type=content_type,
+        headers={
+            "Cache-Control": "public, max-age=604800, immutable",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 @router.get("/{media_id}/file", summary="获取媒体文件")
 async def get_media_file(
     media_id: int,

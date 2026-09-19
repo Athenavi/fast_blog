@@ -228,7 +228,7 @@ class ResourceHints:
                 cls.generate_preconnect('https://fonts.gstatic.com', crossorigin=True),
             ]
             hints['preload'] = [
-                cls.generate_preload('/api/v2/static/css/critical.css', as_type='style'),
+                cls.generate_preload('/api/v3/static/css/critical.css', as_type='style'),
             ]
             hints['prefetch'] = [
                 cls.generate_prefetch('/api/v1/articles?page=2'),
@@ -240,7 +240,7 @@ class ResourceHints:
                 cls.generate_preconnect('https://fonts.googleapis.com'),
             ]
             hints['preload'] = [
-                cls.generate_preload('/api/v2/static/fonts/main.woff2', as_type='font', crossorigin=True),
+                cls.generate_preload('/api/v3/static/fonts/main.woff2', as_type='font', crossorigin=True),
             ]
             hints['prefetch'] = [
                 cls.generate_prefetch('/api/v1/articles/related'),

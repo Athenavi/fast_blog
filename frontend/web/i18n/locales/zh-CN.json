@@ -396,7 +396,8 @@
     "content": "内容",
     "emptyDesc": "换个分类看看，或者稍后再来。",
     "seoTitle": "文章 - {name}",
-    "viewsCount": "{n} 次浏览"
+    "viewsCount": "{n} 次浏览",
+    "liked": "已赞"
   },
   "comment": {
     "title": "评论",
@@ -704,7 +705,8 @@
         "rolesUpdated": "角色已更新",
         "confirmDisable": "确定要停用用户「{name}」吗？",
         "confirmEnable": "确定要启用用户「{name}」吗？",
-        "confirmRemove": "将停用用户「{name}」（保留数据）。如需彻底删除请联系后端用 force=true。"
+        "confirmRemove": "将停用用户「{name}」（保留数据）。如需彻底删除请联系后端用 force=true。",
+        "userManagement": "用户管理"
       },
       "log": {
         "title": "日志",
@@ -800,7 +802,8 @@
         "confirmDelete": "确定要删除角色「{name}」吗？仍有用户使用时会拒绝删除。",
         "permissionConfigTitle": "权限配置",
         "permissionsUpdated": "权限已更新",
-        "permissionConfigFor": "权限配置 - {name}"
+        "permissionConfigFor": "权限配置 - {name}",
+        "roleManagement": "角色管理"
       },
       "setting": {
         "title": "系统设置",
@@ -860,6 +863,35 @@
       },
       "cache": {
         "cacheManagement": "缓存管理"
+      },
+      "sensitiveWord": {
+        "title": "敏感词库",
+        "createTitle": "添加敏感词",
+        "editTitle": "编辑敏感词",
+        "keyword": "关键词",
+        "keywordPlaceholder": "敏感词关键词",
+        "word": "敏感词",
+        "wordPlaceholder": "输入敏感词",
+        "wordRequired": "请输入敏感词",
+        "level": "级别",
+        "levelLow": "低",
+        "levelMid": "中",
+        "levelHigh": "高",
+        "action": "处理方式",
+        "actionBlock": "拦截",
+        "actionReplace": "替换",
+        "actionWarn": "警告",
+        "replacement": "替换词",
+        "category": "分类",
+        "active": "启用",
+        "inactive": "停用",
+        "importTitle": "批量导入",
+        "importContent": "词表",
+        "importPlaceholder": "每行一个敏感词，也支持逗号/顿号分隔",
+        "importBtn": "导入",
+        "importEmpty": "导入列表为空",
+        "importResult": "共 {total} 个，新增 {added} 个，重复跳过 {duplicated} 个",
+        "deleteConfirm": "确认删除该敏感词？删除后立即从反垃圾缓存移除。"
       }
     },
     "dashboard": {
@@ -995,6 +1027,16 @@
         "deleteConfirm": "确定删除标签「{name}」吗？将从 {count} 篇文章上移除该标签。",
         "rename": "重命名",
         "summary": "共 {total} 个标签（最多显示 200 个，可用关键词筛选）"
+      },
+      "customPostType": {
+        "title": "自定义内容类型",
+        "createTitle": "新建内容类型",
+        "editTitle": "编辑内容类型",
+        "nameRequired": "请填写名称与 Slug",
+        "supports": "支持功能",
+        "supportsHint": "逗号分隔：title,editor,thumbnail",
+        "hasArchive": "归档页",
+        "deleteConfirm": "确认删除该内容类型？"
       }
     },
     "widget": {
@@ -1073,6 +1115,19 @@
         "deleteConfirm": "确定删除小部件「{name}」吗？",
         "unnamed": "（未命名 {type}）",
         "summary": "共 {total} 个小部件"
+      },
+      "blockPattern": {
+        "title": "区块模板库",
+        "createTitle": "新建区块模板",
+        "editTitle": "编辑区块模板",
+        "nameRequired": "请填写标识与标题",
+        "blockName": "标识",
+        "blockTitle": "标题",
+        "keywords": "关键词",
+        "blocks": "内容 (JSON)",
+        "public": "公开",
+        "private": "私有",
+        "deleteConfirm": "确认删除该区块模板？"
       }
     },
     "analytics": {
@@ -1281,6 +1336,73 @@
       "locatedAt": "，位于",
       "rewriteHint": "重写为同名 .vue 后，本页会自动加载，无需改动路由。",
       "otherRoutes": "该插件的其他路由：{routes}"
+    },
+    "marketing": {
+      "ad": {
+        "title": "广告管理",
+        "tabAds": "广告",
+        "tabPlacements": "广告位",
+        "createAd": "新建广告",
+        "editAd": "编辑广告",
+        "deleteAdConfirm": "确认删除该广告？",
+        "titleRequired": "请输入广告标题",
+        "createPlacement": "新建广告位",
+        "editPlacement": "编辑广告位",
+        "deletePlacementConfirm": "确认删除该广告位？",
+        "placementRequired": "请填写名称与代码",
+        "placement": "广告位",
+        "placementCode": "代码",
+        "placementPosition": "位置",
+        "placementSize": "尺寸",
+        "imageUrl": "图片地址",
+        "linkUrl": "跳转链接",
+        "budget": "预算",
+        "priority": "优先级",
+        "adType": "类型",
+        "typeImage": "图片",
+        "typeText": "文字",
+        "typeCode": "代码",
+        "statTotal": "广告总数",
+        "statActive": "投放中",
+        "statClicks": "总点击",
+        "statImpressions": "总曝光",
+        "statBudget": "总预算"
+      },
+      "vip": {
+        "title": "VIP 会员",
+        "tabPlans": "套餐",
+        "tabFeatures": "权益",
+        "tabSubscriptions": "订阅",
+        "createPlan": "新建套餐",
+        "editPlan": "编辑套餐",
+        "deletePlanConfirm": "确认删除该套餐？",
+        "nameRequired": "请输入套餐名称",
+        "price": "价格",
+        "originalPrice": "原价",
+        "duration": "有效期",
+        "days": "天",
+        "level": "等级",
+        "features": "特权",
+        "featuresHint": "每行一个特权，或用逗号分隔",
+        "createFeature": "新建权益",
+        "editFeature": "编辑权益",
+        "featureRequired": "请填写代码与名称",
+        "deleteFeatureConfirm": "确认删除该权益？",
+        "userId": "用户 ID",
+        "planId": "套餐 ID",
+        "planName": "套餐",
+        "startsAt": "开始时间",
+        "expiresAt": "到期时间",
+        "payment": "实付金额",
+        "subActive": "进行中",
+        "subExpired": "已过期",
+        "subCancelled": "已取消",
+        "cancelSub": "取消订阅",
+        "cancelConfirm": "确认取消该订阅？",
+        "grant": "手动开通",
+        "grantDone": "已开通",
+        "grantRequired": "请选择用户与套餐"
+      }
     }
   },
   "menu": {
@@ -1311,7 +1433,13 @@
     "Ops": "运维",
     "NotificationList": "通知",
     "BackupList": "备份",
-    "WebhookList": "Webhook"
+    "WebhookList": "Webhook",
+    "SensitiveWords": "敏感词库",
+    "Marketing": "营销",
+    "AdsPage": "广告管理",
+    "VipPage": "VIP 会员",
+    "BlockPatterns": "区块模板",
+    "CustomPostTypes": "内容类型"
   },
   "category": {
     "subtitle": "按分类浏览全部文章",

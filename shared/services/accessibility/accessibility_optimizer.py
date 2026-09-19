@@ -333,7 +333,7 @@ class AccessibilityOptimizer:
                 "after": '<a href="/page">阅读完整文章</a>',
                 "explanation": "链接文本应清晰说明目标",
                 "examples": [
-                    '<a href="/api/v2/docs">查看文档</a>',
+                    '<a href="/api/v3/docs">查看文档</a>',
                     '<a href="/contact">联系我们</a>'
                 ]
             }

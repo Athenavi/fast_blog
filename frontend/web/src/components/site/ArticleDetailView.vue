@@ -30,6 +30,7 @@ const publishedAt = computed(() => props.article.published_at || props.article.c
           {{ $t('article.viewsCount', {n: props.article.views}) }}
         </span>
         <Badge v-for="tag in props.article.tags || []" :key="tag" variant="secondary">{{ tag }}</Badge>
+        <LikeButton v-if="props.article.id" :article-id="props.article.id" :initial-likes="props.article.likes ?? 0"/>
       </div>
     </header>
 

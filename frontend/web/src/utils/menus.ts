@@ -46,6 +46,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'CommentList', path: '/content/comment', title: '评论', permission: 'module_content:comment:view'},
       {name: 'MediaLibrary', path: '/content/media', title: '媒体库', permission: 'module_content:media:view'},
       {name: 'PageList', path: '/content/page', title: '页面', permission: 'module_content:page:view'},
+      {
+        name: 'CustomPostTypes',
+        path: '/content/custom-post-types',
+        title: '内容类型',
+        permission: 'module_content:custom_post_type:view'
+      },
     ],
   },
   {
@@ -68,6 +74,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'SettingList', path: '/system/setting', title: '系统设置', permission: 'module_system:setting:view'},
       {name: 'LogList', path: '/system/log', title: '日志', permission: 'module_system:log:view'},
       {name: 'CacheManage', path: '/system/cache', title: '缓存', permission: 'module_system:cache:view'},
+      {
+        name: 'SensitiveWords',
+        path: '/system/sensitive-words',
+        title: '敏感词库',
+        permission: 'module_system:sensitive_word:view'
+      },
     ],
   },
   {
@@ -96,6 +108,23 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'PluginList', path: '/extension/plugin', title: '插件', permission: 'module_extension:plugin:view'},
       {name: 'ThemeList', path: '/extension/theme', title: '主题', permission: 'module_extension:theme:view'},
       {name: 'WidgetList', path: '/extension/widget', title: '小部件', permission: 'module_extension:widget:view'},
+      {
+        name: 'BlockPatterns',
+        path: '/extension/block-patterns',
+        title: '区块模板',
+        permission: 'module_extension:block_pattern:view'
+      },
+    ],
+  },
+  {
+    name: 'Marketing',
+    path: '/marketing',
+    title: '营销',
+    icon: 'Promotion',
+    order: 6,
+    children: [
+      {name: 'AdsPage', path: '/marketing/ads', title: '广告管理', permission: 'module_marketing:ad:view'},
+      {name: 'VipPage', path: '/marketing/vip', title: 'VIP 会员', permission: 'module_marketing:vip:view'},
     ],
   },
   {

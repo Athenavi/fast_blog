@@ -58,6 +58,7 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     ("POST", "/api/v3/mobile/article"): "投稿创建草稿（仅认证；状态等管理字段由服务端强制）",
     ("PUT", "/api/v3/mobile/article/{article_id}"): "编辑本人的文章（仅认证；改状态的企图被忽略）",
     ("DELETE", "/api/v3/mobile/article/{article_id}"): "删除本人的文章（仅认证）",
+    ("POST", "/api/v3/mobile/article/{article_id}/like"): "文章点赞切换（仅认证；per-user 表去重，不可刷赞）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

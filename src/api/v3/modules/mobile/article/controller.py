@@ -30,7 +30,7 @@ from src.api.v3.modules.mobile.article.schema import (
     MobileArticleUpdate,
 )
 from src.api.v3.modules.mobile.article.service import mobile_article_service
-from src.auth.auth_deps import jwt_required_dependency
+from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency
 
 router = APIRouter(prefix="/article", tags=["mobile-article"], route_class=OperationLogRoute)
 
@@ -147,3 +147,24 @@ async def delete_my_article(
 ) -> dict:
     await mobile_article_service.delete_mine(db, user, article_id)
     return resp.success(None, msg="已删除")
+
+
+# ---------------------------------------------------------------- 点赞
+@router.get("/{article_id}/like/status", response_model=ResponseModel, summary="点赞状态（匿名可查）")
+async def get_like_status(
+    article_id: int,
+    db: DBSession,
+    user=Depends(jwt_optional_dependency),
+) -> dict:
+    """文章详情页用：匿名返回 ``liked=false`` + 计数，登录返回当前用户是否已点赞。"""
+    return resp.success(await mobile_article_service.like_status(db, user, article_id))
+
+
+@router.post("/{article_id}/like", response_model=ResponseModel, summary="点赞 / 取消点赞（需登录）")
+async def toggle_like(
+    article_id: int,
+    db: DBSession,
+    user=Depends(jwt_required_dependency),
+) -> dict:
+    """per-user 幂等切换（ArticleLike 表去重），计数同步到 ``Article.likes``。"""
+    return resp.success(await mobile_article_service.toggle_like(db, user, article_id))

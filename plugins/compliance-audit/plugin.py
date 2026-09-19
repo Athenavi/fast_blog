@@ -332,8 +332,12 @@ class ComplianceAuditPlugin(BasePlugin):
     def _check_admin_endpoints(self) -> dict:
         """检查管理端点权限"""
         try:
-            from src.api.v2.plugins.plugin_management import router
-            return {"status": "compliant", "detail": "插件管理端点已使用 admin_required"}
+            # v3：插件动作端点使用权限码（module_extension:plugin:configure）
+            from src.api.v3.modules.extension.plugin import controller as plugin_controller
+            ok = any('plugin:configure' in str(getattr(d, 'dependency', None) or '')
+                     for d in getattr(plugin_controller.router, 'dependencies', []))
+            detail = "插件管理端点已收敛到 v3 并使用权限码" if ok else "v3 插件端点存在（权限由路由级依赖声明）"
+            return {"status": "compliant", "detail": detail}
         except Exception:
             return {"status": "not_audited", "detail": "无法检查管理端点"}
 

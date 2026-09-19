@@ -12,7 +12,7 @@ ThemePlugin 继承 BasePlugin 并添加主题专属功能：
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 from shared.services.plugins.plugin_manager.core import BasePlugin
 
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 class ThemePlugin(BasePlugin):
     """
     主题插件基类
-    
+
     所有主题插件应继承此类而非 BasePlugin。
     自动处理：
     - 主题 CSS 的读取和缓存
@@ -114,10 +114,10 @@ class ThemePlugin(BasePlugin):
     def update_theme_settings(self, new_settings: dict) -> bool:
         """
         更新主题设置并持久化
-        
+
         Args:
             new_settings: 新的设置字典
-            
+
         Returns:
             是否成功
         """
@@ -180,8 +180,8 @@ class ThemePlugin(BasePlugin):
             "componentSlots": self.get_component_slots(),
             "supports": config.get("supports", []),
             "screenshot": self.get_screenshot_path(),
-            "css_url": "/api/v2/themes/active/css",
-            "config_url": "/api/v2/themes/active/config",
+            "css_url": "/api/v3/extension/theme/public/css",
+            "config_url": "/api/v3/extension/theme/public/config",
         }
 
     # ─── 生命周期 ──────────────────────────

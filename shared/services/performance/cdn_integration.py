@@ -352,8 +352,8 @@ class CDNService:
                 'miss_rate': 7.5,
             },
             'top_files': [
-                {'url': '/api/v2/static/css/main.css', 'hits': 50000},
-                {'url': '/api/v2/static/js/app.js', 'hits': 45000},
+                {'url': '/api/v3/static/css/main.css', 'hits': 50000},
+                {'url': '/api/v3/static/js/app.js', 'hits': 45000},
                 {'url': '/images/logo.png', 'hits': 30000},
             ],
             'status_codes': {
@@ -392,10 +392,10 @@ class CDNService:
 <!-- Replace local resource URLs with CDN URLs -->
 
 <!-- CSS -->
-<link rel="stylesheet" href="{cdn_url}/api/v2/static/css/main.css">
+<link rel="stylesheet" href="{cdn_url}/api/v3/static/css/main.css">
 
 <!-- JavaScript -->
-<script src="{cdn_url}/api/v2/static/js/app.js"></script>
+<script src="{cdn_url}/api/v3/static/js/app.js"></script>
 
 <!-- Images -->
 <img src="{cdn_url}/images/logo.png" alt="Logo">
@@ -411,9 +411,9 @@ const CDN_URL = '{cdn_url}';
 function App() {{
   return (
     <div>
-      <link rel="stylesheet" href="{{{{CDN_URL}}}}/api/v2/static/css/main.css" />
+      <link rel="stylesheet" href="{{{{CDN_URL}}}}/api/v3/static/css/main.css" />
       <img src="{{{{CDN_URL}}}}/images/logo.png" alt="Logo" />
-      <script src="{{{{CDN_URL}}}}/api/v2/static/js/app.js" />
+      <script src="{{{{CDN_URL}}}}/api/v3/static/js/app.js" />
     </div>
   );
 }}
@@ -424,7 +424,7 @@ function App() {{
 # Django CDN Integration for {provider.upper()}
 # In settings.py
 
-STATIC_URL = '{cdn_url}/api/v2/static/'
+STATIC_URL = '{cdn_url}/api/v3/static/'
 MEDIA_URL = '{cdn_url}/media/'
 
 # Or use django-storages with CDN backend

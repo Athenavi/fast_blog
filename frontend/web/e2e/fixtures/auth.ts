@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs'
+import {resolve} from 'node:path'
 import {type Page, test as base} from '@playwright/test'
 
 /**
@@ -7,7 +9,32 @@ import {type Page, test as base} from '@playwright/test'
  * `fastblog.token`（= src/constants/index.ts 的 STORAGE_TOKEN，明文字符串存储）。
  * 后台的 auth 中间件只检查「token 存在」，userInfo 会由中间件自动调
  * `/system/auth/me` 拉取，因此无需再种用户信息。
+ *
+ * 凭证来源：环境变量 E2E_ADMIN_USER / E2E_ADMIN_PASS，或本地 `.env.e2e`
+ * （该文件已 gitignore）。env 在**本模块（worker 进程）**读取——
+ * playwright.config.ts 里的 process.env 修改不会传递到 test worker。
  */
+
+function loadDotEnvE2E(): void {
+  const candidates = [
+    resolve(process.cwd(), '.env.e2e'),
+    resolve(process.cwd(), 'frontend', 'web', '.env.e2e'),
+  ]
+  for (const path of candidates) {
+    try {
+      for (const line of readFileSync(path, 'utf-8').split(/\r?\n/)) {
+        const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
+        if (m && !(m[1] in process.env)) process.env[m[1]] = m[2]
+      }
+      return
+    } catch {
+      /* 尝试下一个候选路径 */
+    }
+  }
+}
+
+loadDotEnvE2E()
+
 export const ADMIN_CREDENTIALS = {
   username: process.env.E2E_ADMIN_USER || 'admin',
   password: process.env.E2E_ADMIN_PASS || 'admin123',
@@ -15,26 +42,31 @@ export const ADMIN_CREDENTIALS = {
 
 const TOKEN_KEY = 'fastblog.token'
 
-async function loginViaAPI(page: Page, baseURL: string, creds = ADMIN_CREDENTIALS): Promise<void> {
-  // 先访问目标站点以设置 origin（dev 下 /api 由 devProxy 转发到 :9421）
-  await page.goto(baseURL || '/')
+// 每 worker 只登录一次（后端防爆破按 IP 计数，能省则省）
+let tokenPromise: Promise<string> | null = null
 
-  const resp = await page.evaluate(async ({url, username, password}) => {
-    const r = await fetch(`${url}/api/v3/system/auth/login`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({username, password}),
-    })
-    return r.json()
-  }, {url: baseURL || '', username: creds.username, password: creds.password})
-
-  const token = resp?.data?.access_token
+async function fetchToken(baseURL: string): Promise<string> {
+  const {username, password} = ADMIN_CREDENTIALS
+  const resp = await fetch(`${baseURL}/api/v3/system/auth/login`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username, password}),
+  })
+  const body = await resp.json().catch(() => ({}))
+  const token = body?.data?.access_token
   if (!token) {
     throw new Error(
-      `e2e 登录失败（${creds.username}）：需要后端运行在 :9421 且凭证有效。` +
-      '可用环境变量 E2E_ADMIN_USER / E2E_ADMIN_PASS 覆盖默认凭证。',
+      `e2e 登录失败（${username}，HTTP ${resp.status}）：需要后端运行在 :9421 且凭证有效。` +
+      '可用环境变量 E2E_ADMIN_USER / E2E_ADMIN_PASS 或 frontend/web/.env.e2e 覆盖默认凭证。',
     )
   }
+  return token as string
+}
+
+async function loginViaAPI(page: Page, baseURL: string): Promise<void> {
+  // 先访问目标站点以设置 origin（dev 下 /api 由 devProxy 转发到 :9421）
+  await page.goto(baseURL || '/')
+  const token = await (tokenPromise ??= fetchToken(baseURL || 'http://localhost:5173'))
   await page.evaluate(([key, value]) => localStorage.setItem(key, value), [TOKEN_KEY, token])
 }
 

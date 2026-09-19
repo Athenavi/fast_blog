@@ -396,7 +396,8 @@
     "content": "Content",
     "emptyDesc": "Try another category or come back later.",
     "seoTitle": "Articles - {name}",
-    "viewsCount": "{n} views"
+    "viewsCount": "{n} views",
+    "liked": "Liked"
   },
   "comment": {
     "title": "Comment",
@@ -704,7 +705,8 @@
         "rolesUpdated": "Roles updated",
         "confirmDisable": "Disable user “{name}”?",
         "confirmEnable": "Enable user “{name}”?",
-        "confirmRemove": "User “{name}” will be disabled (data kept). To delete permanently, call the backend with force=true."
+        "confirmRemove": "User “{name}” will be disabled (data kept). To delete permanently, call the backend with force=true.",
+        "userManagement": "User management"
       },
       "log": {
         "title": "Logs",
@@ -800,7 +802,8 @@
         "confirmDelete": "Delete role “{name}”? It will be rejected while users still use it.",
         "permissionConfigTitle": "Permissions",
         "permissionsUpdated": "Permissions updated",
-        "permissionConfigFor": "Permissions — {name}"
+        "permissionConfigFor": "Permissions — {name}",
+        "roleManagement": "Role management"
       },
       "setting": {
         "title": "Settings",
@@ -860,6 +863,35 @@
       },
       "cache": {
         "cacheManagement": "Cache management"
+      },
+      "sensitiveWord": {
+        "title": "Sensitive words",
+        "createTitle": "Add sensitive word",
+        "editTitle": "Edit sensitive word",
+        "keyword": "Keyword",
+        "keywordPlaceholder": "Word keyword",
+        "word": "Word",
+        "wordPlaceholder": "Enter a word",
+        "wordRequired": "Please enter a word",
+        "level": "Level",
+        "levelLow": "Low",
+        "levelMid": "Medium",
+        "levelHigh": "High",
+        "action": "Action",
+        "actionBlock": "Block",
+        "actionReplace": "Replace",
+        "actionWarn": "Warn",
+        "replacement": "Replacement",
+        "category": "Category",
+        "active": "Active",
+        "inactive": "Inactive",
+        "importTitle": "Batch import",
+        "importContent": "Word list",
+        "importPlaceholder": "One word per line; commas are also supported",
+        "importBtn": "Import",
+        "importEmpty": "Import list is empty",
+        "importResult": "{total} in total, {added} added, {duplicated} duplicates skipped",
+        "deleteConfirm": "Delete this word? It will be removed from the anti-spam cache immediately."
       }
     },
     "dashboard": {
@@ -995,6 +1027,16 @@
         "deleteConfirm": "Delete tag \"{name}\"? It will be removed from {count} articles.",
         "rename": "Rename",
         "summary": "{total} tags (showing up to 200; filter by keyword)"
+      },
+      "customPostType": {
+        "title": "Content types",
+        "createTitle": "New content type",
+        "editTitle": "Edit content type",
+        "nameRequired": "Name and Slug are required",
+        "supports": "Supports",
+        "supportsHint": "Comma separated: title,editor,thumbnail",
+        "hasArchive": "Archive",
+        "deleteConfirm": "Delete this content type?"
       }
     },
     "widget": {
@@ -1073,6 +1115,19 @@
         "deleteConfirm": "Delete widget \"{name}\"?",
         "unnamed": "(Unnamed {type})",
         "summary": "{total} widgets"
+      },
+      "blockPattern": {
+        "title": "Block patterns",
+        "createTitle": "New block pattern",
+        "editTitle": "Edit block pattern",
+        "nameRequired": "Name and title are required",
+        "blockName": "Name",
+        "blockTitle": "Title",
+        "keywords": "Keywords",
+        "blocks": "Content (JSON)",
+        "public": "Public",
+        "private": "Private",
+        "deleteConfirm": "Delete this block pattern?"
       }
     },
     "analytics": {
@@ -1281,6 +1336,73 @@
       "locatedAt": ", located at ",
       "rewriteHint": "Rewrite it as a same-name .vue file and this page will load it automatically; no route changes needed.",
       "otherRoutes": "Other routes of this plugin: {routes}"
+    },
+    "marketing": {
+      "ad": {
+        "title": "Ads",
+        "tabAds": "Ads",
+        "tabPlacements": "Placements",
+        "createAd": "New ad",
+        "editAd": "Edit ad",
+        "deleteAdConfirm": "Delete this ad?",
+        "titleRequired": "Please enter the ad title",
+        "createPlacement": "New placement",
+        "editPlacement": "Edit placement",
+        "deletePlacementConfirm": "Delete this placement?",
+        "placementRequired": "Name and code are required",
+        "placement": "Placement",
+        "placementCode": "Code",
+        "placementPosition": "Position",
+        "placementSize": "Size",
+        "imageUrl": "Image URL",
+        "linkUrl": "Link URL",
+        "budget": "Budget",
+        "priority": "Priority",
+        "adType": "Type",
+        "typeImage": "Image",
+        "typeText": "Text",
+        "typeCode": "Code",
+        "statTotal": "Total ads",
+        "statActive": "Active",
+        "statClicks": "Clicks",
+        "statImpressions": "Impressions",
+        "statBudget": "Budget"
+      },
+      "vip": {
+        "title": "VIP membership",
+        "tabPlans": "Plans",
+        "tabFeatures": "Features",
+        "tabSubscriptions": "Subscriptions",
+        "createPlan": "New plan",
+        "editPlan": "Edit plan",
+        "deletePlanConfirm": "Delete this plan?",
+        "nameRequired": "Please enter the plan name",
+        "price": "Price",
+        "originalPrice": "Original price",
+        "duration": "Duration",
+        "days": "days",
+        "level": "Level",
+        "features": "Features",
+        "featuresHint": "One per line, or comma separated",
+        "createFeature": "New feature",
+        "editFeature": "Edit feature",
+        "featureRequired": "Code and name are required",
+        "deleteFeatureConfirm": "Delete this feature?",
+        "userId": "User ID",
+        "planId": "Plan ID",
+        "planName": "Plan",
+        "startsAt": "Starts at",
+        "expiresAt": "Expires at",
+        "payment": "Paid",
+        "subActive": "Active",
+        "subExpired": "Expired",
+        "subCancelled": "Cancelled",
+        "cancelSub": "Cancel",
+        "cancelConfirm": "Cancel this subscription?",
+        "grant": "Grant",
+        "grantDone": "Granted",
+        "grantRequired": "User and plan are required"
+      }
     }
   },
   "menu": {
@@ -1311,7 +1433,13 @@
     "Ops": "Operations",
     "NotificationList": "Notifications",
     "BackupList": "Backups",
-    "WebhookList": "Webhooks"
+    "WebhookList": "Webhooks",
+    "SensitiveWords": "Sensitive words",
+    "Marketing": "Marketing",
+    "AdsPage": "Ads",
+    "VipPage": "VIP membership",
+    "BlockPatterns": "Block patterns",
+    "CustomPostTypes": "Content types"
   },
   "category": {
     "subtitle": "Browse all articles by category",

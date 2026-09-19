@@ -5,7 +5,6 @@ import asyncio
 import importlib
 import os
 import time as _time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
@@ -61,195 +60,24 @@ def check_installation() -> bool:
         return False
 
 
-# ---------- 路由自动发现 ----------
-# 注意：为了更好的兼容性保留 旧的 V1 路由注册表，已废弃，新功能请在V2中开发
-
-
-def _load_single_module(module_path: str, required: bool):
-    """并行加载单个模块并获取其 router（线程安全）"""
-    mod_start = _time.monotonic()
-    mod = importlib.import_module(module_path)
-    router = getattr(mod, "router", None)
-    mod_elapsed = _time.monotonic() - mod_start
-    return module_path, router, mod_elapsed, required, None
-
-
-def _load_single_module_safe(module_path: str, required: bool):
-    """安全版本：捕获异常并返回错误信息"""
-    try:
-        return _load_single_module(module_path, required)
-    except Exception as e:
-        return module_path, None, 0.0, required, e
+# ---------- 路由注册 ----------
 
 
 def register_all_routes(app: FastAPI, worker_info: str):
-    """注册 API v2 和 v3 路由（已移除 v1）"""
+    """注册 v3 路由（唯一权威 API 层；v2 已于 T5-12 下线移除）"""
 
-    # 注册 v2 路由（新规范）— 并行加载 + 顺序注册
-    logger.info(f"{worker_info} 开始注册 API v2 路由...")
-    routes_start = _time.monotonic()
-    try:
-        from src.api.v2 import ROUTE_REGISTRY_V2, is_module_enabled as _plugin_enabled
-        loaded_count = 0
-        failed_count = 0
-
-        # 应用内置插件开关：过滤被 DISABLED_MODULES 关闭的非核心模块
-        _disabled = [m for (m, _p, _t, _r) in ROUTE_REGISTRY_V2 if not _plugin_enabled(m)]
-        if _disabled:
-            logger.info(f"{worker_info} [Plugin] 已关闭非核心模块: {_disabled}")
-        ROUTE_REGISTRY_V2 = [(m, p, t, r) for (m, p, t, r) in ROUTE_REGISTRY_V2 if _plugin_enabled(m)]
-
-        # Phase 0: 预热 shared.models 子包，避免并行导入时 _DeadlockError
-        # Python 的 import 系统对包 __init__.py 使用模块锁，
-        # 多线程同时触发同一子包导入会产生死锁（如 collaboration/__init__.py）
-        _prewarm_start = _time.monotonic()
-        try:
-            _shared_subpkgs = [
-                'shared.models',
-                'shared.models.article',
-                'shared.models.collaboration',
-                'shared.models.media',
-                'shared.models.enterprise',
-                'shared.models.security',
-                'shared.models.user',
-                'shared.models.comment',
-                'shared.models.category',
-                'shared.models.notification',
-                'shared.models.chat',
-                'shared.models.search',
-                'shared.models.ecommerce',
-                'shared.models.payment',
-                'shared.models.revenue',
-                'shared.models.rbac',
-                'shared.models.system',
-                'shared.models.analytics',
-                'shared.models.integration',
-                'shared.models.monitoring',
-                'shared.models.migration',
-                'shared.models.form',
-                'shared.models.menu',
-                'shared.models.page',
-                'shared.models.theme',
-                'shared.models.plugin',
-                'shared.models.widget',
-                'shared.models.vip',
-                'shared.models.webhook',
-                'shared.models.multisite',
-                'shared.models.report',
-                'shared.models.content',
-                'shared.models.social',
-                'shared.models.ad',
-                'shared.models.ai',
-                # 预热 auth_deps 避免并行加载时死锁
-                'src.auth',
-                'src.auth.auth_deps',
-            ]
-            for _pkg in _shared_subpkgs:
-                importlib.import_module(_pkg)
-
-            # 预热最常用的模型文件（不仅仅是包 __init__），避免并行加载时死锁
-            _model_files = [
-                'shared.models.user.user',
-                'shared.models.article.article',
-                'shared.models.category.category',
-                'shared.models.comment.comment',
-                'shared.models.media.media',
-            ]
-            for _mod in _model_files:
-                try:
-                    importlib.import_module(_mod)
-                except Exception:
-                    pass
-            _prewarm_elapsed = _time.monotonic() - _prewarm_start
-            logger.info(f"{worker_info} shared.models 预热完成 ({_prewarm_elapsed:.2f}s)")
-        except Exception as _pw_err:
-            logger.warning(f"{worker_info} shared.models 预热失败: {_pw_err}")
-
-        # Phase 1: 并行加载所有模块和路由器（ThreadPoolExecutor）
-        # importlib + getattr(mod, "router") 触发 _build_router() 是 CPU/IO 密集操作，可并行
-        load_start = _time.monotonic()
-        load_results = []
-
-        # 根据核心数自适应线程池大小，最少 4 最多 16
-        max_workers = min(max(4, (os.cpu_count() or 4)), 16, len(ROUTE_REGISTRY_V2))
-
-        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="route_loader") as executor:
-            future_map = {
-                executor.submit(_load_single_module_safe, module_path, required): module_path
-                for module_path, prefix, tags, required in ROUTE_REGISTRY_V2
-            }
-            # 保持结果顺序与 ROUTE_REGISTRY_V2 一致
-            result_by_path = {}
-            for future in as_completed(future_map):
-                result = future.result()
-                result_by_path[result[0]] = result
-
-            for module_path, prefix, tags, required in ROUTE_REGISTRY_V2:
-                load_results.append((module_path, prefix, tags, result_by_path.get(module_path)))
-
-        load_elapsed = _time.monotonic() - load_start
-        logger.info(f"{worker_info} 模块并行加载完成 (线程池: {max_workers}, 耗时: {load_elapsed:.2f}s)")
-
-        # Phase 2: 顺序注册路由器到 app（FastAPI include_router 非线程安全）
-        register_start = _time.monotonic()
-        for module_path, prefix, tags, result in load_results:
-            if result is None:
-                failed_count += 1
-                logger.warning(f"{worker_info} v2/{module_path} 未找到加载结果")
-                continue
-
-            _, router, mod_elapsed, req, error = result
-
-            if error is not None:
-                if req:
-                    logger.error(f"{worker_info} v2 必需模块加载失败: {module_path} - {error}")
-                    raise error
-                else:
-                    failed_count += 1
-                    logger.warning(f"{worker_info} v2/{module_path} 未能加载: {error}")
-                    continue
-
-            if router is None:
-                failed_count += 1
-                logger.warning(f"{worker_info} v2/{module_path} 未找到 router 属性")
-                continue
-
-            try:
-                if prefix:
-                    app.include_router(router, prefix=prefix, tags=tags if tags else [])
-                else:
-                    app.include_router(router)
-                loaded_count += 1
-                short_name = module_path.split('.')[-1]
-                if mod_elapsed > 1.0:
-                    logger.info(f"{worker_info} [SLOW] v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
-                else:
-                    logger.info(f"{worker_info} v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
-            except Exception as e:
-                if req:
-                    raise
-                failed_count += 1
-                logger.warning(f"{worker_info} v2/{module_path} 注册异常: {e}")
-
-        routes_elapsed = _time.monotonic() - routes_start
-        register_elapsed = _time.monotonic() - register_start
-        logger.info(f"{worker_info} API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count}, "
-              f"加载: {load_elapsed:.2f}s, 注册: {register_elapsed:.2f}s, 总耗时: {routes_elapsed:.2f}s)")
-    except ImportError as e:
-        logger.error(f"{worker_info} API v2 模块未找到: {e}")
-        raise
-
-    # 注册 v3 路由（唯一权威 API 层）
+    # 注册 v3 路由
     # fail-fast：模块导入失败或路由冲突都会中止启动，避免"半成品 router 继续提供服务"
     # （对应 FastApiAdmin core/discover.py 的两条工程原则）
     logger.info(f"{worker_info} {'=' * 60}")
     logger.info(f"{worker_info} 开始注册 API v3 路由...")
+    routes_start = _time.monotonic()
     from src.api.v3 import register_v3_routes
 
     v3_summary = register_v3_routes(app)
     logger.info(
         f"{worker_info} API v3 路由注册完成 (路由: {v3_summary['routes']}, "
-        f"域: {len(v3_summary['domains'])})"
+        f"域: {len(v3_summary['domains'])}, 耗时: {_time.monotonic() - routes_start:.2f}s)"
     )
 
     # P4：启动期权限审计
@@ -654,10 +482,14 @@ def register_middleware(app: FastAPI):
     except Exception as e:
         logger.warning(f"[Token Blacklist] 加载失败: {e}")
 
-    # 暴力破解防护中间件
+    # 暴力破解防护中间件（阈值可用环境变量调整，默认 10 次/15 分钟每 IP、5 次/每用户名）
     try:
         from src.middleware.brute_force_protection import BruteForceProtectionMiddleware
-        app.add_middleware(BruteForceProtectionMiddleware)
+        app.add_middleware(
+            BruteForceProtectionMiddleware,
+            max_attempts_per_ip=int(os.environ.get('BRUTE_FORCE_MAX_PER_IP', '10')),
+            max_attempts_per_user=int(os.environ.get('BRUTE_FORCE_MAX_PER_USER', '5')),
+        )
         logger.info("[Brute Force] 已添加暴力破解防护中间件")
     except Exception as e:
         logger.warning(f"[Brute Force] 加载失败: {e}")
@@ -677,13 +509,13 @@ def register_error_handlers(app: FastAPI):
 
     def _api_error_response(status_code: int, message: str) -> JSONResponse:
         """统一 API 错误响应格式"""
-        from src.api.v2._base import ApiResponse
+        from src.api.common.api_response import ApiResponse
         return JSONResponse(
             status_code=status_code,
             content=ApiResponse(success=False, error=message).model_dump()
         )
 
-    @app.get("/api/v2/health", tags=["system"])
+    @app.get("/api/v3/health", tags=["system"])
     async def health_check():
         # 原逻辑简化
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
@@ -691,39 +523,39 @@ def register_error_handlers(app: FastAPI):
     @app.get("/sitemap.xml", include_in_schema=False)
     async def root_sitemap():
         """站点地图根路径 — 301 到动态 sitemap"""
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap.xml", status_code=301)
 
     @app.get("/sitemap-posts.xml", include_in_schema=False)
     async def root_sitemap_posts():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-posts.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-posts.xml", status_code=301)
 
     @app.get("/sitemap-categories.xml", include_in_schema=False)
     async def root_sitemap_categories():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-categories.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-categories.xml", status_code=301)
 
     @app.get("/sitemap-tags.xml", include_in_schema=False)
     async def root_sitemap_tags():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-tags.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-tags.xml", status_code=301)
 
     @app.get("/sitemap-pages.xml", include_in_schema=False)
     async def root_sitemap_pages():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-pages.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-pages.xml", status_code=301)
 
     @app.get("/sitemap-multilingual.xml", include_in_schema=False)
     async def root_sitemap_multilingual():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-multilingual.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-multilingual.xml", status_code=301)
 
     @app.get("/sitemap-authors.xml", include_in_schema=False)
     async def root_sitemap_authors():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-authors.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-authors.xml", status_code=301)
 
     @app.get("/sitemap-images.xml", include_in_schema=False)
     async def root_sitemap_images():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-images.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-images.xml", status_code=301)
 
     @app.get("/sitemap-videos.xml", include_in_schema=False)
     async def root_sitemap_videos():
-        return RedirectResponse(url="/api/v2/seo/sitemap/sitemap-videos.xml", status_code=301)
+        return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-videos.xml", status_code=301)
 
     @app.get("/robots.txt", include_in_schema=False)
     async def robots_txt(request: Request):
@@ -737,23 +569,6 @@ Sitemap: {site_url}/sitemap.xml
 """
         return PlainTextResponse(content=content, media_type="text/plain")
 
-    @app.get("/api/v2/mobile-login", tags=["qr-login"])
-    async def mobile_login_page(request: Request):
-        """手机扫码确认页面（注册在应用顶层，绕过 API 中间件和认证）"""
-        from src.api.v2.qr_login import _MOBILE_LOGIN_HTML
-        from fastapi.responses import HTMLResponse
-
-        # 动态计算前端登录页地址
-        host = request.headers.get("host", "localhost:9421")
-        scheme = request.url.scheme or "http"
-        # 开发环境：后端 :9421 → 前端 :4321（Astro 默认端口）
-        # 生产环境：同源部署时 host 不含 :9421，保持原样
-        frontend_host = host.replace(":9421", ":4321")
-        frontend_origin = f"{scheme}://{frontend_host}"
-
-        html = _MOBILE_LOGIN_HTML.replace("{{FRONTEND_ORIGIN}}", frontend_origin)
-        return HTMLResponse(content=html)
-
     @app.exception_handler(401)
     async def unauthorized_handler(request: Request, exc: HTTPException):
         if _is_api_request(request):
@@ -764,7 +579,7 @@ Sitemap: {site_url}/sitemap.xml
     async def forbidden_handler(request: Request, exc: HTTPException):
         if _is_api_request(request):
             return _api_error_response(403, exc.detail)
-        from src.api.v2._base import ApiResponse
+        from src.api.common.api_response import ApiResponse
         return JSONResponse(
             status_code=403,
             content=ApiResponse(success=False, error=exc.detail).model_dump()
@@ -794,8 +609,8 @@ Sitemap: {site_url}/sitemap.xml
             return _api_error_response(404, "Page Not Found")
 
         # 3. 非 API 路径尝试返回前端 SPA 页面
-        excluded_prefixes = ['api/v2/static/', 'api/v2/assets/', 'api/v2/docs', 'api/v2/redoc', 'api/v2/openapi.json',
-                             'api/v2/health']
+        excluded_prefixes = ['api/v3/static/', 'api/v3/assets/', 'api/v3/docs', 'api/v3/redoc', 'api/v3/openapi.json',
+                             'api/v3/health']
         if not any(request.url.path.lstrip('/').startswith(prefix) for prefix in excluded_prefixes):
             try:
                 frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
@@ -869,9 +684,9 @@ def create_app(config=None):
         title="FastBlog API",
         version="1.0.0",
         lifespan=lifespan,
-        docs_url=None if _is_production else "/api/v2/docs",
-        redoc_url=None if _is_production else "/api/v2/redoc",
-        openapi_url=None if _is_production else "/api/v2/openapi.json",
+        docs_url=None if _is_production else "/api/v3/docs",
+        redoc_url=None if _is_production else "/api/v3/redoc",
+        openapi_url=None if _is_production else "/api/v3/openapi.json",
         swagger_ui_oauth2_redirect_url=None if _is_production else "/api/v2/docs/oauth2-redirect",
     )
 
@@ -891,7 +706,7 @@ def create_app(config=None):
     # 静态文件挂载 - 确保在所有路由注册之后挂载，避免被catch-all路由拦截
     static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
     os.makedirs(static_dir, exist_ok=True)
-    app.mount("/api/v2/static", StaticFiles(directory=static_dir), name="static")
+    app.mount("/api/v3/static", StaticFiles(directory=static_dir), name="static")
 
     # 本地存储 - 受控文件下载（替代原先无鉴权的 StaticFiles 挂载，
     # 防止私密媒体 is_public=False 被匿名按路径下载；公开媒体仍可匿名访问）
@@ -949,14 +764,12 @@ def create_app(config=None):
         content_type, _ = mimetypes.guess_type(str(target))
         return _FileResponse(str(target), media_type=content_type)
 
-    # 注册受控下载路由（保持既有 /api/v2/assets/storage/... URL 前缀不变）
-    app.get("/api/v2/assets/storage/{asset_path:path}", name="local-storage")(_serve_storage_asset)
-    # v3 规范前缀（同一处理器）：媒体相关 URL 一律收敛到 /api/v3 之下
-    app.get("/api/v3/assets/storage/{asset_path:path}", name="local-storage-v3")(_serve_storage_asset)
+    # 注册受控下载路由（媒体相关 URL 一律收敛到 /api/v3 之下）
+    app.get("/api/v3/assets/storage/{asset_path:path}", name="local-storage")(_serve_storage_asset)
 
     themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes")
     if os.path.exists(themes_dir):
-        app.mount("/api/v2/assets/themes", StaticFiles(directory=themes_dir), name="themes")
+        app.mount("/api/v3/assets/themes", StaticFiles(directory=themes_dir), name="themes")
 
     app_elapsed = _time.monotonic() - app_start
     logger.info(f"{worker_info} [create_app] 应用工厂完成，总耗时: {app_elapsed:.2f}s")

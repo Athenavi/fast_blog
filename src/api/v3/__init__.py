@@ -50,13 +50,18 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "monitor",
         "permission",
         "role",
+        "sensitive_word",
         "setting",
         "user",
     ),
-    "/content": ("article", "category", "comment", "media", "page", "tag"),
+    "/content": ("article", "category", "comment", "custom_post_type", "media", "page", "tag"),
     "/analytics": ("dashboard", "search", "seo"),
     "/ops": ("backup", "notification", "webhook"),
-    "/extension": ("plugin", "theme", "widget"),
+    "/extension": ("block_pattern", "plugin", "theme", "widget"),
+    "/marketing": (
+        "ad",
+        "vip",
+    ),
     "/mobile": ("article", "auth", "category", "comment", "media", "user"),
 }
 

@@ -139,7 +139,7 @@ class JSOptimizer:
             ],
             'deferred': [
                 # 延迟脚本 - DOM 就绪后加载
-                {'src': '/api/v2/static/js/analytics.js', 'strategy': 'defer'},
+                {'src': '/api/v3/static/js/analytics.js', 'strategy': 'defer'},
             ],
             'lazy': [
                 # 懒加载脚本

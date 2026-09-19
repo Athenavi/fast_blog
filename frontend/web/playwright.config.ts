@@ -1,4 +1,6 @@
 import {defineConfig, devices} from '@playwright/test'
+import {readFileSync} from 'node:fs'
+import {resolve} from 'node:path'
 
 /**
  * E2E 回归网（T2-4，自 astro e2e 迁移适配 Nuxt，见 HANDOVER §17）
@@ -9,9 +11,22 @@ import {defineConfig, devices} from '@playwright/test'
  *
  * 前提：
  *   - 后端 API 运行在 :9421（devProxy 把 /api 转发过去；生产形态由 nginx 反代承担）
- *   - 带认证的 spec 需要有效凭证（默认 admin/admin123 沿用 astro 版，通常要用环境变量覆盖）
+ *   - 带认证的 spec 需要有效凭证：优先环境变量，其次本地 .env.e2e（已 gitignore，不入库）
  *   - 浏览器：npx playwright install chromium
  */
+
+// 读取本地 .env.e2e（KEY=VALUE 每行一条）；已存在的环境变量优先，不被覆盖
+for (const line of (() => {
+  try {
+    return readFileSync(resolve(__dirname, '.env.e2e'), 'utf-8').split(/\r?\n/)
+  } catch {
+    return []
+  }
+})()) {
+  const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
+  if (m && !(m[1] in process.env)) process.env[m[1]] = m[2]
+}
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,

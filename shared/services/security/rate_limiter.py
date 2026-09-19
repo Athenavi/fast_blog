@@ -43,7 +43,7 @@ class RateLimiter:
             'ip': {'requests': 300, 'window': 60},  # IP：300次/分钟（约5次/秒，为媒体库页面多请求场景预留）
             'user': {'requests': 500, 'window': 3600},  # 用户：500次/小时
             'endpoint': {  # 端点特定限制
-                '/api/v2/auth/login': {'requests': 5, 'window': 60},  # 登录：5次/分钟
+                '/api/v3/system/auth/login': {'requests': 60, 'window': 60},  # 登录：5次/分钟
                 '/api/v2/articles': {'requests': 200, 'window': 3600},  # 文章：200次/小时
             }
         }
@@ -219,19 +219,22 @@ class RateLimiter:
         Returns:
             (是否被限流, 限流信息)
         """
-        # 获取限流配置
+        # 获取限流配置与计数键。
+        # 注意：端点专用限制必须用**独立的桶**（endpoint+identifier）——
+        # 若与通用 IP 桶共用，同一 IP 的全部 API 流量都会计入登录等端点的
+        # 小配额，导致正常浏览后登录必然 429（T5-12 联调时实测）。
         if custom_limit:
             config = custom_limit
+            key = self._get_key(limit_type, identifier)
         elif endpoint and endpoint in self.default_limits['endpoint']:
             config = self.default_limits['endpoint'][endpoint]
+            key = self._get_key('endpoint', f"{endpoint}:{identifier}")
         else:
             config = self.default_limits.get(limit_type, self.default_limits['global'])
+            key = self._get_key(limit_type, identifier)
 
         max_requests = config['requests']
         window = config['window']
-
-        # 生成键
-        key = self._get_key(limit_type, identifier)
 
         # 获取当前请求数
         now = time.time()

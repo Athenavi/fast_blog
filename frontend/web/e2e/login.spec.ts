@@ -29,7 +29,8 @@ test.describe('登录流程', () => {
   })
 
   test('错误密码登录应失败', async ({page}) => {
-    await page.locator('input[placeholder*="用户名"]').first().fill(ADMIN_CREDENTIALS.username)
+    // 用无关用户名：避免给真实账号累积失败计数（后端 5 次失败锁 30 分钟）
+    await page.locator('input[placeholder*="用户名"]').first().fill('nonexistent_user_e2e')
     await page.locator('input[type="password"]').first().fill('wrong_password_12345')
     await page.locator('button[type="submit"]').first().click()
     await page.waitForTimeout(2000)
@@ -41,10 +42,9 @@ test.describe('登录流程', () => {
     await page.locator('input[placeholder*="用户名"]').first().fill(ADMIN_CREDENTIALS.username)
     await page.locator('input[type="password"]').first().fill(ADMIN_CREDENTIALS.password)
     await page.locator('button[type="submit"]').first().click()
-    // 成功 → /dashboard；启用 2FA 的账号停留在登录页并提示去移动端验证
-    await page.waitForURL(/\/(dashboard|login)/, {timeout: 15000})
-    const url = page.url()
-    expect(url.includes('/dashboard') || url.includes('/login')).toBeTruthy()
+    // 收紧断言（§17.5 遗留）：有效凭证必须进入 /dashboard；
+    // 若凭证无效会停在 /login —— 那是凭证配置问题，必须让用例红。
+    await page.waitForURL(/\/dashboard/, {timeout: 15000})
   })
 
   test('未认证访问后台应重定向到登录页', async ({page}) => {

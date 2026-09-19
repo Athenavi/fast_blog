@@ -213,4 +213,15 @@ export const mobileApi = {
     http.put<MobileArticleDetail>(`/mobile/article/${id}`, payload),
 
   deleteMyArticle: (id: number) => http.delete<null>(`/mobile/article/${id}`),
+
+  // ---- 点赞（per-user 幂等切换，详见 mobile/article/service.py）----
+  likeStatus: (id: number) =>
+    http.get<{ article_id: number; liked: boolean; likes: number }>(
+      `/mobile/article/${id}/like/status`,
+    ),
+
+  toggleLike: (id: number) =>
+    http.post<{ article_id: number; liked: boolean; likes: number }>(
+      `/mobile/article/${id}/like`,
+    ),
 }

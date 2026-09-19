@@ -346,7 +346,7 @@ class HelpSystem:
                 'description': '学习如何使用 FastBlog 的基本功能',
                 'duration': '5:30',
                 'url': '/tutorials/getting-started',
-                'thumbnail': '/api/v2/static/tutorials/getting-started.jpg'
+                'thumbnail': '/api/v3/static/tutorials/getting-started.jpg'
             },
             {
                 'id': 'writing-articles',
@@ -354,7 +354,7 @@ class HelpSystem:
                 'description': '掌握文章编辑器的所有功能',
                 'duration': '8:15',
                 'url': '/tutorials/writing-articles',
-                'thumbnail': '/api/v2/static/tutorials/writing.jpg'
+                'thumbnail': '/api/v3/static/tutorials/writing.jpg'
             },
             {
                 'id': 'seo-optimization',
@@ -362,7 +362,7 @@ class HelpSystem:
                 'description': '提高文章在搜索引擎中的排名',
                 'duration': '12:00',
                 'url': '/tutorials/seo',
-                'thumbnail': '/api/v2/static/tutorials/seo.jpg'
+                'thumbnail': '/api/v3/static/tutorials/seo.jpg'
             },
         ]
 

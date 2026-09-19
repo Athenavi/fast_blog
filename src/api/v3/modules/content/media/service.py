@@ -168,7 +168,7 @@ class MediaService:
         files: Sequence[Tuple[str, bytes]],
     ) -> List[dict]:
         """批量上传（复用现有处理器做校验与落盘）"""
-        from src.api.v2.media_legacy.allowed_mimes import ALLOWED_MIMES_LIST
+        from src.api.v3.modules.content.media.allowed_mimes import ALLOWED_MIMES_LIST
         from src.utils.upload.public_upload import FileProcessor, process_single_file
 
         allowed_size = getattr(app_config, "UPLOAD_LIMIT", DEFAULT_UPLOAD_LIMIT)
@@ -359,7 +359,7 @@ class MediaService:
         from fastapi.responses import Response
 
         from shared.models.media.file_hash import FileHash
-        from src.api.v2.media_legacy.utils import handle_local_file, handle_s3_streaming
+        from shared.services.media.streaming import handle_local_file, handle_s3_streaming
 
         media = await media_crud.get(db, media_id)
         if media is None:

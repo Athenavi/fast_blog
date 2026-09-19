@@ -52,6 +52,11 @@ MEDIA_VIEW = "module_content:media:view"
 MEDIA_UPLOAD = "module_content:media:upload"
 MEDIA_DELETE = "module_content:media:delete"
 
+CPT_VIEW = "module_content:custom_post_type:view"
+CPT_CREATE = "module_content:custom_post_type:create"
+CPT_EDIT = "module_content:custom_post_type:edit"
+CPT_DELETE = "module_content:custom_post_type:delete"
+
 PAGE_VIEW = "module_content:page:view"
 PAGE_CREATE = "module_content:page:create"
 PAGE_EDIT = "module_content:page:edit"
@@ -103,6 +108,11 @@ CACHE_CLEAR = "module_system:cache:clear"
 CACHE_WARMUP = "module_system:cache:warmup"
 CACHE_WRITE = "module_system:cache:write"
 
+SENSITIVE_WORD_VIEW = "module_system:sensitive_word:view"
+SENSITIVE_WORD_CREATE = "module_system:sensitive_word:create"
+SENSITIVE_WORD_EDIT = "module_system:sensitive_word:edit"
+SENSITIVE_WORD_DELETE = "module_system:sensitive_word:delete"
+
 MONITOR_VIEW = "module_system:monitor:view"
 MONITOR_KICK = "module_system:monitor:kick"
 
@@ -127,6 +137,22 @@ THEME_CUSTOMIZE = "module_extension:theme:customize"
 
 WIDGET_VIEW = "module_extension:widget:view"
 WIDGET_EDIT = "module_extension:widget:edit"
+
+BLOCK_PATTERN_VIEW = "module_extension:block_pattern:view"
+BLOCK_PATTERN_CREATE = "module_extension:block_pattern:create"
+BLOCK_PATTERN_EDIT = "module_extension:block_pattern:edit"
+BLOCK_PATTERN_DELETE = "module_extension:block_pattern:delete"
+
+# ============================================================ marketing 域
+AD_VIEW = "module_marketing:ad:view"
+AD_CREATE = "module_marketing:ad:create"
+AD_EDIT = "module_marketing:ad:edit"
+AD_DELETE = "module_marketing:ad:delete"
+
+VIP_VIEW = "module_marketing:vip:view"
+VIP_CREATE = "module_marketing:vip:create"
+VIP_EDIT = "module_marketing:vip:edit"
+VIP_DELETE = "module_marketing:vip:delete"
 
 # ============================================================ ops 域
 BACKUP_VIEW = "module_ops:backup:view"
@@ -207,6 +233,10 @@ CODE_LABELS: dict[str, str] = {
     MEDIA_VIEW: "查看媒体",
     MEDIA_UPLOAD: "上传文件",
     MEDIA_DELETE: "删除文件",
+    CPT_VIEW: "查看内容类型",
+    CPT_CREATE: "创建内容类型",
+    CPT_EDIT: "编辑内容类型",
+    CPT_DELETE: "删除内容类型",
     PAGE_VIEW: "查看页面",
     PAGE_CREATE: "创建页面",
     PAGE_EDIT: "编辑页面",
@@ -245,6 +275,10 @@ CODE_LABELS: dict[str, str] = {
     CACHE_CLEAR: "清空缓存",
     CACHE_WARMUP: "预热缓存",
     CACHE_WRITE: "读写缓存键",
+    SENSITIVE_WORD_VIEW: "查看敏感词库",
+    SENSITIVE_WORD_CREATE: "添加敏感词",
+    SENSITIVE_WORD_EDIT: "编辑敏感词",
+    SENSITIVE_WORD_DELETE: "删除敏感词",
     MONITOR_VIEW: "查看系统状态",
     MONITOR_KICK: "强制下线",
     # ---- analytics ----
@@ -265,6 +299,19 @@ CODE_LABELS: dict[str, str] = {
     THEME_CUSTOMIZE: "自定义主题",
     WIDGET_VIEW: "查看小部件",
     WIDGET_EDIT: "编辑小部件",
+    BLOCK_PATTERN_VIEW: "查看区块模板",
+    BLOCK_PATTERN_CREATE: "创建区块模板",
+    BLOCK_PATTERN_EDIT: "编辑区块模板",
+    BLOCK_PATTERN_DELETE: "删除区块模板",
+    # ---- marketing ----
+    AD_VIEW: "查看广告",
+    AD_CREATE: "创建广告",
+    AD_EDIT: "编辑广告",
+    AD_DELETE: "删除广告",
+    VIP_VIEW: "查看 VIP 会员",
+    VIP_CREATE: "创建 VIP 套餐/订阅",
+    VIP_EDIT: "编辑 VIP 套餐/订阅",
+    VIP_DELETE: "删除 VIP 套餐/订阅",
     # ---- ops ----
     BACKUP_VIEW: "查看备份",
     BACKUP_CREATE: "创建备份",

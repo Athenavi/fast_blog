@@ -145,6 +145,13 @@
 </template>
 
 <script lang="ts" setup>
+definePageMeta({
+  layout: 'admin',
+  middleware: 'auth',
+  title: 'admin.system.role.roleManagement',
+  permission: 'module_system:role:view',
+})
+
 const {t} = useI18n()
 import {Plus, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'

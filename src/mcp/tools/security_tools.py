@@ -43,7 +43,8 @@ async def query_audit_log(arguments: dict) -> dict:
 @require_superuser
 async def export_audit_log(arguments: dict) -> dict:
     """导出审计日志为 CSV"""
-    import csv, io
+    import csv
+    import io
     days = arguments.get("days", 7)
 
     async with db_manager.get_session() as db:
@@ -77,7 +78,7 @@ async def scan_sensitive_words(arguments: dict) -> dict:
 
     async with db_manager.get_session() as db:
         from shared.models.security import SensitiveWord
-        words = (await db.execute(select(SensitiveWord).where(SensitiveWord.is_active == True))).scalars().all()
+        words = (await db.execute(select(SensitiveWord).where(SensitiveWord.is_active.is_(True)))).scalars().all()
 
     found = []
     for word in words:
@@ -124,8 +125,12 @@ async def manage_sensitive_word(arguments: dict) -> dict:
 async def list_rate_limits(arguments: dict) -> dict:
     """查看当前速率限制状态"""
     try:
-        from src.api.v2.security.rate_limit import get_rate_limit_status
-        status = get_rate_limit_status()
+        from shared.services.security.rate_limiter import rate_limiter
+
+        status = {
+            'redis_healthy': rate_limiter.redis_client is not None,
+            'default_limits': rate_limiter.default_limits,
+        }
         return {"success": True, "data": status}
     except Exception as e:
         return {"success": False, "error": f"获取失败: {e}"}

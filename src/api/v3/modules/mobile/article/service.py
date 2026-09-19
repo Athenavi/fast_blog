@@ -8,17 +8,27 @@
    发布走后台 ``/content/article/{id}/publish``，即"投稿 → 审核 → 发布"的分离。
 3. **管理字段归零**：`is_featured` / `is_sticky` / `hidden` / `is_vip_only` /
    `required_vip_level` / `sort_order` 一律由服务端设定，前台无法自助设置。
+
+另有前台点赞（``toggle_like`` / ``like_status``）：仅认证用户可写，
+per-user 表去重，不允许刷赞。
 """
 
+from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article.article import Article
+from shared.models.article.article_like import ArticleLike
 from src.api.v3.core.exceptions import NotFoundError
 from src.api.v3.modules.content.article.crud import article_crud
 from src.api.v3.modules.content.article.schema import ArticleCreate, ArticleUpdate
-from src.api.v3.modules.content.article.service import STATUS_DRAFT, article_service
+from src.api.v3.modules.content.article.service import (
+    STATUS_DRAFT,
+    STATUS_PUBLISHED,
+    article_service,
+)
 from src.api.v3.modules.mobile.article.schema import (
     MobileArticleCreate,
     MobileArticleUpdate,
@@ -109,6 +119,62 @@ class MobileArticleService:
         if article is None or article.user != user.id:
             raise NotFoundError("文章不存在")
         return article
+
+    # ------------------------------------------------------------ 点赞
+    async def _public_or_404(self, db: AsyncSession, article_id: int) -> Article:
+        """可公开交互的文章必须满足与公开详情相同的可见性规则"""
+        article = await article_crud.get(db, article_id)
+        if (
+            article is None
+            or article.status != STATUS_PUBLISHED
+            or getattr(article, "hidden", False)
+            or getattr(article, "deleted_at", None) is not None
+        ):
+            raise NotFoundError("文章不存在")
+        return article
+
+    async def toggle_like(self, db: AsyncSession, user, article_id: int) -> dict:
+        """点赞 / 取消点赞（per-user 幂等切换）
+
+        结构照抄 ``comment_service.toggle_like``：per-user 表去重 + 同步计数列；
+        表换成 ``ArticleLike``（列名 ``user``/``article``），计数列是 ``Article.likes``
+        （``mobile/user/stats`` 的 ``likes_received`` 依赖它）。
+        """
+        article = await self._public_or_404(db, article_id)
+
+        existing = await db.scalar(
+            select(ArticleLike).where(
+                ArticleLike.article == article_id, ArticleLike.user == user.id
+            )
+        )
+        if existing is not None:
+            await db.delete(existing)
+            article.likes = max(0, (article.likes or 0) - 1)
+            liked = False
+        else:
+            db.add(ArticleLike(article=article_id, user=user.id, created_at=datetime.now()))
+            article.likes = (article.likes or 0) + 1
+            liked = True
+
+        db.add(article)
+        await db.commit()
+        await db.refresh(article)
+        return {"article_id": article_id, "liked": liked, "likes": article.likes or 0}
+
+    async def like_status(self, db: AsyncSession, user, article_id: int) -> dict:
+        """当前用户的点赞状态；匿名访客视为未点赞，仅返回计数"""
+        article = await self._public_or_404(db, article_id)
+        liked = False
+        if user is not None:
+            liked = (
+                        await db.scalar(
+                            select(func.count())
+                            .select_from(ArticleLike)
+                            .where(ArticleLike.article == article_id, ArticleLike.user == user.id)
+                        )
+                        or 0
+                    ) > 0
+        return {"article_id": article_id, "liked": liked, "likes": article.likes or 0}
 
 
 mobile_article_service = MobileArticleService()

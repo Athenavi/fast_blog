@@ -15,6 +15,7 @@ export interface ArticleItem {
   tags?: string[]
   status?: number
   views?: number
+  likes?: number
   is_top?: boolean
   created_at?: string | null
   updated_at?: string | null

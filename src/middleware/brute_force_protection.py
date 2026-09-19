@@ -10,7 +10,8 @@
 
 import json
 
-from fastapi import Request, HTTPException
+from fastapi import Request
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.unified_logger import default_logger as logger
@@ -134,9 +135,14 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         ip_key = self._cache_key_ip(client_ip)
         if self._increment_and_check(ip_key, self.max_per_ip):
             logger.warning(f"IP {client_ip} 登录尝试超过限制")
-            raise HTTPException(
+            # 注意：BaseHTTPMiddleware 里 raise HTTPException 不会走应用的
+            # 异常处理器，会被 Starlette 兜底成 500；必须直接返回响应。
+            return JSONResponse(
                 status_code=429,
-                detail=f"登录尝试过于频繁，请在 {self.window_seconds // 60} 分钟后再试"
+                content={
+                    "success": False,
+                    "error": f"登录尝试过于频繁，请在 {self.window_seconds // 60} 分钟后再试",
+                },
             )
 
         response = await call_next(request)

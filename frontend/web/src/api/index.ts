@@ -53,6 +53,40 @@ export type {
   MultiLevelCacheStats,
 } from './modules/cache'
 
+export {sensitiveWordApi} from './modules/sensitiveWord'
+export type {
+  SensitiveWordItem,
+  SensitiveWordPayload,
+  SensitiveWordQuery,
+} from './modules/sensitiveWord'
+
+// ---------------------------------------------------------------- marketing（T5-11 批次 1）
+export {adApi} from './modules/ad'
+export type {
+  AdItem,
+  AdPayload,
+  AdPlacementItem,
+  AdPlacementPayload,
+  AdQuery,
+  AdStats,
+} from './modules/ad'
+
+export {vipApi} from './modules/vip'
+export type {
+  VipFeatureItem,
+  VipFeaturePayload,
+  VipPlanItem,
+  VipPlanPayload,
+  VipSubscriptionItem,
+  VipSubscriptionPayload,
+} from './modules/vip'
+
+export {blockPatternApi} from './modules/blockPattern'
+export type {BlockPatternItem, BlockPatternPayload} from './modules/blockPattern'
+
+export {customPostTypeApi} from './modules/customPostType'
+export type {CustomPostTypeItem, CustomPostTypePayload} from './modules/customPostType'
+
 export {monitorApi} from './modules/monitor'
 export type {
   CpuInfo,

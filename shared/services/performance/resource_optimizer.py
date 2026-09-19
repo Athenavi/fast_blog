@@ -356,7 +356,7 @@ class ResourceOptimizer:
                 manifest['resources'][relative_path] = {
                     'size': file_size,
                     'version': self.version_map.get(relative_path),
-                    'url': f"/api/v2/static/optimized/{relative_path}",
+                    'url': f"/api/v3/static/optimized/{relative_path}",
                 }
 
         # 保存清单
