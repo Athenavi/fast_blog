@@ -173,6 +173,17 @@ EMAIL_VIEW = "module_ops:email:view"
 EMAIL_EDIT = "module_ops:email:edit"
 EMAIL_DELETE = "module_ops:email:delete"
 
+GDPR_VIEW = "module_system:gdpr:view"
+GDPR_DELETE = "module_system:gdpr:delete"
+INTEGRATION_VIEW = "module_system:integration:view"
+INTEGRATION_CREATE = "module_system:integration:create"
+INTEGRATION_EDIT = "module_system:integration:edit"
+INTEGRATION_DELETE = "module_system:integration:delete"
+SOCIAL_VIEW = "module_system:social:view"
+SOCIAL_DELETE = "module_system:social:delete"
+SECURITY_VIEW = "module_system:security:view"
+SECURITY_DELETE = "module_system:security:delete"
+
 BACKUP_VIEW = "module_ops:backup:view"
 BACKUP_CREATE = "module_ops:backup:create"
 BACKUP_RESTORE = "module_ops:backup:restore"
@@ -258,6 +269,16 @@ CODE_LABELS: dict[str, str] = {
     APPROVAL_VIEW: "查看审批",
     APPROVAL_ACT: "处理审批",
     APPROVAL_DELETE: "删除审批单",
+    GDPR_VIEW: "查看合规同意记录",
+    GDPR_DELETE: "删除合规记录",
+    INTEGRATION_VIEW: "查看第三方集成",
+    INTEGRATION_CREATE: "创建第三方集成",
+    INTEGRATION_EDIT: "编辑第三方集成",
+    INTEGRATION_DELETE: "删除第三方集成",
+    SOCIAL_VIEW: "查看社交绑定",
+    SOCIAL_DELETE: "解除社交绑定",
+    SECURITY_VIEW: "查看安全中心",
+    SECURITY_DELETE: "删除安全记录",
     PAGE_VIEW: "查看页面",
     PAGE_CREATE: "创建页面",
     PAGE_EDIT: "编辑页面",
