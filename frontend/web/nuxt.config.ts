@@ -78,7 +78,8 @@ export default defineNuxtConfig({
       runtimeCaching: [
         {
           // 媒体文件：缓存优先，方便离线查看已浏览过的图片
-          urlPattern: /^https?:\/\/.*\/media\/.*/i,
+          // （媒体文件 URL 收敛在 /api/v3 之下：content/media/{id}/file 与 assets/storage）
+          urlPattern: /^https?:\/\/.*\/api\/v3\/(content\/media\/[\w.-]+\/file|assets\/storage\/.*)/i,
           handler: 'CacheFirst',
           options: {
             cacheName: 'media-assets',
@@ -106,15 +107,15 @@ export default defineNuxtConfig({
     host: '0.0.0.0',
   },
 
-  // 开发期把 /api 与 /media 代理到后端（生产由 nginx 反代）
+  // 开发期把 /api 代理到后端（生产由 nginx 反代）
+  // 注意：devProxy 挂载前缀会被 h3 路由剥掉（req.url 不含 /api），
+  // 因此 target 必须带同样的路径前缀，否则后端收到的是 /v3/** 而 404。
+  // 媒体文件统一走 /api/v3/content/media/{id}/file 与 /api/v3/assets/storage/**，
+  // 因此不再需要 /media 代理规则——它会把前台页面路由 /media 劫持给后端。
   nitro: {
     devProxy: {
       '/api': {
-        target: process.env.VITE_PROXY_TARGET || 'http://localhost:9421',
-        changeOrigin: true,
-      },
-      '/media': {
-        target: process.env.VITE_PROXY_TARGET || 'http://localhost:9421',
+        target: `${process.env.VITE_PROXY_TARGET || 'http://localhost:9421'}/api`,
         changeOrigin: true,
       },
     },

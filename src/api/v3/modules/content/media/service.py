@@ -14,7 +14,7 @@ from shared.config.settings import app_config
 from shared.models.media.media import Media
 from shared.models.media.media_folder import MediaFolder
 from src.api.v3.common.tags import normalize_tags
-from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from src.api.v3.core.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission.scope import ensure_object_in_scope
 from src.api.v3.modules.content.media.crud import media_crud, media_folder_crud
@@ -27,6 +27,26 @@ from src.api.v3.modules.content.media.schema import (
 logger = get_logger("media")
 
 DEFAULT_UPLOAD_LIMIT = 10 * 1024 * 1024
+
+# 媒体文件对外 URL 契约：写入 media.file_url，出现在文章配图/封面里。
+# 必须挂在 /api/v3 之下（前端页面路由占用 /media，裸 /media/** 前缀会与之冲突）。
+MEDIA_FILE_URL_TEMPLATE = "/api/v3/content/media/{media_id}/file"
+
+
+def media_file_url(media_id: int) -> str:
+    """媒体文件的规范访问 URL（上传落库时由 ``process_single_file`` 写入）"""
+    return MEDIA_FILE_URL_TEMPLATE.format(media_id=media_id)
+
+
+# 可内联预览的 MIME 类型（镜像 v2 media_legacy/routes_stream.py 的同名集合；
+# 该模块使用旧式顶层导入无法被 v3 直接导入，故此处保留副本）
+_PREVIEWABLE_TYPES = {
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+    "video/mp4", "video/webm",
+    "audio/mpeg", "audio/wav", "audio/mp3",
+    "application/pdf",
+    "text/plain", "text/markdown", "text/html",
+}
 
 
 def to_out(media: Media) -> dict:
@@ -321,6 +341,103 @@ class MediaService:
             raise ConflictError(f"文件夹内仍有 {media_count} 个媒体文件，请先移动或删除")
 
         await media_folder_crud.remove(db, folder)
+
+    # ------------------------------------------------------------------ 文件本体
+    async def stream_file(
+        self, db: AsyncSession, media_id: int, *, current_user: Any, request: Any
+    ):
+        """按 id 返回媒体文件本体（``media_file_url()`` 的落点）
+
+        访问规则沿用 v2 ``/api/v2/media/{id}``：属主或公开媒体可读；区别在于
+        鉴权是**可选 JWT**——``<img>``/``<video>`` 标签不会携带 Authorization 头，
+        公开媒体必须允许匿名读取。文件解析顺序与 v2 保持一致
+        （标准 hash 路径 → storage_path → S3），返回 ETag/Range 语义。
+        """
+        from pathlib import Path
+        from urllib.parse import quote
+
+        from fastapi.responses import Response
+
+        from shared.models.media.file_hash import FileHash
+        from src.api.v2.media_legacy.utils import handle_local_file, handle_s3_streaming
+
+        media = await media_crud.get(db, media_id)
+        if media is None:
+            raise NotFoundError("媒体不存在")
+        if media.user != getattr(current_user, "id", None) and not media.is_public:
+            raise ForbiddenError("无权访问该媒体文件")
+
+        file_hash = (
+            await db.execute(select(FileHash).where(FileHash.hash == media.hash))
+        ).scalar_one_or_none()
+        if file_hash is None:
+            raise NotFoundError("文件不存在")
+
+        # 防御路径遍历：hash 只允许字母数字与 -_
+        if not all(c.isalnum() or c in "-_" for c in media.hash):
+            logger.warning("非法文件hash media_id=%s", media_id)
+            raise NotFoundError("文件不存在")
+
+        # 标准路径 storage/{hash前2位}/{hash}[ext]：优先带扩展名（取自 storage_path）
+        without_ext = Path(f"storage/{media.hash[:2]}/{media.hash}")
+        with_ext = without_ext
+        if file_hash.storage_path and "." in Path(file_hash.storage_path).name:
+            with_ext = Path(f"storage/{media.hash[:2]}/{media.hash}{Path(file_hash.storage_path).suffix}")
+        file_path = with_ext if with_ext.exists() else without_ext
+
+        # ETag：优先文件 mtime，回退内容 hash
+        etag = f'"{media.hash}"'
+        try:
+            stat = file_path.stat() if file_path.exists() else None
+            if not stat and (file_hash.storage_path or "").startswith("local://"):
+                local = Path(file_hash.storage_path.replace("local://", "", 1))
+                if local.exists():
+                    stat = local.stat()
+            if stat:
+                etag = f'"{int(stat.st_mtime)}"'
+        except OSError as exc:  # noqa: BLE001 - 读不到 stat 时按 hash 生成
+            logger.debug("生成 ETag 失败 media_id=%s: %s", media_id, exc)
+
+        if request.headers.get("if-none-match") == etag:
+            return Response(status_code=304, headers={"ETag": etag})
+
+        mime = file_hash.mime_type or media.mime_type or "application/octet-stream"
+        original = file_hash.filename or media.original_filename or f"media-{media.id}"
+        disposition = "inline" if mime in _PREVIEWABLE_TYPES else "attachment"
+        headers = {
+            "Accept-Ranges": "bytes",
+            "Content-Type": mime,
+            "X-Content-Type-Options": "nosniff",
+            "ETag": etag,
+            "Cache-Control": "public, max-age=604800, immutable",
+            "Content-Disposition": f"{disposition}; filename*=UTF-8''{quote(str(original).encode())}",
+        }
+
+        range_header = request.headers.get("range")
+
+        if file_path.exists():
+            return await handle_local_file(file_path, mime, str(original), range_header, headers)
+
+        # 标准路径缺失：尝试 storage_path（相对 storage 目录）
+        if file_hash.storage_path and not file_hash.storage_path.startswith("s3://"):
+            full_path = (Path("storage") / file_hash.storage_path).resolve()
+            if not str(full_path).startswith(str(Path("storage").resolve())):
+                raise ForbiddenError("非法的文件路径")
+            if full_path.exists():
+                return await handle_local_file(full_path, mime, str(original), range_header, headers)
+
+        # 对象存储
+        if (file_hash.storage_path or "").startswith("s3://"):
+            return await handle_s3_streaming(
+                s3_path=file_hash.storage_path,
+                mime_type=mime,
+                filename=str(original),
+                range_header=range_header,
+                headers=headers,
+                media_hash=media.hash,
+            )
+
+        raise NotFoundError("文件不存在")
 
 
 media_service = MediaService()

@@ -26,7 +26,7 @@
   - 多个权限码为 **ANY 语义**（任一命中即通过），与官方 ``AuthPermission`` 一致
 """
 
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,7 +34,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User as UserModel
 from src.api.v3.common.request import PageQuery
 from src.api.v3.core.permission.control import AuthControl, AuthPermission
-from src.auth.auth_deps import admin_required, get_current_user
+from src.auth.auth_deps import admin_required, get_current_user, jwt_optional_dependency
 from src.utils.database.unified_manager import get_db_session
 
 # ---------- 会话 / 分页 ----------
@@ -44,12 +44,15 @@ PageDep = Annotated[PageQuery, Depends()]
 # ---------- 身份 ----------
 CurrentUser = Annotated[UserModel, Depends(get_current_user)]
 AdminUser = Annotated[UserModel, Depends(admin_required)]
+#: 可选身份：匿名返回 None（媒体文件等公开资源端点用）
+OptionalUser = Annotated[Optional[UserModel], Depends(jwt_optional_dependency)]
 
 __all__ = [
     "DBSession",
     "PageDep",
     "CurrentUser",
     "AdminUser",
+    "OptionalUser",
     "AuthControl",
     "AuthPermission",
 ]

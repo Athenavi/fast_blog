@@ -951,6 +951,8 @@ def create_app(config=None):
 
     # 注册受控下载路由（保持既有 /api/v2/assets/storage/... URL 前缀不变）
     app.get("/api/v2/assets/storage/{asset_path:path}", name="local-storage")(_serve_storage_asset)
+    # v3 规范前缀（同一处理器）：媒体相关 URL 一律收敛到 /api/v3 之下
+    app.get("/api/v3/assets/storage/{asset_path:path}", name="local-storage-v3")(_serve_storage_asset)
 
     themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes")
     if os.path.exists(themes_dir):

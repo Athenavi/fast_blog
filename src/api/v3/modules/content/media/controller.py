@@ -13,6 +13,7 @@
     GET    /api/v3/content/media/{media_id}          媒体详情
     PUT    /api/v3/content/media/{media_id}          更新元信息
     DELETE /api/v3/content/media/{media_id}          删除媒体
+    GET    /api/v3/content/media/{media_id}/file     文件本体（公开媒体匿名可读，media.file_url 的落点）
 
 静态路径（``/upload``、``/folders``、``/batch/delete``）必须在 ``/{media_id}`` 之前注册。
 
@@ -21,11 +22,11 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, File, Query, UploadFile
+from fastapi import APIRouter, File, Query, Request, UploadFile
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
-from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
+from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser, PageDep
 from src.api.v3.core.exceptions import BadRequestError
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
@@ -203,3 +204,19 @@ async def delete_media(
 ) -> dict:
     await media_service.delete_media(db, media_id)
     return resp.success(None, msg="已删除")
+
+
+# ─────────────────────────── 文件本体 ───────────────────────────
+@router.get("/{media_id}/file", summary="获取媒体文件")
+async def get_media_file(
+    media_id: int,
+    request: Request,
+    db: DBSession,
+    current: OptionalUser,
+):
+    """``media.file_url`` 的落点。
+
+    公开媒体对匿名访客可读（文章配图/封面场景，``<img>`` 不携带
+    Authorization 头）；私有媒体仅属主可读。返回文件流而非统一响应体。
+    """
+    return await media_service.stream_file(db, media_id, current_user=current, request=request)

@@ -454,7 +454,9 @@ class FileProcessor:
         await db.flush()  # 刷新以获取生成的 ID
 
         # 构建文件URL（使用 media_id）
-        new_media.file_url = f"/api/v2/media/{new_media.id}"
+        # 契约：/api/v3/content/media/{id}/file（v3 media service.MEDIA_FILE_URL_TEMPLATE，
+        # 公开媒体匿名可读；不得使用裸 /media/** 前缀，避免与前台页面路由冲突）
+        new_media.file_url = f"/api/v3/content/media/{new_media.id}/file"
         await db.flush()  # 再次刷新以保存 file_url
 
         # 如果是视频文件，异步处理视频（转码、生成缩略图等）

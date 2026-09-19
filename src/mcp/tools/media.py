@@ -32,7 +32,7 @@ async def list_media(arguments: dict) -> dict:
         return {"success": True, "total": len(media_list), "media": [{
             "id": m.id, "filename": m.original_filename or m.filename or "unknown",
             "mime_type": m.mime_type or "", "file_size": m.file_size or 0,
-            "url": m.file_url or f"/media/{m.filename or ''}" if m.filename else "",
+            "url": m.file_url or (f"/api/v3/content/media/{m.id}/file" if m.id else ""),
             "alt_text": m.alt_text or "", "category": m.category or "",
             "created_at": m.created_at.isoformat() if m.created_at else "",
         } for m in media_list]}

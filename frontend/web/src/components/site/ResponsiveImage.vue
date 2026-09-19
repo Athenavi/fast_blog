@@ -10,7 +10,7 @@
  *
  * 用法：
  * ```vue
- * <ResponsiveImage src="/media/foo.jpg" alt="封面" aspect="16/9" sizes="sm:100vw md:50vw"/>
+ * <ResponsiveImage src="/api/v3/content/media/1/file" alt="封面" aspect="16/9" sizes="sm:100vw md:50vw"/>
  * ```
  */
 import {cn} from '@/lib/utils'
