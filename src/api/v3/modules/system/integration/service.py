@@ -2,6 +2,8 @@
 
 from datetime import datetime
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.api.v3.core.exceptions import NotFoundError
 from src.api.v3.modules.system.integration.crud import ldap_config_crud, sso_provider_crud
 from src.api.v3.modules.system.integration.schema import (

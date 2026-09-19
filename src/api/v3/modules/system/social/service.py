@@ -38,10 +38,11 @@ class SocialService:
         return [_to_out(r) for r in rows], int(total)
 
     async def delete_binding(self, db: AsyncSession, account_id: int) -> None:
-        row = await oauth_account_crud.get(db, account_id)
+        row = await db.get(OAuthAccount, account_id)
         if row is None:
             raise NotFoundError("绑定不存在")
-        await oauth_account_crud.remove(db, row)
+        await db.delete(row)
+        await db.commit()
 
 
 social_service = SocialService()

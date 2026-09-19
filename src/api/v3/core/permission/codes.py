@@ -195,6 +195,31 @@ WEBHOOK_EDIT = "module_ops:webhook:edit"
 NOTIFICATION_VIEW = "module_ops:notification:view"
 NOTIFICATION_EDIT = "module_ops:notification:edit"
 
+CDN_VIEW = "module_ops:cdn:view"
+CDN_EDIT = "module_ops:cdn:edit"
+
+# ============================================================ ai 域（T5-11 批次 4）
+AI_CONFIG_VIEW = "module_ai:config:view"
+AI_CONFIG_CREATE = "module_ai:config:create"
+AI_CONFIG_EDIT = "module_ai:config:edit"
+AI_CONFIG_DELETE = "module_ai:config:delete"
+
+AI_WORKFLOW_VIEW = "module_ai:workflow:view"
+AI_WORKFLOW_DELETE = "module_ai:workflow:delete"
+
+# ============================================================ chat 域（T5-11 批次 4）
+CHAT_GROUP_VIEW = "module_chat:group:view"
+CHAT_GROUP_CREATE = "module_chat:group:create"
+CHAT_GROUP_EDIT = "module_chat:group:edit"
+CHAT_GROUP_DELETE = "module_chat:group:delete"
+CHAT_GROUP_MANAGE_MEMBERS = "module_chat:group:manage_members"
+
+# ============================================================ multisite（T5-11 批次 4）
+SITE_VIEW = "module_system:site:view"
+SITE_CREATE = "module_system:site:create"
+SITE_EDIT = "module_system:site:edit"
+SITE_DELETE = "module_system:site:delete"
+
 # ============================================================ 过渡期兼容
 #: "纯改名"的前缀映射：新码前缀 → 旧码前缀（旧码仍被接受，P6 移除）
 _LEGACY_PREFIXES: dict[str, str] = {
@@ -321,6 +346,10 @@ CODE_LABELS: dict[str, str] = {
     SENSITIVE_WORD_CREATE: "添加敏感词",
     SENSITIVE_WORD_EDIT: "编辑敏感词",
     SENSITIVE_WORD_DELETE: "删除敏感词",
+    SITE_VIEW: "查看站点",
+    SITE_CREATE: "创建站点",
+    SITE_EDIT: "编辑站点",
+    SITE_DELETE: "删除站点",
     MONITOR_VIEW: "查看系统状态",
     MONITOR_KICK: "强制下线",
     # ---- analytics ----
@@ -358,6 +387,19 @@ CODE_LABELS: dict[str, str] = {
     FORM_CREATE: "创建表单",
     FORM_EDIT: "编辑表单",
     FORM_DELETE: "删除表单",
+    # ---- ai ----
+    AI_CONFIG_VIEW: "查看 AI 配置",
+    AI_CONFIG_CREATE: "创建 AI 配置",
+    AI_CONFIG_EDIT: "编辑 AI 配置",
+    AI_CONFIG_DELETE: "删除 AI 配置",
+    AI_WORKFLOW_VIEW: "查看 AI 工作流",
+    AI_WORKFLOW_DELETE: "删除 AI 工作流记录",
+    # ---- chat ----
+    CHAT_GROUP_VIEW: "查看群聊",
+    CHAT_GROUP_CREATE: "创建群聊",
+    CHAT_GROUP_EDIT: "编辑群聊",
+    CHAT_GROUP_DELETE: "删除群聊",
+    CHAT_GROUP_MANAGE_MEMBERS: "管理群成员",
     # ---- ops ----
     MIGRATION_VIEW: "查看迁移任务",
     MIGRATION_CREATE: "创建迁移任务",
@@ -374,4 +416,6 @@ CODE_LABELS: dict[str, str] = {
     WEBHOOK_EDIT: "编辑 Webhook",
     NOTIFICATION_VIEW: "查看通知",
     NOTIFICATION_EDIT: "管理通知",
+    CDN_VIEW: "查看 CDN 配置",
+    CDN_EDIT: "编辑 CDN 配置",
 }

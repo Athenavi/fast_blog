@@ -55,12 +55,13 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "security",
         "sensitive_word",
         "setting",
+        "site",
         "social",
         "user",
     ),
     "/content": ("approval", "article", "category", "comment", "custom_post_type", "media", "page", "tag"),
     "/analytics": ("dashboard", "search", "seo"),
-    "/ops": ("backup", "email", "migration", "notification", "webhook"),
+    "/ops": ("backup", "cdn", "email", "migration", "notification", "webhook"),
     "/extension": ("block_pattern", "plugin", "theme", "widget"),
     "/marketing": (
         "ad",
@@ -68,6 +69,9 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "vip",
     ),
     "/mobile": ("article", "auth", "category", "comment", "media", "user"),
+    # T5-11 批次 4：AI 能力与群聊（表 ai_configs/ai_workflows、chat_groups 已存在）
+    "/ai": ("config", "workflow"),
+    "/chat": ("group",),
 }
 
 

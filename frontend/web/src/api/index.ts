@@ -60,6 +60,55 @@ export type {
   SensitiveWordQuery,
 } from './modules/sensitiveWord'
 
+// ---------------------------------------------------------------- system 安全与集成（T5-11 批次 3）
+export {gdprApi} from './modules/gdpr'
+export type {GdprConsentItem, GdprConsentQuery, GdprStats} from './modules/gdpr'
+
+export {integrationApi} from './modules/integration'
+export type {
+  LdapConfigItem,
+  LdapConfigPayload,
+  SsoProviderItem,
+  SsoProviderPayload,
+} from './modules/integration'
+
+export {socialApi} from './modules/social'
+export type {SocialAccountItem, SocialAccountQuery} from './modules/social'
+
+export {securityApi} from './modules/security'
+export type {
+  BlacklistItem,
+  LoginAttemptItem,
+  LoginAttemptQuery,
+  SecurityOverview,
+} from './modules/security'
+
+export {siteApi} from './modules/site'
+export type {SiteItem, SitePayload, SiteQuery} from './modules/site'
+
+// ---------------------------------------------------------------- 批次 4（ai / chat / cdn）
+export {aiApi} from './modules/ai'
+export type {
+  AiConfigItem,
+  AiConfigPayload,
+  AiConfigQuery,
+  AiWorkflowItem,
+  AiWorkflowQuery,
+} from './modules/ai'
+
+export {chatApi} from './modules/chat'
+export type {
+  ChatGroupItem,
+  ChatGroupPayload,
+  ChatGroupQuery,
+  ChatMemberAddPayload,
+  ChatMemberItem,
+  ChatMemberUpdatePayload,
+} from './modules/chat'
+
+export {cdnApi} from './modules/cdn'
+export type {CdnConfig, CdnConfigPayload} from './modules/cdn'
+
 // ---------------------------------------------------------------- marketing（T5-11 批次 1）
 export {adApi} from './modules/ad'
 export type {

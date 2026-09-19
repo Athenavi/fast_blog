@@ -81,6 +81,45 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '敏感词库',
         permission: 'module_system:sensitive_word:view'
       },
+      {name: 'GDPR', path: '/system/gdpr', title: '合规同意', permission: 'module_system:gdpr:view'},
+      {
+        name: 'Integrations',
+        path: '/system/integrations',
+        title: '第三方集成',
+        permission: 'module_system:integration:view'
+      },
+      {
+        name: 'SocialAccounts',
+        path: '/system/social-accounts',
+        title: '社交账号',
+        permission: 'module_system:social:view'
+      },
+      {
+        name: 'Security',
+        path: '/system/security',
+        title: '安全中心',
+        permission: 'module_system:security:view'
+      },
+      {name: 'Sites', path: '/system/sites', title: '多站点', permission: 'module_system:site:view'},
+    ],
+  },
+  {
+    name: 'ChatGroups',
+    path: '/chat/groups',
+    title: '群聊管理',
+    icon: 'ChatDotRound',
+    permission: 'module_chat:group:view',
+    order: 7,
+  },
+  {
+    name: 'AI',
+    path: '/ai',
+    title: 'AI 能力',
+    icon: 'MagicStick',
+    order: 8,
+    children: [
+      {name: 'AIConfigs', path: '/ai/configs', title: 'AI 配置', permission: 'module_ai:config:view'},
+      {name: 'AIWorkflows', path: '/ai/workflows', title: 'AI 工作流', permission: 'module_ai:workflow:view'},
     ],
   },
   {
@@ -141,6 +180,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'WebhookList', path: '/ops/webhook', title: 'Webhook', permission: 'module_ops:webhook:view'},
       {name: 'Migrations', path: '/ops/migrations', title: '数据迁移', permission: 'module_ops:migration:view'},
       {name: 'EmailService', path: '/ops/email', title: '邮件服务', permission: 'module_ops:email:view'},
+      {name: 'CDN', path: '/ops/cdn', title: 'CDN 配置', permission: 'module_ops:cdn:view'},
     ],
   },
 ]

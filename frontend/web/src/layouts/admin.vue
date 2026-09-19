@@ -38,6 +38,11 @@
  */
 import type {Component} from 'vue'
 
+// Nuxt 只自动导入 `~/components`（见 nuxt.config.ts 的 components 配置），
+// layouts/components 不在扫描范围内，必须显式 import
+import AppHeader from './components/AppHeader.vue'
+import AppSidebar from './components/AppSidebar.vue'
+
 import {useAppStore} from '@/store/modules/app'
 
 const appStore = useAppStore()
@@ -66,6 +71,9 @@ const ICONS = [
   'Edit',
   'Delete',
   'Refresh',
+  'Promotion',
+  'MagicStick',
+  'ChatDotRound',
 ] as const
 
 onMounted(async () => {

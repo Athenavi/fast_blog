@@ -78,14 +78,20 @@ class SecurityService:
         return [_attempt_out(r) for r in rows], int(total)
 
     async def list_blacklist(self, db: AsyncSession, *, page: int = 1, page_size: int = 20) -> tuple[list[dict], int]:
-        rows, total = await token_blacklist_crud.list(db, page=page, page_size=page_size)
-        return [_blacklist_out(r) for r in rows], total
+        stmt = select(TokenBlacklist).order_by(TokenBlacklist.created_at.desc(), TokenBlacklist.id.desc())
+        count_stmt = select(func.count()).select_from(TokenBlacklist)
+        total = (await db.execute(count_stmt)).scalar() or 0
+        rows = (await db.execute(
+            stmt.offset((page - 1) * page_size).limit(page_size)
+        )).scalars().all()
+        return [_blacklist_out(r) for r in rows], int(total)
 
     async def delete_blacklist(self, db: AsyncSession, entry_id: int) -> None:
-        row = await token_blacklist_crud.get(db, entry_id)
+        row = await db.get(TokenBlacklist, entry_id)
         if row is None:
             raise NotFoundError("记录不存在")
-        await token_blacklist_crud.remove(db, row)
+        await db.delete(row)
+        await db.commit()
 
 
 security_service = SecurityService()
