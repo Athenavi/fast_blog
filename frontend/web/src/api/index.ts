@@ -346,3 +346,22 @@ export type {
   TrafficReport,
   UserActivityReport,
 } from './modules/report'
+
+// ---------------------------------------------------------------- 批次 9（content 协作域）
+export {collaborationApi} from './modules/collaboration'
+export type {
+  CommentPayload,
+  InviteItem,
+  InvitePayload,
+  InviteTarget,
+  MemberItem,
+  MemberRole,
+  TaskItem,
+  TaskPayload,
+  TaskPriority,
+  TaskStatus,
+  TeamCommentItem,
+  WorkspaceItem,
+  WorkspacePayload,
+  WorkspaceRoom,
+} from './modules/collaboration'

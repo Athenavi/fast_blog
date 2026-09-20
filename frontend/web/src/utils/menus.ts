@@ -65,6 +65,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '页面搭建',
         permission: 'module_content:page_builder:view'
       },
+      {
+        name: 'Collaboration',
+        path: '/content/collaboration',
+        title: '协作管理',
+        permission: 'module_content:collaboration:view'
+      },
     ],
   },
   {
