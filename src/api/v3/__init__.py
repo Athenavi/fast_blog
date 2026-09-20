@@ -69,10 +69,21 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "form",
         "vip",
     ),
-    "/mobile": ("article", "auth", "category", "comment", "media", "message", "user"),
+    "/mobile": (
+        "article",
+        "auth",
+        "category",
+        "comment",
+        "media",
+        "message",
+        "revenue",
+        "user",
+    ),
     # T5-11 批次 4：AI 能力与群聊（表 ai_configs/ai_workflows、chat_groups 已存在）
     "/ai": ("config", "workflow"),
     "/chat": ("group",),
+    # T5-11 批次 7：商务域（支付 + 收益分成）
+    "/commerce": ("payment", "revenue"),
 }
 
 

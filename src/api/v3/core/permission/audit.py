@@ -65,6 +65,12 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     ("DELETE", "/api/v3/mobile/message/{message_id}"): "删除本人收发的消息（仅认证，双向软删）",
     # ---- 公开表单提交：匿名可用（批次 2 既有端点，防滥用由限流层兜底）----
     ("POST", "/api/v3/marketing/form/public/{slug}/submit"): "公开表单提交（无鉴权设计；服务层校验必填与 store 开关）",
+    # ---- commerce 支付流程（批次 7）----
+    ("POST", "/api/v3/commerce/payment/initiate"): "发起本人支付（仅认证；订单与金额交给支付插件，服务端不做本地降级）",
+    ("POST",
+     "/api/v3/commerce/payment/callback/{provider}"): "支付网关回调（匿名；安全性完全由插件 verify_callback 验签把守，验签失败不更新交易）",
+    # ---- commerce 收益提现（批次 7）：前台用户发起，user_id 固定为登录用户 ----
+    ("POST", "/api/v3/mobile/revenue/payout"): "发起本人提现（仅认证；user_id 取登录用户，不接受外部传入）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

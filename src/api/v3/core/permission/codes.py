@@ -218,6 +218,17 @@ PAGE_BUILDER_CREATE = "module_content:page_builder:create"
 PAGE_BUILDER_EDIT = "module_content:page_builder:edit"
 PAGE_BUILDER_DELETE = "module_content:page_builder:delete"
 
+# ============================================================ T5-11 批次 7（commerce 域）
+PAYMENT_VIEW = "module_commerce:payment:view"
+PAYMENT_CREATE = "module_commerce:payment:create"
+PAYMENT_EDIT = "module_commerce:payment:edit"
+PAYMENT_DELETE = "module_commerce:payment:delete"
+
+REVENUE_VIEW = "module_commerce:revenue:view"
+REVENUE_CREATE = "module_commerce:revenue:create"
+REVENUE_EDIT = "module_commerce:revenue:edit"
+REVENUE_DELETE = "module_commerce:revenue:delete"
+
 # ============================================================ ai 域（T5-11 批次 4）
 AI_CONFIG_VIEW = "module_ai:config:view"
 AI_CONFIG_CREATE = "module_ai:config:create"
@@ -434,6 +445,15 @@ CODE_LABELS: dict[str, str] = {
     PAGE_BUILDER_CREATE: "创建搭建页面",
     PAGE_BUILDER_EDIT: "编辑搭建页面",
     PAGE_BUILDER_DELETE: "删除搭建页面",
+    # ---- commerce（批次 7）----
+    PAYMENT_VIEW: "查看支付网关与交易",
+    PAYMENT_CREATE: "创建支付配置",
+    PAYMENT_EDIT: "编辑支付配置",
+    PAYMENT_DELETE: "删除支付配置",
+    REVENUE_VIEW: "查看收益与提现",
+    REVENUE_CREATE: "创建收益记录",
+    REVENUE_EDIT: "编辑分账配置与提现",
+    REVENUE_DELETE: "删除收益记录",
     # ---- ops ----
     MIGRATION_VIEW: "查看迁移任务",
     MIGRATION_CREATE: "创建迁移任务",

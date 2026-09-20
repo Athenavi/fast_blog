@@ -198,6 +198,17 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'Deployments', path: '/ops/deployments', title: '部署脚本', permission: 'module_ops:deployment:view'},
     ],
   },
+  {
+    name: 'Commerce',
+    path: '/commerce',
+    title: '商务',
+    icon: 'Money',
+    order: 9,
+    children: [
+      {name: 'Payments', path: '/commerce/payment', title: '支付管理', permission: 'module_commerce:payment:view'},
+      {name: 'Revenue', path: '/commerce/revenue', title: '收益分成', permission: 'module_commerce:revenue:view'},
+    ],
+  },
 ]
 
 /** 菜单里出现的权限码集合（便于前端自检与文档化） */

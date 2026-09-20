@@ -261,3 +261,68 @@ export type {
   MobileUserStats,
   RegisterPayload,
 } from './modules/mobile'
+
+// ---------------------------------------------------------------- 批次 6（page-builder / message / enterprise / deployment）
+export {pageBuilderApi} from './modules/pageBuilder'
+export type {PageBuilderItem, PageBuilderPayload, PageBuilderQuery} from './modules/pageBuilder'
+
+export {messageApi} from './modules/message'
+export type {
+  MessageContact,
+  MessageDirection,
+  MessageItem,
+  MessageListQuery,
+  MessagePayload,
+} from './modules/message'
+
+export {enterpriseApi} from './modules/enterprise'
+export type {
+  DataRetentionPolicyItem,
+  DataRetentionPolicyPayload,
+  DataRetentionPolicyQuery,
+  EnterpriseLicenseItem,
+  EnterpriseLicensePayload,
+  EnterpriseLicenseQuery,
+} from './modules/enterprise'
+
+export {deploymentApi} from './modules/deployment'
+export type {
+  DeploymentLogItem,
+  DeploymentLogQuery,
+  DeploymentScriptItem,
+  DeploymentScriptPayload,
+  DeploymentScriptQuery,
+} from './modules/deployment'
+
+// ---------------------------------------------------------------- 批次 7（commerce 域：payment / revenue）
+export {paymentApi} from './modules/payment'
+export type {
+  CryptoPaymentItem,
+  CryptoPaymentPayload,
+  CryptoPaymentQuery,
+  PaymentGatewayItem,
+  PaymentGatewayPayload,
+  PaymentGatewayQuery,
+  PaymentInitiatePayload,
+  PaymentTransactionItem,
+  PaymentTransactionPayload,
+  PaymentTransactionQuery,
+  TaxConfigItem,
+  TaxConfigPayload,
+  TaxConfigQuery,
+} from './modules/payment'
+
+export {revenueApi, revenueMineApi} from './modules/revenue'
+export type {
+  MyPayoutPayload,
+  PayoutRequestItem,
+  PayoutRequestQuery,
+  PlatformRevenueStats,
+  RevenueRecordItem,
+  RevenueRecordPayload,
+  RevenueRecordQuery,
+  SharingConfigItem,
+  SharingConfigPayload,
+  UserRevenueStatsSnapshot,
+  UserRevenueSummary,
+} from './modules/revenue'

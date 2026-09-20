@@ -74,6 +74,7 @@ const ICONS = [
   'Promotion',
   'MagicStick',
   'ChatDotRound',
+  'Money',
   'Top',
   'Collection',
   'Briefcase',
