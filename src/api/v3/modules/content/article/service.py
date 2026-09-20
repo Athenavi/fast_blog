@@ -317,12 +317,19 @@ class ArticleService:
         tag: Optional[str] = None,
         keyword: Optional[str] = None,
         post_type: Optional[str] = None,
+        user_id: Optional[int] = None,
+        user_ids: Optional[Sequence[int]] = None,
     ) -> Tuple[List[dict], int]:
         stmt = self._published_stmt()
         if category_id is not None:
             stmt = stmt.where(Article.category == category_id)
         if post_type:
             stmt = stmt.where(Article.post_type == post_type)
+        if user_id is not None:
+            stmt = stmt.where(Article.user == user_id)
+        if user_ids is not None:
+            # 空集合 → `IN ()` 语义即"没有文章"（关注流为空时的正确结果，不是全量）
+            stmt = stmt.where(Article.user.in_(list(user_ids)))
         if keyword:
             like = f"%{keyword}%"
             stmt = stmt.where(or_(Article.title.ilike(like), Article.excerpt.ilike(like)))

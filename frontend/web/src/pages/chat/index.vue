@@ -1,0 +1,423 @@
+<script lang="ts" setup>
+/**
+ * 群聊消息页（批次 17）
+ *
+ * 登录可见：`middleware: 'auth'` 未登录时跳 /login（与 messages.vue 一致）。
+ * `/chat` 与 `/chat/**` 在 nuxt.config.ts 中配置为 `ssr: false`，本页纯 CSR 渲染。
+ *
+ * 数据流：
+ *  - 左侧群列表：`chatApi.listGroups`（后端 `/chat/group` 需 `module_chat:group:view`，
+ *    非管理员会拿不到数据 → 显示空态）；
+ *  - 右侧消息区：进入群后 `chatMessageApi.list(groupId)` 拉历史，
+ *    并用原生 WebSocket 订阅实时消息（`import.meta.client` 后才建连接）；
+ *  - 自己的消息靠右、带「撤回」按钮；发送 Enter 提交、Shift+Enter 换行。
+ *
+ * 降级策略：
+ *  - 群列表 / 消息加载失败 → 空态卡片 + 重试按钮；
+ *  - 实时连接断开 → 顶部状态提示 + 重试按钮；
+ *  - 发送 / 撤回失败 → 输入保留并提示（错误 toast 由 request 层统一提示）。
+ */
+import {chatApi, type ChatGroupItem, chatMessageApi, type ChatMessageItem} from '@/api'
+import {useUserStore} from '@/store/modules/user'
+import {formatDateTime} from '@/utils/format'
+
+definePageMeta({layout: 'default', middleware: 'auth', title: 'chatRoom.title'})
+
+const {t} = useI18n()
+const userStore = useUserStore()
+const currentUserId = computed(() => userStore.userInfo?.id ?? null)
+
+/** 每次拉取最近 50 条消息 */
+const PAGE_SIZE = 50
+
+// ---- 群列表 ----
+const groups = ref<ChatGroupItem[]>([])
+const groupsLoading = ref(false)
+const groupsError = ref(false)
+
+// ---- 当前群 / 消息 ----
+const activeGroupId = ref<number | null>(null)
+const messages = ref<ChatMessageItem[]>([])
+const messagesLoading = ref(false)
+const messagesError = ref(false)
+
+// ---- 发送 / 撤回 ----
+const draft = ref('')
+const sending = ref(false)
+const sendError = ref(false)
+const recallError = ref(false)
+
+// ---- 实时连接状态 ----
+type ConnState = 'connecting' | 'connected' | 'disconnected'
+const connState = ref<ConnState>('disconnected')
+
+const listBody = ref<HTMLElement | null>(null)
+
+const activeGroup = computed(
+  () => groups.value.find((group) => group.id === activeGroupId.value) ?? null,
+)
+
+function scrollToBottom(): void {
+  const el = listBody.value
+  if (el) el.scrollTop = el.scrollHeight
+}
+
+function isOwn(message: ChatMessageItem): boolean {
+  return currentUserId.value !== null && message.user_id === currentUserId.value
+}
+
+function groupLabel(group: ChatGroupItem): string {
+  return group.name || `#${group.id}`
+}
+
+// ---------------------------------------------------------------- 群列表
+async function loadGroups(): Promise<void> {
+  groupsLoading.value = true
+  groupsError.value = false
+  try {
+    const result = await chatApi.listGroups({page: 1, page_size: 50})
+    groups.value = result.items
+  } catch {
+    groupsError.value = true
+  } finally {
+    groupsLoading.value = false
+  }
+}
+
+// ---------------------------------------------------------------- 消息
+async function loadMessages(groupId: number): Promise<void> {
+  messagesLoading.value = true
+  messagesError.value = false
+  try {
+    const result = await chatMessageApi.list(groupId, {page: 1, page_size: PAGE_SIZE})
+    if (activeGroupId.value !== groupId) return // 等待期间已切换群，丢弃过期结果
+    messages.value = result.items
+    void nextTick(scrollToBottom)
+  } catch {
+    if (activeGroupId.value === groupId) messagesError.value = true
+  } finally {
+    messagesLoading.value = false
+  }
+}
+
+/** 追加 / 覆盖一条消息（WS 回显与本地乐观追加共用，按 id 去重） */
+function upsertMessage(item: ChatMessageItem): void {
+  const index = messages.value.findIndex((existing) => existing.id === item.id)
+  if (index >= 0) {
+    messages.value[index] = item
+    return
+  }
+  messages.value.push(item)
+  messages.value.sort((a, b) => {
+    const byTime = String(a.created_at ?? '').localeCompare(String(b.created_at ?? ''))
+    return byTime !== 0 ? byTime : a.id - b.id
+  })
+  void nextTick(scrollToBottom)
+}
+
+// ---------------------------------------------------------------- WebSocket
+let socket: WebSocket | null = null
+
+function closeSocket(): void {
+  if (!socket) return
+  socket.onopen = socket.onmessage = socket.onclose = socket.onerror = null
+  socket.close()
+  socket = null
+}
+
+function handleSocketMessage(raw: string): void {
+  let data: unknown
+  try {
+    data = JSON.parse(raw)
+  } catch {
+    return
+  }
+  if (!data || typeof data !== 'object') return
+  const payload = data as Record<string, unknown>
+
+  if (payload.type === 'recall') {
+    const target = messages.value.find((item) => item.id === payload.id)
+    if (target) {
+      target.is_deleted = true
+      target.content = ''
+    }
+    return
+  }
+  if (typeof payload.id === 'number') {
+    upsertMessage(payload as unknown as ChatMessageItem)
+  }
+}
+
+function connectSocket(groupId: number): void {
+  if (!import.meta.client) return
+  closeSocket()
+  connState.value = 'connecting'
+  const ws = new WebSocket(chatMessageApi.wsUrl(groupId))
+  socket = ws
+  ws.onopen = () => {
+    if (socket === ws) connState.value = 'connected'
+  }
+  ws.onmessage = (event) => handleSocketMessage(String(event.data))
+  ws.onclose = () => {
+    if (socket === ws) {
+      connState.value = 'disconnected'
+      socket = null
+    }
+  }
+  ws.onerror = () => {
+    /* 出错后 onclose 紧随其后，状态在 onclose 里处理 */
+  }
+}
+
+function retryConnection(): void {
+  if (activeGroupId.value !== null) connectSocket(activeGroupId.value)
+}
+
+// ---------------------------------------------------------------- 交互
+function openGroup(groupId: number): void {
+  if (activeGroupId.value === groupId) return
+  sendError.value = false
+  recallError.value = false
+  activeGroupId.value = groupId
+  messages.value = []
+  void loadMessages(groupId)
+  connectSocket(groupId)
+}
+
+async function sendMessage(): Promise<void> {
+  const content = draft.value.trim()
+  const groupId = activeGroupId.value
+  if (!content || groupId === null || sending.value) return
+  sending.value = true
+  sendError.value = false
+  try {
+    const sent = await chatMessageApi.send({group_id: groupId, content})
+    upsertMessage(sent) // 乐观追加；WS 回显同 id 时按 id 覆盖，不会重复
+    draft.value = ''
+    void nextTick(scrollToBottom)
+  } catch {
+    sendError.value = true // 输入保留，用户可重试
+  } finally {
+    sending.value = false
+  }
+}
+
+async function recallMessage(message: ChatMessageItem): Promise<void> {
+  recallError.value = false
+  try {
+    await chatMessageApi.remove(message.id)
+    message.is_deleted = true
+    message.content = ''
+  } catch {
+    recallError.value = true
+  }
+}
+
+/** Enter 发送、Shift+Enter 换行 */
+function onDraftKeydown(event: KeyboardEvent): void {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    void sendMessage()
+  }
+}
+
+onMounted(loadGroups)
+onBeforeUnmount(closeSocket)
+</script>
+
+<template>
+  <div class="mx-auto max-w-wide px-4 py-10">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('chatRoom.title') }}</h1>
+        <p class="mt-1.5 text-sm text-fg-muted">{{ $t('chatRoom.subtitle') }}</p>
+      </div>
+      <span
+        :class="{
+          'text-success': connState === 'connected',
+          'text-warning': connState === 'connecting',
+          'text-fg-subtle': connState === 'disconnected',
+        }"
+        class="text-xs"
+      >
+        {{
+          connState === 'connected'
+            ? $t('chatRoom.connected')
+            : connState === 'connecting'
+              ? $t('chatRoom.connecting')
+              : $t('chatRoom.disconnected')
+        }}
+      </span>
+    </div>
+
+    <div class="mt-6 flex h-[70vh] min-h-[26rem] gap-4">
+      <!-- 左侧：群列表 -->
+      <section
+        class="flex min-h-0 w-full flex-col overflow-hidden rounded-card border border-line bg-surface md:w-72 md:shrink-0"
+      >
+        <div v-if="groupsLoading" class="flex-1 space-y-3 p-4">
+          <Skeleton v-for="i in 5" :key="i" class="h-12 w-full"/>
+        </div>
+
+        <div v-else-if="groupsError" class="flex flex-1 items-center justify-center p-4">
+          <EmptyState :description="$t('common.networkError')" :title="$t('chatRoom.loadFailed')">
+            <Button class="mt-3" size="sm" variant="outline" @click="loadGroups">
+              {{ $t('chatRoom.retry') }}
+            </Button>
+          </EmptyState>
+        </div>
+
+        <div v-else-if="groups.length" class="flex-1 overflow-y-auto">
+          <button
+            v-for="group in groups"
+            :key="group.id"
+            :class="group.id === activeGroupId ? 'bg-primary-soft' : ''"
+            class="flex w-full items-center gap-3 border-b border-line px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-surface-soft"
+            type="button"
+            @click="openGroup(group.id)"
+          >
+            <span
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-pill bg-surface-soft text-fg-muted"
+            >
+              <Icon class="h-4 w-4" name="users"/>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium text-fg">{{ groupLabel(group) }}</span>
+              <span class="mt-0.5 block text-xs text-fg-muted">
+                {{ $t('chatRoom.members', {n: group.member_count}) }}
+              </span>
+            </span>
+          </button>
+        </div>
+
+        <div v-else class="flex flex-1 items-center justify-center p-4">
+          <EmptyState :title="$t('chatRoom.emptyGroups')"/>
+        </div>
+      </section>
+
+      <!-- 右侧：消息区 -->
+      <section
+        class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-card border border-line bg-surface"
+      >
+        <div v-if="activeGroupId === null" class="flex flex-1 items-center justify-center p-4">
+          <EmptyState :title="$t('chatRoom.selectGroup')"/>
+        </div>
+
+        <template v-else>
+          <!-- 群头 -->
+          <header class="flex items-center gap-2 border-b border-line px-4 py-3">
+            <p class="min-w-0 truncate text-sm font-semibold text-fg">
+              {{ activeGroup ? groupLabel(activeGroup) : `#${activeGroupId}` }}
+            </p>
+            <Button
+              v-if="connState === 'disconnected'"
+              class="ml-auto"
+              size="sm"
+              variant="outline"
+              @click="retryConnection"
+            >
+              <Icon class="h-4 w-4" name="refresh-cw"/>
+              {{ $t('chatRoom.retry') }}
+            </Button>
+          </header>
+
+          <!-- 消息流 -->
+          <div ref="listBody" class="min-h-0 flex-1 space-y-2 overflow-y-auto p-4">
+            <div v-if="messagesLoading" class="space-y-3">
+              <Skeleton
+                v-for="i in 4"
+                :key="i"
+                :class="i % 2 ? '' : 'ml-auto'"
+                class="h-10 w-2/3"
+              />
+            </div>
+
+            <div v-else-if="messagesError" class="flex h-full items-center justify-center">
+              <EmptyState :description="$t('common.networkError')" :title="$t('chatRoom.loadFailed')">
+                <Button class="mt-3" size="sm" variant="outline" @click="loadMessages(activeGroupId)">
+                  {{ $t('chatRoom.retry') }}
+                </Button>
+              </EmptyState>
+            </div>
+
+            <EmptyState v-else-if="!messages.length" :title="$t('chatRoom.emptyMessages')"/>
+
+            <template v-else>
+              <div
+                v-for="message in messages"
+                :key="message.id"
+                :class="isOwn(message) ? 'justify-end' : 'justify-start'"
+                class="flex"
+              >
+                <div class="max-w-[75%]">
+                  <p v-if="!isOwn(message)" class="mb-0.5 text-xs text-fg-muted">
+                    {{ message.username || `#${message.user_id}` }}
+                  </p>
+                  <div
+                    :class="
+                      isOwn(message) ? 'bg-primary text-primary-fg' : 'bg-surface-soft text-fg'
+                    "
+                    class="break-words rounded-control px-3 py-2 text-sm whitespace-pre-wrap"
+                  >
+                    <em v-if="message.is_deleted" class="opacity-70">{{ $t('chatRoom.recalled') }}</em>
+                    <template v-else>
+                      {{ message.content }}
+                      <a
+                        v-if="message.attachment_url"
+                        :class="isOwn(message) ? 'text-primary-fg' : 'text-primary'"
+                        :href="message.attachment_url"
+                        class="mt-1 flex items-center gap-1 text-xs underline"
+                        rel="noopener"
+                        target="_blank"
+                      >
+                        <Icon class="h-3.5 w-3.5 shrink-0" name="file-text"/>
+                        <span class="truncate">{{ message.attachment_url }}</span>
+                      </a>
+                    </template>
+                  </div>
+                  <p
+                    :class="isOwn(message) ? 'text-right' : ''"
+                    class="mt-0.5 flex items-center gap-2 text-[11px] text-fg-subtle"
+                  >
+                    <span>{{ formatDateTime(message.created_at) }}</span>
+                    <button
+                      v-if="isOwn(message) && !message.is_deleted"
+                      class="underline hover:text-danger"
+                      type="button"
+                      @click="recallMessage(message)"
+                    >
+                      {{ $t('chatRoom.recall') }}
+                    </button>
+                  </p>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- 发送条 -->
+          <footer class="border-t border-line p-3">
+            <p v-if="sendError" class="mb-2 text-xs text-danger">{{ $t('chatRoom.sendFailed') }}</p>
+            <p v-if="recallError" class="mb-2 text-xs text-danger">
+              {{ $t('chatRoom.recallFailed') }}
+            </p>
+            <div class="flex items-end gap-2">
+              <textarea
+                v-model="draft"
+                :aria-label="$t('chatRoom.inputPlaceholder')"
+                :placeholder="$t('chatRoom.inputPlaceholder')"
+                class="max-h-32 min-h-9 flex-1 resize-none rounded-control border border-line bg-surface px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:border-primary focus:outline-none"
+                rows="1"
+                @input="sendError = false"
+                @keydown="onDraftKeydown"
+              />
+              <Button :disabled="sending || !draft.trim()" @click="sendMessage">
+                <Icon class="h-4 w-4" name="send"/>
+                {{ $t('chatRoom.send') }}
+              </Button>
+            </div>
+          </footer>
+        </template>
+      </section>
+    </div>
+  </div>
+</template>

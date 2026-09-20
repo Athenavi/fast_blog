@@ -75,6 +75,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "auth",
         "category",
         "comment",
+        # 批次 17：关注流（personalized feed）
+        "feed",
         "follow",
         "media",
         "message",
@@ -85,7 +87,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     ),
     # T5-11 批次 4：AI 能力与群聊（表 ai_configs/ai_workflows、chat_groups 已存在）
     "/ai": ("config", "workflow"),
-    "/chat": ("group",),
+    # 批次 17：群聊消息（表 chat_messages 本批次新建，含 WebSocket 实时通道）
+    "/chat": ("group", "message"),
     # T5-11 批次 7：商务域（支付 + 收益分成 + 打赏）
     "/commerce": ("payment", "revenue", "tipping"),
     # T5-11 批次 12：用户成长域（积分 / 勋章 / 专家认证）

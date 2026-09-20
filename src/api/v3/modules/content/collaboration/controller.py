@@ -51,19 +51,16 @@ from typing import Optional
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
 from pycrdt import YMessageType, create_sync_message, handle_sync_message
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article.article_content import ArticleContent
 from shared.models.article.article_revision import ArticleRevision
-from shared.models.user import User
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
-from src.api.v3.core.exceptions import UnauthorizedError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
-from src.api.v3.core.security import decode_token
+from src.api.v3.core.ws_auth import resolve_ws_user
 from src.api.v3.modules.content.collaboration.comment_service import comment_service
 from src.api.v3.modules.content.collaboration.invite_service import invite_service
 from src.api.v3.modules.content.collaboration.schema import (
@@ -450,46 +447,6 @@ async def save_document(
 
 
 # ---------------------------------------------------------------- yjs 协同（WebSocket）
-def _extract_ws_token(websocket: WebSocket) -> Optional[str]:
-    """Cookie → 子协议 ``bearer.<token>`` → query ``token``（三级回退）
-
-    浏览器 WebSocket API 不能自定义请求头，所以 header 方案不可行；
-    query 会进访问日志，因此排最后。
-    """
-    token = websocket.cookies.get("access_token") or websocket.cookies.get("access_token_cookie")
-    if token:
-        return token
-    protocols = websocket.headers.get("sec-websocket-protocol") or ""
-    for item in (part.strip() for part in protocols.split(",")):
-        if item.startswith("bearer."):
-            return item[len("bearer."):]
-    return websocket.query_params.get("token")
-
-
-async def _resolve_ws_user(db: AsyncSession, websocket: WebSocket) -> Optional[User]:
-    """解析 WS 连接的身份；任何一步失败都返回 None（调用方据此关闭连接）"""
-    token = _extract_ws_token(websocket)
-    if not token:
-        return None
-    try:
-        payload = decode_token(token)
-    except UnauthorizedError:
-        return None
-    subject = str(payload.get("sub") or "")
-    if not subject:
-        return None
-    user: Optional[User] = None
-    if subject.isdigit():
-        user = await db.get(User, int(subject))
-    if user is None:
-        user = (
-            await db.execute(select(User).where(User.username == subject))
-        ).scalars().first()
-    if user is None or not bool(getattr(user, "is_active", True)):
-        return None
-    return user
-
-
 def _with_sync_prefix(frame: bytes) -> bytes:
     """``create_sync_message`` 可能已带 ``YMessageType`` 前缀，这里自适应补全"""
     if frame and frame[0] == int(YMessageType.SYNC):
@@ -504,7 +461,7 @@ async def yjs_websocket(websocket: WebSocket, document_id: int, db: DBSession) -
     与 v2 的差别：**鉴权失败直接 4401 关闭**（v2 是匿名放行），且文档归属由
     ``require_document_access`` 把关（作者本人，或持有指向该文档的有效邀请码）。
     """
-    user = await _resolve_ws_user(db, websocket)
+    user = await resolve_ws_user(db, websocket)
     if user is None:
         # 未握手就关闭：客户端拿到 HTTP 403，不会误以为"连上了"
         await websocket.close(code=4401)

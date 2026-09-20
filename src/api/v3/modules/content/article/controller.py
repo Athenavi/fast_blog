@@ -55,6 +55,7 @@ async def public_articles(
     tag: Optional[str] = Query(default=None),
     keyword: Optional[str] = Query(default=None),
     post_type: Optional[str] = Query(default=None),
+    user_id: Optional[int] = Query(default=None, description="只看某位作者的公开文章"),
 ) -> dict:
     items, total = await article_service.public_list(
         db,
@@ -64,6 +65,7 @@ async def public_articles(
         tag=tag,
         keyword=keyword,
         post_type=post_type,
+        user_id=user_id,
     )
     return resp.success_page(items, total, page, page_size)
 

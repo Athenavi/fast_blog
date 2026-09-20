@@ -13,6 +13,8 @@ const NAV = [
   {label: t('site.navArticles'), to: '/articles'},
   {label: t('site.navCategories'), to: '/categories'},
   {label: t('site.navExperts'), to: '/experts'},
+  {label: t('site.navFeed'), to: '/feed'},
+  {label: t('site.navChat'), to: '/chat'},
   {label: t('site.navPoints'), to: '/points'},
   {label: t('site.navBadges'), to: '/badges'},
   {label: t('site.navAbout'), to: '/about'},

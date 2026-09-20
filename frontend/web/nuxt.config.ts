@@ -157,6 +157,10 @@ export default defineNuxtConfig({
     // 后台新增：用户成长（积分 / 勋章 / 认证审核）与打赏提现审核
     '/gamification/**': {ssr: false},
     '/commerce/tipping': {ssr: false},
+    // 关注流与群聊（批次 17）：依赖登录态 / 实时连接，统一走 SPA
+    '/feed': {ssr: false},
+    '/chat': {ssr: false},
+    '/chat/**': {ssr: false},
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},

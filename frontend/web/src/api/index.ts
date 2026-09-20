@@ -264,6 +264,7 @@ export type {
   MobileMediaUpdate,
   MobileProfile,
   MobileProfileUpdate,
+  MobilePublicProfile,
   MobileTokenData,
   MobileUserStats,
   RegisterPayload,
@@ -461,3 +462,16 @@ export type {
   WithdrawalQuery,
   WithdrawalStatus,
 } from './modules/tipping'
+
+// ---------------------------------------------------------------- 批次 17（关注流 personalized feed）
+export {feedApi} from './modules/feed'
+export type {FeedQuery} from './modules/feed'
+
+// ---------------------------------------------------------------- 批次 17（群聊消息 + WebSocket）
+export {chatMessageApi} from './modules/chatMessage'
+export type {
+  ChatMessageItem,
+  ChatMessagePayload,
+  ChatMessageQuery,
+  ChatMessageSendResult,
+} from './modules/chatMessage'

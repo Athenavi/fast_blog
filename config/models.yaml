@@ -4677,6 +4677,64 @@ models:
           - user
         unique: true
         comment: 群聊-用户唯一索引
+  ChatMessage:
+    description: 群聊消息（批次 17）
+    fields:
+      group:
+        type: bigint
+        required: true
+        description: 群聊 ID
+        foreignKey: ChatGroup
+      user:
+        type: bigint
+        required: true
+        description: 发送者 ID
+        foreignKey: User
+      content:
+        type: text
+        required: true
+        description: 消息内容
+      message_type:
+        type: string
+        maxLength: 50
+        default: text
+        description: 消息类型（text/image/file/system）
+      attachment_url:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 附件 URL（图片/文件）
+      parent_message:
+        type: bigint
+        nullable: true
+        description: 引用的消息 ID（回复）
+      is_deleted:
+        type: boolean
+        default: false
+        description: 是否已撤回（软删除，保留行便于前端展示"已撤回"）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    indexes:
+      - name: idx_chat_messages_group_created
+        columns:
+          - group
+          - created_at
+        comment: 群聊+时间索引（聊天记录分页）
+      - name: idx_chat_messages_user_created
+        columns:
+          - user
+          - created_at
+        comment: 发送者+时间索引
+    comment: 群消息（实时广播走 Redis，本表只存历史）
+    module: chat
+    orm: true
+    table: chat_messages
   ChatGroupInvite:
     description: 群聊邀请链接模型
     status: active
