@@ -236,6 +236,20 @@ REPORT_CREATE = "module_analytics:report:create"
 REPORT_EDIT = "module_analytics:report:edit"
 REPORT_DELETE = "module_analytics:report:delete"
 
+# ============================================================ T5-11 批次 12（gamification 域：积分 / 勋章 / 认证）
+POINTS_VIEW = "module_gamification:points:view"
+POINTS_EDIT = "module_gamification:points:edit"
+
+BADGE_VIEW = "module_gamification:badge:view"
+BADGE_EDIT = "module_gamification:badge:edit"
+
+CERTIFICATION_VIEW = "module_gamification:certification:view"
+CERTIFICATION_REVIEW = "module_gamification:certification:review"
+
+# ---- commerce 域：打赏（批次 12，并入商务域）----
+TIPPING_VIEW = "module_commerce:tipping:view"
+TIPPING_EDIT = "module_commerce:tipping:edit"
+
 # ============================================================ T5-11 批次 9（content 协作域）
 COLLABORATION_VIEW = "module_content:collaboration:view"
 COLLABORATION_CREATE = "module_content:collaboration:create"
@@ -473,6 +487,16 @@ CODE_LABELS: dict[str, str] = {
     REPORT_CREATE: "创建定时报表",
     REPORT_EDIT: "编辑 / 执行定时报表",
     REPORT_DELETE: "删除定时报表",
+    # ---- gamification（批次 12）----
+    POINTS_VIEW: "查看积分规则与统计",
+    POINTS_EDIT: "调整积分与规则",
+    BADGE_VIEW: "查看勋章统计",
+    BADGE_EDIT: "授予勋章",
+    CERTIFICATION_VIEW: "查看专家认证",
+    CERTIFICATION_REVIEW: "审核专家认证",
+    # ---- 打赏（批次 12，commerce 域）----
+    TIPPING_VIEW: "查看打赏与提现",
+    TIPPING_EDIT: "处理提现与退款",
     # ---- content 协作（批次 9）----
     COLLABORATION_VIEW: "查看工作区 / 评论 / 邀请",
     COLLABORATION_CREATE: "创建工作区 / 评论 / 邀请",

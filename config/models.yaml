@@ -8427,3 +8427,313 @@ models:
         columns:
           - badge_key
         comment: 勋章索引
+  ExpertCertification:
+    description: 专家认证
+    fields:
+      user_id:
+        type: bigint
+        required: true
+        description: 申请人 ID
+      cert_type:
+        type: string
+        maxLength: 50
+        required: true
+        description: 认证类型
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: 状态（pending/approved/rejected/revoked）
+      real_name:
+        type: string
+        maxLength: 100
+        description: 真实姓名
+      id_number:
+        type: string
+        maxLength: 64
+        sensitive: true
+        description: 证件号码（敏感，to_dict 默认排除）
+      phone:
+        type: string
+        maxLength: 32
+        description: 联系电话
+      email:
+        type: string
+        maxLength: 255
+        description: 联系邮箱
+      organization:
+        type: string
+        maxLength: 255
+        description: 所在机构
+      position:
+        type: string
+        maxLength: 100
+        description: 职务
+      department:
+        type: string
+        maxLength: 100
+        description: 部门
+      work_years:
+        type: integer
+        default: 0
+        description: 从业年限
+      intro:
+        type: text
+        description: 个人简介
+      achievements:
+        type: text
+        description: 代表成果
+      portfolio_url:
+        type: string
+        maxLength: 500
+        description: 作品集 / 主页链接
+      applied_at:
+        type: string
+        format: date-time
+        description: 申请时间
+      reviewed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最近审核时间
+      reviewer_id:
+        type: bigint
+        nullable: true
+        description: 最近审核人 ID
+      review_comment:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 审核意见
+      issued_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 通过时间
+      expires_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 有效期至（通过后两年）
+    module: gamification
+    orm: true
+    table: expert_certifications
+    indexes:
+      - name: idx_expert_certifications_user_status
+        columns:
+          - user_id
+          - status
+        comment: 用户+状态索引
+      - name: idx_expert_certifications_status
+        columns:
+          - status
+        comment: 状态索引
+      - name: idx_expert_certifications_type
+        columns:
+          - cert_type
+        comment: 认证类型索引
+  CertificationDocument:
+    description: 认证证明材料
+    fields:
+      certification_id:
+        type: bigint
+        required: true
+        description: 认证 ID
+      user_id:
+        type: bigint
+        required: true
+        description: 上传者 ID
+      file_name:
+        type: string
+        maxLength: 255
+        description: 文件名
+      file_url:
+        type: string
+        maxLength: 500
+        required: true
+        description: 文件地址（媒体库 URL）
+      file_type:
+        type: string
+        maxLength: 50
+        description: MIME 类型
+      file_size:
+        type: bigint
+        default: 0
+        description: 文件大小（字节）
+    module: gamification
+    orm: true
+    table: certification_documents
+    indexes:
+      - name: idx_certification_documents_cert
+        columns:
+          - certification_id
+        comment: 认证索引
+  CertificationReview:
+    description: 认证审核流水
+    fields:
+      certification_id:
+        type: bigint
+        required: true
+        description: 认证 ID
+      reviewer_id:
+        type: bigint
+        nullable: true
+        description: 审核人 ID（申请人撤回时为空）
+      action:
+        type: string
+        maxLength: 20
+        description: 动作（submit/approve/reject/revoke/withdraw）
+      comment:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 意见
+    module: gamification
+    orm: true
+    table: certification_reviews
+    indexes:
+      - name: idx_certification_reviews_cert
+        columns:
+          - certification_id
+          - created_at
+        comment: 认证+时间索引
+  Tip:
+    description: 打赏记录
+    fields:
+      user_id:
+        type: bigint
+        required: true
+        description: 打赏者 ID
+      author_id:
+        type: bigint
+        required: true
+        description: 被 打赏者 ID
+      article_id:
+        type: bigint
+        nullable: true
+        description: 被 打赏文章 ID（站内直接打赏作者时为空）
+      amount:
+        type: integer
+        required: true
+        description: 打赏金额（**单位：分**）
+      message:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 留言
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: 状态（pending/paid/failed/refunded）
+      order_no:
+        type: string
+        maxLength: 64
+        description: 本地订单号
+      provider:
+        type: string
+        maxLength: 32
+        nullable: true
+        description: 支付渠道（alipay/wechat/stripe…）
+      transaction_id:
+        type: string
+        maxLength: 128
+        nullable: true
+        description: 支付网关交易号
+      paid_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 支付时间
+    module: commerce
+    orm: true
+    table: tips
+    indexes:
+      - name: idx_tips_order_no
+        columns:
+          - order_no
+        unique: true
+        comment: 本地订单号唯一索引
+      - name: idx_tips_author_status
+        columns:
+          - author_id
+          - status
+        comment: 作者+状态索引
+      - name: idx_tips_user_created
+        columns:
+          - user_id
+          - created_at
+        comment: 打赏者+时间索引
+  TipWithdrawal:
+    description: 打赏提现申请
+    fields:
+      user_id:
+        type: bigint
+        required: true
+        description: 申请人 ID
+      amount:
+        type: integer
+        required: true
+        description: 申请提现金额（**单位：分**）
+      fee:
+        type: integer
+        default: 0
+        description: 手续费（分）
+      actual_amount:
+        type: integer
+        default: 0
+        description: 实际到账（分）
+      method:
+        type: string
+        maxLength: 32
+        description: 提现方式（alipay/wechat/bank）
+      account:
+        type: string
+        maxLength: 255
+        description: 收款账号
+      account_name:
+        type: string
+        maxLength: 100
+        description: 收款人姓名
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: 状态（pending/approved/rejected/paid）
+      reviewed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 审核时间
+      reviewer_id:
+        type: bigint
+        nullable: true
+        description: 审核人 ID
+      review_comment:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 审核意见
+      paid_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 打款时间（人工转账后手动标记）
+      transaction_id:
+        type: string
+        maxLength: 128
+        nullable: true
+        description: 打款流水号
+    module: commerce
+    orm: true
+    table: tip_withdrawals
+    indexes:
+      - name: idx_tip_withdrawals_user_status
+        columns:
+          - user_id
+          - status
+        comment: 用户+状态索引
+      - name: idx_tip_withdrawals_status
+        columns:
+          - status
+        comment: 状态索引

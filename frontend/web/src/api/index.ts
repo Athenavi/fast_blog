@@ -398,3 +398,27 @@ export type {
   InstallMigrationCheck,
   InstallStatus,
 } from './modules/install'
+
+// ---------------------------------------------------------------- 批次 12（积分与勋章）
+export {pointsApi} from './modules/points'
+export type {
+  CheckinResult,
+  ExchangeResult,
+  ExchangeRule,
+  LeaderboardItem,
+  PointsAccount,
+  PointsLedger,
+  PointsRule,
+  PointsStats,
+  PointsTransaction,
+} from './modules/points'
+
+export {badgeApi} from './modules/badges'
+export type {
+  BadgeCategory,
+  BadgeCheckResult,
+  BadgeDefinition,
+  BadgeProgress,
+  BadgeStats,
+  UserBadge,
+} from './modules/badges'

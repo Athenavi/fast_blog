@@ -148,6 +148,9 @@ export default defineNuxtConfig({
     '/messages': {ssr: false},
     // 关注 / 粉丝同样依赖登录态（存于本地存储），关闭 SSR
     '/fans': {ssr: false},
+    // 积分 / 勋章中心：内容依赖登录态与实时统计，同样走 SPA
+    '/points': {ssr: false},
+    '/badges': {ssr: false},
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},

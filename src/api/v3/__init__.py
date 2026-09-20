@@ -86,6 +86,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     "/chat": ("group",),
     # T5-11 批次 7：商务域（支付 + 收益分成）
     "/commerce": ("payment", "revenue"),
+    # T5-11 批次 12：用户成长域（积分 / 勋章 / 专家认证）
+    "/gamification": ("badge", "certification", "points"),
 }
 
 

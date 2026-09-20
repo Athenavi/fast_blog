@@ -74,6 +74,14 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     # ---- 前台关注（批次 11）：仅认证；目标存在性、不能关注自己、被拉黑 409 均在 service 层校验 ----
     ("POST", "/api/v3/mobile/follow/{user_id}"): "关注某人（仅认证；目标不存在 404、关注自己 400、被拉黑 409）",
     ("DELETE", "/api/v3/mobile/follow/{user_id}"): "取消关注（仅认证；幂等）",
+    # ---- gamification（批次 12）：仅认证且只操作本人 ----
+    ("POST", "/api/v3/gamification/points/checkin"): "每日签到（仅认证；幂等，一天一次）",
+    ("POST", "/api/v3/gamification/points/exchange"): "积分兑换（仅认证；余额校验 + 真实开通本人 VIP）",
+    ("POST", "/api/v3/gamification/badge/check-and-award"): "检查并授予本人勋章（仅认证；幂等，is_manual 的不自动授予）",
+    # ---- certification（批次 13）：仅认证且只操作本人的申请 ----
+    ("POST", "/api/v3/gamification/certification/apply"): "提交认证申请（仅认证；重复申请会被 400 拒绝）",
+    ("PUT", "/api/v3/gamification/certification/mine"): "修改本人待审申请（仅认证；仅 pending 可改）",
+    ("POST", "/api/v3/gamification/certification/mine/withdraw"): "撤回本人认证申请（仅认证；仅 pending 可撤）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
