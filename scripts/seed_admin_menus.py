@@ -1,18 +1,23 @@
-"""后台菜单种子（源：``frontend/web/src/router/routes.ts``）
+#!/usr/bin/env python3
+"""后台菜单种子（源：``frontend/web/src/utils/menus.ts``）
 
-在"混合"决策下，**前端路由表是菜单结构的唯一真相**（后端只管"哪些菜单被授权"），
-因此本脚本把路由表的 ``name`` / ``meta.title`` / ``meta.permission`` / 层级同步进
-后端 ``admin_menus``：
+在"混合"决策下，**前端菜单表是菜单结构的唯一真相**（后端只管"哪些菜单被授权"），
+因此本脚本把 ``ADMIN_MENUS`` 同步进后端 ``admin_menus``：
 
-  - ``code`` = 路由 ``name``（如 ``UserList``）
-  - ``title`` = ``meta.title``
-  - ``permission_code`` = ``meta.permission``
-  - ``menu_type``：有子路由 → 1（目录），否则 2（菜单）
-  - ``parent_id`` 由路由层级推导；``meta.hidden`` 的路由（登录/403/404）不入库
+  - ``code`` = 条目的 ``name``（如 ``UserList``，与后端 ``admin_menus.code`` 一一对应）
+  - ``title`` = ``title``
+  - ``permission_code`` = ``permission``（缺省表示仅需登录）
+  - ``menu_type``：带 ``children`` → 1（目录），否则 2（菜单）
+  - ``parent_id`` 由层级推导；``hidden: true`` 的条目不入库
+
+> ⚠️ **2026-09-20 重写**：原实现读的是 Nuxt 迁移前的
+> ``frontend/web/src/router/routes.ts`` —— 该文件早已不存在，脚本一直以
+> ``[ERROR] 未找到 ...`` 退出（过渡期只能靠 ``scripts/seed_batch*_menus.py`` 手工补行）。
+> 现在改读 ``src/utils/menus.ts``，并顺带支持 ``hidden`` 与"与库内差异报告"。
 
 用法::
 
-    python -m scripts.seed_admin_menus                        # dry-run：只打印解析结果
+    python -m scripts.seed_admin_menus                        # dry-run：解析结果 + 与库内差异
     python -m scripts.seed_admin_menus --apply                # 按 code upsert（幂等）
     python -m scripts.seed_admin_menus --apply --grant-system-roles
         # 额外把所有菜单授权给 is_system 角色
@@ -28,7 +33,7 @@ import re
 import sys
 from pathlib import Path
 
-ROUTES_TS = Path("frontend/web/src/router/routes.ts")
+MENUS_TS = Path("frontend/web/src/utils/menus.ts")
 
 #: 取 `key: 'value'` / `key: 123` / `key: true`
 _KV_RE = re.compile(r"(\w+)\s*:\s*(?:'([^']*)'|\"([^\"]*)\"|(true|false|-?\d+))")
@@ -41,84 +46,91 @@ def _kv(text: str) -> dict[str, str]:
     return result
 
 
-def parse_routes_ts(text: str) -> list[dict]:
-    """从 routes.ts 提取菜单条目（保持父子顺序：父先于子）"""
-    entries: list[dict] = []
-    parents: dict[int, str] = {}
-    depth = 0
-    pending: dict | None = None
-    meta_buffer: list[str] | None = None
+def parse_menus_ts(text: str) -> list[dict]:
+    """解析 ``ADMIN_MENUS`` 的对象字面量数组
 
-    def flush() -> None:
-        nonlocal pending
-        if pending and pending.get("code"):
-            entries.append(pending)
-        pending = None
+    逐行扫描 + 层级栈，支持两种书写形态（本文件两种混用）：
+
+    - **单行条目**：``{name: 'X', path: '...', title: '...', permission: '...'},``
+    - **多行条目**：``{`` / 若干 ``key: value,`` / ``},``
+
+    以及 ``children: [ ... ]`` 嵌套。产出顺序**父先于子**（后续按 code upsert 依赖这一点）。
+    """
+    entries: list[dict] = []
+    parents: list[dict | None] = []  # 每一层的父条目
+    pending: dict | None = None  # 正在累积的多行条目
+
+    def _attach(entry: dict) -> None:
+        # `name` → `code` 统一在这里做：多行父条目（走 children 分支压栈）也必须先转换，
+        # 否则其子条目取 parent["code"] 会 KeyError
+        if entry.get("name"):
+            entry["code"] = entry.pop("name")
+        parent = parents[-1] if parents else None
+        entry["parent_code"] = parent["code"] if parent else None
+        entries.append(entry)
 
     for raw in text.splitlines():
-        line = raw.strip()
-        if not line or line.startswith(("//", "/*", "*")):
-            continue
-
-        # 跨行 meta 的续行
-        if meta_buffer is not None:
-            meta_buffer.append(line)
-            if "}" in line:
-                pending.update(_kv(" ".join(meta_buffer)))  # type: ignore[union-attr]
-                meta_buffer = None
+        line = raw.split("//")[0].strip()
+        if not line or line.startswith("*") or line.startswith("/*"):
             continue
 
         if line.startswith("children:"):
-            if pending and pending.get("code"):
-                parents[depth] = pending["code"]
-                entries.append(pending)
+            # 当前条目升级为父：先产出它，再压栈
+            if pending is not None:
+                pending["has_children"] = True
+                _attach(pending)
+                parents.append(pending)
                 pending = None
-            depth += 1
             continue
 
         if line.startswith("]"):
-            flush()
-            depth = max(depth - 1, 0)
-            parents.pop(depth, None)
+            if parents:
+                parents.pop()
             continue
 
-        if line.startswith("name:"):
-            flush()
-            pending = {"code": _kv(line).get("name")}
-            # 当前路由的父：栈顶（depth-1 层）——depth=0 的顶级路由没有父
-            pending["parent_code"] = parents.get(depth - 1)
+        has_open = "{" in line
+        has_close = "}" in line
+
+        if has_open and has_close:
+            data = _kv(line)
+            if data.get("name"):
+                _attach(data)
             continue
 
-        if line.startswith("meta:") and pending is not None:
-            if "}" in line:
-                pending.update(_kv(line))
-            else:
-                meta_buffer = [line]
+        if has_open:
+            pending = _kv(line)
             continue
 
-    flush()
+        if pending is not None:
+            pending.update(_kv(line))
+            if has_close:
+                if pending.get("name"):
+                    _attach(pending)
+                pending = None
+            continue
+
     return entries
 
 
 def to_menu_rows(entries: list[dict]) -> list[dict]:
-    """把解析结果转成 admin_menus 行（跳过 hidden 路由）"""
-    # 先判断哪些 code 有子节点（用于 menu_type）
-    has_children = {e["parent_code"] for e in entries if e.get("parent_code")}
+    """把解析结果转成 ``admin_menus`` 行（跳过 ``hidden``）"""
     rows: list[dict] = []
     for order, entry in enumerate(entries):
-        if entry.get("hidden") == "true":
+        if str(entry.get("hidden", "")).lower() == "true":
             continue
         code = entry.get("code")
         if not code:
             continue
+        raw_sort = str(entry.get("order", ""))
+        sort_order = int(raw_sort) if raw_sort.lstrip("-").isdigit() else order
         rows.append(
             {
                 "code": code,
                 "title": entry.get("title") or code,
                 "parent_code": entry.get("parent_code"),
-                "menu_type": 1 if code in has_children else 2,
+                "menu_type": 1 if entry.get("has_children") else 2,
                 "permission_code": entry.get("permission") or None,
-                "sort_order": int(entry["order"]) if str(entry.get("order", "")).lstrip("-").isdigit() else order,
+                "sort_order": sort_order,
                 "is_active": True,
             }
         )
@@ -130,7 +142,7 @@ def load_all_models() -> None:
 
     ``shared/models/__init__.py`` 采用懒加载（模块级 ``__getattr__``），只导入部分模型时，
     ``relationship`` 的字符串目标（如 ``'User'``）会解析失败并抛
-    ``InvalidRequestError: ... failed to locate a name ("name 'User' is not defined")``。
+    ``InvalidRequestError: ... failed to locate a name``。
     独立脚本必须先把全部模型注册进 registry（做法与 ``alembic_migrations/env.py`` 一致）。
     """
     import importlib
@@ -160,6 +172,8 @@ async def apply_rows(rows: list[dict], *, grant_system_roles: bool) -> None:
         created = updated = 0
         for row in rows:
             parent = by_code.get(row["parent_code"]) if row["parent_code"] else None
+            if row["parent_code"] and parent is None:
+                print(f"  [WARN] {row['code']} 的父菜单 {row['parent_code']} 不存在，挂到根下")
             data = {
                 "code": row["code"],
                 "title": row["title"],
@@ -179,6 +193,11 @@ async def apply_rows(rows: list[dict], *, grant_system_roles: bool) -> None:
                 updated += 1
         print(f"  admin_menus: 新建 {created} / 更新 {updated}")
 
+        # 库里存在、但 menus.ts 已经没有的 code —— 只报告，**不删**（可能是插件页或过渡期手工行）
+        stale = sorted(set(by_code) - {row["code"] for row in rows})
+        if stale:
+            print(f"  [提示] 库内还有 {len(stale)} 个菜单不在 menus.ts 中（未处理）：{stale}")
+
         if grant_system_roles:
             menu_ids = [
                 menu.id for menu in (await db.execute(select(AdminMenu.id))).scalars().all()
@@ -187,7 +206,7 @@ async def apply_rows(rows: list[dict], *, grant_system_roles: bool) -> None:
                 (await db.execute(select(Role.id).where(Role.is_system.is_(True)))).scalars().all()
             )
             if not role_ids:
-                # 没有系统角色时，退化为"被超级管理员持有的角色"
+                # 没有系统角色时，退化为"被任意用户持有的角色"
                 role_ids = (
                     (
                         await db.execute(
@@ -217,27 +236,30 @@ async def apply_rows(rows: list[dict], *, grant_system_roles: bool) -> None:
                         db.add(RoleAdminMenu(role_id=role_id, admin_menu_id=menu_id))
                         granted += 1
             await db.commit()
-            print(f"  角色授权: 新增 {granted} 条（角色 {len(set(role_ids))} 个 × 菜单 {len(menu_ids)} 个）")
+            print(
+                f"  角色授权: 新增 {granted} 条（角色 {len(set(role_ids))} 个 × 菜单 {len(menu_ids)} 个）"
+            )
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="由前端路由表生成后台菜单种子")
+    parser = argparse.ArgumentParser(description="由前端 menus.ts 生成后台菜单种子")
     parser.add_argument("--apply", action="store_true", help="写库（默认仅 dry-run）")
     parser.add_argument("--grant-system-roles", action="store_true", help="额外把全部菜单授权给系统角色")
     args = parser.parse_args(argv)
 
-    if not ROUTES_TS.exists():
-        print(f"[ERROR] 未找到 {ROUTES_TS}", file=sys.stderr)
+    if not MENUS_TS.exists():
+        print(f"[ERROR] 未找到 {MENUS_TS}", file=sys.stderr)
         return 1
 
-    entries = parse_routes_ts(ROUTES_TS.read_text(encoding="utf-8"))
+    entries = parse_menus_ts(MENUS_TS.read_text(encoding="utf-8"))
     rows = to_menu_rows(entries)
-    print(f"解析 {ROUTES_TS}: 路由 {len(entries)} 条 → 菜单 {len(rows)} 条")
+    dirs = sum(1 for row in rows if row["menu_type"] == 1)
+    print(f"解析 {MENUS_TS}: 条目 {len(entries)} 条 → 菜单 {len(rows)} 条（目录 {dirs} / 菜单 {len(rows) - dirs}）")
     for row in rows:
         parent = row["parent_code"] or "-"
         kind = {1: "目录", 2: "菜单", 3: "按钮"}.get(row["menu_type"], "?")
         print(
-            f"  {row['code']:<20} {parent:<12} {kind}  sort={row['sort_order']:<3} "
+            f"  {row['code']:<20} {parent:<14} {kind}  sort={row['sort_order']:<3} "
             f"perm={row['permission_code'] or '-'}  {row['title']}"
         )
 

@@ -386,3 +386,15 @@ export type {
   SLAQuery,
   SLAStats,
 } from './modules/monitoring'
+
+// ---------------------------------------------------------------- 批次 11（前台关注）
+export {followApi} from './modules/follow'
+export type {FollowItem, FollowStats, FollowUserBrief} from './modules/follow'
+
+// ---------------------------------------------------------------- 批次 11（安装自检）
+export {installApi} from './modules/install'
+export type {
+  InstallDatabaseCheck,
+  InstallMigrationCheck,
+  InstallStatus,
+} from './modules/install'

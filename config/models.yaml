@@ -8115,3 +8115,43 @@ models:
         columns:
           - is_active
         comment: 激活状态索引
+
+  UserFollow:
+    description: 用户关注关系模型（T5-11 批次 11，前台 fans）
+    status: active
+    frontend_page: /fans
+    properties:
+      id:
+        type: bigint
+        description: 关注 ID
+      follower:
+        type: bigint
+        foreignKey: User
+        description: 关注者（发起方）
+      following:
+        type: bigint
+        foreignKey: User
+        description: 被关注者（目标）
+      created_at:
+        type: string
+        format: date-time
+        description: 关注时间
+    module: user
+    orm: true
+    table: user_follows
+    indexes:
+      - name: idx_user_follows_unique
+        columns:
+          - follower
+          - following
+        unique: true
+        comment: 关注关系唯一索引
+      - name: idx_user_follows_following
+        columns:
+          - following
+        comment: 被关注者索引（查粉丝）
+      - name: idx_user_follows_created
+        columns:
+          - created_at
+        order: DESC
+        comment: 关注时间索引

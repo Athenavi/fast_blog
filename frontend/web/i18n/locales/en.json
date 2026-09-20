@@ -898,6 +898,14 @@
         "listSummary": "{n} settings; those marked public are served to the frontend at /system/setting/public"
       },
       "hub": {
+        "install": "Environment Check",
+        "installDatabase": "Database",
+        "installOk": "OK",
+        "installFail": "Unavailable",
+        "installInstalled": "Installed",
+        "installMigration": "Migration",
+        "installRealtime": "Realtime dep.",
+        "installUnavailable": "Environment check is temporarily unavailable (the endpoint is public read-only; retry later).",
         "systemOverview": "System overview",
         "sessionTerminated": "Session terminated",
         "server": "Server",
@@ -2200,6 +2208,25 @@
     "peerFallback": "User {id}",
     "unreadCount": "{n} unread",
     "viewAttachment": "View attachment"
+  },
+  "fans": {
+    "title": "Following & Followers",
+    "subtitle": "See who you follow and who follows you.",
+    "following": "Following",
+    "follower": "Followers",
+    "loadFailed": "Failed to load the list",
+    "emptyFollowing": "You are not following anyone yet",
+    "emptyFollowingDesc": "Authors you follow from an article page will show up here.",
+    "emptyFollower": "No followers yet",
+    "emptyFollowerDesc": "People who follow you will show up here.",
+    "follow": "Follow",
+    "unfollow": "Following",
+    "mutual": "Mutual",
+    "followingBadge": "Following",
+    "userFallback": "User {id}",
+    "total": "{n} people",
+    "prevPage": "Previous",
+    "nextPage": "Next"
   },
   "search": {
     "seoTitle": "Search - FastBlog",

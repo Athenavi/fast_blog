@@ -2,7 +2,16 @@
 const {t} = useI18n()
 import {computed, onMounted, ref} from 'vue'
 
-import {cacheApi, type CacheStats, monitorApi, type OnlineSession, type OnlineStats, type ServerInfo} from '@/api'
+import {
+  cacheApi,
+  type CacheStats,
+  installApi,
+  type InstallStatus,
+  monitorApi,
+  type OnlineSession,
+  type OnlineStats,
+  type ServerInfo,
+} from '@/api'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {formatDateTime, formatFileSize} from '@/utils/format'
 
@@ -28,6 +37,7 @@ const loading = ref(false)
 const server = ref<ServerInfo | null>(null)
 const online = ref<OnlineStats | null>(null)
 const cache = ref<CacheStats | null>(null)
+const install = ref<InstallStatus | null>(null)
 
 const sessions = ref<OnlineSession[]>([])
 const sessionsTotal = ref(0)
@@ -39,14 +49,16 @@ const multiLevel = computed(() => cache.value?.multi_level ?? {})
 async function load(): Promise<void> {
   loading.value = true
   try {
-    const [overview, cacheStats, sessionPage] = await Promise.all([
+    const [overview, cacheStats, sessionPage, installStatus] = await Promise.all([
       monitorApi.overview(),
       cacheApi.stats().catch(() => null),
       monitorApi.onlineList({page: page.value, page_size: PAGE_SIZE}).catch(() => null),
+      installApi.status().catch(() => null),
     ])
     server.value = overview?.server ?? null
     online.value = overview?.online ?? null
     cache.value = cacheStats
+    install.value = installStatus
     sessions.value = sessionPage?.items ?? []
     sessionsTotal.value = sessionPage?.total ?? 0
   } finally {
@@ -273,6 +285,38 @@ onMounted(load)
           <p class="gauge__big">{{ multiLevel.hit_rate ?? '—' }}</p>
         </div>
       </div>
+    </el-card>
+
+    <!-- 环境自检（批次 11：`GET /system/install/status`，公开只读） -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <span class="font-medium">{{ $t('admin.system.hub.install') }}</span>
+      </template>
+      <el-descriptions v-if="install" :column="2" border size="small">
+        <el-descriptions-item :label="$t('admin.system.hub.installDatabase')">
+          <el-tag :type="install.database.ok ? 'success' : 'danger'" size="small">
+            {{
+              install.database.ok ? $t('admin.system.hub.installOk') : (install.database.error || $t('admin.system.hub.installFail'))
+            }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('admin.system.hub.installInstalled')">
+          <el-tag :type="install.installed ? 'success' : 'warning'" size="small">
+            {{ install.installed ? $t('admin.common.yes') : $t('admin.common.no') }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('admin.system.hub.installMigration')">
+          <el-tag :type="install.migration.up_to_date ? 'success' : 'warning'" size="small">
+            {{ install.migration.current || '—' }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('admin.system.hub.installRealtime')">
+          <el-tag :type="install.realtime_available ? 'success' : 'info'" size="small">
+            {{ install.realtime_available ? $t('admin.common.enabled') : $t('admin.common.disabled') }}
+          </el-tag>
+        </el-descriptions-item>
+      </el-descriptions>
+      <p v-else class="text-sm text-fg-muted">{{ $t('admin.system.hub.installUnavailable') }}</p>
     </el-card>
   </div>
 </template>

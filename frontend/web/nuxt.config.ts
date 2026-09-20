@@ -146,6 +146,8 @@ export default defineNuxtConfig({
     '/my/**': {ssr: false},
     // 站内信依赖登录态，同样关闭 SSR
     '/messages': {ssr: false},
+    // 关注 / 粉丝同样依赖登录态（存于本地存储），关闭 SSR
+    '/fans': {ssr: false},
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},

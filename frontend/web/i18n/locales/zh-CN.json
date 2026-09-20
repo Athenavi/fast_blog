@@ -898,6 +898,14 @@
         "listSummary": "共 {n} 项；标记为「公开」的设置会随 /system/setting/public 下发给前台"
       },
       "hub": {
+        "install": "环境自检",
+        "installDatabase": "数据库",
+        "installOk": "正常",
+        "installFail": "不可用",
+        "installInstalled": "已安装",
+        "installMigration": "迁移版本",
+        "installRealtime": "实时协同依赖",
+        "installUnavailable": "暂时读不到环境自检结果（接口为公开只读，可稍后重试）。",
         "systemOverview": "系统总览",
         "sessionTerminated": "已强制下线",
         "server": "服务器",
@@ -2200,6 +2208,25 @@
     "peerFallback": "用户 {id}",
     "unreadCount": "{n} 条未读",
     "viewAttachment": "查看附件"
+  },
+  "fans": {
+    "title": "关注与粉丝",
+    "subtitle": "查看你关注的人，以及关注你的人。",
+    "following": "我的关注",
+    "follower": "我的粉丝",
+    "loadFailed": "列表加载失败",
+    "emptyFollowing": "还没有关注任何人",
+    "emptyFollowingDesc": "在文章页关注作者后，TA 会出现在这里。",
+    "emptyFollower": "还没有粉丝",
+    "emptyFollowerDesc": "别人关注你之后，会出现在这里。",
+    "follow": "关注",
+    "unfollow": "已关注",
+    "mutual": "互相关注",
+    "followingBadge": "已关注",
+    "userFallback": "用户 {id}",
+    "total": "共 {n} 人",
+    "prevPage": "上一页",
+    "nextPage": "下一页"
   },
   "search": {
     "seoTitle": "搜索 - FastBlog",

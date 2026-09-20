@@ -71,6 +71,9 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
      "/api/v3/commerce/payment/callback/{provider}"): "支付网关回调（匿名；安全性完全由插件 verify_callback 验签把守，验签失败不更新交易）",
     # ---- commerce 收益提现（批次 7）：前台用户发起，user_id 固定为登录用户 ----
     ("POST", "/api/v3/mobile/revenue/payout"): "发起本人提现（仅认证；user_id 取登录用户，不接受外部传入）",
+    # ---- 前台关注（批次 11）：仅认证；目标存在性、不能关注自己、被拉黑 409 均在 service 层校验 ----
+    ("POST", "/api/v3/mobile/follow/{user_id}"): "关注某人（仅认证；目标不存在 404、关注自己 400、被拉黑 409）",
+    ("DELETE", "/api/v3/mobile/follow/{user_id}"): "取消关注（仅认证；幂等）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
