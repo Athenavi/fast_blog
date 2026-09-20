@@ -198,6 +198,26 @@ NOTIFICATION_EDIT = "module_ops:notification:edit"
 CDN_VIEW = "module_ops:cdn:view"
 CDN_EDIT = "module_ops:cdn:edit"
 
+# ============================================================ T5-11 批次 5（可做项）
+UPGRADE_VIEW = "module_ops:upgrade:view"
+UPGRADE_EXECUTE = "module_ops:upgrade:execute"
+
+SHORTCODE_VIEW = "module_content:shortcode:view"
+SHORTCODE_CREATE = "module_content:shortcode:create"
+SHORTCODE_EDIT = "module_content:shortcode:edit"
+SHORTCODE_DELETE = "module_content:shortcode:delete"
+
+ENTERPRISE_VIEW = "module_ops:enterprise:view"
+ENTERPRISE_EDIT = "module_ops:enterprise:edit"
+
+DEPLOYMENT_VIEW = "module_ops:deployment:view"
+DEPLOYMENT_EDIT = "module_ops:deployment:edit"
+
+PAGE_BUILDER_VIEW = "module_content:page_builder:view"
+PAGE_BUILDER_CREATE = "module_content:page_builder:create"
+PAGE_BUILDER_EDIT = "module_content:page_builder:edit"
+PAGE_BUILDER_DELETE = "module_content:page_builder:delete"
+
 # ============================================================ ai 域（T5-11 批次 4）
 AI_CONFIG_VIEW = "module_ai:config:view"
 AI_CONFIG_CREATE = "module_ai:config:create"
@@ -400,6 +420,20 @@ CODE_LABELS: dict[str, str] = {
     CHAT_GROUP_EDIT: "编辑群聊",
     CHAT_GROUP_DELETE: "删除群聊",
     CHAT_GROUP_MANAGE_MEMBERS: "管理群成员",
+    # ---- shortcode ----
+    SHORTCODE_VIEW: "查看短代码",
+    SHORTCODE_CREATE: "创建短代码",
+    SHORTCODE_EDIT: "编辑短代码",
+    SHORTCODE_DELETE: "删除短代码",
+    # ---- enterprise / deployment / page_builder（批次 6）----
+    ENTERPRISE_VIEW: "查看企业版权限",
+    ENTERPRISE_EDIT: "编辑企业版权限",
+    DEPLOYMENT_VIEW: "查看部署脚本与日志",
+    DEPLOYMENT_EDIT: "编辑部署脚本",
+    PAGE_BUILDER_VIEW: "查看页面搭建",
+    PAGE_BUILDER_CREATE: "创建搭建页面",
+    PAGE_BUILDER_EDIT: "编辑搭建页面",
+    PAGE_BUILDER_DELETE: "删除搭建页面",
     # ---- ops ----
     MIGRATION_VIEW: "查看迁移任务",
     MIGRATION_CREATE: "创建迁移任务",
@@ -418,4 +452,6 @@ CODE_LABELS: dict[str, str] = {
     NOTIFICATION_EDIT: "管理通知",
     CDN_VIEW: "查看 CDN 配置",
     CDN_EDIT: "编辑 CDN 配置",
+    UPGRADE_VIEW: "查看在线升级",
+    UPGRADE_EXECUTE: "执行升级操作",
 }

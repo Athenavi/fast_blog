@@ -5,5 +5,6 @@ content 子模块 - 模型定义
 from .custom_field import CustomField
 from .custom_post_content import CustomPostContent
 from .custom_post_type import CustomPostType
+from .shortcode import Shortcode
 
-__all__ = ['CustomField', 'CustomPostContent', 'CustomPostType']
+__all__ = ['CustomField', 'CustomPostContent', 'CustomPostType', 'Shortcode']

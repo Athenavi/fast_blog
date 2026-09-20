@@ -59,6 +59,12 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     ("PUT", "/api/v3/mobile/article/{article_id}"): "编辑本人的文章（仅认证；改状态的企图被忽略）",
     ("DELETE", "/api/v3/mobile/article/{article_id}"): "删除本人的文章（仅认证）",
     ("POST", "/api/v3/mobile/article/{article_id}/like"): "文章点赞切换（仅认证；per-user 表去重，不可刷赞）",
+    # ---- 前台站内信：仅认证且只操作"本人"数据（发送校验收件人且禁止发给自己）----
+    ("POST", "/api/v3/mobile/message"): "发送站内信（仅认证；不能发给自己，收件人须存在）",
+    ("POST", "/api/v3/mobile/message/{message_id}/read"): "标记本人收到的消息已读（仅认证，非收件人 404）",
+    ("DELETE", "/api/v3/mobile/message/{message_id}"): "删除本人收发的消息（仅认证，双向软删）",
+    # ---- 公开表单提交：匿名可用（批次 2 既有端点，防滥用由限流层兜底）----
+    ("POST", "/api/v3/marketing/form/public/{slug}/submit"): "公开表单提交（无鉴权设计；服务层校验必填与 store 开关）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

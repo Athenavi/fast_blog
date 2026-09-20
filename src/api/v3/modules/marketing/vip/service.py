@@ -20,6 +20,7 @@ from src.api.v3.modules.marketing.vip.crud import (
     vip_subscription_crud,
 )
 from src.api.v3.modules.marketing.vip.schema import (
+    PublicPlanOut,
     VipFeatureCreate,
     VipFeatureOut,
     VipFeatureUpdate,
@@ -180,6 +181,46 @@ class VipService:
             raise BadRequestError("订阅已取消")
         updated = await vip_subscription_crud.update(db, row, {"status": SUB_CANCELLED})
         return _subscription_out(updated)
+
+    # ------------------------------------------------------------ 前台公开读
+    async def public_plans(self, db: AsyncSession) -> list[dict]:
+        """前台 /vip 页公开读：上架套餐（level、price 升序），features 已合并等级匹配权益
+
+        铁律：公开读不做数据范围过滤（不传 scope_user），只按 ``is_active`` 出上架内容。
+
+        features 合并规则：套餐自身 ``features`` JSON 列表在前；其后追加
+        ``VIPFeature.required_level <= 套餐 level`` 的激活权益展示名
+        （required_level 升序、id 升序；取 name，缺省回退 code），
+        与已有条目去重、保序。VIPFeature 无 plan_id 关联列，
+        ``required_level <= level`` 是其唯一的套餐关联机制。
+        """
+        plan_rows, _ = await vip_plan_crud.list(
+            db, page=1, page_size=0, filters={"is_active": True}, order_by="level", order="asc"
+        )
+        feature_rows, _ = await vip_feature_crud.list(
+            db, page=1, page_size=0, filters={"is_active": True},
+            order_by="required_level", order="asc",
+        )
+        benefits = [
+            (f.required_level or 1, (f.name or "").strip() or (f.code or "").strip())
+            for f in feature_rows
+        ]
+        benefits = [(req, text) for req, text in benefits if text]
+
+        items: list[dict] = []
+        for row in plan_rows:
+            data = PublicPlanOut.model_validate(row, from_attributes=True).model_dump(mode="json")
+            merged = list(data["features"] or [])
+            level = data["level"] or 1
+            for required_level, text in benefits:
+                if required_level <= level and text not in merged:
+                    merged.append(text)
+            data["features"] = merged
+            items.append(data)
+
+        # DB 已按 level 升序；稳定排序补第二关键字 price 升序
+        items.sort(key=lambda p: p["price"] if p["price"] is not None else 0)
+        return items
 
 
 vip_service = VipService()

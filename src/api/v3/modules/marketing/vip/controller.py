@@ -14,6 +14,10 @@
     POST   /api/v3/marketing/vip/subscription         手动开通订阅
     POST   /api/v3/marketing/vip/subscription/{id}/cancel  取消订阅
 
+公开端点（无需鉴权，前台 /vip 页渲染用）::
+
+    GET    /api/v3/marketing/vip/public/plans         上架套餐（features 含等级匹配权益）
+
 权限码：``module_marketing:vip:view/create/edit/delete``。
 """
 
@@ -36,6 +40,13 @@ from src.api.v3.modules.marketing.vip.schema import (
 from src.api.v3.modules.marketing.vip.service import vip_service
 
 router = APIRouter(prefix="/vip", tags=["marketing-vip"], route_class=OperationLogRoute)
+
+
+# ---------------------------------------------------------------- 公开端点（无鉴权，静态路径前置）
+@router.get("/public/plans", response_model=ResponseModel, summary="上架套餐（公开）", include_in_schema=False)
+async def public_plans(db: DBSession) -> dict:
+    """前台 /vip 页公开读：上架套餐 + 按等级匹配的权益（公开读不做数据范围过滤）"""
+    return resp.success({"plans": await vip_service.public_plans(db)})
 
 
 # ---------------------------------------------------------------- 套餐（静态路径前置）

@@ -542,7 +542,12 @@
     "recommended": "Recommended",
     "noPlans": "No plans available",
     "contactAdmin": "Please contact admin to configure VIP plans",
-    "level": "Level"
+    "level": "Level",
+    "subtitle": "Unlock premium features — pick the plan that suits you.",
+    "subscribe": "Subscribe now",
+    "durationDays": "Valid for {days} days",
+    "currency": "$",
+    "footerNote": "Note: the online payment gateway is not integrated yet. After you submit a subscription request, an administrator will activate the membership manually; self-service checkout will be available once the gateway is integrated."
   },
   "error": {
     "notFound": "Page Not Found",
@@ -1163,6 +1168,24 @@
         "decision": "Decision",
         "commentLabel": "Comment",
         "deleteConfirm": "Delete this record?"
+      },
+      "shortcode": {
+        "title": "Shortcodes",
+        "createTitle": "New Shortcode",
+        "editTitle": "Edit Shortcode",
+        "keyword": "Keyword",
+        "keywordPlaceholder": "Search code / name",
+        "code": "Code",
+        "codePlaceholder": "Unique identifier, e.g. highlight; locked after creation",
+        "namePlaceholder": "Display name",
+        "content": "Content",
+        "contentPlaceholder": "Shortcode content; HTML / template variables supported",
+        "codeRequired": "Please enter the shortcode code",
+        "nameRequired": "Please enter the shortcode name",
+        "contentRequired": "Please enter the shortcode content",
+        "deleteConfirm": "Delete shortcode \"{name}\"?",
+        "copied": "Code copied",
+        "copyFailed": "Copy failed, please copy manually"
       }
     },
     "widget": {
@@ -1457,6 +1480,41 @@
         "settingsPlaceholder": "Example: cache_ttl: 86400",
         "active": "Enable CDN",
         "invalidJson": "Extra settings is not valid JSON"
+      },
+      "upgrade": {
+        "title": "Online Upgrade",
+        "currentVersion": "Current Version",
+        "appPath": "Install Path",
+        "upgrading": "Upgrade in progress",
+        "checkUpdate": "Check for Updates",
+        "latestVersion": "Latest Version",
+        "hasUpdate": "Update available",
+        "noUpdate": "Up to date",
+        "source": "Source",
+        "sourceRemote": "Remote",
+        "sourceLocalReleases": "Local releases",
+        "sourceNone": "None",
+        "apply": "Upgrade Now",
+        "applyConfirm": "Start the upgrade now? The service may be briefly interrupted during the upgrade.",
+        "applyStarted": "Upgrade started. Refresh later to check progress",
+        "applyNotStarted": "Upgrade not started",
+        "dryRunReady": "Pre-checks passed, ready to upgrade",
+        "dryRunNotReady": "Pre-checks failed, resolve the issues below first",
+        "checks": "Pre-checks",
+        "checkName": "Check",
+        "checkPassed": "Passed",
+        "checkFailed": "Failed",
+        "checkDetail": "Detail",
+        "history": "Upgrade History",
+        "targetVersion": "Target Version",
+        "startedAt": "Started At",
+        "finishedAt": "Finished At",
+        "message": "Message",
+        "statusSuccess": "Success",
+        "statusFailed": "Failed",
+        "statusRunning": "Running",
+        "statusPending": "Pending",
+        "noHistory": "No upgrade history"
       }
     },
     "shared": {
@@ -1719,7 +1777,9 @@
     "AIConfigs": "AI Configs",
     "AIWorkflows": "AI Workflows",
     "ChatGroups": "Chat Groups",
-    "CDN": "CDN"
+    "CDN": "CDN",
+    "ShortCodes": "Shortcodes",
+    "Upgrade": "Online Upgrade"
   },
   "category": {
     "subtitle": "Browse all articles by category",

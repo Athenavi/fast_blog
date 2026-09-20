@@ -144,6 +144,8 @@ export default defineNuxtConfig({
     '/profile': {ssr: false},
     '/media': {ssr: false},
     '/my/**': {ssr: false},
+    // 站内信依赖登录态，同样关闭 SSR
+    '/messages': {ssr: false},
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},

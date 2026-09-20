@@ -109,6 +109,19 @@ export type {
 export {cdnApi} from './modules/cdn'
 export type {CdnConfig, CdnConfigPayload} from './modules/cdn'
 
+// ---------------------------------------------------------------- 批次 5（upgrade / shortcode）
+export {upgradeApi} from './modules/upgrade'
+export type {
+  UpgradeApplyCheck,
+  UpgradeApplyResult,
+  UpgradeCheckResult,
+  UpgradeHistoryItem,
+  UpgradeStatus,
+} from './modules/upgrade'
+
+export {shortcodeApi} from './modules/shortcode'
+export type {ShortcodeItem, ShortcodePayload, ShortcodeQuery} from './modules/shortcode'
+
 // ---------------------------------------------------------------- marketing（T5-11 批次 1）
 export {adApi} from './modules/ad'
 export type {

@@ -74,6 +74,11 @@ const ICONS = [
   'Promotion',
   'MagicStick',
   'ChatDotRound',
+  'Top',
+  'Collection',
+  'Briefcase',
+  'Files',
+  'Layout',
 ] as const
 
 onMounted(async () => {

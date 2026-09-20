@@ -102,3 +102,37 @@ class VipSubscriptionOut(SchemaBase):
     payment_amount: Optional[float] = None
     transaction_id: Optional[str] = None
     created_at: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------- 前台公开读（/vip 页）
+class PublicPlanOut(SchemaBase):
+    """前台 /vip 页的上架套餐（不含时间戳等管理字段）
+
+    ``features`` 是合并后的权益字符串数组：套餐自身 ``features`` JSON 列表在前，
+    后接按等级匹配到的 ``VIPFeature`` 展示名（去重、保序），
+    合并规则见 ``service.public_plans``。
+    """
+
+    id: int
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    original_price: Optional[float] = None
+    duration_days: Optional[int] = None
+    level: int = 1
+    features: list[str] = Field(default_factory=list)
+
+    @field_validator("features", mode="before")
+    @classmethod
+    def _parse_features(cls, v: object) -> object:
+        """DB 列是 JSON 字符串（可为 NULL），序列化时转列表，空值统一为 []"""
+        if v is None or v == "":
+            return []
+        if isinstance(v, str):
+            try:
+                v = json.loads(v)
+            except json.JSONDecodeError:
+                return [v]
+        if v is None:
+            return []
+        return v if isinstance(v, list) else [str(v)]

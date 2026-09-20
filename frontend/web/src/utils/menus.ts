@@ -53,6 +53,18 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         permission: 'module_content:custom_post_type:view'
       },
       {name: 'Approvals', path: '/content/approvals', title: '内容审批', permission: 'module_content:approval:view'},
+      {
+        name: 'ShortCodes',
+        path: '/content/shortcodes',
+        title: '短代码',
+        permission: 'module_content:shortcode:view'
+      },
+      {
+        name: 'PageBuilder',
+        path: '/content/page-builder',
+        title: '页面搭建',
+        permission: 'module_content:page_builder:view'
+      },
     ],
   },
   {
@@ -181,6 +193,9 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'Migrations', path: '/ops/migrations', title: '数据迁移', permission: 'module_ops:migration:view'},
       {name: 'EmailService', path: '/ops/email', title: '邮件服务', permission: 'module_ops:email:view'},
       {name: 'CDN', path: '/ops/cdn', title: 'CDN 配置', permission: 'module_ops:cdn:view'},
+      {name: 'Upgrade', path: '/ops/upgrade', title: '在线升级', permission: 'module_ops:upgrade:view'},
+      {name: 'Enterprise', path: '/ops/enterprise', title: '企业版授权', permission: 'module_ops:enterprise:view'},
+      {name: 'Deployments', path: '/ops/deployments', title: '部署脚本', permission: 'module_ops:deployment:view'},
     ],
   },
 ]

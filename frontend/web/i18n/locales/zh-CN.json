@@ -542,7 +542,12 @@
     "recommended": "推荐",
     "noPlans": "暂无可用套餐",
     "contactAdmin": "请联系管理员配置 VIP 套餐",
-    "level": "等级"
+    "level": "等级",
+    "subtitle": "开通 VIP 解锁更多高级能力，选择适合你的套餐。",
+    "subscribe": "立即订阅",
+    "durationDays": "有效期 {days} 天",
+    "currency": "¥",
+    "footerNote": "订阅与支付说明：在线支付网关尚未接入，提交订阅申请后由管理员人工开通会员；接入支付网关后将支持自助购买。"
   },
   "error": {
     "notFound": "页面不存在",
@@ -1163,6 +1168,24 @@
         "decision": "审批决定",
         "commentLabel": "备注",
         "deleteConfirm": "确认删除该审批单？"
+      },
+      "shortcode": {
+        "title": "短代码",
+        "createTitle": "新建短代码",
+        "editTitle": "编辑短代码",
+        "keyword": "关键词",
+        "keywordPlaceholder": "搜索代码 / 名称",
+        "code": "代码",
+        "codePlaceholder": "唯一标识，如 highlight，创建后不可修改",
+        "namePlaceholder": "显示名称",
+        "content": "内容",
+        "contentPlaceholder": "短代码内容，支持 HTML / 模板变量",
+        "codeRequired": "请填写短代码代码",
+        "nameRequired": "请填写短代码名称",
+        "contentRequired": "请填写短代码内容",
+        "deleteConfirm": "确定删除短代码「{name}」吗？",
+        "copied": "代码已复制",
+        "copyFailed": "复制失败，请手动复制"
       }
     },
     "widget": {
@@ -1457,6 +1480,41 @@
         "settingsPlaceholder": "示例：cache_ttl: 86400",
         "active": "启用 CDN",
         "invalidJson": "扩展设置不是合法 JSON"
+      },
+      "upgrade": {
+        "title": "在线升级",
+        "currentVersion": "当前版本",
+        "appPath": "安装路径",
+        "upgrading": "升级进行中",
+        "checkUpdate": "检查更新",
+        "latestVersion": "最新版本",
+        "hasUpdate": "有可用更新",
+        "noUpdate": "已是最新版本",
+        "source": "更新来源",
+        "sourceRemote": "远程源",
+        "sourceLocalReleases": "本地发布包",
+        "sourceNone": "无",
+        "apply": "立即升级",
+        "applyConfirm": "确认要立即升级吗？升级过程中服务可能短暂中断。",
+        "applyStarted": "升级任务已启动，请稍后刷新查看进度",
+        "applyNotStarted": "未启动升级",
+        "dryRunReady": "预检通过，可以执行升级",
+        "dryRunNotReady": "预检未通过，请先解决以下问题",
+        "checks": "预检项",
+        "checkName": "检查项",
+        "checkPassed": "通过",
+        "checkFailed": "未通过",
+        "checkDetail": "说明",
+        "history": "升级历史",
+        "targetVersion": "目标版本",
+        "startedAt": "开始时间",
+        "finishedAt": "结束时间",
+        "message": "消息",
+        "statusSuccess": "成功",
+        "statusFailed": "失败",
+        "statusRunning": "进行中",
+        "statusPending": "等待中",
+        "noHistory": "暂无升级记录"
       }
     },
     "shared": {
@@ -1719,7 +1777,9 @@
     "AIConfigs": "AI 配置",
     "AIWorkflows": "AI 工作流",
     "ChatGroups": "群聊管理",
-    "CDN": "CDN 配置"
+    "CDN": "CDN 配置",
+    "ShortCodes": "短代码",
+    "Upgrade": "在线升级"
   },
   "category": {
     "subtitle": "按分类浏览全部文章",
