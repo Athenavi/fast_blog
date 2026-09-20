@@ -199,9 +199,7 @@ async def apply_rows(rows: list[dict], *, grant_system_roles: bool) -> None:
             print(f"  [提示] 库内还有 {len(stale)} 个菜单不在 menus.ts 中（未处理）：{stale}")
 
         if grant_system_roles:
-            menu_ids = [
-                menu.id for menu in (await db.execute(select(AdminMenu.id))).scalars().all()
-            ]
+            menu_ids = list((await db.execute(select(AdminMenu.id))).scalars().all())
             role_ids = (
                 (await db.execute(select(Role.id).where(Role.is_system.is_(True)))).scalars().all()
             )

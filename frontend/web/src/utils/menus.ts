@@ -220,6 +220,39 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     children: [
       {name: 'Payments', path: '/commerce/payment', title: '支付管理', permission: 'module_commerce:payment:view'},
       {name: 'Revenue', path: '/commerce/revenue', title: '收益分成', permission: 'module_commerce:revenue:view'},
+      {
+        name: 'TippingManage',
+        path: '/commerce/tipping',
+        title: '打赏与提现',
+        permission: 'module_commerce:tipping:view'
+      },
+    ],
+  },
+  {
+    name: 'Gamification',
+    path: '/gamification',
+    title: '用户成长',
+    icon: 'Coin',
+    order: 10,
+    children: [
+      {
+        name: 'PointsManage',
+        path: '/gamification/points',
+        title: '积分管理',
+        permission: 'module_gamification:points:view'
+      },
+      {
+        name: 'BadgesManage',
+        path: '/gamification/badges',
+        title: '勋章管理',
+        permission: 'module_gamification:badge:view'
+      },
+      {
+        name: 'CertificationReview',
+        path: '/gamification/certifications',
+        title: '认证审核',
+        permission: 'module_gamification:certification:view'
+      },
     ],
   },
 ]

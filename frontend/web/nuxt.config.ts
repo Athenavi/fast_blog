@@ -151,6 +151,12 @@ export default defineNuxtConfig({
     // 积分 / 勋章中心：内容依赖登录态与实时统计，同样走 SPA
     '/points': {ssr: false},
     '/badges': {ssr: false},
+    // 专家认证（我的认证）与打赏收益同样依赖登录态
+    '/certification': {ssr: false},
+    '/tipping': {ssr: false},
+    // 后台新增：用户成长（积分 / 勋章 / 认证审核）与打赏提现审核
+    '/gamification/**': {ssr: false},
+    '/commerce/tipping': {ssr: false},
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},

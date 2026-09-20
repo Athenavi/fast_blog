@@ -75,6 +75,7 @@ const ICONS = [
   'MagicStick',
   'ChatDotRound',
   'Money',
+  'Coin',
   'Top',
   'Collection',
   'Briefcase',

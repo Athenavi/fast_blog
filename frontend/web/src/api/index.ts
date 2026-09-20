@@ -422,3 +422,35 @@ export type {
   BadgeStats,
   UserBadge,
 } from './modules/badges'
+
+// ---------------------------------------------------------------- 批次 15（gamification 认证）
+export {certificationApi} from './modules/certification'
+export type {
+  CertificationApplyPayload,
+  CertificationDocumentItem,
+  CertificationDocumentPayload,
+  CertificationItem,
+  CertificationReviewItem,
+  CertificationStats,
+  CertificationStatus,
+  CertificationUpdatePayload,
+  CertTypeItem,
+  ExpertQuery,
+} from './modules/certification'
+
+// ---------------------------------------------------------------- 批次 15（commerce 打赏与提现）
+export {tippingApi} from './modules/tipping'
+export type {
+  PaymentLaunchInfo,
+  TipConfig,
+  TipCreatePayload,
+  TipCreateResult,
+  TipEarnings,
+  TipItem,
+  TipRankingItem,
+  TipStats,
+  TipStatus,
+  WithdrawalItem,
+  WithdrawalQuery,
+  WithdrawalStatus,
+} from './modules/tipping'

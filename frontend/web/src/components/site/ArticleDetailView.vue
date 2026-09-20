@@ -7,10 +7,19 @@
  */
 
 import type {ArticleDetail} from '@/types/content'
+import {useUserStore} from '@/store/modules/user'
 
 const props = defineProps<{ article: ArticleDetail }>()
 
+const userStore = useUserStore()
 const publishedAt = computed(() => props.article.published_at || props.article.created_at)
+
+const rewardOpen = ref(false)
+
+/** 作者不能给自己打赏（后端会 400），本人文章不显示打赏按钮 */
+const canReward = computed(
+  () => Boolean(props.article.author_id) && props.article.author_id !== userStore.userInfo?.id,
+)
 </script>
 
 <template>
@@ -31,6 +40,12 @@ const publishedAt = computed(() => props.article.published_at || props.article.c
         </span>
         <Badge v-for="tag in props.article.tags || []" :key="tag" variant="secondary">{{ tag }}</Badge>
         <LikeButton v-if="props.article.id" :article-id="props.article.id" :initial-likes="props.article.likes ?? 0"/>
+        <ClientOnly>
+          <Button v-if="canReward" size="sm" variant="outline" @click="rewardOpen = true">
+            <Icon class="h-4 w-4" name="gift"/>
+            {{ $t('tipping.rewardAuthor') }}
+          </Button>
+        </ClientOnly>
       </div>
     </header>
 
@@ -43,5 +58,12 @@ const publishedAt = computed(() => props.article.published_at || props.article.c
 
     <!-- eslint-disable-next-line vue/no-v-html -- 正文来自后台编辑器 -->
     <div class="prose-content mt-9" v-html="props.article.content || ('<p>' + $t('site.noContent') + '</p>')"/>
+
+    <RewardDialog
+      v-if="props.article.author_id"
+      v-model="rewardOpen"
+      :article-id="props.article.id"
+      :author-id="props.article.author_id"
+      :author-name="props.article.author_name"/>
   </article>
 </template>

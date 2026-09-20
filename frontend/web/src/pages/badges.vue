@@ -4,25 +4,20 @@
  *
  * - 我的勋章：来自 `badgeApi.mine()`；
  * - 全部勋章 + 进度：进度是**真实统计**对比阈值（v2 的统计函数恒返回 0，所以那时进度永远是 0%）；
- * - 「检查并授予」：幂等，`is_manual` 的勋章**不会**被自动授予（服务端会单独回报 skipped_manual）；
- * - 管理员（`module_gamification:badge:view`）额外看到全局统计。
+ * - 「检查并授予」：幂等，`is_manual` 的勋章**不会**被自动授予（服务端会单独回报 skipped_manual）。
+ *
+ * 管理操作（定义列表 / 手工授予 / 统计）已移到后台独立页 `/gamification/badges`。
  */
-import {badgeApi, type BadgeDefinition, type BadgeProgress, type BadgeStats, type UserBadge,} from '@/api'
+import {badgeApi, type BadgeDefinition, type BadgeProgress, type UserBadge,} from '@/api'
 import {formatDateTime} from '@/utils/format'
-import {useUserStore} from '@/store/modules/user'
 
 definePageMeta({layout: 'default', middleware: 'auth', title: 'badges.title'})
 
 const {t} = useI18n()
-const userStore = useUserStore()
-
-/** 管理端统计需要查看权限 */
-const canManage = computed(() => userStore.hasPermission('module_gamification:badge:view'))
 
 const mine = ref<UserBadge[]>([])
 const available = ref<BadgeDefinition[]>([])
 const progressMap = ref<Record<string, BadgeProgress>>({})
-const stats = ref<BadgeStats | null>(null)
 
 const loading = ref(false)
 const failed = ref(false)
@@ -77,9 +72,6 @@ async function load(): Promise<void> {
     const [mineRows, rows] = await Promise.all([badgeApi.mine(), badgeApi.available()])
     mine.value = mineRows ?? []
     available.value = rows ?? []
-    if (canManage.value) {
-      stats.value = await badgeApi.stats().catch(() => null)
-    }
     void loadProgress()
   } catch {
     failed.value = true
@@ -229,36 +221,6 @@ onMounted(load)
                 </div>
               </div>
             </div>
-          </li>
-        </ul>
-      </section>
-
-      <!-- 管理端统计 -->
-      <section v-if="canManage && stats" class="mt-10">
-        <h2 class="text-base font-semibold text-fg">{{ $t('badges.statsTitle') }}</h2>
-        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('badges.statDefinitions') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.total_definitions }}</p>
-          </div>
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('badges.statActive') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.active_definitions }}</p>
-          </div>
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('badges.statAwarded') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.total_awarded }}</p>
-          </div>
-        </div>
-        <ul v-if="stats.top_badges?.length"
-            class="mt-3 divide-y divide-line rounded-card border border-line bg-surface">
-          <li
-            v-for="row in stats.top_badges"
-            :key="row.badge_key"
-            class="flex items-center justify-between px-4 py-2.5 text-sm"
-          >
-            <span class="text-fg">{{ row.name || row.badge_key }}</span>
-            <span class="text-fg-muted">{{ row.count }}</span>
           </li>
         </ul>
       </section>

@@ -126,6 +126,45 @@ useSeoMeta({title: t('user.center'), robots: 'noindex'})
         </CardContent>
       </Card>
 
+      <!-- 我的入口（认证 / 打赏收益 / 关注粉丝） -->
+      <Card class="mt-5">
+        <CardHeader>
+          <CardTitle class="text-base">{{ $t('user.quickLinks') }}</CardTitle>
+        </CardHeader>
+        <CardContent class="grid gap-3 sm:grid-cols-3">
+          <NuxtLink
+            class="rounded-card border border-line bg-surface p-4 transition-colors hover:border-primary"
+            to="/certification"
+          >
+            <p class="flex items-center gap-2 text-sm font-medium text-fg">
+              <Icon class="h-4 w-4" name="badge-check"/>
+              {{ $t('certification.title') }}
+            </p>
+            <p class="mt-1 text-xs text-fg-muted">{{ $t('user.quickCertificationHint') }}</p>
+          </NuxtLink>
+          <NuxtLink
+            class="rounded-card border border-line bg-surface p-4 transition-colors hover:border-primary"
+            to="/tipping"
+          >
+            <p class="flex items-center gap-2 text-sm font-medium text-fg">
+              <Icon class="h-4 w-4" name="gift"/>
+              {{ $t('tipping.title') }}
+            </p>
+            <p class="mt-1 text-xs text-fg-muted">{{ $t('user.quickTippingHint') }}</p>
+          </NuxtLink>
+          <NuxtLink
+            class="rounded-card border border-line bg-surface p-4 transition-colors hover:border-primary"
+            to="/fans"
+          >
+            <p class="flex items-center gap-2 text-sm font-medium text-fg">
+              <Icon class="h-4 w-4" name="user"/>
+              {{ $t('fans.title') }}
+            </p>
+            <p class="mt-1 text-xs text-fg-muted">{{ $t('user.quickFansHint') }}</p>
+          </NuxtLink>
+        </CardContent>
+      </Card>
+
       <!-- 编辑资料 -->
       <Card class="mt-5">
         <CardHeader>

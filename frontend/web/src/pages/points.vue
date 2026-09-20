@@ -4,8 +4,10 @@
  *
  * - 我的积分：余额 / 累计获得 / 累计消耗 / **每日签到**（幂等，一天一次）/ 流水；
  * - 公开只读：排行榜、积分规则、兑换项；
- * - **兑换真实发放**：选中套餐后调 `/exchange`，服务端在同一事务里扣分 + 写流水 + 开通订阅；
- * - 管理员（`module_gamification:points:view`）额外可看统计、改规则、加减分。
+ * - **兑换真实发放**：选中套餐后调 `/exchange`，服务端在同一事务里扣分 + 写流水 + 开通订阅。
+ *
+ * 管理操作（统计 / 改规则 / 加减分）已移到后台独立页 `/gamification/points`，
+ * 本页只保留用户自己的功能，不再内嵌管理 tab。
  *
  * 注意：v3 **没有** v2 的 `record-action`（前端自报动作加分 = 可任意刷分），
  * 所以本页面不存在任何「上报行为换积分」的入口。
@@ -16,32 +18,22 @@ import {
   type PointsAccount,
   pointsApi,
   type PointsRule,
-  type PointsStats,
   type PointsTransaction,
   vipApi,
   type VipPlanItem,
 } from '@/api'
 import {formatDateTime} from '@/utils/format'
-import {useUserStore} from '@/store/modules/user'
 
 definePageMeta({layout: 'default', middleware: 'auth', title: 'points.title'})
 
 const {t} = useI18n()
-const userStore = useUserStore()
 
-/** 管理端（统计 / 规则 / 加减分）需要查看权限 */
-const canManage = computed(() => userStore.hasPermission('module_gamification:points:view'))
-
-type TabKey = 'history' | 'leaderboard' | 'rules' | 'manage'
-const tabs = computed<Array<{ key: TabKey; label: string }>>(() => {
-  const items: Array<{ key: TabKey; label: string }> = [
-    {key: 'history', label: t('points.tabHistory')},
-    {key: 'leaderboard', label: t('points.tabLeaderboard')},
-    {key: 'rules', label: t('points.tabRules')},
-  ]
-  if (canManage.value) items.push({key: 'manage', label: t('points.tabManage')})
-  return items
-})
+type TabKey = 'history' | 'leaderboard' | 'rules'
+const tabs = computed<Array<{ key: TabKey; label: string }>>(() => [
+  {key: 'history', label: t('points.tabHistory')},
+  {key: 'leaderboard', label: t('points.tabLeaderboard')},
+  {key: 'rules', label: t('points.tabRules')},
+])
 const activeTab = ref<TabKey>('history')
 
 const account = ref<PointsAccount | null>(null)
@@ -53,7 +45,6 @@ const PAGE_SIZE = 20
 const board = ref<LeaderboardItem[]>([])
 const rules = ref<PointsRule[]>([])
 const exchangeRules = ref<ExchangeRule[]>([])
-const stats = ref<PointsStats | null>(null)
 const plans = ref<VipPlanItem[]>([])
 const selectedPlanId = ref<number | null>(null)
 
@@ -62,15 +53,6 @@ const failed = ref(false)
 const busy = ref(false)
 const notice = ref('')
 const error = ref('')
-
-/** 规则行 = 规则本体 + 编辑缓冲（放在同一个对象里，模板 v-model 就不会碰到可空下标） */
-interface RuleRow {
-  rule: PointsRule
-  draft: { points: number; daily_limit: number; is_active: boolean; sort_order: number }
-}
-
-const ruleRows = ref<RuleRow[]>([])
-const adjustForm = reactive({user_id: '', amount: '', reason: ''})
 
 function flash(message: string): void {
   notice.value = message
@@ -101,15 +83,6 @@ async function loadPublic(): Promise<void> {
   board.value = boardRows ?? []
   rules.value = rulesRaw ?? []
   exchangeRules.value = exchangeRows ?? []
-  ruleRows.value = (rulesRaw ?? []).map((rule) => ({
-    rule,
-    draft: {
-      points: rule.points ?? 0,
-      daily_limit: rule.daily_limit ?? 0,
-      is_active: rule.is_active,
-      sort_order: rule.sort_order ?? 0,
-    },
-  }))
 }
 
 async function load(): Promise<void> {
@@ -117,9 +90,6 @@ async function load(): Promise<void> {
   failed.value = false
   try {
     await Promise.all([loadAccount(), loadHistory(), loadPublic()])
-    if (canManage.value) {
-      stats.value = await pointsApi.stats().catch(() => null)
-    }
   } catch {
     failed.value = true
   } finally {
@@ -167,48 +137,6 @@ async function exchange(rule: ExchangeRule): Promise<void> {
     account.value = result.account
     flash(t('points.exchangeSuccess', {cost: rule.cost}))
     await loadHistory()
-  } catch (thrown) {
-    complain(thrown)
-  } finally {
-    busy.value = false
-  }
-}
-
-async function saveRule(row: RuleRow): Promise<void> {
-  busy.value = true
-  try {
-    await pointsApi.updateRule(row.rule.id, {
-      points: Number(row.draft.points),
-      daily_limit: Number(row.draft.daily_limit),
-      is_active: row.draft.is_active,
-      sort_order: Number(row.draft.sort_order),
-    })
-    flash(t('points.ruleSaved'))
-    await loadPublic()
-  } catch (thrown) {
-    complain(thrown)
-  } finally {
-    busy.value = false
-  }
-}
-
-async function adjust(sign: 1 | -1): Promise<void> {
-  const userId = Number(adjustForm.user_id)
-  const amount = Number(adjustForm.amount)
-  if (!userId || !amount) {
-    error.value = t('points.adjustInvalid')
-    return
-  }
-  busy.value = true
-  try {
-    if (sign > 0) {
-      await pointsApi.grant(userId, amount, adjustForm.reason || undefined)
-      flash(t('points.adjustGranted', {amount, userId}))
-    } else {
-      await pointsApi.deduct(userId, amount, adjustForm.reason || undefined)
-      flash(t('points.adjustDeducted', {amount, userId}))
-    }
-    stats.value = await pointsApi.stats().catch(() => null)
   } catch (thrown) {
     complain(thrown)
   } finally {
@@ -422,121 +350,6 @@ onMounted(load)
             </div>
           </li>
         </ul>
-      </section>
-
-      <!-- 管理 -->
-      <section v-else-if="activeTab === 'manage'" class="mt-4 space-y-6">
-        <div v-if="stats" class="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('points.statAccounts') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.total_accounts }}</p>
-          </div>
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('points.statBalance') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.total_balance }}</p>
-          </div>
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('points.statEarned') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.total_earned }}</p>
-          </div>
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('points.statSpent') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.total_spent }}</p>
-          </div>
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('points.statTransactions') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.transaction_count }}</p>
-          </div>
-          <div class="rounded-card border border-line bg-surface p-4">
-            <p class="text-xs text-fg-muted">{{ $t('points.statRules') }}</p>
-            <p class="mt-1 text-xl font-semibold text-fg">{{ stats.active_rules }}</p>
-          </div>
-        </div>
-
-        <!-- 规则编辑 -->
-        <div>
-          <h2 class="text-sm font-semibold text-fg">{{ $t('points.ruleEditTitle') }}</h2>
-          <ul class="mt-3 divide-y divide-line rounded-card border border-line bg-surface">
-            <li v-for="row in ruleRows" :key="row.rule.id" class="px-4 py-3">
-              <div class="flex flex-wrap items-end gap-3">
-                <div class="min-w-40">
-                  <p class="text-sm text-fg">{{ row.rule.description || row.rule.action }}</p>
-                  <p class="text-xs text-fg-subtle">{{ row.rule.action }}</p>
-                </div>
-                <label class="text-xs text-fg-muted">
-                  {{ $t('points.rulePoints') }}
-                  <input
-                    v-model.number="row.draft.points"
-                    class="mt-1 block w-24 rounded-card border border-line bg-surface px-2 py-1 text-sm text-fg"
-                    type="number"
-                  >
-                </label>
-                <label class="text-xs text-fg-muted">
-                  {{ $t('points.ruleDailyLimit') }}
-                  <input
-                    v-model.number="row.draft.daily_limit"
-                    class="mt-1 block w-24 rounded-card border border-line bg-surface px-2 py-1 text-sm text-fg"
-                    min="0"
-                    type="number"
-                  >
-                </label>
-                <label class="text-xs text-fg-muted">
-                  {{ $t('points.ruleSort') }}
-                  <input
-                    v-model.number="row.draft.sort_order"
-                    class="mt-1 block w-20 rounded-card border border-line bg-surface px-2 py-1 text-sm text-fg"
-                    type="number"
-                  >
-                </label>
-                <label class="flex items-center gap-1.5 text-xs text-fg-muted">
-                  <input v-model="row.draft.is_active" type="checkbox">
-                  {{ $t('points.ruleActive') }}
-                </label>
-                <Button :disabled="busy" size="sm" variant="outline" @click="saveRule(row)">
-                  <Icon class="h-4 w-4" name="save"/>
-                  {{ $t('points.ruleSave') }}
-                </Button>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <!-- 加减分 -->
-        <div>
-          <h2 class="text-sm font-semibold text-fg">{{ $t('points.adjustTitle') }}</h2>
-          <div class="mt-3 flex flex-wrap items-end gap-3 rounded-card border border-line bg-surface p-4">
-            <label class="text-xs text-fg-muted">
-              {{ $t('points.adjustUser') }}
-              <input
-                v-model="adjustForm.user_id"
-                :placeholder="$t('points.adjustUserPlaceholder')"
-                class="mt-1 block w-32 rounded-card border border-line bg-surface px-2 py-1 text-sm text-fg"
-              >
-            </label>
-            <label class="text-xs text-fg-muted">
-              {{ $t('points.adjustAmount') }}
-              <input
-                v-model="adjustForm.amount"
-                class="mt-1 block w-28 rounded-card border border-line bg-surface px-2 py-1 text-sm text-fg"
-                min="1"
-                type="number"
-              >
-            </label>
-            <label class="min-w-48 flex-1 text-xs text-fg-muted">
-              {{ $t('points.adjustReason') }}
-              <input
-                v-model="adjustForm.reason"
-                class="mt-1 block w-full rounded-card border border-line bg-surface px-2 py-1 text-sm text-fg"
-              >
-            </label>
-            <div class="flex gap-2">
-              <Button :disabled="busy" size="sm" @click="adjust(1)">{{ $t('points.grant') }}</Button>
-              <Button :disabled="busy" size="sm" variant="danger" @click="adjust(-1)">
-                {{ $t('points.deduct') }}
-              </Button>
-            </div>
-          </div>
-        </div>
       </section>
     </template>
   </div>
