@@ -119,6 +119,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         permission: 'module_system:security:view'
       },
       {name: 'Sites', path: '/system/sites', title: '多站点', permission: 'module_system:site:view'},
+      {
+        name: 'Monitoring',
+        path: '/system/monitoring',
+        title: '监控中心',
+        permission: 'module_system:monitor:view'
+      },
     ],
   },
   {

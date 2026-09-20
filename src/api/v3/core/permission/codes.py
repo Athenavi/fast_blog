@@ -119,6 +119,7 @@ SENSITIVE_WORD_DELETE = "module_system:sensitive_word:delete"
 
 MONITOR_VIEW = "module_system:monitor:view"
 MONITOR_KICK = "module_system:monitor:kick"
+MONITOR_MANAGE = "module_system:monitor:manage"
 
 # ============================================================ analytics 域
 DASHBOARD_VIEW = "module_analytics:dashboard:view"
@@ -395,6 +396,7 @@ CODE_LABELS: dict[str, str] = {
     SITE_DELETE: "删除站点",
     MONITOR_VIEW: "查看系统状态",
     MONITOR_KICK: "强制下线",
+    MONITOR_MANAGE: "管理告警 / 指标 / SLA（批次 10）",
     # ---- analytics ----
     DASHBOARD_VIEW: "查看仪表盘",
     SEO_VIEW: "查看 SEO",

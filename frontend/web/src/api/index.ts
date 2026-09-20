@@ -365,3 +365,24 @@ export type {
   WorkspacePayload,
   WorkspaceRoom,
 } from './modules/collaboration'
+
+// ---------------------------------------------------------------- 批次 10（system 监控中心：告警 / 指标 / SLA）
+export {monitoringApi} from './modules/monitoring'
+export type {
+  AlertItem,
+  AlertPayload,
+  AlertQuery,
+  AlertSeverity,
+  AlertStats,
+  MetricBucket,
+  MetricItem,
+  MetricPayload,
+  MetricQuery,
+  MetricSeriesPoint,
+  MetricSeriesResult,
+  SLAComputePayload,
+  SLAItem,
+  SLAPayload,
+  SLAQuery,
+  SLAStats,
+} from './modules/monitoring'
