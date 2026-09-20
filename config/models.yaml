@@ -8155,3 +8155,275 @@ models:
           - created_at
         order: DESC
         comment: 关注时间索引
+
+  UserPoints:
+    description: 用户积分账户（T5-11 批次 12，gamification）
+    status: active
+    frontend_page: /points
+    properties:
+      id:
+        type: bigint
+        description: 账户 ID
+      user_id:
+        type: bigint
+        unique: true
+        foreignKey: User
+        description: 用户 ID
+      balance:
+        type: integer
+        default: 0
+        description: 当前可用积分
+      total_earned:
+        type: integer
+        default: 0
+        description: 累计获得
+      total_spent:
+        type: integer
+        default: 0
+        description: 累计消耗
+      last_checkin_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最后签到时间（用于每日签到去重）
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: gamification
+    orm: true
+    table: user_points
+    indexes:
+      - name: idx_user_points_user
+        columns:
+          - user_id
+        unique: true
+        comment: 用户唯一索引
+      - name: idx_user_points_balance
+        columns:
+          - balance
+        order: DESC
+        comment: 余额索引（排行榜）
+  PointsTransaction:
+    description: 积分流水（T5-11 批次 12）
+    status: active
+    frontend_page: /points
+    properties:
+      id:
+        type: bigint
+        description: 流水 ID
+      user_id:
+        type: bigint
+        foreignKey: User
+        description: 用户 ID
+      amount:
+        type: integer
+        description: 变动值（正数为获得，负数为消耗）
+      balance_after:
+        type: integer
+        description: 变动后余额
+      action:
+        type: string
+        maxLength: 50
+        description: 动作标识（如 daily_checkin / admin_grant / exchange）
+      description:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 说明
+      reference_id:
+        type: bigint
+        nullable: true
+        description: 关联记录 ID
+      reference_type:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 关联记录类型
+      created_at:
+        type: string
+        format: date-time
+        description: 发生时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: gamification
+    orm: true
+    table: points_transactions
+    indexes:
+      - name: idx_points_tx_user_created
+        columns:
+          - user_id
+          - created_at
+        comment: 用户流水索引
+      - name: idx_points_tx_action
+        columns:
+          - action
+        comment: 动作索引
+  PointsRule:
+    description: 积分规则（T5-11 批次 12；v2 的规则是类内常量，这里改为入库可配）
+    status: active
+    frontend_page: /points
+    properties:
+      id:
+        type: bigint
+        description: 规则 ID
+      action:
+        type: string
+        maxLength: 50
+        unique: true
+        description: 动作标识（唯一）
+      points:
+        type: integer
+        description: 该动作的积分值（负数为扣减）
+      description:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 说明
+      daily_limit:
+        type: integer
+        default: 0
+        description: 每日最多计入次数（0 = 不限）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      sort_order:
+        type: integer
+        default: 0
+        description: 排序
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: gamification
+    orm: true
+    table: points_rules
+    indexes:
+      - name: idx_points_rules_action
+        columns:
+          - action
+        unique: true
+        comment: 动作唯一索引
+  BadgeDefinition:
+    description: 勋章定义（T5-11 批次 12）
+    status: active
+    frontend_page: /badges
+    properties:
+      id:
+        type: bigint
+        description: 勋章 ID
+      badge_key:
+        type: string
+        maxLength: 50
+        unique: true
+        description: 勋章标识（唯一）
+      name:
+        type: string
+        maxLength: 100
+        description: 名称
+      description:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 说明
+      category:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 分类（writing/consistency/quality/community/social/special）
+      icon:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 图标名
+      points_reward:
+        type: integer
+        default: 0
+        description: 获得时奖励的积分
+      condition_type:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 条件类型（article_count/max_article_likes/follower_count/comment_count/like_received）
+      condition_value:
+        type: integer
+        default: 0
+        description: 条件阈值
+      is_manual:
+        type: boolean
+        default: false
+        description: 是否仅可手工授予（如 verified_expert）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      sort_order:
+        type: integer
+        default: 0
+        description: 排序
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: gamification
+    orm: true
+    table: badge_definitions
+    indexes:
+      - name: idx_badge_definitions_key
+        columns:
+          - badge_key
+        unique: true
+        comment: 勋章标识唯一索引
+      - name: idx_badge_definitions_category
+        columns:
+          - category
+        comment: 分类索引
+  UserBadge:
+    description: 用户已获勋章（T5-11 批次 12）
+    status: active
+    frontend_page: /badges
+    properties:
+      id:
+        type: bigint
+        description: 记录 ID
+      user_id:
+        type: bigint
+        foreignKey: User
+        description: 用户 ID
+      badge_key:
+        type: string
+        maxLength: 50
+        description: 勋章标识
+      awarded_at:
+        type: string
+        format: date-time
+        description: 获得时间
+      awarded_by:
+        type: bigint
+        nullable: true
+        description: 手工授予时的管理员 ID
+    module: gamification
+    orm: true
+    table: user_badges
+    indexes:
+      - name: idx_user_badges_unique
+        columns:
+          - user_id
+          - badge_key
+        unique: true
+        comment: 用户+勋章唯一索引
+      - name: idx_user_badges_badge
+        columns:
+          - badge_key
+        comment: 勋章索引
