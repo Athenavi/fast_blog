@@ -84,8 +84,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     # T5-11 批次 4：AI 能力与群聊（表 ai_configs/ai_workflows、chat_groups 已存在）
     "/ai": ("config", "workflow"),
     "/chat": ("group",),
-    # T5-11 批次 7：商务域（支付 + 收益分成）
-    "/commerce": ("payment", "revenue"),
+    # T5-11 批次 7：商务域（支付 + 收益分成 + 打赏）
+    "/commerce": ("payment", "revenue", "tipping"),
     # T5-11 批次 12：用户成长域（积分 / 勋章 / 专家认证）
     "/gamification": ("badge", "certification", "points"),
 }

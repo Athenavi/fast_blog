@@ -82,6 +82,12 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     ("POST", "/api/v3/gamification/certification/apply"): "提交认证申请（仅认证；重复申请会被 400 拒绝）",
     ("PUT", "/api/v3/gamification/certification/mine"): "修改本人待审申请（仅认证；仅 pending 可改）",
     ("POST", "/api/v3/gamification/certification/mine/withdraw"): "撤回本人认证申请（仅认证；仅 pending 可撤）",
+    # ---- tipping（批次 14）：网关回调，靠插件验签而不是权限码 ----
+    ("POST",
+     "/api/v3/commerce/tipping/callback/{provider}"): "打赏网关回调（公开；由 payment-gateway 插件验签，验签不过不更新任何状态）",
+    # ---- tipping（批次 14）：仅认证且只操作本人 ----
+    ("POST", "/api/v3/commerce/tipping/tip"): "发起打赏（仅认证；打赏者就是当前用户，下单失败会置 failed）",
+    ("POST", "/api/v3/commerce/tipping/withdraw"): "申请提现（仅认证；服务端按已结算收益校验可提现余额）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
