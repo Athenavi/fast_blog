@@ -148,6 +148,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '搜索分析',
         permission: 'module_analytics:search:view'
       },
+      {name: 'Reports', path: '/analytics/report', title: '报表中心', permission: 'module_analytics:report:view'},
     ],
   },
   {

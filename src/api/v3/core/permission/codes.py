@@ -229,6 +229,18 @@ REVENUE_CREATE = "module_commerce:revenue:create"
 REVENUE_EDIT = "module_commerce:revenue:edit"
 REVENUE_DELETE = "module_commerce:revenue:delete"
 
+# ============================================================ T5-11 批次 8（analytics 报表域）
+REPORT_VIEW = "module_analytics:report:view"
+REPORT_CREATE = "module_analytics:report:create"
+REPORT_EDIT = "module_analytics:report:edit"
+REPORT_DELETE = "module_analytics:report:delete"
+
+# ============================================================ T5-11 批次 9（content 协作域）
+COLLABORATION_VIEW = "module_content:collaboration:view"
+COLLABORATION_CREATE = "module_content:collaboration:create"
+COLLABORATION_EDIT = "module_content:collaboration:edit"
+COLLABORATION_DELETE = "module_content:collaboration:delete"
+
 # ============================================================ ai 域（T5-11 批次 4）
 AI_CONFIG_VIEW = "module_ai:config:view"
 AI_CONFIG_CREATE = "module_ai:config:create"
@@ -454,6 +466,16 @@ CODE_LABELS: dict[str, str] = {
     REVENUE_CREATE: "创建收益记录",
     REVENUE_EDIT: "编辑分账配置与提现",
     REVENUE_DELETE: "删除收益记录",
+    # ---- analytics 报表（批次 8）----
+    REPORT_VIEW: "查看报表与导出",
+    REPORT_CREATE: "创建定时报表",
+    REPORT_EDIT: "编辑 / 执行定时报表",
+    REPORT_DELETE: "删除定时报表",
+    # ---- content 协作（批次 9）----
+    COLLABORATION_VIEW: "查看工作区 / 评论 / 邀请",
+    COLLABORATION_CREATE: "创建工作区 / 评论 / 邀请",
+    COLLABORATION_EDIT: "编辑工作区 / 任务 / 评论",
+    COLLABORATION_DELETE: "删除工作区 / 任务 / 评论",
     # ---- ops ----
     MIGRATION_VIEW: "查看迁移任务",
     MIGRATION_CREATE: "创建迁移任务",

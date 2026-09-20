@@ -615,6 +615,7 @@
       "createdAt": "创建时间",
       "configInvalidJson": "配置不是合法的 JSON 对象：{message}",
       "totalItems": "共 {n} 条",
+      "empty": "暂无数据",
       "close": "关闭"
     },
     "cache": {
@@ -1320,6 +1321,38 @@
       }
     },
     "analytics": {
+      "report": {
+        "title": "报表中心",
+        "generate": "报表生成",
+        "scheduled": "定时报表",
+        "history": "报表历史",
+        "templates": "报表模板",
+        "reportType": "报表类型",
+        "days": "统计天数",
+        "metrics": "指标",
+        "metricsRequired": "请至少选择一个指标",
+        "generateHint": "报表由后端对现有数据表做真实聚合；点击「报表生成」后可用 JSON / CSV 导出为文件下载。",
+        "exported": "导出已开始下载",
+        "exportFailed": "导出失败",
+        "keyword": "关键词",
+        "createScheduled": "新建定时报表",
+        "editScheduled": "编辑定时报表",
+        "nameRequired": "请填写报表名称",
+        "toggled": "状态已更新",
+        "runConfirm": "立即执行「{name}」一次？结果会写入报表历史。",
+        "ran": "已执行并归档",
+        "deleteScheduledConfirm": "确定删除定时报表「{name}」吗？",
+        "frequency": "执行频率",
+        "nextRunAt": "下次执行",
+        "runNow": "立即执行",
+        "enable": "启用",
+        "disable": "停用",
+        "reportName": "报表名称",
+        "format": "格式",
+        "generatedAt": "生成时间",
+        "download": "下载",
+        "apply": "套用"
+      },
       "search": {
         "searchAnalytics": "搜索分析",
         "last7Days": "近 7 天",
@@ -1984,7 +2017,8 @@
     "Enterprise": "企业版授权",
     "Commerce": "商务",
     "Payments": "支付管理",
-    "Revenue": "收益分成"
+    "Revenue": "收益分成",
+    "Reports": "报表中心"
   },
   "category": {
     "subtitle": "按分类浏览全部文章",

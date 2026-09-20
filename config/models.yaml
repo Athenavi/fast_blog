@@ -8042,3 +8042,76 @@ models:
         columns:
           - user_id
           - name
+
+  CollaborationInvite:
+    description: 协作邀请模型（文章协作编辑 / 工作区邀请，T5-11 批次 9）
+    status: active
+    frontend_page: /content/collaboration
+    properties:
+      id:
+        type: bigint
+        description: 邀请 ID
+      invite_code:
+        type: string
+        maxLength: 64
+        unique: true
+        description: 邀请码（唯一）
+      target_type:
+        type: string
+        maxLength: 50
+        description: '目标类型 (article/workspace)'
+      target_id:
+        type: bigint
+        description: 目标 ID
+      permission:
+        type: string
+        maxLength: 20
+        default: edit
+        description: '权限 (view/edit)'
+      creator_id:
+        type: bigint
+        foreignKey: User
+        description: 创建人
+      expires_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 过期时间
+      max_uses:
+        type: integer
+        default: 0
+        description: 最大使用次数 (0 = 不限)
+      use_count:
+        type: integer
+        default: 0
+        description: 已使用次数
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: collaboration
+    orm: true
+    table: collaboration_invites
+    indexes:
+      - name: idx_collaboration_invites_code
+        columns:
+          - invite_code
+        unique: true
+        comment: 邀请码唯一索引
+      - name: idx_collaboration_invites_target
+        columns:
+          - target_type
+          - target_id
+        comment: 目标索引
+      - name: idx_collaboration_invites_active
+        columns:
+          - is_active
+        comment: 激活状态索引

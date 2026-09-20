@@ -36,6 +36,9 @@ qrcode[pil]==8.1.0
 redis==8.0.0
 cachetools==7.1.4
 
+# Realtime collaboration（CRDT：服务端真实合并 y-protocols 更新）
+pycrdt==0.14.5
+
 # HTTP Client
 httpx==0.28.1
 

@@ -326,3 +326,23 @@ export type {
   UserRevenueStatsSnapshot,
   UserRevenueSummary,
 } from './modules/revenue'
+
+// ---------------------------------------------------------------- 批次 8（analytics 报表）
+export {reportApi} from './modules/report'
+export type {
+  ContentReport,
+  CustomMetric,
+  CustomReport,
+  ReportFormat,
+  ReportFrequency,
+  ReportHistoryItem,
+  ReportHistoryQuery,
+  ReportPeriod,
+  ReportTemplate,
+  ReportType,
+  ScheduledReportItem,
+  ScheduledReportPayload,
+  ScheduledReportQuery,
+  TrafficReport,
+  UserActivityReport,
+} from './modules/report'

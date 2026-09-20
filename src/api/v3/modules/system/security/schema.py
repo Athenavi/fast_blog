@@ -33,3 +33,9 @@ class BlacklistOut(SchemaBase):
     reason: Optional[str] = None
     expires_at: Optional[datetime] = None
     created_at: Optional[datetime] = None
+
+
+class SecurityReportArchiveRequest(SchemaBase):
+    """归档一份安全周期报表（写入 ``report_history``）"""
+
+    kind: str = Field(default="weekly", description="weekly / monthly")

@@ -615,6 +615,7 @@
       "createdAt": "Created at",
       "configInvalidJson": "Configuration is not a valid JSON object: {message}",
       "totalItems": "{n} items",
+      "empty": "No data",
       "close": "Close"
     },
     "cache": {
@@ -1320,6 +1321,38 @@
       }
     },
     "analytics": {
+      "report": {
+        "title": "Report Center",
+        "generate": "Generate",
+        "scheduled": "Scheduled",
+        "history": "History",
+        "templates": "Templates",
+        "reportType": "Report Type",
+        "days": "Days",
+        "metrics": "Metrics",
+        "metricsRequired": "Select at least one metric",
+        "generateHint": "Reports are aggregated by the backend from live tables; once generated you can export them as a JSON / CSV file download.",
+        "exported": "Export download started",
+        "exportFailed": "Export failed",
+        "keyword": "Keyword",
+        "createScheduled": "New Scheduled Report",
+        "editScheduled": "Edit Scheduled Report",
+        "nameRequired": "Please enter the report name",
+        "toggled": "Status updated",
+        "runConfirm": "Run “{name}” now? The result will be archived to report history.",
+        "ran": "Executed and archived",
+        "deleteScheduledConfirm": "Delete scheduled report “{name}”?",
+        "frequency": "Frequency",
+        "nextRunAt": "Next Run",
+        "runNow": "Run Now",
+        "enable": "Enable",
+        "disable": "Disable",
+        "reportName": "Report Name",
+        "format": "Format",
+        "generatedAt": "Generated At",
+        "download": "Download",
+        "apply": "Apply"
+      },
       "search": {
         "searchAnalytics": "Search Analytics",
         "last7Days": "Last 7 days",
@@ -1984,7 +2017,8 @@
     "Enterprise": "Enterprise License",
     "Commerce": "Commerce",
     "Payments": "Payments",
-    "Revenue": "Revenue Sharing"
+    "Revenue": "Revenue Sharing",
+    "Reports": "Report Center"
   },
   "category": {
     "subtitle": "Browse all articles by category",

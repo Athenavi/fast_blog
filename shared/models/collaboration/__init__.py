@@ -4,8 +4,16 @@ collaboration 子模块 - 模型定义
 """
 from .approval_record import ApprovalRecord
 from .approval_step import ApprovalStep
+from .invitation import CollaborationInvite
 from .task import Task
 from .workspace import Workspace
 from .workspace_member import WorkspaceMember
 
-__all__ = ['ApprovalRecord', 'ApprovalStep', 'Task', 'Workspace', 'WorkspaceMember']
+__all__ = [
+    'ApprovalRecord',
+    'ApprovalStep',
+    'CollaborationInvite',
+    'Task',
+    'Workspace',
+    'WorkspaceMember',
+]
