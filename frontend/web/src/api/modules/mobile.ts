@@ -126,6 +126,9 @@ export interface MobileArticleItem {
   tags: string[]
   status?: number | null
   views?: number
+  /** 仅 VIP 可见（批次 16 起作者可自助设置） */
+  is_vip_only?: boolean
+  required_vip_level?: number
   created_at?: string | null
   updated_at?: string | null
   published_at?: string | null
@@ -136,7 +139,10 @@ export interface MobileArticleDetail extends MobileArticleItem {
   language_code?: string | null
 }
 
-/** 投稿入参：**不含** status / is_featured 等管理字段（后端 schema 也不接受） */
+/** 投稿入参：**不含** status / is_featured / is_sticky / hidden 等管理字段（后端 schema 也不接受）
+ *
+ * 例外：`is_vip_only` / `required_vip_level` 是**内容属性**（批次 16 放开），作者可自助设置。
+ */
 export interface MobileArticlePayload {
   title: string
   slug?: string
@@ -146,6 +152,10 @@ export interface MobileArticlePayload {
   category_id?: number | null
   tags?: string[]
   language_code?: string
+  /** 仅 VIP 可见（正文由带授权的正文端点下发） */
+  is_vip_only?: boolean
+  /** 所需 VIP 等级（0 表示不限等级） */
+  required_vip_level?: number
 }
 
 export interface MobileArticleQuery extends PageQuery {
@@ -213,6 +223,15 @@ export const mobileApi = {
     http.put<MobileArticleDetail>(`/mobile/article/${id}`, payload),
 
   deleteMyArticle: (id: number) => http.delete<null>(`/mobile/article/${id}`),
+
+  /** VIP 文章的正文（仅登录；等级达标或作者本人，否则 403）
+   *
+   * 公开详情对 `is_vip_only` 文章只下发摘要 + `locked: true`，前台据此再调本端点取全文。
+   */
+  gatedContent: (id: number) =>
+    http.get<{ article_id: number; is_vip_only: boolean; required_vip_level: number; content?: string | null }>(
+      `/mobile/article/${id}/content`,
+    ),
 
   // ---- 点赞（per-user 幂等切换，详见 mobile/article/service.py）----
   likeStatus: (id: number) =>

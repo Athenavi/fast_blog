@@ -15,6 +15,7 @@ const CASES: Array<{ path: string; text: RegExp }> = [
   {path: '/experts', text: /认证专家/},
   {path: '/certification', text: /我的专家认证/},
   {path: '/tipping', text: /打赏与收益/},
+  {path: '/vip', text: /VIP/},
   {path: '/points', text: /积分/},
   {path: '/badges', text: /勋章/},
   {path: '/gamification/points', text: /积分统计/},

@@ -111,10 +111,29 @@ async def create_my_article(
 async def get_article(
     article_id: int,
     db: DBSession,
+    viewer=Depends(jwt_optional_dependency),
     language_code: Optional[str] = Query(default=None),
 ) -> dict:
+    """VIP 文章只下摘要（`locked=True`）；正文走 `/{article_id}/content`"""
     return resp.success(
-        await article_service.public_detail(db, article_id, language_code=language_code)
+        await article_service.public_detail(
+            db, article_id, language_code=language_code, viewer=viewer
+        )
+    )
+
+
+@router.get("/{article_id}/content", response_model=ResponseModel, summary="付费文章正文（需登录）")
+async def get_gated_content(
+    article_id: int,
+    db: DBSession,
+    user=Depends(jwt_required_dependency),
+    language_code: Optional[str] = Query(default=None),
+) -> dict:
+    """VIP 文章正文：公开详情只给摘要，登录且有权限时用本端点取全文（否则 403）"""
+    return resp.success(
+        await mobile_article_service.gated_content(
+            db, user, article_id, language_code=language_code
+        )
     )
 
 

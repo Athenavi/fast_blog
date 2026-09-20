@@ -133,10 +133,17 @@ export type {
   AdStats,
 } from './modules/ad'
 
-export {vipApi} from './modules/vip'
+export {vipApi, vipSelfApi} from './modules/vip'
 export type {
+  MyVipInfo,
+  MyVipStatus,
+  MyVipSubscription,
+  PremiumContentItem,
+  VipAccessInfo,
   VipFeatureItem,
   VipFeaturePayload,
+  VipOrderItem,
+  VipPaymentResult,
   VipPlanItem,
   VipPlanPayload,
   VipSubscriptionItem,

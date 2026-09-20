@@ -22,6 +22,20 @@ class MembershipService:
     EVENT_SUB_EXPIRED = "vip.subscription.expired"
     EVENT_SUB_RENEWED = "vip.subscription.renewed"
 
+    #: 订阅状态：**0=进行中 / 1=已过期 / 2=已取消**
+    #:
+    #: 与 `marketing/vip`（`SUB_ACTIVE, SUB_EXPIRED, SUB_CANCELLED = 0, 1, 2`）、
+    #: 前端展示（`status === 0` 才算进行中）以及 `models.yaml` 的默认值一致。
+    #:
+    #: 历史坑（2026-09-20 修正）：本服务早期沿用 v2 的写法，把 **1** 当作"有效"
+    #: （`get_user_vip_status` 查 `status == 1`、`create_subscription` 写 `status=1`、
+    #: `check_expired_subscriptions` 把过期写成 0），而 `marketing/vip` 写的是 0。
+    #: 结果是两条开通路径（本服务 / 管理端手动开通）互相认为对方的订阅"已失效"，
+    #: 且定时任务会把刚开通的订阅立即过期掉。现在统一走下面的常量。
+    SUB_ACTIVE = 0
+    SUB_EXPIRED = 1
+    SUB_CANCELLED = 2
+
     """
     会员订阅服务
     """
@@ -49,7 +63,7 @@ class MembershipService:
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
             VIPSubscription.user == user_id,
-            VIPSubscription.status == 1,
+            VIPSubscription.status == self.SUB_ACTIVE,
             VIPSubscription.expires_at > now
         ).order_by(
             VIPSubscription.expires_at.desc()
@@ -166,7 +180,7 @@ class MembershipService:
             plan=plan_id,
             starts_at=now,
             expires_at=expires_at,
-            status=1,
+            status=self.SUB_ACTIVE,
             payment_amount=payment_amount,
             transaction_id=transaction_id,
             created_at=now,
@@ -232,14 +246,14 @@ class MembershipService:
         if subscription.user != user_id:
             return {'success': False, 'message': '无权操作此订阅'}
 
-        subscription.status = 0
+        subscription.status = self.SUB_CANCELLED
 
         # 取消订阅后检查用户是否有其他有效订阅
         # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
         now = datetime.now()
         other_stmt = select(VIPSubscription).where(
             VIPSubscription.user == user_id,
-            VIPSubscription.status == 1,
+            VIPSubscription.status == self.SUB_ACTIVE,
             VIPSubscription.expires_at > now,
             VIPSubscription.id != subscription_id
         ).order_by(VIPSubscription.expires_at.desc()).limit(1)
@@ -486,11 +500,9 @@ class MembershipService:
             return {'success': False, 'message': '套餐不存在或已停用'}
 
         # 查找当前有效订阅
-        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
-        now = datetime.now()
         stmt = select(VIPSubscription).where(
             VIPSubscription.user == user_id,
-            VIPSubscription.status == 1,
+            VIPSubscription.status == self.SUB_ACTIVE,
         ).order_by(VIPSubscription.expires_at.desc()).limit(1)
 
         result = await self.db.execute(stmt)
@@ -548,7 +560,7 @@ class MembershipService:
         # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
         now = datetime.now()
         stmt = select(VIPSubscription).where(
-            VIPSubscription.status == 1,
+            VIPSubscription.status == self.SUB_ACTIVE,
             VIPSubscription.expires_at <= now
         )
         result = await self.db.execute(stmt)
@@ -557,12 +569,12 @@ class MembershipService:
         count = 0
         expired_users = set()
         for sub in expired:
-            sub.status = 0  # 标记为过期
+            sub.status = self.SUB_EXPIRED  # 标记为过期
             expired_users.add(sub.user)
             # 检查用户是否有其他有效订阅
             other_stmt = select(VIPSubscription).where(
                 VIPSubscription.user == sub.user,
-                VIPSubscription.status == 1,
+                VIPSubscription.status == self.SUB_ACTIVE,
                 VIPSubscription.expires_at > now,
                 VIPSubscription.id != sub.id
             )

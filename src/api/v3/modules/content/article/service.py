@@ -350,6 +350,7 @@ class ArticleService:
         article_id: int,
         *,
         language_code: Optional[str] = None,
+        viewer: Optional[Any] = None,
     ) -> dict:
         article = await article_crud.get(db, article_id)
         if (
@@ -359,7 +360,8 @@ class ArticleService:
             or (article.scheduled_publish_at and article.scheduled_publish_at > datetime.now())
         ):
             raise NotFoundError("文章不存在或未发布")
-        return await self.get_article(db, article_id, language_code=language_code)
+        data = await self.get_article(db, article_id, language_code=language_code)
+        return await self.apply_vip_gate(db, data, viewer)
 
     async def public_detail_by_slug(
         self,
@@ -367,6 +369,7 @@ class ArticleService:
         slug: str,
         *,
         language_code: Optional[str] = None,
+        viewer: Optional[Any] = None,
     ) -> dict:
         article = await article_crud.get_by(db, slug=slug)
         if (
@@ -376,7 +379,45 @@ class ArticleService:
             or (article.scheduled_publish_at and article.scheduled_publish_at > datetime.now())
         ):
             raise NotFoundError("文章不存在或未发布")
-        return await self.get_article(db, article.id, language_code=language_code)
+        data = await self.get_article(db, article.id, language_code=language_code)
+        return await self.apply_vip_gate(db, data, viewer)
+
+    async def apply_vip_gate(self, db: AsyncSession, data: dict, viewer: Optional[Any]) -> dict:
+        """VIP 内容闸门：**未授权者拿不到正文**（只给摘要 + ``locked`` 标记）
+
+        规则（``is_vip_only`` 为真时）：
+
+          - 作者本人：始终可读（否则作者无法预览自己的付费文章）；
+          - 登录且 VIP 等级 >= ``required_vip_level``（最低按 1 算）：可读；
+          - 其余（含匿名 / SSR 首屏）：``content`` 置空、``locked = True``，
+            但**保留摘要与元信息**（SEO 与"引导开通 VIP"都靠它）。
+
+        正文由 ``GET /api/v3/mobile/article/{article_id}/content`` 在授权后单独下发。
+        """
+        data.setdefault("locked", False)
+        if not data.get("is_vip_only"):
+            return data
+
+        # `is_vip_only=True` 但等级留 0 表示"任何 VIP 等级即可"，对外统一成 1
+        required = max(int(data.get("required_vip_level") or 0), 1)
+        data["required_vip_level"] = required
+
+        if viewer is not None and getattr(viewer, "id", None) == data.get("user_id"):
+            return data
+
+        allowed = False
+        if viewer is not None:
+            from shared.services.core.membership import create_membership_service
+
+            verdict = await create_membership_service(db).check_content_access(
+                viewer.id, int(data.get("id") or 0), required
+            )
+            allowed = bool(verdict.get("has_access"))
+
+        if not allowed:
+            data["content"] = None
+            data["locked"] = True
+        return data
 
     async def increment_views(self, db: AsyncSession, article_id: int) -> int:
         """浏览量 +1，返回新值（前台调用，无需登录）"""

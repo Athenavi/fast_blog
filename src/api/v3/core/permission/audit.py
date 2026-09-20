@@ -88,6 +88,12 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     # ---- tipping（批次 14）：仅认证且只操作本人 ----
     ("POST", "/api/v3/commerce/tipping/tip"): "发起打赏（仅认证；打赏者就是当前用户，下单失败会置 failed）",
     ("POST", "/api/v3/commerce/tipping/withdraw"): "申请提现（仅认证；服务端按已结算收益校验可提现余额）",
+    # ---- mobile/vip（批次 16）：仅认证且只操作本人 ----
+    ("POST", "/api/v3/mobile/vip/create-payment"): "本人开通/续费 VIP（仅认证；金额只按套餐价格取，不接受外部传入）",
+    ("POST", "/api/v3/mobile/vip/my-subscription/cancel"): "取消本人订阅（仅认证；只能取消当前生效的那条）",
+    # ---- mobile/vip（批次 16）：网关回调，靠插件验签而不是权限码 ----
+    ("POST",
+     "/api/v3/mobile/vip/callback/{provider}"): "VIP 支付网关回调（公开；由 payment-gateway 插件验签，验签不过不开通订阅）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

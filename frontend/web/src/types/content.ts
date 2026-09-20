@@ -17,6 +17,12 @@ export interface ArticleItem {
   views?: number
   likes?: number
   is_top?: boolean
+  /** 仅 VIP 可见（批次 16）：正文由带授权的正文端点下发 */
+  is_vip_only?: boolean
+  /** 所需 VIP 等级 */
+  required_vip_level?: number
+  /** 服务端判定"当前请求者读不到正文"（未登录 / 等级不足） */
+  locked?: boolean
   created_at?: string | null
   updated_at?: string | null
   published_at?: string | null

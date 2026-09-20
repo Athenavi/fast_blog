@@ -6,8 +6,10 @@
    不符返回 404（不泄露存在性）。
 2. **只能存草稿**：创建时强制 ``status = STATUS_DRAFT``；更新时**忽略**任何改状态的企图。
    发布走后台 ``/content/article/{id}/publish``，即"投稿 → 审核 → 发布"的分离。
-3. **管理字段归零**：`is_featured` / `is_sticky` / `hidden` / `is_vip_only` /
-   `required_vip_level` / `sort_order` 一律由服务端设定，前台无法自助设置。
+3. **管理字段归零**：`is_featured` / `is_sticky` / `hidden` / `sort_order`
+   一律由服务端设定，前台无法自助设置。
+   **例外**：`is_vip_only` / `required_vip_level` 是内容属性（2026-09-20 批次 16 放开），
+   作者可以把自己的稿件标为"仅 VIP 可见"并指定所需等级。
 
 另有前台点赞（``toggle_like`` / ``like_status``）：仅认证用户可写，
 per-user 表去重，不允许刷赞。
@@ -21,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article.article import Article
 from shared.models.article.article_like import ArticleLike
-from src.api.v3.core.exceptions import NotFoundError
+from src.api.v3.core.exceptions import ForbiddenError, NotFoundError
 from src.api.v3.modules.content.article.crud import article_crud
 from src.api.v3.modules.content.article.schema import ArticleCreate, ArticleUpdate
 from src.api.v3.modules.content.article.service import (
@@ -76,14 +78,15 @@ class MobileArticleService:
                 category_id=payload.category_id,
                 tags=list(payload.tags or []),
                 language_code=payload.language_code,
+                # ---- VIP 内容属性：作者可自助设置（批次 16 放开）----
+                is_vip_only=bool(payload.is_vip_only),
+                required_vip_level=int(payload.required_vip_level or 0),
                 # ---- 以下为强制性默认，前台无权设置 ----
                 status=STATUS_DRAFT,
                 post_type="article",
                 hidden=False,
                 is_featured=False,
                 is_sticky=False,
-                is_vip_only=False,
-                required_vip_level=0,
                 sort_order=0,
             ),
             user_id=user.id,
@@ -119,6 +122,37 @@ class MobileArticleService:
         if article is None or article.user != user.id:
             raise NotFoundError("文章不存在")
         return article
+
+    # ------------------------------------------------------------ VIP 正文
+    async def gated_content(
+        self, db: AsyncSession, user, article_id: int, *, language_code: Optional[str] = None
+    ) -> dict:
+        """VIP 文章的正文（仅登录；等级达标或作者本人可读）
+
+        公开详情对 VIP 文章**不下发正文**（见 ``article_service.apply_vip_gate``）：
+        匿名 / SSR 首屏只会拿到摘要 + ``locked=True``，客户端拿到该标记后
+        再带 token 调本端点取全文。
+        """
+        article = await self._public_or_404(db, article_id)
+        required = 0
+        if article.is_vip_only:
+            required = max(int(article.required_vip_level or 0), 1)
+            if article.user != user.id:
+                from shared.services.core.membership import create_membership_service
+
+                verdict = await create_membership_service(db).check_content_access(
+                    user.id, article_id, required
+                )
+                if not verdict.get("has_access"):
+                    raise ForbiddenError(f"需要 VIP 等级 {required} 才能阅读该文章")
+
+        data = await article_service.get_article(db, article_id, language_code=language_code)
+        return {
+            "article_id": article_id,
+            "is_vip_only": bool(article.is_vip_only),
+            "required_vip_level": required,
+            "content": data.get("content"),
+        }
 
     # ------------------------------------------------------------ 点赞
     async def _public_or_404(self, db: AsyncSession, article_id: int) -> Article:

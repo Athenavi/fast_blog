@@ -31,7 +31,7 @@ from fastapi import APIRouter, Query
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
-from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
+from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser, PageDep
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.article.schema import (
@@ -72,19 +72,29 @@ async def public_articles(
 async def public_article_detail(
     article_id: int,
     db: DBSession,
+    viewer: OptionalUser,
     language_code: Optional[str] = Query(default=None),
 ) -> dict:
-    return resp.success(await article_service.public_detail(db, article_id, language_code=language_code))
+    """VIP 文章（`is_vip_only`）对未授权者**不返回正文**（`locked=True` + 摘要）"""
+    return resp.success(
+        await article_service.public_detail(
+            db, article_id, language_code=language_code, viewer=viewer
+        )
+    )
 
 
 @router.get("/public/slug/{slug}", response_model=ResponseModel, summary="按 slug 取公开详情")
 async def public_article_by_slug(
     slug: str,
     db: DBSession,
+    viewer: OptionalUser,
     language_code: Optional[str] = Query(default=None),
 ) -> dict:
+    """同上：VIP 文章只给摘要，正文要走带授权的正文端点"""
     return resp.success(
-        await article_service.public_detail_by_slug(db, slug, language_code=language_code)
+        await article_service.public_detail_by_slug(
+            db, slug, language_code=language_code, viewer=viewer
+        )
     )
 
 

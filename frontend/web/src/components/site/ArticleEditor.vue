@@ -30,6 +30,9 @@ const form = reactive({
   category_id: undefined as number | undefined,
   tags: [] as string[],
   content: '',
+  // VIP 可见性（内容属性，批次 16 起作者可自助设置；status 等管理字段仍不接受）
+  is_vip_only: false,
+  required_vip_level: 0,
 })
 
 const tagInput = ref('')
@@ -65,6 +68,8 @@ async function loadArticle(): Promise<void> {
       category_id: detail.category_id ?? undefined,
       tags: [...(detail.tags ?? [])],
       content: detail.content ?? '',
+      is_vip_only: Boolean(detail.is_vip_only),
+      required_vip_level: detail.required_vip_level ?? 0,
     })
   } catch {
     error.value = '加载文章失败，可能不存在或不属于你'
@@ -126,6 +131,8 @@ async function save(): Promise<void> {
       category_id: form.category_id ?? null,
       tags: form.tags,
       content: form.content,
+      is_vip_only: form.is_vip_only,
+      required_vip_level: Number(form.required_vip_level) || 0,
     }
 
     const saved = isEdit.value
@@ -225,6 +232,19 @@ onMounted(async () => {
           >
             {{ tag }} ×
           </button>
+        </div>
+      </div>
+
+      <!-- VIP 可见性：内容属性，作者可自助设置（发布仍走后台审核） -->
+      <div class="rounded-card border border-line bg-surface-soft p-3">
+        <label class="flex items-center gap-2 text-sm text-fg">
+          <input v-model="form.is_vip_only" type="checkbox">
+          {{ $t('myPosts.vipOnly') }}
+        </label>
+        <div v-if="form.is_vip_only" class="mt-2 flex flex-wrap items-center gap-2">
+          <span class="text-sm text-fg-muted">{{ $t('myPosts.requiredVipLevel') }}</span>
+          <Input v-model="form.required_vip_level" class="w-20" inputmode="numeric" type="number"/>
+          <span class="text-xs text-fg-subtle">{{ $t('myPosts.vipHint') }}</span>
         </div>
       </div>
 

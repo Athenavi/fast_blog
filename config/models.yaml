@@ -2183,7 +2183,7 @@ models:
       status:
         type: bigint
         default: 0
-        description: 状态
+        description: 状态（0=进行中 / 1=已过期 / 2=已取消；与 marketing/vip 及前端展示一致）
         index: true
       payment_amount:
         type: number
@@ -2201,6 +2201,69 @@ models:
     module: vip
     orm: true
     table: vip_subscriptions
+  VipPaymentOrder:
+    description: VIP 支付订单（自助开通）
+    fields:
+      user_id:
+        type: bigint
+        required: true
+        description: 下单用户 ID
+        foreignKey: User
+      plan_id:
+        type: bigint
+        required: true
+        description: 套餐 ID
+        foreignKey: VIPPlan
+      amount:
+        type: number
+        required: true
+        description: 应付金额（**单位：元**，与 vip_plans.price 一致）
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: 状态（pending/paid/failed；paid 必须经支付插件验签回调）
+      order_no:
+        type: string
+        maxLength: 64
+        description: 本地订单号（唯一）
+      provider:
+        type: string
+        maxLength: 32
+        nullable: true
+        description: 支付渠道（alipay/wechat/stripe…）
+      transaction_id:
+        type: string
+        maxLength: 128
+        nullable: true
+        description: 支付网关交易号
+      paid_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 支付时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    indexes:
+      - name: idx_vip_payment_orders_order_no
+        columns:
+          - order_no
+        comment: 本地订单号唯一索引
+      - name: idx_vip_payment_orders_user_status
+        columns:
+          - user_id
+          - status
+        comment: 下单用户+状态索引
+    comment: VIP 自助开通的支付订单（未付款不会写进 vip_subscriptions）
+    module: vip
+    orm: true
+    table: vip_payment_orders
   VIPFeature:
     description: VIP 功能特权模型
     status: active

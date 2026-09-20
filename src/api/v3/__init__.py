@@ -80,6 +80,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "message",
         "revenue",
         "user",
+        # 批次 16：前台 VIP 自助（订阅 / 开通 / 付费内容）
+        "vip",
     ),
     # T5-11 批次 4：AI 能力与群聊（表 ai_configs/ai_workflows、chat_groups 已存在）
     "/ai": ("config", "workflow"),
