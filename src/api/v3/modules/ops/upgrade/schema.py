@@ -43,6 +43,10 @@ class UpgradeStatusOut(SchemaBase):
     current_version: str = ""
     app_path: str = ""
     in_progress: bool = False
+    #: 正在执行的目标版本（in_progress=True 时有值）
+    in_progress_target: Optional[str] = None
+    #: 最近一次执行/回滚的结果（进程内保留；多 worker 下只反映本 worker）
+    last_result: Optional[dict] = None
     history: list[UpgradeHistoryItem] = Field(default_factory=list)
 
 
@@ -70,3 +74,86 @@ class UpgradeApplyOut(SchemaBase):
     dry_run: bool = True
     ready: bool = False
     checks: list[UpgradeCheckItem] = Field(default_factory=list)
+
+
+class UpgradeStepOut(SchemaBase):
+    """真实执行的单步结果"""
+
+    step: str
+    ok: bool
+    detail: str = ""
+
+
+class UpgradeExecutePayload(SchemaBase):
+    """POST /execute 请求体：**真实升级**（改文件、跑迁移、可选重启）"""
+
+    target_version: str = Field(min_length=1, max_length=64)
+    confirm: bool = Field(
+        default=False,
+        description="必须显式传 true 才会真正执行（防止误触；替换是写文件操作）",
+    )
+    run_migration: bool = Field(default=True, description="替换后执行 alembic upgrade head")
+    clear_cache: bool = Field(default=True, description="替换后清理 storage/cache")
+
+
+class UpgradeExecuteOut(SchemaBase):
+    """真实执行 / 回滚的结果"""
+
+    dry_run: bool = False
+    ok: bool = False
+    from_version: str = ""
+    target_version: str = ""
+    backup_id: Optional[str] = None
+    files_replaced: int = 0
+    skipped: int = 0
+    need_restart: bool = True
+    restart_detail: Optional[str] = None
+    steps: list[UpgradeStepOut] = Field(default_factory=list)
+
+
+class UpgradePlanOut(SchemaBase):
+    """执行预演：包里哪些文件会被替换、哪些被跳过"""
+
+    target_version: str
+    package: str = ""
+    package_detail: str = ""
+    will_replace_count: int = 0
+    skipped_count: int = 0
+    will_replace: list[str] = Field(default_factory=list)
+    skipped: list[str] = Field(default_factory=list)
+    collisions_with_protected: list[str] = Field(default_factory=list)
+
+
+class UpgradeBackupItem(SchemaBase):
+    """本地升级备份"""
+
+    backup_id: str
+    from_version: Optional[str] = None
+    target_version: Optional[str] = None
+    created_at: Optional[str] = None
+    files: int = 0
+    path: str = ""
+
+
+class UpgradeRollbackPayload(SchemaBase):
+    """POST /rollback 请求体"""
+
+    backup_id: str = Field(min_length=1, max_length=128)
+    confirm: bool = False
+
+
+class UpgradeSettingsPayload(SchemaBase):
+    """PUT /settings 请求体：升级后重启命令（真实执行的 shell 命令）"""
+
+    restart_command: Optional[str] = Field(
+        default=None,
+        max_length=500,
+        description="替换成功后执行的重启命令（如 docker compose restart backend）；留空表示不自动重启",
+    )
+
+
+class UpgradeSettingsOut(SchemaBase):
+    """GET /settings 响应体"""
+
+    restart_command: Optional[str] = None
+    configured: bool = False
