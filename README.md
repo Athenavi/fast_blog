@@ -25,7 +25,7 @@
 
 FastBlog 是一套可自托管的博客 / 内容管理系统：
 
-- **后端**：FastAPI + SQLAlchemy 2（async）+ PostgreSQL + Redis，共 **11 个业务域 / 73 个模块 / 655 条 API**，统一挂在
+- **后端**：FastAPI + SQLAlchemy 2（async）+ PostgreSQL + Redis，共 **11 个业务域 / 73 个模块 / 657 条 API**，统一挂在
   `/api/v3` 下；
 - **前端**：Nuxt 4.5 **单工程**同时提供博客前台（SSR，面向 SEO）与管理后台（CSR，Element Plus）；
 - **开箱能力**：权限体系（角色 / 权限码 / 用户组 / 数据范围）、插件与主题、多平台内容发布、备份与在线升级、

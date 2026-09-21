@@ -98,10 +98,14 @@ async function loadStats(): Promise<void> {
   }
 }
 
+/** 首屏加载失败（用于展示错误态与重试） */
+const failed = ref(false)
+
 /** 无限滚动：第一页替换，后续页追加 */
 async function loadList(reset = true): Promise<void> {
   loading.value = true
   try {
+    failed.value = false
     if (reset) page.value = 1
     const data = await mobileApi.mediaList({
       page: page.value,
@@ -113,6 +117,9 @@ async function loadList(reset = true): Promise<void> {
     total.value = data.total
     const ids = new Set(list.value.map((item) => item.id))
     selected.value = selected.value.filter((id) => ids.has(id))
+  } catch {
+    failed.value = true
+    if (reset) list.value = []
   } finally {
     loading.value = false
   }
@@ -394,7 +401,10 @@ onMounted(refresh)
           </label>
         </div>
 
+        <ErrorState v-if="failed && !list.length" class="mt-6" @retry="loadList(true)"/>
+
         <InfiniteList
+          v-else
           :columns="4"
           :has-more="hasMore"
           :is-loading="loading"

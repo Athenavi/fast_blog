@@ -25,7 +25,7 @@
 
 FastBlog is a self-hostable blog / CMS:
 
-- **Backend**: FastAPI + SQLAlchemy 2 (async) + PostgreSQL + Redis — **11 domains / 73 modules / 655 API routes**, all
+- **Backend**: FastAPI + SQLAlchemy 2 (async) + PostgreSQL + Redis — **11 domains / 73 modules / 657 API routes**, all
   under `/api/v3`.
 - **Frontend**: a single **Nuxt 4.5** project serving both the public blog (SSR, SEO-oriented) and the admin console (
   CSR, Element Plus).

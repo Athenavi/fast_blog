@@ -117,7 +117,7 @@ npm run dev                    # http://localhost:5173，/api 代理到 :9421
 
 ### 4.4 API v3：域 → 模块
 
-路由前缀 `/api/v3/<domain>/<module>`，**11 个域 / 73 个模块**（实测 655 条路由），清单以
+路由前缀 `/api/v3/<domain>/<module>`，**11 个域 / 73 个模块**（实测 657 条路由），清单以
 `src/api/v3/__init__.py::DOMAIN_MODULES` 为唯一事实来源：
 
 | 域               | 模块数 | 模块                                                                                                                                            |
