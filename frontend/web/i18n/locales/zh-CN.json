@@ -1451,7 +1451,11 @@
         "unpublished": "已取消发布",
         "publish": "发布",
         "unpublish": "取消发布",
-        "viewPublic": "查看前台"
+        "viewPublic": "查看前台",
+        "desc": "管理站点结构页面（可带层级与模板）：标题、slug、模板、排序与 SEO，支持批量删除。",
+        "emptyTitle": "暂无页面",
+        "emptyDesc": "还没有创建任何独立页面。",
+        "emptyFiltered": "没有符合当前条件的页面"
       },
       "tag": {
         "enterANewTagName": "请填写新的标签名",
@@ -1574,7 +1578,9 @@
         "slugRequired": "请填写 Slug",
         "deleteConfirm": "确定删除页面「{name}」吗？",
         "emptyTitle": "还没有搭建页面",
-        "emptyDesc": "用区块搭出第一张页面，然后发布"
+        "emptyDesc": "用区块搭出第一张页面，然后发布",
+        "desc": "用可视化区块搭建页面：标题、slug、模板与发布状态；区块编辑在抽屉中完成。",
+        "emptyFiltered": "没有符合当前条件的页面"
       },
       "collaboration": {
         "title": "标题",

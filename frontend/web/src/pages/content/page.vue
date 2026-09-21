@@ -6,10 +6,12 @@ const {t} = useI18n()
  * 对齐 v3：`/content/page`。字段见 `PagePayload`；
  * 状态与文章一致（0 草稿 / 1 已发布），文案复用 `pageStatusKey` / `pageStatusTag`。
  */
-import {Delete, Edit, Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Delete, Edit, Plus} from '@element-plus/icons-vue'
 import {reactive, ref} from 'vue'
 
 import {pageApi, type PageItem, type PagePayload} from '@/api'
+import type {PageQuery} from '@/api/types'
+import {useAdminList} from '@/composables/useAdminList'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {formatDateTime, pageStatusKey, pageStatusTag} from '@/utils/format'
 
@@ -27,41 +29,19 @@ const STATUS_OPTIONS = computed(() => [
 ])
 
 // ---------------------------------------------------------------- 列表
-const loading = ref(false)
-const list = ref<PageItem[]>([])
-const total = ref(0)
-const page = ref(1)
-const pageSize = ref(20)
-const selection = ref<PageItem[]>([])
-
-const query = reactive({
-  keyword: undefined as string | undefined,
-  status: undefined as number | undefined,
-})
-
-const parentOptions = ref<PageItem[]>([])
-
-async function load(): Promise<void> {
-  loading.value = true
-  try {
-    const result = await pageApi.list({
-      page: page.value,
-      page_size: pageSize.value,
-      keyword: query.keyword || undefined,
-      ...(query.status === undefined ? {} : {status: query.status}),
-    })
-    list.value = result.items ?? []
-    total.value = result.total ?? 0
-  } catch {
-    // 错误提示由 request 拦截器统一处理，这里只保证表格状态干净
-    list.value = []
-    total.value = 0
-  } finally {
-    loading.value = false
-  }
+interface PageQueryForm extends PageQuery {
+  status?: number
 }
 
+const list = useAdminList<PageItem, PageQueryForm>({
+  fetcher: (params) => pageApi.list(params),
+  defaultQuery: {keyword: undefined, status: undefined},
+  syncUrl: true,
+})
+
 /** 父页面候选：一次拉 200 条，编辑时排除自身（后端仍会做深层校验） */
+const parentOptions = ref<PageItem[]>([])
+
 async function loadParentOptions(): Promise<void> {
   try {
     const result = await pageApi.list({page: 1, page_size: 200})
@@ -69,32 +49,6 @@ async function loadParentOptions(): Promise<void> {
   } catch {
     parentOptions.value = []
   }
-}
-
-function search(): void {
-  page.value = 1
-  void load()
-}
-
-function reset(): void {
-  query.keyword = undefined
-  query.status = undefined
-  search()
-}
-
-function onPageChange(next: number): void {
-  page.value = next
-  void load()
-}
-
-function onSizeChange(size: number): void {
-  pageSize.value = size
-  page.value = 1
-  void load()
-}
-
-function onSelectionChange(rows: PageItem[]): void {
-  selection.value = rows
 }
 
 // ---------------------------------------------------------------- 新建 / 编辑
@@ -165,7 +119,7 @@ async function submitForm(): Promise<void> {
       ElMessage.success(t('admin.content.page.created'))
     }
     dialogVisible.value = false
-    await Promise.all([load(), loadParentOptions()])
+    await Promise.all([list.reload(), loadParentOptions()])
   } finally {
     saving.value = false
   }
@@ -176,7 +130,7 @@ async function togglePublish(row: PageItem): Promise<void> {
   const next = row.status !== 1
   await pageApi.publish(row.id, next)
   ElMessage.success(next ? t('admin.content.page.published') : t('admin.content.page.unpublished'))
-  await load()
+  await list.reload()
 }
 
 async function removeRow(row: PageItem): Promise<void> {
@@ -187,21 +141,22 @@ async function removeRow(row: PageItem): Promise<void> {
   )
   await pageApi.remove(row.id)
   ElMessage.success(t('admin.content.page.deleted'))
-  if (list.value.length === 1 && page.value > 1) page.value -= 1
-  await load()
+  // 删掉本页最后一条时回退一页，避免停在空页
+  if (list.rows.value.length === 1 && list.page.value > 1) list.page.value -= 1
+  await list.reload()
 }
 
 async function removeSelected(): Promise<void> {
-  if (!selection.value.length) return
+  if (!list.selectedCount.value) return
   await ElMessageBox.confirm(
-    t('admin.content.page.deleteSelectedConfirm', {n: selection.value.length}),
+    t('admin.content.page.deleteSelectedConfirm', {n: list.selectedCount.value}),
     t('admin.common.notice'),
     {type: 'warning'},
   )
-  await pageApi.batchDelete(selection.value.map((item) => item.id))
+  await pageApi.batchDelete(list.selectedIds.value)
   ElMessage.success(t('admin.content.page.deleted'))
-  selection.value = []
-  await load()
+  list.clearSelection()
+  await list.reload()
 }
 
 /** 已发布且有 slug 的页面可直接打开前台链接（前台路由为 /p/{slug}） */
@@ -209,44 +164,58 @@ function publicUrl(row: PageItem): string {
   return row.slug ? `/p/${row.slug}` : ''
 }
 
-onMounted(() => {
-  void load()
-  void loadParentOptions()
-})
+onMounted(loadParentOptions)
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <el-form :inline="true" @submit.prevent="search()">
+  <AdminPage :desc="$t('admin.content.page.desc')" :title="$t('admin.content.page.pageManagement')">
+    <AdminListShell
+      :empty-desc="list.hasFilters.value
+        ? $t('admin.content.page.emptyFiltered')
+        : $t('admin.content.page.emptyDesc')"
+      :empty-title="$t('admin.content.page.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :rows="list.rows.value"
+      :selection-count="list.selectedCount.value"
+      :total="list.total.value"
+      @refresh="list.reload"
+      @reset="list.reset"
+      @search="list.search"
+      @clear-selection="list.clearSelection"
+      @page-change="list.onPageChange"
+      @selection-change="list.onSelectionChange"
+      @size-change="list.onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.content.page.keyword')">
           <el-input
-            v-model="query.keyword"
-            :placeholder="$t('admin.content.page.keywordPlaceholder')"
+            v-model="list.query.keyword"
             clearable
+            :placeholder="$t('admin.content.page.keywordPlaceholder')"
             style="width: 200px"
-            @keyup.enter="search()"
+            @keyup.enter="list.search()"
           />
         </el-form-item>
         <el-form-item :label="$t('admin.common.status')">
-          <el-select v-model="query.status" :placeholder="$t('admin.common.all')" clearable style="width: 130px">
+          <el-select v-model="list.query.status" :placeholder="$t('admin.common.all')" clearable style="width: 130px">
             <el-option v-for="option in STATUS_OPTIONS" :key="option.value" :label="option.label"
                        :value="option.value"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <div class="table-toolbar">
+      <template #actions>
         <el-button v-auth="'module_content:page:create'" :icon="Plus" type="primary" @click="openCreate()">
           {{ $t('admin.content.page.createTitle') }}
         </el-button>
+      </template>
+
+      <template #bulk>
         <el-button
           v-auth="'module_content:page:delete'"
-          :disabled="!selection.length"
           :icon="Delete"
           plain
           type="danger"
@@ -254,68 +223,52 @@ onMounted(() => {
         >
           {{ $t('admin.content.page.deleteSelected') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <el-table v-loading="loading" :data="list" border stripe @selection-change="onSelectionChange">
-        <el-table-column type="selection" width="46"/>
-        <el-table-column label="ID" prop="id" width="70"/>
-        <el-table-column :label="$t('admin.content.page.title')" min-width="200" prop="title"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.content.page.slug')" min-width="160" prop="slug"/>
-        <el-table-column :label="$t('admin.content.page.template')" width="140">
-          <template #default="{ row }">{{ row.template || '-' }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.status')" width="100">
-          <template #default="{ row }">
-            <el-tag :type="pageStatusTag(row.status)" size="small">
-              {{ $t(pageStatusKey(row.status)) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.content.page.orderIndex')" prop="order_index" width="90"/>
-        <el-table-column :label="$t('admin.common.updatedAt')" width="170">
-          <template #default="{ row }">{{ formatDateTime(row.updated_at) }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="330">
-          <template #default="{ row }">
-            <el-button v-auth="'module_content:page:edit'" :icon="Edit" link type="primary"
-                       @click="openEdit(row as PageItem)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_content:page:publish'" link type="primary"
-                       @click="togglePublish(row as PageItem)">
-              {{ row.status === 1 ? $t('admin.content.page.unpublish') : $t('admin.content.page.publish') }}
-            </el-button>
-            <el-link
-              v-if="row.status === 1 && publicUrl(row as PageItem)"
-              :href="publicUrl(row as PageItem)"
-              :underline="false"
-              class="row-link"
-              target="_blank"
-            >
-              {{ $t('admin.content.page.viewPublic') }}
-            </el-link>
-            <el-button v-auth="'module_content:page:delete'" :icon="Delete" link type="danger"
-                       @click="removeRow(row as PageItem)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+      <el-table-column label="ID" prop="id" width="70"/>
+      <el-table-column :label="$t('admin.content.page.title')" min-width="200" prop="title"
+                       show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.content.page.slug')" min-width="160" prop="slug"/>
+      <el-table-column :label="$t('admin.content.page.template')" width="140">
+        <template #default="{ row }">{{ row.template || '-' }}</template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.status')" width="100">
+        <template #default="{ row }">
+          <el-tag :type="pageStatusTag(row.status)" size="small">
+            {{ $t(pageStatusKey(row.status)) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.content.page.orderIndex')" prop="order_index" width="90"/>
+      <el-table-column :label="$t('admin.common.updatedAt')" width="170">
+        <template #default="{ row }">{{ formatDateTime(row.updated_at) }}</template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="330">
+        <template #default="{ row }">
+          <el-button v-auth="'module_content:page:edit'" :icon="Edit" link type="primary"
+                     @click="openEdit(row as PageItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_content:page:publish'" link type="primary"
+                     @click="togglePublish(row as PageItem)">
+            {{ row.status === 1 ? $t('admin.content.page.unpublish') : $t('admin.content.page.publish') }}
+          </el-button>
+          <el-link
+            v-if="row.status === 1 && publicUrl(row as PageItem)"
+            :href="publicUrl(row as PageItem)"
+            :underline="false"
+            class="row-link"
+            target="_blank"
+          >
+            {{ $t('admin.content.page.viewPublic') }}
+          </el-link>
+          <el-button v-auth="'module_content:page:delete'" :icon="Delete" link type="danger"
+                     @click="removeRow(row as PageItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
 
     <el-dialog
       v-model="dialogVisible"
@@ -383,7 +336,7 @@ onMounted(() => {
         <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
-  </div>
+  </AdminPage>
 </template>
 
 <style scoped>

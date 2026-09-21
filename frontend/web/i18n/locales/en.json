@@ -1451,7 +1451,11 @@
         "unpublished": "Unpublished",
         "publish": "Publish",
         "unpublish": "Unpublish",
-        "viewPublic": "View on site"
+        "viewPublic": "View on site",
+        "desc": "Manage structural pages (hierarchy and template aware): title, slug, template, order and SEO, with bulk delete.",
+        "emptyTitle": "No pages",
+        "emptyDesc": "No standalone page created yet.",
+        "emptyFiltered": "No pages match the current filters"
       },
       "tag": {
         "enterANewTagName": "Enter a new tag name",
@@ -1574,7 +1578,9 @@
         "slugRequired": "Please enter the slug",
         "deleteConfirm": "Delete page “{name}”?",
         "emptyTitle": "No built pages yet",
-        "emptyDesc": "Assemble your first page from blocks, then publish"
+        "emptyDesc": "Assemble your first page from blocks, then publish",
+        "desc": "Compose pages from visual blocks: title, slug, template and publish state; blocks are edited in a drawer.",
+        "emptyFiltered": "No pages match the current filters"
       },
       "collaboration": {
         "title": "Title",

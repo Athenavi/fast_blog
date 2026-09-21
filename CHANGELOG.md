@@ -94,6 +94,22 @@
         判定为**不适用**列表壳，保持原结构
   - **至此 B 第 1 小批（system 16 + ops 10 = 26 页）全部处理完毕**：
     20 页迁移到 `AdminPage` + `AdminListShell`（含 6 个双列表/多列表页），6 页判定为不适用并给出理由
+
+### B 第 2 小批（content + extension）
+
+- `content/page` 迁移到 `AdminPage` + `AdminListShell`：筛选（关键词 / 状态）入 URL，批量删除移入列表壳的
+  批量条，空态区分「无数据」与「筛选无结果」；`failed` 由列表壳统一给出错误态与重试
+- `content/page-builder` 迁移到列表壳：筛选（关键词 / 发布状态）入 URL，页内的骨架/空态/`<el-table>`/
+  分页全部交给列表壳，页面只保留**列定义**与区块编辑抽屉；`failed` 由列表壳统一处理
+- **判定为不套列表壳**（保持原结构）：
+    - `content/category`：树形结构 + 原生拖拽排序，不是「筛选 + 分页表格」；外观已由骨架/空态统一
+    - `content/media`：文件夹侧栏 + 网格/列表**双视图** + 详情抽屉，列表壳只覆盖其中一种视图；
+      该页已使用 `useAdminList`，URL 同步 / 三态 / 统一工具条均已具备
+    - `content/article/[id]`：文章编辑页，非列表
+- 剩余待迁移（均为大页面，解构形式不一）：`content/page-builder`（无前缀解构）、
+  `content/collaboration`（重命名解构，多列表）、`content/third-party-publish`（直接持有
+  `useTable` 返回值，模板走 `x.list.value`）、`extension/block-patterns`、`extension/plugin`、
+  `extension/theme`、`extension/widget`
 - **样式块内的硬编码色收口**（补 A 包的遗漏）：上一轮只替换了 Tailwind 类名，**没有覆盖 `<style>` 块**。
   实测 8 个文件存在不随主题变化的固定色值，共 **25 处**——`#f5f7fa` / `#fafcff`（浅底）、`#909399` /
   `#6b7280` / `#9ca3af` / `#606266`（灰字）、`#409eff`（主色）、`#ebeef5`（边框）等，在暗色模式下会露出

@@ -6,14 +6,14 @@
  * 页面骨架与 system/sensitive-words 页一致：搜索区 + 表格 + 抽屉表单。
  * v1 不做可视化拖拽（可视化编辑器二期），抽屉内提供结构化块管理 + 源码模式两种编辑方式。
  */
-import {Bottom, Delete, EditPen, Plus, Refresh, Search, Top} from '@element-plus/icons-vue'
+import {Bottom, Delete, EditPen, Plus, Top} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
 // 临时直接从模块导入（api/index.ts 聚合导出由主 agent 统一登记）
 import {pageBuilderApi, type PageBuilderItem} from '@/api/modules/pageBuilder'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -29,23 +29,25 @@ interface PageBuilderQueryForm extends PageQuery {
   is_published?: boolean
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-} = useTable<PageBuilderItem, PageBuilderQueryForm>({
+const builderState = useAdminList<PageBuilderItem, PageBuilderQueryForm>({
   fetcher: (params) => pageBuilderApi.list(params),
   defaultQuery: {keyword: '', is_published: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const list = builderState.rows
+const loading = builderState.loading
+const failed = builderState.failed
+const total = builderState.total
+const page = builderState.page
+const pageSize = builderState.pageSize
+const query = builderState.query
+const search = builderState.search
+const reset = builderState.reset
+const load = builderState.reload
+const onPageChange = builderState.onPageChange
+const onSizeChange = builderState.onSizeChange
 
 // ---- 新建 / 编辑 ----
 const formVisible = ref(false)
@@ -261,10 +263,26 @@ function saveBlock() {
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <!-- 搜索区 -->
-      <el-form :inline="true" :model="query" @submit.prevent="search()">
+  <AdminPage :desc="$t('admin.content.pageBuilder.desc')" :title="$t('admin.content.pageBuilder.title')">
+    <AdminListShell
+      :empty-desc="builderState.hasFilters.value
+        ? $t('admin.content.pageBuilder.emptyFiltered')
+        : $t('admin.content.pageBuilder.emptyDesc')"
+      :empty-title="$t('admin.content.pageBuilder.emptyTitle')"
+      :failed="failed"
+      :loading="loading"
+      :page="page"
+      :page-size="pageSize"
+      :rows="list"
+      :selectable="false"
+      :total="total"
+      @refresh="load()"
+      @reset="reset()"
+      @search="search()"
+      @page-change="onPageChange"
+      @size-change="onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.content.pageBuilder.keyword')">
           <el-input
             v-model="query.keyword"
@@ -280,29 +298,13 @@ function saveBlock() {
             <el-option :label="$t('admin.content.pageBuilder.unpublished')" :value="false"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <!-- 操作区 -->
-      <div class="table-toolbar">
+      <template #actions>
         <el-button v-auth="'module_content:page_builder:create'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.content.pageBuilder.createTitle') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
-
-      <!-- 表格 -->
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-      <AdminEmpty
-        v-else-if="!loading && !list.length"
-        :desc="$t('admin.content.pageBuilder.emptyDesc')"
-        :title="$t('admin.content.pageBuilder.emptyTitle')"
-      />
-
-      <el-table v-else v-loading="loading" :data="list" border stripe>
+      </template>
         <el-table-column :label="$t('admin.content.pageBuilder.pageTitle')" min-width="160" prop="title"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.content.pageBuilder.slug')" min-width="140" prop="slug"
@@ -347,21 +349,7 @@ function saveBlock() {
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+    </AdminListShell>
 
     <!-- 新建 / 编辑 -->
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="560px">
@@ -454,7 +442,7 @@ function saveBlock() {
         <el-button type="primary" @click="saveBlock">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
-  </div>
+  </AdminPage>
 </template>
 
 <style scoped>
