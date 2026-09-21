@@ -10,7 +10,7 @@ import {computed, reactive, ref} from 'vue'
 
 import {formApi, type FormFieldItem, type FormItem, type FormSubmissionItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -23,7 +23,7 @@ const {t} = useI18n()
 const activeTab = ref('forms')
 
 // ---- 表单 ----
-const formTable = useTable<FormItem>({fetcher: (params) => formApi.list(params)})
+const formTable = useAdminList<FormItem>({fetcher: (params) => formApi.list(params)})
 
 const formFormVisible = ref(false)
 const formEditingId = ref<number | null>(null)
@@ -80,7 +80,7 @@ async function submitForm() {
     } else {
       await formApi.create({title: formForm.title.trim(), slug: formForm.slug.trim()})
       // 新建后仅写基本字段；其余随编辑保存
-      const list = formTable.list.value
+      const list = formTable.rows.value
       const created = list[list.length - 1]
       if (created) {
         await formApi.update(created.id, {
@@ -95,7 +95,7 @@ async function submitForm() {
     }
     ElMessage.success(t('admin.common.save'))
     formFormVisible.value = false
-    await formTable.load()
+    await formTable.reload()
   } finally {
     formSaving.value = false
   }
@@ -105,7 +105,7 @@ async function deleteForm(row: FormItem) {
   await ElMessageBox.confirm(t('admin.marketing.form.deleteFormConfirm'), t('admin.common.notice'), {type: 'warning'})
   await formApi.remove(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await formTable.load()
+  await formTable.reload()
 }
 
 // ---- 字段 ----
@@ -209,7 +209,7 @@ interface SubQueryForm extends PageQuery {
   form_id?: number
 }
 
-const subTable = useTable<FormSubmissionItem, SubQueryForm>({
+const subTable = useAdminList<FormSubmissionItem, SubQueryForm>({
   fetcher: (params) => formApi.submissions(params),
   defaultQuery: {form_id: undefined},
   syncUrl: true,
@@ -220,7 +220,7 @@ async function deleteSubmission(row: FormSubmissionItem) {
   await ElMessageBox.confirm(t('admin.marketing.form.deleteSubmissionConfirm'), t('admin.common.notice'), {type: 'warning'})
   await formApi.removeSubmission(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await subTable.load()
+  await subTable.reload()
 }
 </script>
 
@@ -236,11 +236,18 @@ async function deleteSubmission(row: FormSubmissionItem) {
             </el-button>
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: formTable.total.value}) }}</span>
           </div>
-          <AdminTableSkeleton v-if="formTable.loading.value && !formTable.list.value.length" :rows="5"/>
+          <AdminTableSkeleton v-if="formTable.loading.value && !formTable.rows.value.length" :rows="5"/>
 
-          <AdminEmpty v-else-if="!formTable.loading.value && !formTable.list.value.length"
-                      :title="$t('admin.common.empty')"/>
-          <el-table v-else v-loading="formTable.loading.value" :data="formTable.list.value" border stripe>
+          <AdminEmpty
+            v-else-if="!formTable.loading.value && !formTable.rows.value.length"
+            :title="formTable.failed.value ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="formTable.failed.value ? 'error' : 'default'"
+          >
+            <el-button v-if="formTable.failed.value" :icon="Refresh" @click="formTable.reload()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+          <el-table v-else v-loading="formTable.loading.value" :data="formTable.rows.value" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="140" prop="title"/>
             <el-table-column label="Slug" prop="slug" width="140"/>
             <el-table-column :label="$t('admin.common.status')" width="110">
@@ -294,7 +301,7 @@ async function deleteSubmission(row: FormSubmissionItem) {
               <el-button :icon="Refresh" @click="subTable.reset()">{{ $t('admin.common.reset') }}</el-button>
             </el-form-item>
           </el-form>
-          <el-table v-loading="subTable.loading.value" :data="subTable.list.value" border stripe>
+          <el-table v-loading="subTable.loading.value" :data="subTable.rows.value" border stripe>
             <el-table-column :label="$t('admin.marketing.form.formId')" prop="form_id" width="90"/>
             <el-table-column :label="$t('admin.marketing.form.submissionData')" min-width="260" show-overflow-tooltip>
               <template #default="{ row }">

@@ -19,7 +19,7 @@ import {
   type TaxConfigItem,
 } from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -46,23 +46,26 @@ function statusTag(status?: string | null): string {
 }
 
 // ---------------------------------------------------------------- 网关
-const {
-  list: gatewayList,
-  loading: gatewayLoading,
-  total: gatewayTotal,
-  page: gatewayPage,
-  pageSize: gatewayPageSize,
-  query: gatewayQuery,
-  search: gatewaySearch,
-  reset: gatewayReset,
-  load: gatewayLoad,
-  onPageChange: onGatewayPageChange,
-  onSizeChange: onGatewaySizeChange,
-} = useTable<PaymentGatewayItem, PageQuery & { provider?: string; is_active?: boolean }>({
+const gatewayState = useAdminList<PaymentGatewayItem, PageQuery & { provider?: string; is_active?: boolean }>({
+
   fetcher: (params) => paymentApi.listGateways(params),
   defaultQuery: {keyword: '', provider: '', is_active: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const gatewayList = gatewayState.rows
+const gatewayLoading = gatewayState.loading
+const gatewayTotal = gatewayState.total
+const gatewayPage = gatewayState.page
+const gatewayPageSize = gatewayState.pageSize
+const gatewayQuery = gatewayState.query
+const gatewaySearch = gatewayState.search
+const gatewayReset = gatewayState.reset
+const gatewayLoad = gatewayState.reload
+const onGatewayPageChange = gatewayState.onPageChange
+const onGatewaySizeChange = gatewayState.onSizeChange
+const gatewayFailed = gatewayState.failed
 
 const gatewayFormVisible = ref(false)
 const gatewayEditingId = ref<number | null>(null)
@@ -165,22 +168,25 @@ async function onDeleteGateway(row: PaymentGatewayItem) {
 }
 
 // ---------------------------------------------------------------- 交易
-const {
-  list: txList,
-  loading: txLoading,
-  total: txTotal,
-  page: txPage,
-  pageSize: txPageSize,
-  query: txQuery,
-  search: txSearch,
-  reset: txReset,
-  load: txLoad,
-  onPageChange: onTxPageChange,
-  onSizeChange: onTxSizeChange,
-} = useTable<PaymentTransactionItem, PageQuery & { status?: string; currency?: string }>({
+const txState = useAdminList<PaymentTransactionItem, PageQuery & { status?: string; currency?: string }>({
+
   fetcher: (params) => paymentApi.listTransactions(params),
   defaultQuery: {keyword: '', status: '', currency: ''},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const txList = txState.rows
+const txLoading = txState.loading
+const txTotal = txState.total
+const txPage = txState.page
+const txPageSize = txState.pageSize
+const txQuery = txState.query
+const txSearch = txState.search
+const txReset = txState.reset
+const txLoad = txState.reload
+const onTxPageChange = txState.onPageChange
+const onTxSizeChange = txState.onSizeChange
+const txFailed = txState.failed
 
 const txFormVisible = ref(false)
 const txEditingId = ref<number | null>(null)
@@ -274,22 +280,25 @@ async function onDeleteTx(row: PaymentTransactionItem) {
 }
 
 // ---------------------------------------------------------------- 加密支付
-const {
-  list: cryptoList,
-  loading: cryptoLoading,
-  total: cryptoTotal,
-  page: cryptoPage,
-  pageSize: cryptoPageSize,
-  query: cryptoQuery,
-  search: cryptoSearch,
-  reset: cryptoReset,
-  load: cryptoLoad,
-  onPageChange: onCryptoPageChange,
-  onSizeChange: onCryptoSizeChange,
-} = useTable<CryptoPaymentItem, PageQuery & { blockchain?: string; status?: string }>({
+const cryptoState = useAdminList<CryptoPaymentItem, PageQuery & { blockchain?: string; status?: string }>({
+
   fetcher: (params) => paymentApi.listCrypto(params),
   defaultQuery: {keyword: '', blockchain: '', status: ''},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const cryptoList = cryptoState.rows
+const cryptoLoading = cryptoState.loading
+const cryptoTotal = cryptoState.total
+const cryptoPage = cryptoState.page
+const cryptoPageSize = cryptoState.pageSize
+const cryptoQuery = cryptoState.query
+const cryptoSearch = cryptoState.search
+const cryptoReset = cryptoState.reset
+const cryptoLoad = cryptoState.reload
+const onCryptoPageChange = cryptoState.onPageChange
+const onCryptoSizeChange = cryptoState.onSizeChange
+const cryptoFailed = cryptoState.failed
 
 const cryptoFormVisible = ref(false)
 const cryptoEditingId = ref<number | null>(null)
@@ -389,22 +398,25 @@ async function onDeleteCrypto(row: CryptoPaymentItem) {
 }
 
 // ---------------------------------------------------------------- 税务配置
-const {
-  list: taxList,
-  loading: taxLoading,
-  total: taxTotal,
-  page: taxPage,
-  pageSize: taxPageSize,
-  query: taxQuery,
-  search: taxSearch,
-  reset: taxReset,
-  load: taxLoad,
-  onPageChange: onTaxPageChange,
-  onSizeChange: onTaxSizeChange,
-} = useTable<TaxConfigItem, PageQuery & { country?: string; tax_type?: string }>({
+const taxState = useAdminList<TaxConfigItem, PageQuery & { country?: string; tax_type?: string }>({
+
   fetcher: (params) => paymentApi.listTaxConfigs(params),
   defaultQuery: {keyword: '', country: '', tax_type: ''},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const taxList = taxState.rows
+const taxLoading = taxState.loading
+const taxTotal = taxState.total
+const taxPage = taxState.page
+const taxPageSize = taxState.pageSize
+const taxQuery = taxState.query
+const taxSearch = taxState.search
+const taxReset = taxState.reset
+const taxLoad = taxState.reload
+const onTaxPageChange = taxState.onPageChange
+const onTaxSizeChange = taxState.onSizeChange
+const taxFailed = taxState.failed
 
 const taxFormVisible = ref(false)
 const taxEditingId = ref<number | null>(null)
@@ -560,7 +572,15 @@ async function submitInitiate() {
 
           <AdminTableSkeleton v-if="gatewayLoading && !gatewayList.length" :rows="5"/>
 
-          <AdminEmpty v-else-if="!gatewayLoading && !gatewayList.length" :title="$t('admin.common.empty')"/>
+          <AdminEmpty
+            v-else-if="!gatewayLoading && !gatewayList.length"
+            :title="gatewayFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="gatewayFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="gatewayFailed" :icon="Refresh" @click="gatewayLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
           <el-table v-else v-loading="gatewayLoading" :data="gatewayList" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="150" prop="name" show-overflow-tooltip/>
             <el-table-column :label="$t('admin.commerce.payment.provider')" prop="provider" width="120"/>

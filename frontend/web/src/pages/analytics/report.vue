@@ -19,7 +19,7 @@ import {
   type ScheduledReportItem,
 } from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -149,22 +149,25 @@ function applyTemplate(template: ReportTemplate) {
 }
 
 // ---------------------------------------------------------------- 定时报表
-const {
-  list: scheduledList,
-  loading: scheduledLoading,
-  total: scheduledTotal,
-  page: scheduledPage,
-  pageSize: scheduledPageSize,
-  query: scheduledQuery,
-  search: scheduledSearch,
-  reset: scheduledReset,
-  load: scheduledLoad,
-  onPageChange: onScheduledPageChange,
-  onSizeChange: onScheduledSizeChange,
-} = useTable<ScheduledReportItem, PageQuery & { report_type?: string; is_active?: boolean }>({
+const scheduledState = useAdminList<ScheduledReportItem, PageQuery & { report_type?: string; is_active?: boolean }>({
+
   fetcher: (params) => reportApi.listScheduled(params),
   defaultQuery: {keyword: '', report_type: '', is_active: undefined},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const scheduledList = scheduledState.rows
+const scheduledLoading = scheduledState.loading
+const scheduledTotal = scheduledState.total
+const scheduledPage = scheduledState.page
+const scheduledPageSize = scheduledState.pageSize
+const scheduledQuery = scheduledState.query
+const scheduledSearch = scheduledState.search
+const scheduledReset = scheduledState.reset
+const scheduledLoad = scheduledState.reload
+const onScheduledPageChange = scheduledState.onPageChange
+const onScheduledSizeChange = scheduledState.onSizeChange
+const scheduledFailed = scheduledState.failed
 
 const scheduledFormVisible = ref(false)
 const scheduledEditingId = ref<number | null>(null)
@@ -276,22 +279,25 @@ async function onDeleteScheduled(row: ScheduledReportItem) {
 }
 
 // ---------------------------------------------------------------- 报表历史
-const {
-  list: historyList,
-  loading: historyLoading,
-  total: historyTotal,
-  page: historyPage,
-  pageSize: historyPageSize,
-  query: historyQuery,
-  search: historySearch,
-  reset: historyReset,
-  load: historyLoad,
-  onPageChange: onHistoryPageChange,
-  onSizeChange: onHistorySizeChange,
-} = useTable<ReportHistoryItem, PageQuery & { report_type?: string }>({
+const historyState = useAdminList<ReportHistoryItem, PageQuery & { report_type?: string }>({
+
   fetcher: (params) => reportApi.listHistory(params),
   defaultQuery: {keyword: '', report_type: ''},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const historyList = historyState.rows
+const historyLoading = historyState.loading
+const historyTotal = historyState.total
+const historyPage = historyState.page
+const historyPageSize = historyState.pageSize
+const historyQuery = historyState.query
+const historySearch = historyState.search
+const historyReset = historyState.reset
+const historyLoad = historyState.reload
+const onHistoryPageChange = historyState.onPageChange
+const onHistorySizeChange = historyState.onSizeChange
+const historyFailed = historyState.failed
 
 function downloadHistory(row: ReportHistoryItem): void {
   const token = import.meta.client ? window.localStorage.getItem('fastblog_token') : null
@@ -419,7 +425,19 @@ onMounted(() => {
             </span>
           </div>
 
-          <el-table v-loading="scheduledLoading" :data="scheduledList" border stripe>
+          <AdminTableSkeleton v-if="scheduledLoading && !scheduledList.length" :rows="5"/>
+
+          <AdminEmpty
+            v-else-if="!scheduledLoading && !scheduledList.length"
+            :title="scheduledFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="scheduledFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="scheduledFailed" :icon="Refresh" @click="scheduledLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+
+          <el-table v-else v-loading="scheduledLoading" :data="scheduledList" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="170" prop="name"
                              show-overflow-tooltip/>
             <el-table-column :label="$t('admin.analytics.report.reportType')" min-width="140"

@@ -20,7 +20,7 @@ import {
   type SharingConfigItem,
 } from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -48,22 +48,25 @@ const REVENUE_TYPES = [
 ] as const
 
 // ---------------------------------------------------------------- 收益记录
-const {
-  list: recordList,
-  loading: recordLoading,
-  total: recordTotal,
-  page: recordPage,
-  pageSize: recordPageSize,
-  query: recordQuery,
-  search: recordSearch,
-  reset: recordReset,
-  load: recordLoad,
-  onPageChange: onRecordPageChange,
-  onSizeChange: onRecordSizeChange,
-} = useTable<RevenueRecordItem, PageQuery & { revenue_type?: string; user_id?: number }>({
+const recordState = useAdminList<RevenueRecordItem, PageQuery & { revenue_type?: string; user_id?: number }>({
+
   fetcher: (params) => revenueApi.listRecords(params),
   defaultQuery: {keyword: '', revenue_type: '', user_id: undefined},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const recordList = recordState.rows
+const recordLoading = recordState.loading
+const recordTotal = recordState.total
+const recordPage = recordState.page
+const recordPageSize = recordState.pageSize
+const recordQuery = recordState.query
+const recordSearch = recordState.search
+const recordReset = recordState.reset
+const recordLoad = recordState.reload
+const onRecordPageChange = recordState.onPageChange
+const onRecordSizeChange = recordState.onSizeChange
+const recordFailed = recordState.failed
 
 const recordFormVisible = ref(false)
 const recordSaving = ref(false)
@@ -120,22 +123,25 @@ async function onDeleteRecord(row: RevenueRecordItem) {
 }
 
 // ---------------------------------------------------------------- 提现申请
-const {
-  list: payoutList,
-  loading: payoutLoading,
-  total: payoutTotal,
-  page: payoutPage,
-  pageSize: payoutPageSize,
-  query: payoutQuery,
-  search: payoutSearch,
-  reset: payoutReset,
-  load: payoutLoad,
-  onPageChange: onPayoutPageChange,
-  onSizeChange: onPayoutSizeChange,
-} = useTable<PayoutRequestItem, PageQuery & { status?: string; user_id?: number }>({
+const payoutState = useAdminList<PayoutRequestItem, PageQuery & { status?: string; user_id?: number }>({
+
   fetcher: (params) => revenueApi.listPayouts(params),
   defaultQuery: {keyword: '', status: '', user_id: undefined},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const payoutList = payoutState.rows
+const payoutLoading = payoutState.loading
+const payoutTotal = payoutState.total
+const payoutPage = payoutState.page
+const payoutPageSize = payoutState.pageSize
+const payoutQuery = payoutState.query
+const payoutSearch = payoutState.search
+const payoutReset = payoutState.reset
+const payoutLoad = payoutState.reload
+const onPayoutPageChange = payoutState.onPageChange
+const onPayoutSizeChange = payoutState.onSizeChange
+const payoutFailed = payoutState.failed
 
 const payoutActing = ref<number | null>(null)
 
@@ -290,7 +296,19 @@ onMounted(() => {
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: recordTotal}) }}</span>
           </div>
 
-          <el-table v-loading="recordLoading" :data="recordList" border stripe>
+          <AdminTableSkeleton v-if="recordLoading && !recordList.length" :rows="5"/>
+
+          <AdminEmpty
+            v-else-if="!recordLoading && !recordList.length"
+            :title="recordFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="recordFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="recordFailed" :icon="Refresh" @click="recordLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+
+          <el-table v-else v-loading="recordLoading" :data="recordList" border stripe>
             <el-table-column :label="$t('admin.commerce.revenue.userId')" prop="user_id" width="90"/>
             <el-table-column :label="$t('admin.commerce.revenue.revenueType')" min-width="150"
                              prop="revenue_type"/>

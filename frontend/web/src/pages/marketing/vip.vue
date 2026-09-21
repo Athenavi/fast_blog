@@ -10,7 +10,7 @@ import {computed, onMounted, reactive, ref} from 'vue'
 
 import {vipApi, type VipFeatureItem, type VipPlanItem, type VipSubscriptionItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -29,7 +29,7 @@ const statusLabel = (status?: number) =>
 const statusTag = (status?: number) => (status === 0 ? 'success' : status === 2 ? 'warning' : 'info')
 
 // ---- 套餐 ----
-const planTable = useTable<VipPlanItem>({fetcher: (params) => vipApi.plans(params)})
+const planTable = useAdminList<VipPlanItem>({fetcher: (params) => vipApi.plans(params)})
 
 const planFormVisible = ref(false)
 const planEditingId = ref<number | null>(null)
@@ -90,7 +90,7 @@ async function submitPlan() {
     }
     ElMessage.success(t('admin.common.save'))
     planFormVisible.value = false
-    await planTable.load()
+    await planTable.reload()
   } finally {
     planSaving.value = false
   }
@@ -100,11 +100,11 @@ async function deletePlan(row: VipPlanItem) {
   await ElMessageBox.confirm(t('admin.marketing.vip.deletePlanConfirm'), t('admin.common.notice'), {type: 'warning'})
   await vipApi.removePlan(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await planTable.load()
+  await planTable.reload()
 }
 
 // ---- 权益 ----
-const featureTable = useTable<VipFeatureItem>({fetcher: (params) => vipApi.features(params)})
+const featureTable = useAdminList<VipFeatureItem>({fetcher: (params) => vipApi.features(params)})
 
 const featureFormVisible = ref(false)
 const featureEditingId = ref<number | null>(null)
@@ -155,7 +155,7 @@ async function submitFeature() {
     }
     ElMessage.success(t('admin.common.save'))
     featureFormVisible.value = false
-    await featureTable.load()
+    await featureTable.reload()
   } finally {
     featureSaving.value = false
   }
@@ -165,7 +165,7 @@ async function deleteFeature(row: VipFeatureItem) {
   await ElMessageBox.confirm(t('admin.marketing.vip.deleteFeatureConfirm'), t('admin.common.notice'), {type: 'warning'})
   await vipApi.removeFeature(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await featureTable.load()
+  await featureTable.reload()
 }
 
 // ---- 订阅 ----
@@ -174,7 +174,7 @@ interface SubQueryForm extends PageQuery {
   status?: number
 }
 
-const subTable = useTable<VipSubscriptionItem, SubQueryForm>({
+const subTable = useAdminList<VipSubscriptionItem, SubQueryForm>({
   fetcher: (params) => vipApi.subscriptions(params),
   defaultQuery: {user_id: undefined, status: undefined},
   syncUrl: true,
@@ -209,7 +209,7 @@ async function submitGrant() {
     await vipApi.createSubscription({user_id: grantForm.user_id, plan_id: grantForm.plan_id})
     ElMessage.success(t('admin.marketing.vip.grantDone'))
     grantVisible.value = false
-    await subTable.load()
+    await subTable.reload()
   } finally {
     grantSaving.value = false
   }
@@ -219,15 +219,15 @@ async function cancelSub(row: VipSubscriptionItem) {
   await ElMessageBox.confirm(t('admin.marketing.vip.cancelConfirm'), t('admin.common.notice'), {type: 'warning'})
   await vipApi.cancelSubscription(row.id)
   ElMessage.success(t('admin.common.save'))
-  await subTable.load()
+  await subTable.reload()
 }
 
 onMounted(() => {
-  planTable.load().catch(() => {
+  planTable.reload().catch(() => {
   })
-  featureTable.load().catch(() => {
+  featureTable.reload().catch(() => {
   })
-  subTable.load().catch(() => {
+  subTable.reload().catch(() => {
   })
 })
 </script>
@@ -244,11 +244,18 @@ onMounted(() => {
             </el-button>
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: planTable.total.value}) }}</span>
           </div>
-          <AdminTableSkeleton v-if="planTable.loading.value && !planTable.list.value.length" :rows="5"/>
+          <AdminTableSkeleton v-if="planTable.loading.value && !planTable.rows.value.length" :rows="5"/>
 
-          <AdminEmpty v-else-if="!planTable.loading.value && !planTable.list.value.length"
-                      :title="$t('admin.common.empty')"/>
-          <el-table v-else v-loading="planTable.loading.value" :data="planTable.list.value" border stripe>
+          <AdminEmpty
+            v-else-if="!planTable.loading.value && !planTable.rows.value.length"
+            :title="planTable.failed.value ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="planTable.failed.value ? 'error' : 'default'"
+          >
+            <el-button v-if="planTable.failed.value" :icon="Refresh" @click="planTable.reload()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+          <el-table v-else v-loading="planTable.loading.value" :data="planTable.rows.value" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name"/>
             <el-table-column :label="$t('admin.marketing.vip.price')" width="100">
               <template #default="{ row }">￥{{ (row as VipPlanItem).price }}</template>
@@ -302,7 +309,7 @@ onMounted(() => {
             </el-button>
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: featureTable.total.value}) }}</span>
           </div>
-          <el-table v-loading="featureTable.loading.value" :data="featureTable.list.value" border stripe>
+          <el-table v-loading="featureTable.loading.value" :data="featureTable.rows.value" border stripe>
             <el-table-column label="Code" prop="code" width="160"/>
             <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name"/>
             <el-table-column :label="$t('admin.common.description')" min-width="200" prop="description"
@@ -358,7 +365,7 @@ onMounted(() => {
             </el-button>
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: subTable.total.value}) }}</span>
           </div>
-          <el-table v-loading="subTable.loading.value" :data="subTable.list.value" border stripe>
+          <el-table v-loading="subTable.loading.value" :data="subTable.rows.value" border stripe>
             <el-table-column :label="$t('admin.marketing.vip.userId')" prop="user_id" width="90"/>
             <el-table-column :label="$t('admin.marketing.vip.planId')" prop="plan_id" width="90"/>
             <el-table-column :label="$t('admin.marketing.vip.startsAt')" width="170">

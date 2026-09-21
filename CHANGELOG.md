@@ -116,9 +116,18 @@
   `loading`——写法是 `v-else-if="!loading || tableLoading && !list.length"`，当统计已加载完且**表格有数据**时
   该表达式仍为真，会把有数据的表格盖成「暂无数据」。现改为只依据表格自身的 `tableLoading`，
   同时补上失败态与重试
-- 本批其余页面盘点（均为「useTable + 标签页 + 三态」复合结构，待逐页处理）：
-  `analytics/report`、`commerce/payment`、`commerce/revenue`、`marketing/ads`、`marketing/forms`、
-  `marketing/vip`；`analytics/search`、`analytics/seo` 为非列表页（保持原结构）
+- `marketing/ads`（2 个列表）、`marketing/vip`（3 个列表）、`marketing/forms`（2 个列表）迁移到
+  `useAdminList`：
+    - `ads` 是**重命名解构**（`list: adList`…），按「字段 → 目标属性」映射并还原原变量名
+    - `vip` / `forms` 是**直接持有** `useTable` 返回值（模板走 `planTable.list.value`），
+      改为 `useAdminList` 后把引用统一为 `…rows.value` 与 `…reload()`
+    - `vip` / `forms` 的主列表空态补上失败态与重试
+- `commerce/payment`（4 个列表：网关 / 交易 / 加密货币 / 税率）、`commerce/revenue`（记录 / 提现）、
+  `analytics/report`（定时报表 / 历史）迁移到 `useAdminList`：三页都是**重命名解构**，
+  迁移脚本从 `loading: xxxLoading` 反推前缀并生成 `xxxState` / `xxxFailed`，模板沿用原变量名
+    - `payment` 的主列表空态升级为失败态 + 重试
+    - `revenue` / `report` 此前**没有骨架屏与空态**，现按同一模式补上「骨架 / 失败态+重试 / 空态」三态
+- **第 3 小批完成**（9 页）：7 页迁移 + 2 页非列表（`analytics/search`、`analytics/seo`）保持原结构
 - 剩余待迁移（均为大页面，解构形式不一）：`content/page-builder`（无前缀解构）、
   `content/collaboration`（重命名解构，多列表）、`content/third-party-publish`（直接持有
   `useTable` 返回值，模板走 `x.list.value`）、`extension/block-patterns`、`extension/plugin`、

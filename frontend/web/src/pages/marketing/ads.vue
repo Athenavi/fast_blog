@@ -10,7 +10,7 @@ import {computed, onMounted, reactive, ref} from 'vue'
 
 import {adApi, type AdItem, type AdPlacementItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -42,38 +42,44 @@ interface AdQueryForm extends PageQuery {
   is_active?: boolean
 }
 
-const {
-  list: adList,
-  loading: adLoading,
-  total: adTotal,
-  page: adPage,
-  pageSize: adPageSize,
-  query: adQuery,
-  search: adSearch,
-  reset: adReset,
-  load: adLoad,
-  onPageChange: onAdPageChange,
-  onSizeChange: onAdPageSizeChange,
-} = useTable<AdItem, AdQueryForm>({
+const adState = useAdminList<AdItem, AdQueryForm>({
+
   fetcher: (params) => adApi.list(params),
   defaultQuery: {keyword: '', placement_id: undefined, is_active: undefined},
   syncUrl: true,
 })
 
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const adList = adState.rows
+const adLoading = adState.loading
+const adTotal = adState.total
+const adPage = adState.page
+const adPageSize = adState.pageSize
+const adQuery = adState.query
+const adSearch = adState.search
+const adReset = adState.reset
+const adLoad = adState.reload
+const onAdPageChange = adState.onPageChange
+const onAdPageSizeChange = adState.onSizeChange
+const adFailed = adState.failed
+
 // ---- 广告位列表 ----
-const {
-  list: placementList,
-  loading: placementLoading,
-  total: placementTotal,
-  page: placementPage,
-  pageSize: placementPageSize,
-  search: placementSearch,
-  reset: placementReset,
-  load: placementLoad,
-  onPageChange: onPlacementPageChange,
-} = useTable<AdPlacementItem>({
+const placementState = useAdminList<AdPlacementItem>({
+
   fetcher: (params) => adApi.placements(params),
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const placementList = placementState.rows
+const placementLoading = placementState.loading
+const placementTotal = placementState.total
+const placementPage = placementState.page
+const placementPageSize = placementState.pageSize
+const placementSearch = placementState.search
+const placementReset = placementState.reset
+const placementLoad = placementState.reload
+const onPlacementPageChange = placementState.onPageChange
+const placementFailed = placementState.failed
 
 onMounted(() => {
   placementLoad().catch(() => {
@@ -282,7 +288,15 @@ async function deletePlacement(row: AdPlacementItem) {
 
           <AdminTableSkeleton v-if="adLoading && !adList.length" :rows="5"/>
 
-          <AdminEmpty v-else-if="!adLoading && !adList.length" :title="$t('admin.common.empty')"/>
+          <AdminEmpty
+            v-else-if="!adLoading && !adList.length"
+            :title="adFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="adFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="adFailed" :icon="Refresh" @click="adLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
           <el-table v-else v-loading="adLoading" :data="adList" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="160" prop="title" show-overflow-tooltip/>
             <el-table-column :label="$t('admin.marketing.ad.adType')" prop="ad_type" width="90"/>
