@@ -55,5 +55,4 @@ src/
 
 ## 相关文档
 
-- `docs/refactor/HANDOVER.md`：交接文档（状态速览、迁移产出、坑与教训、**待办清单 §12**）
-- `docs/refactor/FASTAPIADMIN_REFACTOR.md`：后端重构的目标与现状（已定决策、权限体系、剩余待做）
+- `docs/refactor/HANDOVER.md`：**唯一交接文档**（现状速览、前后端架构与硬约定、坑与教训、常用命令）

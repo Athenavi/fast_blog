@@ -26,7 +26,7 @@ import type {IconName} from '@/lib/icons'
  *  1. astro 版的工具栏由父组件渲染（`RichEditor` 本身"no toolbar"），Nuxt 侧没有
  *     现成的工具栏组件，所以这里自带一条（功能更完整，调用方不需要再实现一遍）。
  *  2. astro 版的 AI 工具（润色/续写）调 `/api/v2/ai-*`，v3 没有 AI 域 ——
- *     按约定**不迁移**，已登记到 `docs/refactor/HANDOVER.md` §12.3。
+ *     按约定**不迁移**（见 docs/refactor/HANDOVER.md 的迁移结论）。
  *
  * 图片支持三种来源（`MediaPickerDialog`）：我的媒体库点选、本地上传
  * （v3 `mobile/media` 的 `/upload/image`，登录即可）、外链地址兜底。
