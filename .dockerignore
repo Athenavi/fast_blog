@@ -79,9 +79,8 @@ nginx
 # Mobile app source
 mobile-app
 
-# SDK & Tools (not imported by backend)
+# Tools (not imported by backend)
 # tools/ excluded — ffmpeg tarball loaded via BuildKit additional_contexts (ffmpeg_src)
-sdk
 scripts
 tools
 
@@ -115,8 +114,6 @@ test_plugin_system.py
 # Startup scripts (not needed inside container)
 start-meilisearch.bat
 start-meilisearch.sh
-install.bat
-install.sh
 
 # Pyproject/pytest configs (not needed at runtime)
 pyproject.toml

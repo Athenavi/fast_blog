@@ -33,7 +33,8 @@ jobs:
     strategy:
       matrix:
         python-version: [3.14]
-        node-version: [25]
+        # 与 ci.yml / frontend/web/Dockerfile 保持一致：Nuxt 4.5 仅支持 ^22.19.0 || ^24.11.0 || >=26.0.0
+        node-version: [ '22' ]
 
     steps:
     - name: Checkout code
@@ -67,7 +68,7 @@ jobs:
       run: |
         # 后端测试
         python -m pytest tests/ -v || echo "Tests skipped - no test directory"
-        
+
         # 前端测试
         cd frontend/web
         npm run build || echo "Frontend build test completed"

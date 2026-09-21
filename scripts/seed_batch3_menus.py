@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """T5-11 批次 3：admin_menus 补插 GDPR / Integrations / SocialAccounts / Security 四行。
 
-幂等：按 code 判断已存在则跳过。参考批次 2 的手工插入模式（HANDOVER §21.8/§21.9）。
+幂等：按 code 判断已存在则跳过。
 菜单 code 必须与前端 ``frontend/web/src/utils/menus.ts`` 的 name 一致。
 """
 import asyncio

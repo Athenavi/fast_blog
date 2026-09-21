@@ -3,7 +3,7 @@ import {readFileSync} from 'node:fs'
 import {resolve} from 'node:path'
 
 /**
- * E2E 回归网（T2-4，自 astro e2e 迁移适配 Nuxt，见 HANDOVER §17）
+ * E2E 回归网（Astro 版 e2e 迁移适配 Nuxt）
  *
  * 运行：
  *   npm run test:e2e                    # 自动复用 / 拉起 dev 服务器（5173）

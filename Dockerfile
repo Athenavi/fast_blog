@@ -154,10 +154,10 @@ EXPOSE 9421
 
 # Health check using Python urllib (no curl dependency needed)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9421/api/v2/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9421/api/v3/health')" || exit 1
 
 # Entrypoint handles directory creation + privilege dropping to appuser
 ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Start the application
-CMD ["python", "main.py", "--backend", "fastapi", "--port", "9421"]
+CMD ["python", "main.py", "--port", "9421"]

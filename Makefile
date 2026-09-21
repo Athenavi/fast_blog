@@ -28,7 +28,7 @@ install-frontend: ## Install frontend dependencies only
 	@echo "✅ Frontend dependencies installed"
 
 setup: ## Initial project setup (copy env, install deps)
-	cp -n .env_example .env 2>/dev/null || true
+	cp -n .env.example .env 2>/dev/null || true
 	@echo "📝 Please edit .env with your configuration"
 	$(MAKE) install
 
@@ -37,7 +37,7 @@ setup: ## Initial project setup (copy env, install deps)
 # ============================================================================
 
 dev: ## Start development server (backend)
-	python main.py --backend fastapi --env dev
+	python main.py --env dev
 
 dev-frontend: ## Start frontend development server
 	cd frontend/web && npm run dev
@@ -46,7 +46,7 @@ dev-all: ## Start both backend and frontend (requires two terminals)
 	@echo "Starting backend on port 9421..."
 	@echo "Starting frontend on port 5173..."
 	@echo "Press Ctrl+C to stop"
-	python main.py --backend fastapi --env dev &
+	python main.py --env dev &
 	cd frontend/web && npm run dev
 
 # ============================================================================
@@ -214,7 +214,7 @@ cli: ## Run FastBlog CLI
 	python scripts/cli.py $(cmd)
 
 create-admin: ## Create admin user
-	python scripts/cli.py create-admin
+	python -m cli user create-user
 
-routes: ## List all API routes
-	python scripts/cli.py routes
+routes: ## List API v3 domains and modules (source of truth: DOMAIN_MODULES)
+	python -c "from src.api.v3 import DOMAIN_MODULES as D; print('\n'.join(f'{d} ({len(v)}): ' + ' '.join(v) for d, v in D.items()))"

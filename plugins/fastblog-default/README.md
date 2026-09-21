@@ -1,30 +1,37 @@
-# FastBlog Default Theme
+# FastBlog Default（默认主题）
 
-FastBlog 默认主题 - 简洁、现代、响应式设计。
+`plugins/fastblog-default/` 是一个**主题型插件**：`metadata.json` 的 `category` 为 `theme`，`plugin.py` 继承
+`shared.services.plugins.plugin_manager.theme_plugin.ThemePlugin`（`plugin_id=1001`），通过 EventBus 订阅事件来扩展站点外观。
 
-**适用版本**: FastBlog V0.3.0+
+## 文件
 
-## 特性
+| 文件                       | 作用                                              |
+|--------------------------|-------------------------------------------------|
+| `metadata.json`          | 主题元数据 + 后台设置表单 schema                           |
+| `plugin.py`              | `ThemePlugin` 实现（注册 EventBus 订阅）                |
+| `theme.json`             | 运行时配置（颜色、布局、排版）                                 |
+| `theme.config.js`        | 前端构建配置                                          |
+| `styles.css`             | 自定义样式                                           |
+| `screenshot.svg`         | 后台预览图                                           |
+| `frontend/manifest.json` | 前端插件清单（供 `scripts/scan-plugin-frontend.mjs` 扫描） |
 
-- 响应式设计 · 深色模式 · 可配置侧边栏
-- 自定义颜色方案 · 灵活排版 · 评论集成
-- 社交分享 · 相关文章 · 目录导航
+## 元数据
 
-## 文件结构
+- `slug`: `fastblog-default`，`version`: `1.0.0`，`license`: MIT，`category`: `theme`
+- `requires.fastblog`: `>=1.0.0`
+- `supports`: `custom-logo`、`custom-header`、`featured-image`、`post-thumbnails`、`comments`、`widgets`
 
-```
-├── metadata.json        # 主题元数据
-├── theme.json           # 运行时配置（颜色、布局、排版）
-├── theme.config.js      # 前端构建配置
-├── styles.css           # 自定义样式
-├── screenshot.svg       # 预览截图
-└── templates/           # Astro 组件模板
-```
+## 可配置项（`settings_schema`）
 
-## 自定义
+| 分组           | 字段                                                                                    | 默认值                                                       |
+|--------------|---------------------------------------------------------------------------------------|-----------------------------------------------------------|
+| `colors`     | `primary` / `secondary` / `accent` / `background` / `foreground`                      | `#3b82f6` / `#64748b` / `#f59e0b` / `#ffffff` / `#1f2937` |
+| `layout`     | `sidebar_position`（left/right/none）、`content_width`（max-w-4xl/5xl/7xl）、`show_sidebar` | `right` / `max-w-4xl` / `true`                            |
+| `typography` | `font_family`、`font_size`、`line_height`                                               | `Inter, system-ui, sans-serif` / `16px` / `1.6`           |
 
-复制本目录为新目录，修改 `metadata.json` 和 `theme.config.js` 中的主题信息与配色，在后台激活即可。
+## 使用与派生
 
-## 许可证
+主题由插件系统加载与激活（`shared/services/plugins/plugin_manager/`），后台「扩展 → 主题」中切换与配置。派生新主题：复制本目录，改
+`metadata.json`（`name`/`slug`/`version`/`screenshot`）与 `theme.config.js`，再让插件管理器重新扫描。
 
-MIT License
+> 注意：`plugin.py` 的 `plugin_id` 需与其他主题不同，否则会与既有主题冲突。

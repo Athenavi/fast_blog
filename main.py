@@ -50,7 +50,7 @@ def run_supervisor_mode():
     """
     logger.error(
         "`--mode supervisor` 已废弃：进程监督已整合进主应用，见 "
-        "docs/refactor/HANDOVER.md 与 /api/v3/ops/supervisor/*；"
+        "docs/DEVELOPMENT.md 与 /api/v3/ops/supervisor/*；"
         "部署请用 docker compose / systemd 管理进程，或直接以 `--mode app` 启动。"
     )
     sys.exit(2)

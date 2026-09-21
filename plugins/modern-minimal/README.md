@@ -1,27 +1,38 @@
-# Modern Minimal Theme
+# Modern Minimal（现代简约主题）
 
-现代简约风格主题，专为个人博客和作品集设计。
+`plugins/modern-minimal/` 是一个**主题型插件**（`metadata.json` 的 `category` 为 `theme`
+），面向个人博客与作品集：极简排版、响应式、自动深色模式，并支持代码高亮与目录导航。`plugin.py` 继承
+`shared.services.plugins.plugin_manager.theme_plugin.ThemePlugin`。
 
-## 特性
+## 文件
 
-- 🎨 **干净优雅** - 极简主义美学，专注于内容
-- 📱 **完全响应式** - 完美适配桌面、平板和手机
-- 🌓 **自动深色模式** - 根据系统偏好自动切换
-- ⚡ **性能优化** - 懒加载图片、平滑滚动
-- 🎯 **SEO 友好** - 语义化 HTML 结构
+| 文件                                         | 作用                    |
+|--------------------------------------------|-----------------------|
+| `metadata.json`                            | 主题元数据 + 后台设置表单 schema |
+| `plugin.py`                                | `ThemePlugin` 实现      |
+| `theme.json`                               | 运行时配置（颜色、布局、排版）       |
+| `theme.config.js`                          | 前端构建配置                |
+| `styles.css`                               | 自定义样式                 |
+| `screenshot.svg`                           | 后台预览图                 |
+| `frontend/api.ts`、`frontend/manifest.json` | 前端扩展与插件清单             |
 
-## 安装
+## 元数据
 
-将主题文件夹复制到 `plugins/` 目录，在管理后台激活即可。
+- `slug`: `modern-minimal`，`version`: `2.0.0`，`license`: MIT，`category`: `theme`
+- `requires.fastblog`: `>=1.0.0`
+- `tags`: `minimal`、`modern`、`clean`、`responsive`、`technology`、`code`、`dark-mode`
+- `supports`: `custom-logo`、`custom-header`、`featured-image`、`post-thumbnails`、`comments`、`widgets`、`table-of-contents`、
+  `code-highlighting`、`dark-mode`、`responsive-design`
 
-## 配置
+## 可配置项（`settings_schema`）
 
-编辑 `theme.config.js` 自定义颜色、布局和功能开关。
+与 `fastblog-default` 同构，按分组渲染在后台「扩展 → 主题」的设置表单里：`colors`（主色、次要色、强调色等）、`layout`、
+`typography` 等，默认值见 `metadata.json`；也可直接编辑 `theme.config.js`。
 
-## 适用场景
+## 使用
 
-个人博客 · 作品集展示 · 技术文章 · 生活随笔 · 创意写作
+由插件系统加载与激活（`shared/services/plugins/plugin_manager/`），在后台切换。与其它主题共存时 `plugin_id` 必须互不相同。
 
-## 许可证
+## 许可
 
-MIT License
+MIT License。
