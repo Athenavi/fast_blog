@@ -14,6 +14,10 @@ import {useWebVitals, VITAL_LABELS, VITAL_ORDER, type VitalName, type VitalSampl
  *
  * 数据来自 `useWebVitals`（web-vitals 采集 + sessionStorage 持久化），
  * 面板只读，不产生任何网络请求。
+
+ *
+ * 例外：面板主体刻意采用「终端风格深色」（#1f2937 底 / #e5e7eb 文字）与评级色
+ * （#10b981 / #f59e0b / #ef4444），这些不是主题色，不随明暗切换，故保留硬编码。
  */
 const {samples, clear} = useWebVitals()
 

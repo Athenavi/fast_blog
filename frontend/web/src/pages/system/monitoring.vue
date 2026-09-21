@@ -22,7 +22,7 @@ import {
   type SLAStats,
 } from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -62,23 +62,25 @@ async function loadStats() {
 }
 
 // ---------------------------------------------------------------- 告警
-const {
-  list: alertList,
-  loading: alertLoading,
-  total: alertTotal,
-  page: alertPage,
-  pageSize: alertPageSize,
-  query: alertQuery,
-  search: alertSearch,
-  reset: alertReset,
-  load: alertLoad,
-  onPageChange: onAlertPageChange,
-  onSizeChange: onAlertSizeChange,
-} = useTable<AlertItem, PageQuery & { severity?: string; is_resolved?: boolean }>({
+const alertState = useAdminList<AlertItem, PageQuery & { severity?: string; is_resolved?: boolean }>({
   fetcher: (params) => monitoringApi.listAlerts(params),
   defaultQuery: {keyword: '', severity: '', is_resolved: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：把列表状态映射成同名 ref / 函数，避免整页重写带来的回归风险
+const alertList = alertState.rows
+const alertLoading = alertState.loading
+const alertFailed = alertState.failed
+const alertTotal = alertState.total
+const alertPage = alertState.page
+const alertPageSize = alertState.pageSize
+const alertQuery = alertState.query
+const alertSearch = alertState.search
+const alertReset = alertState.reset
+const alertLoad = alertState.reload
+const onAlertPageChange = alertState.onPageChange
+const onAlertSizeChange = alertState.onSizeChange
 
 const alertFormVisible = ref(false)
 const alertSaving = ref(false)
@@ -153,22 +155,23 @@ async function onDeleteAlert(row: AlertItem) {
 }
 
 // ---------------------------------------------------------------- 指标
-const {
-  list: metricList,
-  loading: metricLoading,
-  total: metricTotal,
-  page: metricPage,
-  pageSize: metricPageSize,
-  query: metricQuery,
-  search: metricSearch,
-  reset: metricReset,
-  load: metricLoad,
-  onPageChange: onMetricPageChange,
-  onSizeChange: onMetricSizeChange,
-} = useTable<MetricItem, PageQuery & { metric_type?: string }>({
+const metricState = useAdminList<MetricItem, PageQuery & { metric_type?: string }>({
   fetcher: (params) => monitoringApi.listMetrics(params),
   defaultQuery: {keyword: '', metric_type: ''},
 })
+
+const metricList = metricState.rows
+const metricLoading = metricState.loading
+const metricFailed = metricState.failed
+const metricTotal = metricState.total
+const metricPage = metricState.page
+const metricPageSize = metricState.pageSize
+const metricQuery = metricState.query
+const metricSearch = metricState.search
+const metricReset = metricState.reset
+const metricLoad = metricState.reload
+const onMetricPageChange = metricState.onPageChange
+const onMetricSizeChange = metricState.onSizeChange
 
 const metricFormVisible = ref(false)
 const metricSaving = ref(false)
@@ -270,22 +273,23 @@ async function loadSeries() {
 }
 
 // ---------------------------------------------------------------- SLA
-const {
-  list: slaList,
-  loading: slaLoading,
-  total: slaTotal,
-  page: slaPage,
-  pageSize: slaPageSize,
-  query: slaQuery,
-  search: slaSearch,
-  reset: slaReset,
-  load: slaLoad,
-  onPageChange: onSlaPageChange,
-  onSizeChange: onSlaSizeChange,
-} = useTable<SLAItem, PageQuery & { license_id?: number; is_compliant?: boolean }>({
+const slaState = useAdminList<SLAItem, PageQuery & { license_id?: number; is_compliant?: boolean }>({
   fetcher: (params) => monitoringApi.listSlaReports(params),
   defaultQuery: {license_id: undefined, is_compliant: undefined},
 })
+
+const slaList = slaState.rows
+const slaLoading = slaState.loading
+const slaFailed = slaState.failed
+const slaTotal = slaState.total
+const slaPage = slaState.page
+const slaPageSize = slaState.pageSize
+const slaQuery = slaState.query
+const slaSearch = slaState.search
+const slaReset = slaState.reset
+const slaLoad = slaState.reload
+const onSlaPageChange = slaState.onPageChange
+const onSlaSizeChange = slaState.onSizeChange
 
 const slaFormVisible = ref(false)
 const slaSaving = ref(false)
@@ -396,7 +400,15 @@ onMounted(() => {
 
           <AdminTableSkeleton v-if="alertLoading && !alertList.length" :rows="5"/>
 
-          <AdminEmpty v-else-if="!alertLoading && !alertList.length" :title="$t('admin.common.empty')"/>
+          <AdminEmpty
+            v-else-if="!alertLoading && !alertList.length"
+            :title="alertFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="alertFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="alertFailed" :icon="Refresh" @click="alertLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
           <el-table v-else v-loading="alertLoading" :data="alertList" border stripe>
             <el-table-column :label="$t('admin.system.monitoring.alertType')" min-width="140"
                              prop="alert_type"/>
@@ -475,7 +487,19 @@ onMounted(() => {
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: metricTotal}) }}</span>
           </div>
 
-          <el-table v-loading="metricLoading" :data="metricList" border stripe>
+          <AdminTableSkeleton v-if="metricLoading && !metricList.length" :rows="5"/>
+
+          <AdminEmpty
+            v-else-if="!metricLoading && !metricList.length"
+            :title="metricFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="metricFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="metricFailed" :icon="Refresh" @click="metricLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+
+          <el-table v-else v-loading="metricLoading" :data="metricList" border stripe>
             <el-table-column :label="$t('admin.system.monitoring.metricName')" min-width="180"
                              prop="metric_name"/>
             <el-table-column :label="$t('admin.system.monitoring.metricValue')" align="right" prop="metric_value"
@@ -541,7 +565,19 @@ onMounted(() => {
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: slaTotal}) }}</span>
           </div>
 
-          <el-table v-loading="slaLoading" :data="slaList" border stripe>
+          <AdminTableSkeleton v-if="slaLoading && !slaList.length" :rows="5"/>
+
+          <AdminEmpty
+            v-else-if="!slaLoading && !slaList.length"
+            :title="slaFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="slaFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="slaFailed" :icon="Refresh" @click="slaLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+
+          <el-table v-else v-loading="slaLoading" :data="slaList" border stripe>
             <el-table-column :label="$t('admin.system.monitoring.licenseId')" prop="license_id"
                              width="110"/>
             <el-table-column :label="$t('admin.system.monitoring.periodStart')" min-width="170"

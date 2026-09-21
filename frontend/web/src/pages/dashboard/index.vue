@@ -183,7 +183,7 @@ onMounted(load)
 
 .stat-card__label {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-fg-muted);
 }
 
 .stat-card__value {
@@ -194,7 +194,7 @@ onMounted(load)
 
 .stat-card__hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--color-fg-subtle);
 }
 
 .card-header {

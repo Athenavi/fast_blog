@@ -420,19 +420,19 @@ onMounted(loadMenus)
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--color-line);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .menu-item:hover {
-  border-color: #c6e2ff;
+  border-color: var(--color-primary-soft);
 }
 
 .menu-item.active {
-  border-color: #409eff;
-  background: #ecf5ff;
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .menu-meta {
@@ -448,7 +448,7 @@ onMounted(loadMenus)
 
 .menu-slug {
   font-size: 12px;
-  color: #909399;
+  color: var(--color-fg-subtle);
 }
 
 .menu-actions {
@@ -460,6 +460,6 @@ onMounted(loadMenus)
 .hint {
   margin: 12px 0 0;
   font-size: 12px;
-  color: #909399;
+  color: var(--color-fg-subtle);
 }
 </style>

@@ -32,7 +32,15 @@
 
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="failed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="failed ? 'error' : 'default'"
+      >
+        <el-button v-if="failed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
@@ -161,7 +169,7 @@ import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
 import {type CapabilityGroup, permissionApi, roleApi, type RoleItem, type RoleQuery,} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 /** 查询表单（在 PageQuery 基础上补齐页面字段，避免 v-model 绑到 unknown） */
 interface RoleQueryForm extends RoleQuery {
@@ -169,24 +177,26 @@ interface RoleQueryForm extends RoleQuery {
   is_system?: boolean
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-  remove,
-} = useTable<RoleItem, RoleQueryForm>({
+const roleState = useAdminList<RoleItem, RoleQueryForm>({
   fetcher: (params) => roleApi.list(params),
   defaultQuery: {keyword: '', is_system: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const list = roleState.rows
+const loading = roleState.loading
+const failed = roleState.failed
+const total = roleState.total
+const page = roleState.page
+const pageSize = roleState.pageSize
+const query = roleState.query
+const search = roleState.search
+const reset = roleState.reset
+const load = roleState.reload
+const onPageChange = roleState.onPageChange
+const onSizeChange = roleState.onSizeChange
+const remove = roleState.remove
 
 // ---------------------------------------------------------------- 新建 / 编辑
 const formVisible = ref(false)
@@ -341,7 +351,7 @@ onMounted(() => {
 
 .table-toolbar__total {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-fg-muted);
 }
 
 .table-pagination {
@@ -369,7 +379,7 @@ onMounted(() => {
 }
 
 .perm__code {
-  color: #9ca3af;
+  color: var(--color-fg-subtle);
   font-size: 12px;
   margin-left: 4px;
 }

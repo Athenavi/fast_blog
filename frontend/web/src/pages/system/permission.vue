@@ -115,7 +115,7 @@ onMounted(load)
         </el-collapse-item>
       </el-collapse>
 
-      <el-empty v-if="!loading && !filteredGroups.length" :description="$t('admin.system.permission.empty')"/>
+      <AdminEmpty v-if="!loading && !filteredGroups.length" :title="$t('admin.system.permission.empty')"/>
     </el-card>
   </div>
 </template>
@@ -138,7 +138,7 @@ onMounted(load)
 
 .count {
   font-size: 13px;
-  color: #909399;
+  color: var(--color-fg-subtle);
 }
 
 .stats {

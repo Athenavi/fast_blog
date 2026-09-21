@@ -6,12 +6,16 @@ const {t} = useI18n()
  * 对齐 v3：`/system/setting` 列表、`PUT /system/setting/{key}` upsert、
  * `DELETE /system/setting/{key}` 删除。`is_public=true` 的项会随
  * `/system/setting/public` 下发给前台（站点名、描述、页脚等）。
+ *
+ * 设置项总量有限，接口不分页：列表壳关闭分页器。
  */
-import {Delete, Edit, Plus, Refresh} from '@element-plus/icons-vue'
+import {Delete, Edit, Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
 import {settingApi, type SettingItem} from '@/api'
+import type {PageQuery} from '@/api/types'
+import {useAdminList} from '@/composables/useAdminList'
 import {formatDateTime} from '@/utils/format'
 
 definePageMeta({
@@ -28,28 +32,15 @@ const TYPES = [
   {label: 'JSON', value: 'json'},
 ]
 
-const loading = ref(false)
-const list = ref<SettingItem[]>([])
-const total = ref(0)
-
-const query = reactive({
-  keyword: '',
-  is_public: undefined as boolean | undefined,
-})
-
-async function loadList(): Promise<void> {
-  loading.value = true
-  try {
-    const data = await settingApi.list({
-      ...(query.keyword ? {keyword: query.keyword} : {}),
-      ...(query.is_public === undefined ? {} : {is_public: query.is_public}),
-    })
-    list.value = data.items
-    total.value = data.total
-  } finally {
-    loading.value = false
-  }
+interface SettingQueryForm extends PageQuery {
+  is_public?: boolean
 }
+
+const list = useAdminList<SettingItem, SettingQueryForm>({
+  fetcher: (params) => settingApi.list(params),
+  defaultQuery: {keyword: '', is_public: undefined},
+  syncUrl: true,
+})
 
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -110,7 +101,7 @@ async function submitForm(): Promise<void> {
     })
     ElMessage.success(t('admin.system.setting.saved'))
     dialogVisible.value = false
-    await loadList()
+    await list.reload()
   } finally {
     saving.value = false
   }
@@ -120,79 +111,84 @@ async function removeRow(row: SettingItem): Promise<void> {
   await ElMessageBox.confirm(t('admin.system.setting.confirmDelete', {key: row.setting_key}), t('admin.common.notice'), {type: 'warning'})
   await settingApi.remove(row.setting_key)
   ElMessage.success(t('admin.system.setting.deleted'))
-  await loadList()
+  await list.reload()
 }
-
-onMounted(loadList)
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <el-form :inline="true" @submit.prevent>
+  <AdminPage :desc="$t('admin.system.setting.desc')" :title="$t('admin.system.setting.title')">
+    <template #actions>
+      <el-button v-auth="'module_system:setting:edit'" :icon="Plus" type="primary" @click="openCreate">
+        {{ $t('admin.system.setting.createTitle') }}
+      </el-button>
+    </template>
+
+    <AdminListShell
+      :empty-desc="list.hasFilters.value
+        ? $t('admin.system.setting.emptyFiltered')
+        : $t('admin.system.setting.emptyDesc')"
+      :empty-title="$t('admin.system.setting.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :paginate="false"
+      :rows="list.rows.value"
+      :selectable="false"
+      :total="list.total.value"
+      @refresh="list.reload"
+      @reset="list.reset"
+      @search="list.search"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.system.setting.keyword')">
-          <el-input v-model="query.keyword" :placeholder="$t('admin.system.setting.keywordPlaceholder')" clearable
-                    style="width: 220px"
-                    @keyup.enter="loadList"/>
+          <el-input v-model="list.query.keyword" :placeholder="$t('admin.system.setting.keywordPlaceholder')"
+                    clearable style="width: 220px"
+                    @keyup.enter="list.search()"/>
         </el-form-item>
         <el-form-item :label="$t('admin.system.setting.publicLabel')">
-          <el-select v-model="query.is_public" :placeholder="$t('admin.common.all')" clearable style="width: 130px">
+          <el-select v-model="list.query.is_public" :placeholder="$t('admin.common.all')" clearable
+                     style="width: 130px">
             <el-option :label="$t('admin.system.setting.publicLabel')" :value="true"/>
             <el-option :label="$t('admin.system.setting.adminOnly')" :value="false"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Refresh" type="primary" @click="loadList">{{ $t('admin.common.search') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <div class="toolbar">
-        <el-button v-auth="'module_system:setting:edit'" :icon="Plus" type="primary" @click="openCreate">
-          {{ $t('admin.system.setting.createTitle') }}
-        </el-button>
-        <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
-      </div>
-
-      <el-table v-loading="loading" :data="list" row-key="setting_key">
-        <el-table-column :label="$t('admin.system.setting.key')" min-width="220">
-          <template #default="{row}">
-            <code class="key">{{ row.setting_key }}</code>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.system.setting.value')" min-width="240">
-          <template #default="{row}">
-            <span class="setting-value">{{ row.setting_value ?? '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.system.setting.type')" prop="setting_type" width="90"/>
-        <el-table-column :label="$t('admin.common.description')" min-width="180" prop="description"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.system.setting.publicLabel')" width="80">
-          <template #default="{row}">
-            <el-tag :type="row.is_public ? 'success' : 'info'" size="small">
-              {{ row.is_public ? t('admin.common.yes') : t('admin.common.no') }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.updatedAt')" width="170">
-          <template #default="{row}">{{ formatDateTime(row.updated_at) }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-          <template #default="{row}">
-            <el-button v-auth="'module_system:setting:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_system:setting:edit'" :icon="Delete" link type="danger" @click="removeRow(row)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <p class="hint">
-        {{ $t('admin.system.setting.listSummary', {n: total}) }}
-      </p>
-    </el-card>
+      <el-table-column :label="$t('admin.system.setting.key')" min-width="220">
+        <template #default="{row}">
+          <code class="key">{{ row.setting_key }}</code>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.system.setting.value')" min-width="240">
+        <template #default="{row}">
+          <span class="setting-value">{{ row.setting_value ?? '-' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.system.setting.type')" prop="setting_type" width="90"/>
+      <el-table-column :label="$t('admin.common.description')" min-width="180" prop="description"
+                       show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.system.setting.publicLabel')" width="80">
+        <template #default="{row}">
+          <el-tag :type="row.is_public ? 'success' : 'info'" size="small">
+            {{ row.is_public ? t('admin.common.yes') : t('admin.common.no') }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.updatedAt')" width="170">
+        <template #default="{row}">{{ formatDateTime(row.updated_at) }}</template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+        <template #default="{row}">
+          <el-button v-auth="'module_system:setting:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_system:setting:edit'" :icon="Delete" link type="danger" @click="removeRow(row)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
 
     <el-dialog
       v-model="dialogVisible"
@@ -228,42 +224,25 @@ onMounted(loadList)
         <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
-  </div>
+  </AdminPage>
 </template>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.ml-auto {
-  margin-left: auto;
-}
-
 .key {
   padding: 1px 6px;
   font-size: 13px;
-  background: #f5f7fa;
+  background: var(--color-surface-soft);
   border-radius: 4px;
 }
 
 .setting-value {
-  color: #606266;
+  color: var(--color-fg-muted);
   word-break: break-all;
-}
-
-.hint {
-  margin: 12px 0 0;
-  font-size: 12px;
-  color: #909399;
 }
 
 .switch-hint {
   margin-left: 10px;
   font-size: 12px;
-  color: #909399;
+  color: var(--color-fg-subtle);
 }
 </style>

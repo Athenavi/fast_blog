@@ -13,7 +13,7 @@ import {computed, reactive, ref} from 'vue'
 
 import {type DataRetentionPolicyItem, enterpriseApi, type EnterpriseLicenseItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -30,23 +30,26 @@ interface LicenseQueryForm extends PageQuery {
   keyword?: string
 }
 
-const {
-  list: licenseList,
-  loading: licenseLoading,
-  total: licenseTotal,
-  page: licensePage,
-  pageSize: licensePageSize,
-  query: licenseQuery,
-  search: licenseSearch,
-  reset: licenseReset,
-  load: licenseLoad,
-  onPageChange: onLicensePageChange,
-  onSizeChange: onLicenseSizeChange,
-} = useTable<EnterpriseLicenseItem, LicenseQueryForm>({
+const licenseState = useAdminList<EnterpriseLicenseItem, LicenseQueryForm>({
+
   fetcher: (params) => enterpriseApi.listLicenses(params),
   defaultQuery: {keyword: ''},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const licenseList = licenseState.rows
+const licenseLoading = licenseState.loading
+const licenseTotal = licenseState.total
+const licensePage = licenseState.page
+const licensePageSize = licenseState.pageSize
+const licenseQuery = licenseState.query
+const licenseSearch = licenseState.search
+const licenseReset = licenseState.reset
+const licenseLoad = licenseState.reload
+const onLicensePageChange = licenseState.onPageChange
+const onLicenseSizeChange = licenseState.onSizeChange
+const licenseFailed = licenseState.failed
 
 const licenseFormVisible = ref(false)
 const licenseEditingId = ref<number | null>(null)
@@ -175,22 +178,25 @@ interface PolicyQueryForm extends PageQuery {
   keyword?: string
 }
 
-const {
-  list: policyList,
-  loading: policyLoading,
-  total: policyTotal,
-  page: policyPage,
-  pageSize: policyPageSize,
-  query: policyQuery,
-  search: policySearch,
-  reset: policyReset,
-  load: policyLoad,
-  onPageChange: onPolicyPageChange,
-  onSizeChange: onPolicySizeChange,
-} = useTable<DataRetentionPolicyItem, PolicyQueryForm>({
+const policyState = useAdminList<DataRetentionPolicyItem, PolicyQueryForm>({
+
   fetcher: (params) => enterpriseApi.listPolicies(params),
   defaultQuery: {keyword: ''},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const policyList = policyState.rows
+const policyLoading = policyState.loading
+const policyTotal = policyState.total
+const policyPage = policyState.page
+const policyPageSize = policyState.pageSize
+const policyQuery = policyState.query
+const policySearch = policyState.search
+const policyReset = policyState.reset
+const policyLoad = policyState.reload
+const onPolicyPageChange = policyState.onPageChange
+const onPolicySizeChange = policyState.onSizeChange
+const policyFailed = policyState.failed
 
 const policyFormVisible = ref(false)
 const policyEditingId = ref<number | null>(null)
@@ -307,7 +313,15 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
 
           <AdminTableSkeleton v-if="licenseLoading && !licenseList.length" :rows="5"/>
 
-          <AdminEmpty v-else-if="!licenseLoading && !licenseList.length" :title="$t('admin.common.empty')"/>
+          <AdminEmpty
+            v-else-if="!licenseLoading && !licenseList.length"
+            :title="licenseFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="licenseFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="licenseFailed" :icon="Refresh" @click="licenseLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
           <el-table v-else v-loading="licenseLoading" :data="licenseList" border stripe>
             <el-table-column
               :label="$t('admin.ops.enterprise.licenseKey')"

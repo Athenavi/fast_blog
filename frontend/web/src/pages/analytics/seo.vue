@@ -330,7 +330,7 @@ onMounted(async () => {
 .generated {
   font-size: 12px;
   line-height: 1.6;
-  color: #909399;
+  color: var(--color-fg-subtle);
 }
 
 .sub-title {
@@ -359,20 +359,20 @@ onMounted(async () => {
 .bar {
   flex: 1;
   height: 8px;
-  background: #f5f7fa;
+  background: var(--color-surface-soft);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .bar__fill {
   height: 100%;
-  background: #409eff;
+  background: var(--color-primary);
 }
 
 .grade-count {
   width: 36px;
   font-size: 12px;
-  color: #606266;
+  color: var(--color-fg-muted);
   text-align: right;
 }
 
@@ -389,12 +389,12 @@ onMounted(async () => {
 
 .suggestion {
   font-size: 13px;
-  color: #606266;
+  color: var(--color-fg-muted);
 }
 
 .hint {
   font-size: 13px;
-  color: #909399;
+  color: var(--color-fg-subtle);
 }
 
 .mt-4 {
@@ -418,6 +418,6 @@ onMounted(async () => {
   padding-left: 18px;
   font-size: 13px;
   line-height: 1.9;
-  color: #606266;
+  color: var(--color-fg-muted);
 }
 </style>

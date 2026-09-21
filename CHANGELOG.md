@@ -61,6 +61,29 @@
       （`admin.system.sensitiveWord.*`），已换成本模块自己的 key
     - `system/log` 的日期范围由原来的数组状态改为**扁平化的 `start_date` / `end_date`**，
       这样整套筛选条件都能进 URL（刷新/分享保留时间范围）；导出复用同一套判空规则
+  - `system/setting` 一并迁移（接口不分页 → `paginate=false`）
+  - **判定为不适用列表壳、保持原结构**：`system/permission`（折叠分组 + 内嵌表）、
+    `system/cache`（多级统计卡 + 单键操作）、`system/hub`（服务器面板）、`system/menu`（树形菜单）
+    —— 它们不是「筛选 + 分页表格」结构，套用列表壳会扭曲语义；其中 `permission` 换成统一空态组件
+  - `system/monitoring` 是 3 个列表 + 3 个表单的复合页：三个列表全部换用 `useAdminList`，
+    并把状态映射成原有变量名（避免整页重写带来的回归风险）；metric / sla 两个标签页此前**没有**
+    骨架屏与空态，现补齐「骨架 / 失败态+重试 / 空态」三态。该页三个列表共用一份 `route.query`，
+    因此只有原本就同步 URL 的 alert 列表保留 `syncUrl`，metric / sla 关闭以免互相覆盖筛选条件
+  - `system/user`（用户管理）同样换用 `useAdminList` + 同名别名映射，并给空态补上失败态与重试
+  - **统计口径修正**：`system/` 下还有子目录页面，`system/role`、`system/user` 之前被漏计
+    （`system/group` 不是列表页、保持原结构）。B 第 1 小批实际为 system(16) + ops(10) = **26 页**，
+    而不是先前记录的 23 页
+  - **system 域收尾**：`system/role` 迁移完成（同名别名映射 + 空态失败态）
+  - **ops 域首批**：`deployments`（脚本 + 执行日志双列表）、`enterprise`（许可 + 数据保留策略双列表）、
+    `migrations` 迁移完成。这三个页面此前用的是**重命名解构**（`list: scriptList`、`loading: scriptLoading`
+    …），因此迁移脚本按「字段 → 目标属性」逐项映射并还原出原变量名（`list→rows`、`load→reload`），
+    模板无需改动；5 个列表的空态统一升级为「失败态 + 重试」
+- **样式块内的硬编码色收口**（补 A 包的遗漏）：上一轮只替换了 Tailwind 类名，**没有覆盖 `<style>` 块**。
+  实测 8 个文件存在不随主题变化的固定色值，共 **25 处**——`#f5f7fa` / `#fafcff`（浅底）、`#909399` /
+  `#6b7280` / `#9ca3af` / `#606266`（灰字）、`#409eff`（主色）、`#ebeef5`（边框）等，在暗色模式下会露出
+  浅色块；现全部改为语义令牌（`--color-surface-soft` / `--color-fg-subtle` / `--color-primary` /
+  `--color-line` …）。`components/admin/*` 与 `layouts/admin.vue` 里形如 `var(--admin-x, #hex)` 的
+  **fallback 值属正常用法**，未改动
 
 - **前台 UI/UX 收口（批次 1，用户确认方案 dec-9655ab5083bd2640）**：
     - **令牌收口**：24 处硬编码灰阶（`text-gray-500` / `text-gray-400` 等）改为语义令牌

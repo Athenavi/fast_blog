@@ -173,7 +173,7 @@ onMounted(loadAll)
 }
 
 .stat-card {
-  background: #fafcff;
+  background: var(--color-surface-soft);
 }
 
 .section {
@@ -189,7 +189,7 @@ onMounted(loadAll)
 .sub-hint {
   font-size: 12px;
   font-weight: 400;
-  color: #909399;
+  color: var(--color-fg-subtle);
 }
 
 .trend {
@@ -198,7 +198,7 @@ onMounted(loadAll)
   gap: 2px;
   height: 140px;
   padding: 8px 4px;
-  border: 1px solid #ebeef5;
+  border: 1px solid var(--color-line);
   border-radius: 6px;
   overflow-x: auto;
 }
@@ -221,7 +221,7 @@ onMounted(loadAll)
 .trend__bar {
   width: 100%;
   min-height: 2px;
-  background: #409eff;
+  background: var(--color-primary);
   border-radius: 2px 2px 0 0;
   transition: height 0.2s;
 }
@@ -229,7 +229,7 @@ onMounted(loadAll)
 .trend__label {
   margin-top: 4px;
   font-size: 10px;
-  color: #c0c4cc;
+  color: var(--color-fg-subtle);
   white-space: nowrap;
   transform: rotate(-45deg);
 }

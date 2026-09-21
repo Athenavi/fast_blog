@@ -941,7 +941,11 @@
         "valuePlaceholder": "JSON 类型请填合法 JSON",
         "publicHint": "开启后前台可通过公开接口读取",
         "confirmDelete": "确定删除设置项「{key}」吗？",
-        "listSummary": "共 {n} 项；标记为「公开」的设置会随 /system/setting/public 下发给前台"
+        "listSummary": "共 {n} 项；标记为「公开」的设置会随 /system/setting/public 下发给前台",
+        "desc": "站点键值配置。勾选「公开」的项会通过 /system/setting/public 下发给前台（站点名、描述、页脚等）。",
+        "emptyTitle": "暂无设置项",
+        "emptyDesc": "还没有任何配置项。",
+        "emptyFiltered": "没有符合当前条件的配置项"
       },
       "hub": {
         "install": "环境自检",

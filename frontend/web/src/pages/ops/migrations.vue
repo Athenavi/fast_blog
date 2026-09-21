@@ -11,7 +11,7 @@ import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
 import {migrationApi, type MigrationLogItem, type MigrationTaskItem} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -31,14 +31,26 @@ const statusLabel = (s?: string | null) =>
         : s === 'cancelled' ? t('admin.ops.migration.statusCancelled')
           : t('admin.ops.migration.statusPending')
 
-const {
-  list, loading, total, page, pageSize, query, search, reset, load,
-  onPageChange, onSizeChange,
-} = useTable<MigrationTaskItem, { keyword?: string; status?: string }>({
+const migrationState = useAdminList<MigrationTaskItem, { keyword?: string; status?: string }>({
+
   fetcher: (params) => migrationApi.list(params),
   defaultQuery: {keyword: '', status: ''},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const list = migrationState.rows
+const loading = migrationState.loading
+const total = migrationState.total
+const page = migrationState.page
+const pageSize = migrationState.pageSize
+const query = migrationState.query
+const search = migrationState.search
+const reset = migrationState.reset
+const load = migrationState.reload
+const onPageChange = migrationState.onPageChange
+const onSizeChange = migrationState.onSizeChange
+const failed = migrationState.failed
 
 // ---- 新建 / 编辑 ----
 const formVisible = ref(false)
@@ -187,7 +199,15 @@ async function openLogs(row: MigrationTaskItem) {
 
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="failed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="failed ? 'error' : 'default'"
+      >
+        <el-button v-if="failed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column :label="$t('admin.common.name')" min-width="160" prop="task_name"/>
         <el-table-column :label="$t('admin.ops.migration.platform')" prop="source_platform" width="120"/>

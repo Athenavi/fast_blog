@@ -13,7 +13,7 @@ import {computed, reactive, ref} from 'vue'
 
 import {deploymentApi, type DeploymentLogItem, type DeploymentScriptItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -31,23 +31,26 @@ interface ScriptQueryForm extends PageQuery {
   script_type?: string
 }
 
-const {
-  list: scriptList,
-  loading: scriptLoading,
-  total: scriptTotal,
-  page: scriptPage,
-  pageSize: scriptPageSize,
-  query: scriptQuery,
-  search: scriptSearch,
-  reset: scriptReset,
-  load: scriptLoad,
-  onPageChange: onScriptPageChange,
-  onSizeChange: onScriptSizeChange,
-} = useTable<DeploymentScriptItem, ScriptQueryForm>({
+const scriptState = useAdminList<DeploymentScriptItem, ScriptQueryForm>({
+
   fetcher: (params) => deploymentApi.listScripts(params),
   defaultQuery: {keyword: '', script_type: ''},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const scriptList = scriptState.rows
+const scriptLoading = scriptState.loading
+const scriptTotal = scriptState.total
+const scriptPage = scriptState.page
+const scriptPageSize = scriptState.pageSize
+const scriptQuery = scriptState.query
+const scriptSearch = scriptState.search
+const scriptReset = scriptState.reset
+const scriptLoad = scriptState.reload
+const onScriptPageChange = scriptState.onPageChange
+const onScriptSizeChange = scriptState.onSizeChange
+const scriptFailed = scriptState.failed
 
 const scriptFormVisible = ref(false)
 const scriptEditingId = ref<number | null>(null)
@@ -165,22 +168,25 @@ interface LogQueryForm extends PageQuery {
   status?: string
 }
 
-const {
-  list: logList,
-  loading: logLoading,
-  total: logTotal,
-  page: logPage,
-  pageSize: logPageSize,
-  query: logQuery,
-  search: logSearch,
-  reset: logReset,
-  load: logLoad,
-  onPageChange: onLogPageChange,
-  onSizeChange: onLogSizeChange,
-} = useTable<DeploymentLogItem, LogQueryForm>({
+const logState = useAdminList<DeploymentLogItem, LogQueryForm>({
+
   fetcher: (params) => deploymentApi.listLogs(params),
   defaultQuery: {script_id: undefined, status: ''},
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const logList = logState.rows
+const logLoading = logState.loading
+const logTotal = logState.total
+const logPage = logState.page
+const logPageSize = logState.pageSize
+const logQuery = logState.query
+const logSearch = logState.search
+const logReset = logState.reset
+const logLoad = logState.reload
+const onLogPageChange = logState.onPageChange
+const onLogSizeChange = logState.onSizeChange
+const logFailed = logState.failed
 
 const logDetailVisible = ref(false)
 const logDetailLoading = ref(false)
@@ -268,7 +274,15 @@ const scriptLabel = (id?: number | null) =>
 
           <AdminTableSkeleton v-if="scriptLoading && !scriptList.length" :rows="5"/>
 
-          <AdminEmpty v-else-if="!scriptLoading && !scriptList.length" :title="$t('admin.common.empty')"/>
+          <AdminEmpty
+            v-else-if="!scriptLoading && !scriptList.length"
+            :title="scriptFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="scriptFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="scriptFailed" :icon="Refresh" @click="scriptLoad()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
           <el-table v-else v-loading="scriptLoading" :data="scriptList" border stripe>
             <el-table-column
               :label="$t('admin.ops.deployment.scriptName')"

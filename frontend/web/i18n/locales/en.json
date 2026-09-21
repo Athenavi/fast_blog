@@ -941,7 +941,11 @@
         "valuePlaceholder": "Use valid JSON for JSON type",
         "publicHint": "When enabled, the frontend can read it via the public API",
         "confirmDelete": "Delete setting “{key}”?",
-        "listSummary": "{n} settings; those marked public are served to the frontend at /system/setting/public"
+        "listSummary": "{n} settings; those marked public are served to the frontend at /system/setting/public",
+        "desc": "Site key/value configuration. Items marked \"public\" are exposed to the front end via /system/setting/public (site name, description, footer…).",
+        "emptyTitle": "No settings",
+        "emptyDesc": "No configuration item yet.",
+        "emptyFiltered": "No settings match the current filters"
       },
       "hub": {
         "install": "Environment Check",

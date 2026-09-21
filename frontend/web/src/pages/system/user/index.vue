@@ -36,7 +36,15 @@
       <!-- 表格 -->
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="failed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="failed ? 'error' : 'default'"
+      >
+        <el-button v-if="failed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="80"/>
         <el-table-column :label="$t('admin.system.user.username')" min-width="140" prop="username"
@@ -182,7 +190,7 @@ import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
 import {roleApi, type RoleItem, userApi, type UserItem, type UserQuery} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 import {formatDateTime} from '@/utils/format'
 
 /** 查询表单（在 PageQuery 基础上补齐页面字段，避免 v-model 绑到 unknown） */
@@ -191,24 +199,26 @@ interface UserQueryForm extends UserQuery {
   is_active?: boolean
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-  remove,
-} = useTable<UserItem, UserQueryForm>({
+const userState = useAdminList<UserItem, UserQueryForm>({
   fetcher: (params) => userApi.list(params),
   defaultQuery: {keyword: '', is_active: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const list = userState.rows
+const loading = userState.loading
+const failed = userState.failed
+const total = userState.total
+const page = userState.page
+const pageSize = userState.pageSize
+const query = userState.query
+const search = userState.search
+const reset = userState.reset
+const load = userState.reload
+const onPageChange = userState.onPageChange
+const onSizeChange = userState.onSizeChange
+const remove = userState.remove
 
 /** 角色下拉数据（用于新建时分配与角色对话框） */
 const roleOptions = ref<RoleItem[]>([])
@@ -382,7 +392,7 @@ onMounted(loadRoles)
 
 .table-toolbar__total {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-fg-muted);
 }
 
 .table-pagination {
@@ -391,7 +401,7 @@ onMounted(loadRoles)
 }
 
 .text-muted {
-  color: #9ca3af;
+  color: var(--color-fg-subtle);
 }
 
 .mb-3 {
