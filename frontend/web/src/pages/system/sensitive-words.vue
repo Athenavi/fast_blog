@@ -43,6 +43,7 @@ const {
 } = useTable<SensitiveWordItem, SensitiveWordQueryForm>({
   fetcher: (params) => sensitiveWordApi.list(params),
   defaultQuery: {keyword: '', level: undefined, is_active: undefined},
+  syncUrl: true,
 })
 
 // ---- 新建 / 编辑 ----
@@ -209,7 +210,10 @@ function levelTag(level: number): string {
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column :label="$t('admin.system.sensitiveWord.word')" min-width="160" prop="word"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.system.sensitiveWord.level')" width="90">

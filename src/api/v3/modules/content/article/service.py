@@ -263,6 +263,17 @@ class ArticleService:
                 continue
         return count
 
+    async def batch_set_published(self, db: AsyncSession, ids: Sequence[int], publish: bool) -> int:
+        """批量发布 / 撤回：逐条复用 set_published，忽略不存在的 id"""
+        count = 0
+        for article_id in ids:
+            try:
+                await self.set_published(db, article_id, publish)
+                count += 1
+            except NotFoundError:
+                continue
+        return count
+
     async def set_published(self, db: AsyncSession, article_id: int, publish: bool) -> dict:
         """发布 / 撤回（撤回清空 published_at，发布则补齐）"""
         article = await article_crud.get(db, article_id)

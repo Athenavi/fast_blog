@@ -30,7 +30,10 @@
         <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
       </div>
 
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
         <el-table-column :label="$t('admin.system.role.code')" prop="slug" width="150"/>
@@ -182,6 +185,7 @@ const {
 } = useTable<RoleItem, RoleQueryForm>({
   fetcher: (params) => roleApi.list(params),
   defaultQuery: {keyword: '', is_system: undefined},
+  syncUrl: true,
 })
 
 // ---------------------------------------------------------------- 新建 / 编辑

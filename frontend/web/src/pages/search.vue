@@ -11,7 +11,7 @@ const site = await useSiteInfo()
 const keyword = computed(() => String(route.query.q || '').trim())
 const page = computed(() => Number(route.query.page || 1))
 
-const {data: pageData, pending} = await useAsyncData(
+const {data: pageData, pending, error, refresh: refreshList} = await useAsyncData(
   () => `search-${keyword.value}-${page.value}`,
   () =>
     keyword.value
@@ -65,6 +65,10 @@ useSeoMeta({
     </p>
 
     <ArticleListSection
+
+      :error="Boolean(error)"
+
+      @retry="refreshList"
       v-if="keyword"
       :articles="articles"
       :loading="pending"

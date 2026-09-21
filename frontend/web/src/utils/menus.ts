@@ -89,6 +89,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'SystemHub', path: '/system/hub', title: '系统总览', permission: 'module_system:monitor:view'},
       {name: 'UserList', path: '/system/user', title: '用户', permission: 'module_system:user:view'},
       {name: 'RoleList', path: '/system/role', title: '角色', permission: 'module_system:role:view'},
+      {name: 'GroupList', path: '/system/group', title: '权限组', permission: 'module_system:group:view'},
       {name: 'MenuList', path: '/system/menu', title: '菜单', permission: 'module_system:navmenu:view'},
       {
         name: 'PermissionList',

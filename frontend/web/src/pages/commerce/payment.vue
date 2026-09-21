@@ -61,6 +61,7 @@ const {
 } = useTable<PaymentGatewayItem, PageQuery & { provider?: string; is_active?: boolean }>({
   fetcher: (params) => paymentApi.listGateways(params),
   defaultQuery: {keyword: '', provider: '', is_active: undefined},
+  syncUrl: true,
 })
 
 const gatewayFormVisible = ref(false)
@@ -557,7 +558,10 @@ async function submitInitiate() {
             </span>
           </div>
 
-          <el-table v-loading="gatewayLoading" :data="gatewayList" border stripe>
+          <AdminTableSkeleton v-if="gatewayLoading && !gatewayList.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!gatewayLoading && !gatewayList.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="gatewayLoading" :data="gatewayList" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="150" prop="name" show-overflow-tooltip/>
             <el-table-column :label="$t('admin.commerce.payment.provider')" prop="provider" width="120"/>
             <el-table-column :label="$t('admin.commerce.payment.currencies')" min-width="140"

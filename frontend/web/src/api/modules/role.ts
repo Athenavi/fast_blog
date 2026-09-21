@@ -11,6 +11,8 @@ export interface RoleItem {
   is_system: boolean
   is_active: boolean
   parent_id?: number | null
+  /** 数据范围（1 仅本人 / 2 本组及以下 / 3 全部 / 5 自定义组） */
+  data_scope?: number | null
   created_at?: string | null
   permission_count: number
   user_count: number

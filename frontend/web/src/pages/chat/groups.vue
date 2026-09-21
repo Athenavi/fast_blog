@@ -41,6 +41,7 @@ const {
 } = useTable<ChatGroupItem, ChatGroupQueryForm>({
   fetcher: (params) => chatApi.listGroups(params),
   defaultQuery: {is_active: undefined},
+  syncUrl: true,
 })
 
 // ---- 新建 / 编辑 ----
@@ -211,7 +212,10 @@ async function toggleMute(row: ChatMemberItem) {
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.common.name')" min-width="150" prop="name" show-overflow-tooltip/>
         <el-table-column :label="$t('admin.common.description')" min-width="180" prop="description"

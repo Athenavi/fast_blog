@@ -10,7 +10,7 @@ const site = await useSiteInfo()
 const page = computed(() => Number(route.query.page || 1))
 const categoryId = computed(() => (route.query.category ? Number(route.query.category) : undefined))
 
-const {data: pageData, pending} = await useAsyncData(
+const {data: pageData, pending, error, refresh: refreshList} = await useAsyncData(
   () => `articles-${page.value}-${categoryId.value ?? 'all'}`,
   () =>
     apiPage<ArticleItem>('/content/article/public/list', {
@@ -62,6 +62,10 @@ useSeoMeta({
     </div>
 
     <ArticleListSection
+
+      :error="Boolean(error)"
+
+      @retry="refreshList"
       :articles="articles"
       :loading="pending"
       :page="page"

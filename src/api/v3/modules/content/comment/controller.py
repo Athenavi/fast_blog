@@ -32,8 +32,10 @@ from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.comment.schema import (
+    CommentBatchDecideRequest,
     CommentBatchDeleteRequest,
     CommentCreate,
+    CommentReplyRequest,
     CommentUpdate,
 )
 from src.api.v3.modules.content.comment.service import comment_service
@@ -96,6 +98,18 @@ async def batch_delete_comments(
 ) -> dict:
     affected = await comment_service.batch_delete(db, payload.ids)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 条")
+
+
+@router.post("/batch/decide", response_model=ResponseModel, summary="批量通过 / 拒绝评论")
+async def batch_decide_comments(
+    payload: CommentBatchDecideRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.COMMENT_APPROVE),
+) -> dict:
+    affected = await comment_service.batch_set_approved(db, payload.ids, payload.approve)
+    action = "通过" if payload.approve else "拒绝"
+    return resp.success({"affected": affected}, msg=f"已{action} {affected} 条")
 
 
 # ─────────────────────────── 管理端：列表 ───────────────────────────
@@ -171,6 +185,18 @@ async def like_comment(
 ) -> dict:
     data = await comment_service.toggle_like(db, comment_id=comment_id, user_id=current.id)
     return resp.success(data, msg="已点赞" if data["liked"] else "已取消点赞")
+
+
+@router.post("/{comment_id}/reply", response_model=ResponseModel, summary="管理员回复评论")
+async def reply_comment(
+    comment_id: int,
+    payload: CommentReplyRequest,
+    db: DBSession,
+    current: CurrentUser,
+    _perm=AuthControl(codes.COMMENT_EDIT),
+) -> dict:
+    data = await comment_service.reply_comment(db, comment_id, payload.content, user=current)
+    return resp.success(data, msg="回复已发布")
 
 
 @router.post("/{comment_id}/approve", response_model=ResponseModel, summary="通过审核")

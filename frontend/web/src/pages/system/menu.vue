@@ -281,7 +281,9 @@ onMounted(loadMenus)
             </div>
           </template>
 
-          <el-table
+          <AdminTableSkeleton v-if="itemsLoading && !items.length" :rows="5"/>
+          <AdminEmpty v-else-if="!itemsLoading && !items.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else
             v-loading="itemsLoading"
             :data="items"
             :tree-props="{children: 'children'}"

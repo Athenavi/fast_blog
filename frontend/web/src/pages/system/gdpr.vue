@@ -43,6 +43,7 @@ const {
 } = useTable<GdprConsentItem, GdprQueryForm>({
   fetcher: (params) => gdprApi.list(params),
   defaultQuery: {consent_type: '', granted: undefined},
+  syncUrl: true,
 })
 
 const stats = ref<GdprStats | null>(null)
@@ -117,7 +118,10 @@ async function onDelete(row: GdprConsentItem) {
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="80"/>
         <el-table-column :label="$t('admin.system.gdpr.userId')" prop="user_id" width="100"/>
         <el-table-column :label="$t('admin.system.gdpr.consentType')" min-width="140" prop="consent_type"

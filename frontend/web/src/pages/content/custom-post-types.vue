@@ -1,15 +1,18 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
- * 自定义内容类型（T5-11 批次 1）
+ * 自定义内容类型（列表 + 抽屉表单）
  *
- * 对齐 v3 `/content/custom-post-type`：类型定义管理（slug 创建后不可改）。
+ * 对齐 v3 `/content/custom-post-type`：类型定义管理；`slug` 创建后不可修改。
  */
-import {Plus, Refresh, Search} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {computed, reactive, ref} from 'vue'
+import {Delete, Edit, Plus} from '@element-plus/icons-vue'
+import {reactive, ref} from 'vue'
 
-import {customPostTypeApi, type CustomPostTypeItem} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {customPostTypeApi, type CustomPostTypeItem, type CustomPostTypePayload} from '@/api'
+import type {PageQuery} from '@/api/types'
+import {useAdminList} from '@/composables/useAdminList'
+import {ElMessage} from '@/utils/feedback'
+import {formatDateTime} from '@/utils/format'
 
 definePageMeta({
   layout: 'admin',
@@ -18,165 +21,212 @@ definePageMeta({
   permission: 'module_content:custom_post_type:view',
 })
 
-const {t} = useI18n()
-
-const {
-  list, loading, total, page, pageSize, query, search, reset, load,
-  onPageChange, onSizeChange,
-} = useTable<CustomPostTypeItem>({fetcher: (params) => customPostTypeApi.list(params)})
-
-const formVisible = ref(false)
-const editingId = ref<number | null>(null)
-const saving = ref(false)
-const form = reactive({
-  name: '', slug: '', description: '', supports: '',
-  has_archive: false, menu_icon: '', menu_position: 0, is_active: true,
+const list = useAdminList<CustomPostTypeItem, PageQuery>({
+  fetcher: (params) => customPostTypeApi.list(params),
+  defaultQuery: {keyword: ''},
+  syncUrl: true,
 })
 
-const formTitle = computed(() =>
-  editingId.value ? t('admin.content.customPostType.editTitle') : t('admin.content.customPostType.createTitle'))
+// ---------------------------------------------------------------- 抽屉表单
+const drawerVisible = ref(false)
+const saving = ref(false)
+const editingId = ref<number | null>(null)
 
-function openCreate() {
-  editingId.value = null
-  Object.assign(form, {
-    name: '', slug: '', description: '', supports: '',
-    has_archive: false, menu_icon: '', menu_position: 0, is_active: true,
-  })
-  formVisible.value = true
-}
-
-function openEdit(row: CustomPostTypeItem) {
-  editingId.value = row.id
-  Object.assign(form, {
-    name: row.name || '',
-    slug: row.slug || '',
-    description: row.description || '',
-    supports: row.supports || '',
-    has_archive: row.has_archive,
-    menu_icon: row.menu_icon || '',
-    menu_position: row.menu_position ?? 0,
-    is_active: row.is_active,
-  })
-  formVisible.value = true
-}
-
-async function submitForm() {
-  if (!form.name.trim() || !form.slug.trim()) {
-    ElMessage.warning(t('admin.content.customPostType.nameRequired'))
-    return
+function emptyForm(): CustomPostTypePayload {
+  return {
+    name: '',
+    slug: '',
+    description: '',
+    supports: '',
+    has_archive: false,
+    menu_icon: '',
+    menu_position: 0,
+    is_active: true,
   }
+}
+
+const form = reactive<CustomPostTypePayload>(emptyForm())
+
+const formRules = computed(() => ({
+  name: [{required: true, message: t('admin.content.customPostType.nameRequired'), trigger: 'blur'}],
+  slug: [{required: true, message: t('admin.content.customPostType.slugRequired'), trigger: 'blur'}],
+}))
+
+function openCreate(): void {
+  editingId.value = null
+  Object.assign(form, emptyForm())
+  drawerVisible.value = true
+}
+
+function openEdit(item: CustomPostTypeItem): void {
+  editingId.value = item.id
+  Object.assign(form, {
+    name: item.name ?? '',
+    slug: item.slug ?? '',
+    description: item.description ?? '',
+    supports: item.supports ?? '',
+    has_archive: item.has_archive ?? false,
+    menu_icon: item.menu_icon ?? '',
+    menu_position: item.menu_position ?? 0,
+    is_active: item.is_active ?? true,
+  })
+  drawerVisible.value = true
+}
+
+async function submitForm(): Promise<void> {
+  const payload: CustomPostTypePayload = {
+    name: (form.name ?? '').trim(),
+    description: form.description || null,
+    supports: form.supports || null,
+    has_archive: form.has_archive,
+    menu_icon: form.menu_icon || null,
+    menu_position: form.menu_position,
+    is_active: form.is_active,
+  }
+
   saving.value = true
   try {
     if (editingId.value) {
-      await customPostTypeApi.update(editingId.value, {
-        name: form.name.trim(),
-        description: form.description || null,
-        supports: form.supports || null,
-        has_archive: form.has_archive,
-        menu_icon: form.menu_icon || null,
-        menu_position: form.menu_position,
-        is_active: form.is_active,
-      })
+      // slug 创建后不可改，更新负载不含 slug
+      await customPostTypeApi.update(editingId.value, payload)
+      ElMessage.success(t('admin.content.customPostType.saved'))
     } else {
-      await customPostTypeApi.create({
-        name: form.name.trim(),
-        slug: form.slug.trim(),
-        description: form.description || null,
-        supports: form.supports || null,
-        has_archive: form.has_archive,
-        menu_icon: form.menu_icon || null,
-        menu_position: form.menu_position,
-        is_active: form.is_active,
-      })
+      await customPostTypeApi.create({...payload, slug: (form.slug ?? '').trim()})
+      ElMessage.success(t('admin.content.customPostType.created'))
     }
-    ElMessage.success(t('admin.common.save'))
-    formVisible.value = false
-    await load()
+    drawerVisible.value = false
+    await list.reload()
   } finally {
     saving.value = false
   }
 }
 
-async function onDelete(row: CustomPostTypeItem) {
-  await ElMessageBox.confirm(t('admin.content.customPostType.deleteConfirm'), t('admin.common.notice'), {type: 'warning'})
-  await customPostTypeApi.remove(row.id)
-  ElMessage.success(t('admin.common.delete'))
-  await load()
+async function removeRow(item: CustomPostTypeItem): Promise<void> {
+  await list.remove(
+    () => customPostTypeApi.remove(item.id),
+    t('admin.content.customPostType.deleteConfirm', {name: item.name ?? item.slug ?? item.id}),
+    t('admin.common.notice'),
+    t('admin.content.customPostType.deleted'),
+  )
 }
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <el-form :inline="true" @submit.prevent="search()">
-        <el-form-item :label="$t('admin.system.sensitiveWord.keyword')">
-          <el-input v-model="query.keyword" clearable style="width: 180px" @keyup.enter="search()"/>
-        </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+  <AdminPage :desc="$t('admin.content.customPostType.desc')" :title="$t('admin.content.customPostType.title')">
+    <template #actions>
+      <el-button v-auth="'module_content:custom_post_type:create'" :icon="Plus" type="primary" @click="openCreate">
+        {{ $t('admin.content.customPostType.createTitle') }}
+      </el-button>
+    </template>
 
-      <div class="table-toolbar">
-        <el-button v-auth="'module_content:custom_post_type:create'" :icon="Plus" type="primary" @click="openCreate">
+    <AdminListShell
+      :empty-desc="list.hasFilters.value ? $t('admin.content.customPostType.emptyFiltered') : $t('admin.content.customPostType.emptyDesc')"
+      :empty-title="list.hasFilters.value ? $t('admin.content.customPostType.emptyFiltered') : $t('admin.content.customPostType.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :rows="list.rows.value"
+      :selectable="false"
+      :total="list.total.value"
+      @refresh="list.reload"
+      @reset="list.reset"
+      @search="list.search"
+      @page-change="list.onPageChange"
+      @size-change="list.onSizeChange"
+    >
+      <template #filters>
+        <el-form-item :label="$t('admin.content.customPostType.keyword')">
+          <el-input v-model="list.query.keyword" :placeholder="$t('admin.content.customPostType.keywordPlaceholder')"
+                    clearable
+                    style="width: 200px" @keyup.enter="list.search()"/>
+        </el-form-item>
+      </template>
+
+      <template #empty-actions>
+        <el-button v-auth="'module_content:custom_post_type:create'" :icon="Plus" type="primary"
+                   @click="openCreate">
           {{ $t('admin.content.customPostType.createTitle') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name"/>
-        <el-table-column label="Slug" prop="slug" width="140"/>
-        <el-table-column :label="$t('admin.common.description')" min-width="180" prop="description"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.content.customPostType.supports')" min-width="150" prop="supports"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.content.customPostType.hasArchive')" width="100">
-          <template #default="{ row }">
-            {{ (row as CustomPostTypeItem).has_archive ? $t('admin.common.yes') : $t('admin.common.no') }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.status')" width="90">
-          <template #default="{ row }">
-            <el-tag :type="(row as CustomPostTypeItem).is_active ? 'success' : 'info'" size="small">
-              {{
-                (row as CustomPostTypeItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
-              }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-          <template #default="{ row }">
-            <el-button v-auth="'module_content:custom_post_type:edit'" link type="primary"
-                       @click="openEdit(row as CustomPostTypeItem)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_content:custom_post_type:delete'" link type="danger"
-                       @click="onDelete(row as CustomPostTypeItem)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <el-table-column :label="$t('admin.common.name')" min-width="200">
+        <template #default="{row}">
+          <div class="admin-cell-title">{{ row.name }}</div>
+          <div class="admin-cell-sub">{{ row.slug || '-' }}</div>
+        </template>
+      </el-table-column>
 
-      <el-pagination
-        :current-page="page" :page-size="pageSize" :total="total"
-        background class="table-pagination" layout="total, sizes, prev, pager, next"
-        @current-change="onPageChange" @size-change="onSizeChange"
-      />
-    </el-card>
+      <el-table-column :label="$t('admin.common.description')" min-width="200" show-overflow-tooltip>
+        <template #default="{row}">{{ row.description || '-' }}</template>
+      </el-table-column>
 
-    <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="480px">
-      <el-form :model="form" label-width="90px">
-        <el-form-item :label="$t('admin.common.name')" required>
-          <el-input v-model="form.name"/>
+      <el-table-column :label="$t('admin.content.customPostType.supports')" min-width="180">
+        <template #default="{row}">
+          <span class="cpt-supports">{{ row.supports || '-' }}</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.content.customPostType.hasArchive')" width="110">
+        <template #default="{row}">
+          <el-tag :type="row.has_archive ? 'success' : 'info'" size="small">
+            {{ row.has_archive ? $t('admin.common.yes') : $t('admin.common.no') }}
+          </el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.content.customPostType.menuPosition')" prop="menu_position" width="110"/>
+
+      <el-table-column :label="$t('admin.common.status')" width="100">
+        <template #default="{row}">
+          <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+            {{
+              row.is_active
+                ? $t('admin.content.customPostType.activeLabel')
+                : $t('admin.content.customPostType.inactiveLabel')
+            }}
+          </el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.updatedAt')" width="170">
+        <template #default="{row}">{{ formatDateTime(row.updated_at) }}</template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="170">
+        <template #default="{row}">
+          <el-button v-auth="'module_content:custom_post_type:edit'" :icon="Edit" link type="primary"
+                     @click="openEdit(row as CustomPostTypeItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_content:custom_post_type:delete'" :icon="Delete" link type="danger"
+                     @click="removeRow(row as CustomPostTypeItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
+
+    <AdminFormDrawer
+      v-model="drawerVisible"
+      :loading="saving"
+      :size="600"
+      :title="editingId ? $t('admin.content.customPostType.editTitle') : $t('admin.content.customPostType.createTitle')"
+      @confirm="submitForm"
+    >
+      <el-form :model="form" :rules="formRules" label-position="top">
+        <el-form-item :label="$t('admin.common.name')" prop="name">
+          <el-input v-model="form.name" maxlength="60" show-word-limit/>
         </el-form-item>
-        <el-form-item label="Slug" required>
-          <el-input v-model="form.slug" :disabled="!!editingId"/>
+        <el-form-item :label="$t('admin.content.customPostType.slug')" prop="slug">
+          <el-input v-model="form.slug" :disabled="!!editingId"
+                    :placeholder="$t('admin.content.customPostType.slugPlaceholder')"/>
+          <div v-if="editingId" class="admin-cell-sub">
+            {{ $t('admin.content.customPostType.slugLockedHint') }}
+          </div>
         </el-form-item>
         <el-form-item :label="$t('admin.common.description')">
-          <el-input v-model="form.description"/>
+          <el-input v-model="form.description" :rows="2" maxlength="255" show-word-limit type="textarea"/>
         </el-form-item>
         <el-form-item :label="$t('admin.content.customPostType.supports')">
           <el-input v-model="form.supports" :placeholder="$t('admin.content.customPostType.supportsHint')"/>
@@ -184,14 +234,24 @@ async function onDelete(row: CustomPostTypeItem) {
         <el-form-item :label="$t('admin.content.customPostType.hasArchive')">
           <el-switch v-model="form.has_archive"/>
         </el-form-item>
-        <el-form-item :label="$t('admin.common.status')">
+        <el-form-item :label="$t('admin.content.customPostType.menuIcon')">
+          <el-input v-model="form.menu_icon" placeholder="Document"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.content.customPostType.menuPosition')">
+          <el-input-number v-model="form.menu_position" :min="0"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.content.customPostType.activeLabel')">
           <el-switch v-model="form.is_active"/>
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="formVisible = false">{{ $t('admin.common.cancel') }}</el-button>
-        <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
-      </template>
-    </el-drawer>
-  </div>
+    </AdminFormDrawer>
+  </AdminPage>
 </template>
+
+<style scoped>
+.cpt-supports {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--admin-fg-muted);
+}
+</style>

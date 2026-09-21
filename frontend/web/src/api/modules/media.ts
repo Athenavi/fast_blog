@@ -65,6 +65,9 @@ export const mediaApi = {
   remove: (id: number) => http.delete<null>(`/content/media/${id}`),
   batchDelete: (ids: number[]) =>
     http.post<{ affected: number }>('/content/media/batch/delete', {ids}),
+  /** 批量更新：只提交要改的字段；`folder_id: null` 表示移出文件夹 */
+  batchUpdate: (payload: { ids: number[]; is_public?: boolean; folder_id?: number | null }) =>
+    http.post<{ affected: number }>('/content/media/batch/update', payload),
   upload: (files: File[]) => {
     const form = new FormData()
     files.forEach((file) => form.append('files', file))

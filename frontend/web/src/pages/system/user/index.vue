@@ -34,7 +34,10 @@
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="80"/>
         <el-table-column :label="$t('admin.system.user.username')" min-width="140" prop="username"
                          show-overflow-tooltip/>
@@ -204,6 +207,7 @@ const {
 } = useTable<UserItem, UserQueryForm>({
   fetcher: (params) => userApi.list(params),
   defaultQuery: {keyword: '', is_active: undefined},
+  syncUrl: true,
 })
 
 /** 角色下拉数据（用于新建时分配与角色对话框） */

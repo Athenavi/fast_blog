@@ -44,6 +44,7 @@ const {
   onPageChange: onPendingPageChange,
   onSizeChange: onPendingSizeChange,
 } = useTable<CertificationItem, PageQuery>({
+  syncUrl: true,
   fetcher: (params) => certificationApi.pending(params),
   immediate: false,
 })
@@ -58,6 +59,7 @@ const {
   onPageChange: onApprovedPageChange,
   onSizeChange: onApprovedSizeChange,
 } = useTable<CertificationItem, ExpertQuery>({
+  syncUrl: true,
   fetcher: (params) => certificationApi.experts(params),
   immediate: false,
 })

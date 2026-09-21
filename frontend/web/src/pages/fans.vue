@@ -101,15 +101,12 @@ onMounted(load)
         <Skeleton v-for="i in 5" :key="i" class="h-16 w-full"/>
       </div>
 
-      <EmptyState
+      <ErrorState
         v-else-if="failed"
         :description="$t('common.networkError')"
         :title="$t('fans.loadFailed')"
-      >
-        <Button class="mt-3" size="sm" variant="outline" @click="load()">
-          {{ $t('common.retry') }}
-        </Button>
-      </EmptyState>
+        @retry="load()"
+      />
 
       <EmptyState
         v-else-if="!items.length"

@@ -143,7 +143,9 @@ onMounted(load)
         </div>
       </template>
 
-      <el-table v-loading="loading" :data="filtered" border stripe>
+      <AdminTableSkeleton v-if="loading && !filtered.length" :rows="5"/>
+      <AdminEmpty v-else-if="!loading && !filtered.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="filtered" border stripe>
         <el-table-column :label="$t('admin.gamification.badges.key')" min-width="140" prop="badge_key"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>

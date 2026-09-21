@@ -164,6 +164,32 @@ class CommentService:
         )
         return to_public_out(comment)
 
+    async def batch_set_approved(self, db: AsyncSession, ids: Sequence[int], approved: bool) -> int:
+        """批量通过 / 拒绝：逐条复用 set_approved，忽略不存在的 id"""
+        count = 0
+        for comment_id in ids:
+            try:
+                await self.set_approved(db, comment_id, approved)
+                count += 1
+            except NotFoundError:
+                continue
+        return count
+
+    async def reply_comment(
+        self, db: AsyncSession, comment_id: int, content: str, *, user: Any = None
+    ) -> dict:
+        """管理端回复：以当前登录用户为作者，作为该评论的子评论写入（后端对登录用户直接放行审核）"""
+        parent = await comment_crud.get(db, comment_id)
+        if parent is None:
+            raise NotFoundError("评论不存在")
+
+        payload = CommentCreate(
+            article_id=parent.article_id,
+            parent_id=parent.id,
+            content=content,
+        )
+        return await self.create_comment(db, payload, user=user, ip=None, user_agent="admin-console")
+
     async def set_approved(self, db: AsyncSession, comment_id: int, approved: bool) -> dict:
         comment = await comment_crud.get(db, comment_id)
         if comment is None:

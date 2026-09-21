@@ -3,7 +3,7 @@ const {t} = useI18n()
 /**
  * 文章列表区块：列表页 / 分类页 / 搜索页复用
  *
- * 数据由页面负责获取（各页查询参数不同），这里只负责呈现、骨架屏与分页。
+ * 数据由页面负责获取（各页查询参数不同），这里只负责呈现、骨架屏、错误态与分页。
  */
 import type {ArticleItem} from '@/types/content'
 
@@ -13,13 +13,16 @@ const props = withDefaults(
     page: number
     pages: number
     loading?: boolean
+    /** 加载失败：优先展示错误态（含重试），不要把失败伪装成"暂无内容" */
+    error?: boolean
+    errorDescription?: string
     emptyTitle?: string
     emptyDescription?: string
   }>(),
-  {loading: false, emptyTitle: '', emptyDescription: ''},
+  {loading: false, error: false, errorDescription: '', emptyTitle: '', emptyDescription: ''},
 )
 
-const emit = defineEmits<{ (e: 'change', page: number): void }>()
+const emit = defineEmits<{ (e: 'change', page: number): void; (e: 'retry'): void }>()
 </script>
 
 <template>
@@ -36,6 +39,8 @@ const emit = defineEmits<{ (e: 'change', page: number): void }>()
       <ThemeArticleCard v-for="article in props.articles" :key="article.id" :article="article"/>
     </div>
 
+    <ErrorState v-else-if="props.error" :description="props.errorDescription" @retry="emit('retry')"/>
+
     <EmptyState
       v-else
       :description="props.emptyDescription"
@@ -43,7 +48,7 @@ const emit = defineEmits<{ (e: 'change', page: number): void }>()
     />
 
     <PaginationBar
-      v-if="!props.loading"
+      v-if="!props.loading && !props.error"
       :page="props.page"
       :pages="props.pages"
       @change="emit('change', $event)"

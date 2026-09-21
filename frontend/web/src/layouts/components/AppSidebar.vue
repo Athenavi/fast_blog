@@ -9,9 +9,6 @@
       :default-active="activeMenu"
       :collapse="collapsed"
       :collapse-transition="false"
-      background-color="#1f2937"
-      text-color="#cbd5e1"
-      active-text-color="#ffffff"
       unique-opened
       router
     >
@@ -70,21 +67,37 @@ const activeMenu = computed(() => route.path)
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: var(--admin-sidebar-bg);
 }
 
 .sidebar__logo {
   height: 56px;
   line-height: 56px;
   text-align: center;
-  color: #fff;
+  color: var(--admin-sidebar-fg-active);
   font-weight: 600;
   font-size: 15px;
   white-space: nowrap;
   overflow: hidden;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--admin-sidebar-line);
 }
 
+/* 菜单颜色全部走令牌（EP 的 menu 变量 + 后台令牌），支持深浅色与自选配色 */
 .sidebar :deep(.el-menu) {
+  --el-menu-bg-color: var(--admin-sidebar-bg);
+  --el-menu-text-color: var(--admin-sidebar-fg);
+  --el-menu-active-color: var(--admin-sidebar-fg-active);
+  --el-menu-hover-bg-color: color-mix(in oklab, var(--admin-sidebar-bg) 85%, white);
+  --el-menu-item-height: 44px;
+  --el-menu-sub-item-height: 40px;
   border-right: none;
+}
+
+.sidebar :deep(.el-menu-item.is-active) {
+  background-color: color-mix(in oklab, var(--admin-primary) 42%, var(--admin-sidebar-bg));
+}
+
+.sidebar :deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: var(--admin-sidebar-fg-active);
 }
 </style>

@@ -12,6 +12,7 @@
     GET    /api/v3/content/article                列表
     POST   /api/v3/content/article                新建
     POST   /api/v3/content/article/batch/delete   批量删除（软删）
+    POST   /api/v3/content/article/batch/publish  批量发布 / 撤回
     POST   /api/v3/content/article/reorder        批量重排
     GET    /api/v3/content/article/{article_id}   详情（含正文与 SEO）
     PUT    /api/v3/content/article/{article_id}   更新
@@ -36,6 +37,7 @@ from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.article.schema import (
     ArticleBatchDeleteRequest,
+    ArticleBatchPublishRequest,
     ArticleCreate,
     ArticlePublishRequest,
     ArticleUpdate,
@@ -175,6 +177,18 @@ async def batch_delete_articles(
 ) -> dict:
     affected = await article_service.batch_delete(db, payload.ids)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 篇")
+
+
+@router.post("/batch/publish", response_model=ResponseModel, summary="批量发布 / 撤回文章")
+async def batch_publish_articles(
+    payload: ArticleBatchPublishRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_PUBLISH),
+) -> dict:
+    affected = await article_service.batch_set_published(db, payload.ids, payload.publish)
+    action = "发布" if payload.publish else "撤回"
+    return resp.success({"affected": affected}, msg=f"已{action} {affected} 篇")
 
 
 @router.post("/reorder", response_model=ResponseModel, summary="批量重排文章")

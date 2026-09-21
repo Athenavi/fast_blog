@@ -78,6 +78,9 @@ export const articleApi = {
     http.post<ArticleItem>(`/content/article/${id}/publish`, {publish}),
   batchDelete: (ids: number[]) =>
     http.post<{ affected: number }>('/content/article/batch/delete', {ids}),
+  /** 批量发布 / 撤回（后端在单次请求内逐条处理，返回实际处理条数） */
+  batchPublish: (ids: number[], publish = true) =>
+    http.post<{ affected: number }>('/content/article/batch/publish', {ids, publish}),
   reorder: (items: Array<{ id: number; sort_order: number }>) =>
     http.post<{ affected: number }>('/content/article/reorder', items),
 

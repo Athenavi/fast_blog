@@ -177,6 +177,7 @@ interface SubQueryForm extends PageQuery {
 const subTable = useTable<VipSubscriptionItem, SubQueryForm>({
   fetcher: (params) => vipApi.subscriptions(params),
   defaultQuery: {user_id: undefined, status: undefined},
+  syncUrl: true,
 })
 const subQuery = subTable.query
 
@@ -243,7 +244,11 @@ onMounted(() => {
             </el-button>
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: planTable.total.value}) }}</span>
           </div>
-          <el-table v-loading="planTable.loading.value" :data="planTable.list.value" border stripe>
+          <AdminTableSkeleton v-if="planTable.loading.value && !planTable.list.value.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!planTable.loading.value && !planTable.list.value.length"
+                      :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="planTable.loading.value" :data="planTable.list.value" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name"/>
             <el-table-column :label="$t('admin.marketing.vip.price')" width="100">
               <template #default="{ row }">￥{{ (row as VipPlanItem).price }}</template>

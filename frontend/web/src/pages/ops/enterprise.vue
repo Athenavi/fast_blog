@@ -45,6 +45,7 @@ const {
 } = useTable<EnterpriseLicenseItem, LicenseQueryForm>({
   fetcher: (params) => enterpriseApi.listLicenses(params),
   defaultQuery: {keyword: ''},
+  syncUrl: true,
 })
 
 const licenseFormVisible = ref(false)
@@ -304,7 +305,10 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
             </span>
           </div>
 
-          <el-table v-loading="licenseLoading" :data="licenseList" border stripe>
+          <AdminTableSkeleton v-if="licenseLoading && !licenseList.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!licenseLoading && !licenseList.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="licenseLoading" :data="licenseList" border stripe>
             <el-table-column
               :label="$t('admin.ops.enterprise.licenseKey')"
               min-width="200"

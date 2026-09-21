@@ -82,6 +82,22 @@ class NotificationService:
             await db.commit()
         return True
 
+    async def batch_mark_read(self, db: AsyncSession, *, user_id: int, ids: list[int]) -> int:
+        """批量标记已读：逐条复用 mark_read（不属于该用户的 id 自动跳过）"""
+        count = 0
+        for notification_id in ids:
+            if await self.mark_read(db, user_id=user_id, notification_id=notification_id):
+                count += 1
+        return count
+
+    async def batch_delete(self, db: AsyncSession, *, user_id: int, ids: list[int]) -> int:
+        """批量删除：逐条复用 delete（不属于该用户的 id 自动跳过）"""
+        count = 0
+        for notification_id in ids:
+            if await self.delete(db, user_id=user_id, notification_id=notification_id):
+                count += 1
+        return count
+
     async def mark_all_read(self, db: AsyncSession, *, user_id: int) -> int:
         stmt = (
             sa_update(Notification)

@@ -1,269 +1,411 @@
 <script lang="ts" setup>
 const {t} = useI18n()
 /**
- * 评论管理（审核 / 编辑 / 删除）
+ * 评论管理（审核工作流 + 批量处理 + 管理员回复）
  *
- * 对齐 v3：`/content/comment` 列表、`/pending` 待审核、
- * `/{id}/approve|reject` 审核、`/batch/delete` 批量删除。
+ * 对齐 v3：`/content/comment`（列表）、`/pending`（待审数）、
+ * `/{id}/approve|reject`（审核）、`/{id}`（编辑/删除）、`/batch/delete`（批量删除）；
+ * 回复走公开提交端点 `/content/comment/public`（带登录态，后端对登录用户直接通过审核）。
+ *
+ * 三个标签页对应 `is_approved`：全部 / 待审核（false）/ 已通过（true）。
  */
-import {Delete, Edit, Refresh} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {reactive, ref} from 'vue'
+import {ChatDotRound, Check, Close, Delete, Edit, Refresh, View} from '@element-plus/icons-vue'
+import {computed, ref} from 'vue'
 
-import {commentApi, type CommentItem} from '@/api'
+import {commentApi, type CommentItem, type CommentQuery} from '@/api'
+import {useAdminList} from '@/composables/useAdminList'
+import {ElMessage} from '@/utils/feedback'
 import {formatDateTime, truncate} from '@/utils/format'
 
 definePageMeta({
   layout: 'admin',
   middleware: 'auth',
-  title: 'comment.title',
+  title: 'admin.content.comment.commentManagement',
   permission: 'module_content:comment:view',
 })
 
-const STATUS_TABS = [
-  {label: t('admin.common.all'), value: 'all'},
-  {label: t('common.pending'), value: 'pending'},
-  {label: t('common.approved'), value: 'approved'},
-]
+const list = useAdminList<CommentItem, CommentQuery>({
+  fetcher: (params) => commentApi.list(params),
+  defaultQuery: {keyword: '', article_id: undefined, is_approved: undefined},
+  syncUrl: true,
+})
 
-const activeTab = ref<'all' | 'pending' | 'approved'>('all')
+// ---------------------------------------------------------------- 标签页
+type TabName = 'all' | 'pending' | 'approved'
 
-const loading = ref(false)
-const list = ref<CommentItem[]>([])
-const total = ref(0)
-const selection = ref<CommentItem[]>([])
+const activeTab = computed<TabName>({
+  get: () => {
+    const value = list.query.is_approved as boolean | undefined
+    if (value === undefined) return 'all'
+    return value ? 'approved' : 'pending'
+  },
+  set: (name: TabName) => {
+    list.query.is_approved = name === 'all' ? undefined : name === 'approved'
+    void list.search()
+    void loadPendingCount()
+  },
+})
 
-const query = reactive({page: 1, page_size: 20, keyword: ''})
+const pendingCount = ref(0)
 
-async function loadList(): Promise<void> {
-  loading.value = true
+async function loadPendingCount(): Promise<void> {
   try {
-    const base = {page: query.page, page_size: query.page_size}
-    const data =
-      activeTab.value === 'pending'
-        ? await commentApi.pending(base)
-        : await commentApi.list({
-          ...base,
-          ...(activeTab.value === 'approved' ? {is_approved: true} : {}),
-        })
-    list.value = data.items
-    total.value = data.total
-  } finally {
-    loading.value = false
+    const result = await commentApi.pending({page: 1, page_size: 1})
+    pendingCount.value = result.total ?? 0
+  } catch {
+    pendingCount.value = 0
   }
 }
 
-function onTabChange(): void {
-  query.page = 1
-  loadList()
-}
-
-function onSelectionChange(rows: CommentItem[]): void {
-  selection.value = rows
-}
-
-/** 简易关键词过滤（后端列表未提供 keyword 参数，这里做前端过滤当前页） */
-const filtered = computed(() => {
-  const keyword = query.keyword.trim().toLowerCase()
-  if (!keyword) return list.value
-  return list.value.filter(
-    (item) =>
-      (item.content || '').toLowerCase().includes(keyword) ||
-      (item.author_name || '').toLowerCase().includes(keyword),
-  )
-})
-
 // ---------------------------------------------------------------- 审核
-async function approve(row: CommentItem): Promise<void> {
+async function approveRow(row: CommentItem): Promise<void> {
   await commentApi.approve(row.id)
-  ElMessage.success(t('common.approved'))
-  await loadList()
+  ElMessage.success(t('admin.content.comment.approveDone'))
+  await Promise.all([list.reload(), loadPendingCount()])
 }
 
-async function reject(row: CommentItem): Promise<void> {
+async function rejectRow(row: CommentItem): Promise<void> {
   await commentApi.reject(row.id)
-  ElMessage.success(t('common.rejected'))
-  await loadList()
+  ElMessage.success(t('admin.content.comment.rejectDone'))
+  await Promise.all([list.reload(), loadPendingCount()])
 }
 
-// ---------------------------------------------------------------- 编辑
-const dialogVisible = ref(false)
-const saving = ref(false)
-const editingId = ref<number | null>(null)
-const editingContent = ref('')
+/** 批量通过 / 拒绝：后端单次请求内逐条处理，返回实际处理条数 */
+async function bulkDecide(approve: boolean): Promise<void> {
+  if (!list.selectedCount.value) {
+    ElMessage.warning(t('admin.content.comment.selectFirst'))
+    return
+  }
+  const ids = [...list.selectedIds.value]
+  const result = await commentApi.batchDecide(ids, approve)
+  ElMessage.success(t('admin.common.batchDone', {n: result.affected}))
+  list.clearSelection()
+  await Promise.all([list.reload(), loadPendingCount()])
+}
+
+async function bulkApprove(): Promise<void> {
+  await bulkDecide(true)
+}
+
+async function bulkReject(): Promise<void> {
+  await bulkDecide(false)
+}
+
+async function bulkDelete(): Promise<void> {
+  if (!list.selectedCount.value) {
+    ElMessage.warning(t('admin.content.comment.selectFirst'))
+    return
+  }
+  const ids = [...list.selectedIds.value]
+  await list.remove(
+    () => commentApi.batchDelete(ids),
+    t('admin.content.comment.deleteSelectedConfirm', {n: ids.length}),
+    t('admin.common.notice'),
+    t('admin.content.comment.deleted'),
+  )
+  await loadPendingCount()
+}
+
+async function removeRow(row: CommentItem): Promise<void> {
+  await list.remove(
+    () => commentApi.remove(row.id),
+    t('admin.content.comment.deleteConfirm'),
+    t('admin.common.notice'),
+    t('admin.content.comment.deleted'),
+  )
+  await loadPendingCount()
+}
+
+// ---------------------------------------------------------------- 编辑内容
+const editVisible = ref(false)
+const editTarget = ref<CommentItem | null>(null)
+const editContent = ref('')
+const editSaving = ref(false)
 
 function openEdit(row: CommentItem): void {
-  editingId.value = row.id
-  editingContent.value = row.content
-  dialogVisible.value = true
+  editTarget.value = row
+  editContent.value = row.content
+  editVisible.value = true
 }
 
 async function submitEdit(): Promise<void> {
-  const content = editingContent.value.trim()
+  const content = editContent.value.trim()
   if (!content) {
     ElMessage.warning(t('admin.content.comment.commentContentIsRequired'))
     return
   }
-  saving.value = true
+  if (!editTarget.value) return
+  editSaving.value = true
   try {
-    await commentApi.update(editingId.value as number, content)
+    await commentApi.update(editTarget.value.id, content)
     ElMessage.success(t('admin.content.comment.saved'))
-    dialogVisible.value = false
-    await loadList()
+    editVisible.value = false
+    await list.reload()
   } finally {
-    saving.value = false
+    editSaving.value = false
   }
 }
 
-// ---------------------------------------------------------------- 删除
-async function removeRow(row: CommentItem): Promise<void> {
-  await ElMessageBox.confirm(t('admin.content.comment.deleteConfirm'), t('admin.common.notice'), {type: 'warning'})
-  await commentApi.remove(row.id)
-  ElMessage.success(t('admin.content.comment.deleted'))
-  await loadList()
+// ---------------------------------------------------------------- 管理员回复
+const replyVisible = ref(false)
+const replyTarget = ref<CommentItem | null>(null)
+const replyContent = ref('')
+const replySending = ref(false)
+
+function openReply(row: CommentItem): void {
+  replyTarget.value = row
+  replyContent.value = ''
+  replyVisible.value = true
 }
 
-async function removeSelected(): Promise<void> {
-  if (!selection.value.length) {
-    ElMessage.warning(t('admin.content.comment.selectCommentsToDeleteFirst'))
+async function submitReply(): Promise<void> {
+  const content = replyContent.value.trim()
+  if (!content) {
+    ElMessage.warning(t('admin.content.comment.commentContentIsRequired'))
     return
   }
-  await ElMessageBox.confirm(
-    t('admin.content.comment.deleteSelectedConfirm', {n: selection.value.length}),
-    t('admin.common.notice'),
-    {type: 'warning'},
-  )
-  await commentApi.batchDelete(selection.value.map((item) => item.id))
-  ElMessage.success(t('admin.content.comment.deleted'))
-  await loadList()
+  if (!replyTarget.value) return
+  replySending.value = true
+  try {
+    await commentApi.reply(replyTarget.value.id, content)
+    ElMessage.success(t('admin.content.comment.replySent'))
+    replyVisible.value = false
+    await Promise.all([list.reload(), loadPendingCount()])
+  } finally {
+    replySending.value = false
+  }
 }
 
-onMounted(loadList)
+// ---------------------------------------------------------------- 展示辅助
+function authorLabel(row: CommentItem): string {
+  if (row.author_name) return row.author_name
+  if (row.user_id) return t('admin.content.comment.anonymousUser', {id: row.user_id})
+  return '-'
+}
+
+/** 垃圾评分较高时高亮（后端 spam_score 为 0~1 的浮点） */
+function spamType(score?: number | null): 'danger' | 'warning' | 'info' {
+  if (score === null || score === undefined) return 'info'
+  if (score >= 0.7) return 'danger'
+  return score >= 0.4 ? 'warning' : 'info'
+}
+
+function openArticle(row: CommentItem): void {
+  window.open(`/articles/id/${row.article_id}`, '_blank', 'noopener')
+}
+
+onMounted(() => {
+  // 列表由 useAdminList 的 immediate 自动加载，这里只补待审数量
+  void loadPendingCount()
+})
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <el-tabs v-model="activeTab" @tab-change="onTabChange">
-        <el-tab-pane v-for="tab in STATUS_TABS" :key="tab.value" :label="tab.label" :name="tab.value"/>
-      </el-tabs>
+  <AdminPage :desc="$t('admin.content.comment.desc')" :title="$t('admin.content.comment.commentManagement')">
+    <template #actions>
+      <el-button :icon="Refresh" @click="list.reload(), loadPendingCount()">
+        {{ $t('admin.common.refresh') }}
+      </el-button>
+    </template>
 
-      <div class="toolbar">
-        <el-input v-model="query.keyword" :placeholder="$t('admin.content.comment.filterThisPageByContentOrAuthor')"
-                  clearable style="width: 240px"/>
-        <el-button :icon="Refresh" circle @click="loadList"/>
-        <el-button
-          v-auth="'module_content:comment:delete'"
-          :disabled="!selection.length"
-          :icon="Delete"
-          plain
-          type="danger"
-          @click="removeSelected"
-        >
-          {{ $t('common.batchDelete') }}
+    <el-tabs v-model="activeTab">
+      <el-tab-pane :label="$t('admin.content.comment.tabsAll')" name="all"/>
+      <el-tab-pane name="pending">
+        <template #label>
+          <span class="tab-label">
+            {{ $t('admin.content.comment.tabsPending') }}
+            <el-badge v-if="pendingCount > 0" :value="pendingCount" class="tab-badge" type="warning"/>
+          </span>
+        </template>
+      </el-tab-pane>
+      <el-tab-pane :label="$t('admin.content.comment.tabsApproved')" name="approved"/>
+    </el-tabs>
+
+    <AdminListShell
+      :empty-desc="list.hasFilters.value ? $t('admin.content.comment.emptyFiltered') : $t('admin.content.comment.emptyDesc')"
+      :empty-title="list.hasFilters.value ? $t('admin.content.comment.emptyFiltered') : $t('admin.content.comment.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :rows="list.rows.value"
+      :selection-count="list.selectedCount.value"
+      :total="list.total.value"
+      @refresh="list.reload"
+      @reset="list.reset"
+      @search="list.search"
+      @clear-selection="list.clearSelection"
+      @page-change="list.onPageChange"
+      @selection-change="list.onSelectionChange"
+      @size-change="list.onSizeChange"
+    >
+      <template #filters>
+        <el-form-item :label="$t('admin.content.comment.keyword')">
+          <el-input
+            v-model="list.query.keyword"
+            :placeholder="$t('admin.content.comment.keywordPlaceholder')"
+            clearable
+            style="width: 220px"
+            @keyup.enter="list.search()"
+          />
+        </el-form-item>
+        <el-form-item :label="$t('admin.content.comment.articleId')">
+          <el-input-number v-model="list.query.article_id" :controls="false" :min="1" style="width: 120px"
+                           @change="list.search()"/>
+        </el-form-item>
+      </template>
+
+      <template #bulk>
+        <el-button v-auth="'module_content:comment:approve'" plain type="primary" @click="bulkApprove">
+          {{ $t('admin.content.comment.batchApprove') }}
         </el-button>
-      </div>
+        <el-button v-auth="'module_content:comment:approve'" plain @click="bulkReject">
+          {{ $t('admin.content.comment.batchReject') }}
+        </el-button>
+        <el-button v-auth="'module_content:comment:delete'" plain type="danger" @click="bulkDelete">
+          {{ $t('admin.common.delete') }}
+        </el-button>
+      </template>
 
-      <el-table v-loading="loading" :data="filtered" row-key="id" @selection-change="onSelectionChange">
-        <el-table-column type="selection" width="46"/>
-        <el-table-column label="ID" prop="id" width="70"/>
-        <el-table-column :label="$t('article.title')" prop="article_id" width="80"/>
-        <el-table-column :label="$t('article.author')" width="150">
-          <template #default="{row}">
-            <div class="author">
-              <span>{{ row.author_name || t('admin.content.comment.anonymousUser', {id: row.user_id ?? '-'}) }}</span>
-              <span v-if="row.author_email" class="email">{{ row.author_email }}</span>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('article.content')" min-width="280">
-          <template #default="{row}">
-            <span class="content-cell">{{ truncate(row.content, 90) }}</span>
-            <el-tag v-if="row.parent_id" class="ml-1" size="small" type="info">{{ $t('comment.reply') }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.status')" width="90">
-          <template #default="{row}">
-            <el-tag :type="row.is_approved ? 'success' : 'warning'" size="small">
-              {{ row.is_approved ? t('common.approved') : t('common.pending') }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('article.likes')" prop="likes" width="70"/>
-        <el-table-column :label="$t('admin.system.log.time')" width="170">
-          <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="200">
-          <template #default="{row}">
-            <template v-if="!row.is_approved">
-              <el-button v-auth="'module_content:comment:approve'" link type="success" @click="approve(row)">
-                {{ $t('admin.content.comment.approve') }}
-              </el-button>
-              <el-button v-auth="'module_content:comment:approve'" link type="warning" @click="reject(row)">
-                {{ $t('admin.content.comment.reject') }}
-              </el-button>
-            </template>
-            <el-button v-auth="'module_content:comment:edit'" :icon="Edit" link type="primary" @click="openEdit(row)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_content:comment:delete'" :icon="Delete" link type="danger"
-                       @click="removeRow(row)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <el-table-column :label="$t('admin.content.comment.author')" width="180">
+        <template #default="{row}">
+          <div class="admin-cell-title">{{ authorLabel(row as CommentItem) }}</div>
+          <div class="admin-cell-sub">{{ row.author_email || '-' }}</div>
+        </template>
+      </el-table-column>
 
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.page_size"
-        :page-sizes="[20, 50, 100]"
-        :total="total"
-        class="pagination"
-        layout="total, sizes, prev, pager, next"
-        @current-change="loadList"
-        @size-change="onTabChange"
-      />
-    </el-card>
+      <el-table-column :label="$t('admin.content.comment.content')" min-width="300">
+        <template #default="{row}">
+          <div class="comment-content">{{ truncate(row.content, 120) }}</div>
+          <div v-if="row.spam_reasons" class="admin-cell-sub">
+            {{ $t('admin.content.comment.reasons') }}: {{ row.spam_reasons }}
+          </div>
+        </template>
+      </el-table-column>
 
-    <el-dialog v-model="dialogVisible" :title="$t('admin.content.comment.editComment')" destroy-on-close width="620px">
-      <el-input v-model="editingContent" :rows="6" maxlength="5000" show-word-limit type="textarea"/>
+      <el-table-column :label="$t('admin.content.comment.article')" width="120">
+        <template #default="{row}">
+          <el-link :underline="false" type="primary" @click="openArticle(row as CommentItem)">
+            #{{ row.article_id }}
+          </el-link>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.content.comment.likes')" prop="likes" width="80"/>
+
+      <el-table-column :label="$t('admin.content.comment.spamScore')" width="110">
+        <template #default="{row}">
+          <el-tag v-if="row.spam_score != null" :type="spamType(row.spam_score)" size="small">
+            {{ Number(row.spam_score).toFixed(2) }}
+          </el-tag>
+          <span v-else>-</span>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.status')" width="110">
+        <template #default="{row}">
+          <el-tag :type="row.is_approved ? 'success' : 'warning'" size="small">
+            {{
+              row.is_approved ? $t('admin.content.comment.statusApproved') : $t('admin.content.comment.statusPending')
+            }}
+          </el-tag>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.createdAt')" width="170">
+        <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="300">
+        <template #default="{row}">
+          <el-button v-if="!row.is_approved" v-auth="'module_content:comment:approve'" :icon="Check" link
+                     type="primary" @click="approveRow(row as CommentItem)">
+            {{ $t('admin.content.comment.approve') }}
+          </el-button>
+          <el-button v-else v-auth="'module_content:comment:approve'" :icon="Close" link
+                     @click="rejectRow(row as CommentItem)">
+            {{ $t('admin.content.comment.reject') }}
+          </el-button>
+          <el-button :icon="ChatDotRound" link type="primary" @click="openReply(row as CommentItem)">
+            {{ $t('admin.content.comment.reply') }}
+          </el-button>
+          <el-button v-auth="'module_content:comment:edit'" :icon="Edit" link @click="openEdit(row as CommentItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_content:comment:delete'" :icon="Delete" link type="danger"
+                     @click="removeRow(row as CommentItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
+
+    <!-- 编辑内容 -->
+    <el-dialog v-model="editVisible" :title="$t('admin.content.comment.editComment')" width="640px">
+      <el-input v-model="editContent" :rows="6" type="textarea"/>
       <template #footer>
-        <el-button @click="dialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
-        <el-button :loading="saving" type="primary" @click="submitEdit">{{ $t('admin.common.save') }}</el-button>
+        <el-button @click="editVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="editSaving" type="primary" @click="submitEdit">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-dialog>
-  </div>
+
+    <!-- 管理员回复 -->
+    <el-dialog v-model="replyVisible" :title="$t('admin.content.comment.reply')" width="640px">
+      <div v-if="replyTarget" class="reply-quote">
+        <div class="reply-quote__meta">
+          <span class="admin-cell-title">{{ authorLabel(replyTarget) }}</span>
+          <span class="admin-cell-sub">{{ formatDateTime(replyTarget.created_at) }}</span>
+        </div>
+        <p class="reply-quote__text">{{ replyTarget.content }}</p>
+      </div>
+      <el-input v-model="replyContent" :placeholder="$t('admin.content.comment.replyPlaceholder')" :rows="4"
+                type="textarea"/>
+      <template #footer>
+        <el-button @click="replyVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :icon="View" :loading="replySending" type="primary" @click="submitReply">
+          {{ $t('admin.content.comment.replySend') }}
+        </el-button>
+      </template>
+    </el-dialog>
+  </AdminPage>
 </template>
 
 <style scoped>
-.toolbar {
+.tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tab-badge {
+  transform: translateY(-2px);
+}
+
+.comment-content {
+  color: var(--admin-fg);
+  line-height: 1.5;
+}
+
+.reply-quote {
+  margin-bottom: var(--admin-gap);
+  padding: var(--admin-gap-sm) var(--admin-gap);
+  border-left: 3px solid var(--admin-line-strong);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface-soft);
+}
+
+.reply-quote__meta {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
-.author {
-  display: flex;
-  flex-direction: column;
-}
-
-.email {
-  font-size: 12px;
-  color: #909399;
-}
-
-.content-cell {
-  color: #303133;
-}
-
-.ml-1 {
-  margin-left: 4px;
-}
-
-.pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
+.reply-quote__text {
+  margin: 0;
+  color: var(--admin-fg-muted);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
 }
 </style>

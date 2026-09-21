@@ -25,6 +25,15 @@ export type {
   RoleUpdatePayload,
 } from './modules/role'
 
+export {groupApi} from './modules/group'
+export type {
+  GroupItem,
+  GroupMemberItem,
+  GroupPayload,
+  GroupQuery,
+  GroupRoleItem,
+} from './modules/group'
+
 export {permissionApi} from './modules/permission'
 export type {CapabilityGroup, CapabilityItem, PermissionCheckResult} from './modules/permission'
 

@@ -212,6 +212,7 @@ interface SubQueryForm extends PageQuery {
 const subTable = useTable<FormSubmissionItem, SubQueryForm>({
   fetcher: (params) => formApi.submissions(params),
   defaultQuery: {form_id: undefined},
+  syncUrl: true,
 })
 const subQuery = subTable.query
 
@@ -235,7 +236,11 @@ async function deleteSubmission(row: FormSubmissionItem) {
             </el-button>
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: formTable.total.value}) }}</span>
           </div>
-          <el-table v-loading="formTable.loading.value" :data="formTable.list.value" border stripe>
+          <AdminTableSkeleton v-if="formTable.loading.value && !formTable.list.value.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!formTable.loading.value && !formTable.list.value.length"
+                      :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="formTable.loading.value" :data="formTable.list.value" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="140" prop="title"/>
             <el-table-column label="Slug" prop="slug" width="140"/>
             <el-table-column :label="$t('admin.common.status')" width="110">

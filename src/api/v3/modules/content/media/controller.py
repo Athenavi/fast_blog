@@ -32,6 +32,7 @@ from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.media.schema import (
     MediaBatchDeleteRequest,
+    MediaBatchUpdateRequest,
     MediaFolderCreate,
     MediaFolderUpdate,
     MediaUpdate,
@@ -66,6 +67,17 @@ async def batch_delete_media(
 ) -> dict:
     affected = await media_service.batch_delete(db, payload.ids)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 项")
+
+
+@router.post("/batch/update", response_model=ResponseModel, summary="批量更新媒体（可见性 / 文件夹）")
+async def batch_update_media(
+    payload: MediaBatchUpdateRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MEDIA_UPLOAD),
+) -> dict:
+    affected = await media_service.batch_update(db, payload)
+    return resp.success({"affected": affected}, msg=f"已更新 {affected} 项")
 
 
 # ─────────────────────────── 文件夹（静态路径优先）───────────────────────────

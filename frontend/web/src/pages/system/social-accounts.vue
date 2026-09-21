@@ -41,6 +41,7 @@ const {
 } = useTable<SocialAccountItem, SocialQueryForm>({
   fetcher: (params) => socialApi.list(params),
   defaultQuery: {provider: ''},
+  syncUrl: true,
 })
 
 async function onUnbind(row: SocialAccountItem) {
@@ -84,7 +85,10 @@ async function onUnbind(row: SocialAccountItem) {
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="80"/>
         <el-table-column :label="$t('admin.system.social.userId')" prop="user_id" width="100"/>
         <el-table-column :label="$t('admin.system.social.provider')" prop="provider" width="130"/>

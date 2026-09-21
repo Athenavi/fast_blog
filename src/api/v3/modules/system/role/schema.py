@@ -16,6 +16,8 @@ class RoleOut(SchemaBase):
     is_system: bool = False
     is_active: bool = True
     parent_id: Optional[int] = None
+    #: 数据范围（1 仅本人 / 2 本组及以下 / 3 全部 / 5 自定义组）；=5 时由权限组决定可见范围
+    data_scope: Optional[int] = None
     created_at: Optional[datetime] = None
     permission_count: int = 0
     user_count: int = 0

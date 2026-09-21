@@ -46,6 +46,7 @@ const {
 } = useTable<DeploymentScriptItem, ScriptQueryForm>({
   fetcher: (params) => deploymentApi.listScripts(params),
   defaultQuery: {keyword: '', script_type: ''},
+  syncUrl: true,
 })
 
 const scriptFormVisible = ref(false)
@@ -265,7 +266,10 @@ const scriptLabel = (id?: number | null) =>
             </span>
           </div>
 
-          <el-table v-loading="scriptLoading" :data="scriptList" border stripe>
+          <AdminTableSkeleton v-if="scriptLoading && !scriptList.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!scriptLoading && !scriptList.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="scriptLoading" :data="scriptList" border stripe>
             <el-table-column
               :label="$t('admin.ops.deployment.scriptName')"
               min-width="180"

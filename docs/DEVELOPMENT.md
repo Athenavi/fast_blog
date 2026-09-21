@@ -117,7 +117,7 @@ npm run dev                    # http://localhost:5173，/api 代理到 :9421
 
 ### 4.4 API v3：域 → 模块
 
-路由前缀 `/api/v3/<domain>/<module>`，**11 个域 / 73 个模块**（实测 650 条路由），清单以
+路由前缀 `/api/v3/<domain>/<module>`，**11 个域 / 73 个模块**（实测 655 条路由），清单以
 `src/api/v3/__init__.py::DOMAIN_MODULES` 为唯一事实来源：
 
 | 域               | 模块数 | 模块                                                                                                                                            |
@@ -181,7 +181,8 @@ modules/<domain>/<module>/
 - 缓存：`core/permission/` 提供内存缓存 + Redis 失效广播；启动时预热超管权限。
 - **启动期审计**：`audit_permissions(app, strict=...)` 检查"写操作必须声明权限码、码必须已登记、通配告警、豁免清单"。默认只告警，
   `PERMISSION_AUDIT_STRICT=1` 时问题即拒绝启动。
-- 数据范围（`data_scope`）只作用于管理端；公开读一律不过滤。
+- 数据范围（`data_scope`）只作用于管理端；公开读一律不过滤。角色上设 1（仅本人）/2（本组及以下）/3（全部）/5（自定义组），其中 **5
+  由「权限组」的成员关系决定可见范围**，管理页在 `/system/group`（`module_system:group:*` 权限码）。
 
 ### 4.7 加密与审计
 
@@ -212,7 +213,7 @@ modules/<domain>/<module>/
 | 前台（`/`、`/articles`、`/p/[slug]`、`/categories`、`/search`、`/experts`、`/home/{username}`、`/feed`、`/chat`、`/vip`、`/profile`…）                          | SSR               | `layouts/default.vue` | Tailwind 4 + `components/ui`（shadcn 风格） |
 | 后台（`/dashboard`、`/system/**`、`/content/**`、`/analytics/**`、`/extension/**`、`/ops/**`、`/marketing/**`、`/commerce/**`、`/gamification/**`、`/my/**`…） | CSR（`routeRules`） | `layouts/admin.vue`   | Element Plus                            |
 
-当前 **87 个页面**、**62 个 `api/modules/*.ts`**。SSR 关闭清单集中在 `nuxt.config.ts::routeRules`
+当前 **87 个页面**、**63 个 `api/modules/*.ts`**。SSR 关闭清单集中在 `nuxt.config.ts::routeRules`
 （后台、用户中心、消息、积分/勋章、认证/打赏、群聊等），列表页用 `swr: 60` 短缓存。
 
 ### 5.2 目录约定
@@ -264,7 +265,7 @@ modules/<domain>/<module>/
 
 ### 5.6 i18n
 
-- 文案在 `i18n/locales/*.json`，当前 **2830 个 key**、代码引用 2269 个、菜单动态 key 66 个。
+- 文案在 `i18n/locales/*.json`，当前 **3066 个 key**、代码引用 2481 个、菜单动态 key 67 个。
 - `npm run check:i18n` 校验：key 存在、两份 locale 对称、菜单 `menu.<name>` 齐全、单花括号、*
   *每条文案可被 `@intlify/core-base` 编译**。
 - **文案里不要写 `{...}` 字面量**（例如 JSON 示例），vue-i18n 会当插值编译，导致页面白屏。

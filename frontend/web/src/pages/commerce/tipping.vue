@@ -54,6 +54,7 @@ const {
 } = useTable<WithdrawalItem, WithdrawalQueryForm>({
   fetcher: (params) => tippingApi.withdrawals(params),
   defaultQuery: {status: undefined},
+  syncUrl: true,
 })
 
 const reviewDialog = ref(false)
@@ -213,7 +214,10 @@ onMounted(load)
         </div>
       </template>
 
-      <el-table v-loading="loading || tableLoading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading || tableLoading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading || tableLoading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading || tableLoading" :data="list" border stripe>
         <el-table-column :label="$t('admin.tipping.user')" min-width="120">
           <template #default="{ row }">{{ row.username || `#${row.user_id}` }}</template>
         </el-table-column>

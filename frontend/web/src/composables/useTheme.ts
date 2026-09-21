@@ -53,6 +53,9 @@ export function useTheme() {
       (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
     root.dataset.theme = dark ? 'dark' : 'light'
     root.dataset.accent = accent.value
+    // Element Plus 官方暗色主题（theme-chalk/dark/css-vars.css）挂在 `html.dark` 上；
+    // 后台令牌样式也同时匹配 `.dark` 与 `[data-theme='dark']`，两者保持一致。
+    root.classList.toggle('dark', dark)
     isDark.value = dark
     localStorage.setItem('fb-theme-mode', mode)
   }

@@ -81,6 +81,9 @@ const ICONS = [
   'Briefcase',
   'Files',
   'Layout',
+  'Sunny',
+  'Moon',
+  'Brush',
 ] as const
 
 onMounted(async () => {
@@ -88,9 +91,12 @@ onMounted(async () => {
     import('element-plus'),
     import('@element-plus/icons-vue'),
     import('element-plus/es/locale/lang/zh-cn'),
-    // 样式也一起懒加载，避免它被注入到前台
-    import('element-plus/dist/index.css'),
   ])
+
+  // 样式按"基础 → 暗色变量 → 后台令牌"顺序串行加载，保证覆盖关系正确
+  await import('element-plus/dist/index.css')
+  await import('element-plus/theme-chalk/dark/css-vars.css')
+  await import('@/styles/admin.css')
 
   const nuxtApp = useNuxtApp()
   nuxtApp.vueApp.use(ElementPlus, {locale: zhCn})
@@ -112,18 +118,19 @@ onMounted(async () => {
   justify-content: center;
   height: 100%;
   font-size: 14px;
-  color: #909399;
+  color: var(--admin-fg-subtle, #909399);
+  background: var(--admin-canvas, #f5f7fa);
 }
 
 .layout {
   height: 100%;
   font-size: 14px;
-  color: #303133;
-  background-color: #f5f7fa;
+  color: var(--admin-fg, #303133);
+  background-color: var(--admin-canvas, #f5f7fa);
 }
 
 .layout__aside {
-  background-color: #1f2937;
+  background-color: var(--admin-sidebar-bg, #1f2937);
   transition: width 0.2s ease;
   overflow-x: hidden;
 }
@@ -131,13 +138,14 @@ onMounted(async () => {
 .layout__header {
   display: flex;
   align-items: center;
-  background-color: #fff;
-  border-bottom: 1px solid #e5e7eb;
+  height: 56px;
+  background-color: var(--admin-surface, #fff);
+  border-bottom: 1px solid var(--admin-line, #e5e7eb);
   padding: 0 16px;
 }
 
 .layout__main {
-  background-color: #f5f7fa;
+  background-color: var(--admin-canvas, #f5f7fa);
   padding: 0;
   overflow-y: auto;
 }

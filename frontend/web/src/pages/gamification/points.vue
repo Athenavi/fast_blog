@@ -192,7 +192,9 @@ onMounted(load)
         <span>{{ $t('admin.gamification.points.rulesTitle') }}</span>
       </template>
 
-      <el-table v-loading="loading" :data="rows" border stripe>
+      <AdminTableSkeleton v-if="loading && !rows.length" :rows="5"/>
+      <AdminEmpty v-else-if="!loading && !rows.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="rows" border stripe>
         <el-table-column :label="$t('admin.gamification.points.action')" min-width="160" prop="rule.action"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.gamification.points.description')" min-width="200" prop="rule.description"

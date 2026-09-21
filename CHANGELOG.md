@@ -10,6 +10,21 @@
 
 ### 变更
 
+- **后台 UI/UX 重构（第一阶段：骨架）**：
+    - 新增 `styles/admin.css`：与前台同源的设计令牌（oklch 色板 + 间距/圆角/阴影），并把 **Element Plus 变量
+      映射**到这些令牌（含 `color-mix` 生成的主色/语义色浅色变体），组件不再硬编码色值
+    - **后台暗色模式**：复用前台的 `data-theme` 机制，同时维护 `html.dark`（Element Plus 官方暗色主题挂载点）；
+      后台按需加载 EP 暗色变量与令牌样式；头部新增主题切换（浅色/深色/跟随系统），首屏内联脚本同步避免闪色
+    - 共享骨架组件：`AdminPage`（页面壳）、`AdminListShell`（筛选栏/工具条/批量条/空态/骨架屏/分页）、
+      `AdminEmpty`、`AdminTableSkeleton`、`AdminSelectionBar`、`AdminFormDrawer`
+    - `useAdminList` 组合式：行选择与批量、URL 查询同步（刷新保持筛选）、空态/失败态判定；
+      `hooks/useTable.ts` 改为它的兼容别名（既有页面零改动）
+    - 侧边栏与头部改为令牌驱动（含菜单激活态、hover 色）
+- **文章管理重构**：列表迁到新骨架（`/content/article`，代码移至 `pages/content/article/index.vue`），
+  新增**独立编辑页** `/content/article/[id]`（`new` 为新建）—— 左侧标题/摘要/别名/Tiptap 富文本
+  （复用 `RichEditor`），右侧发布设置（状态、定时发布、分类、标签、封面）与属性（置顶/推荐/隐藏/VIP/排序），
+  顶部操作条（返回/预览/保存草稿/立即发布）与未保存离开确认；列表新增封面缩略图与状态标记、排序选项、
+  批量发布/下架（后端无批量端点，逐条真实调用并汇报失败数）、"无数据 / 筛选无结果"两种空态
 - **文档全面重构**：README.md 改为中文（英文版迁移到 README.en.md，原 README_zh.md 移除）；`docs/` 精简为
   [DEPLOYMENT.md](docs/DEPLOYMENT.md) 与 [DEVELOPMENT.md](docs/DEVELOPMENT.md) 两篇（原 `DEPLOYMENT_GUIDE.md`
   的云平台通用内容与 `docs/refactor/HANDOVER.md` 不再单独维护）；子项目 README（前端、移动端、SDK、测试、插件、主题）
@@ -25,9 +40,55 @@
 - `Makefile`：修正 `.env_example` 拼写（实际文件为 `.env.example`）、`--backend` 参数、
   `/api/v1/health` 探活地址与 `docker-compose exec app` 服务名；`create-admin` / `routes` 目标改用 Typer CLI
 - `tests/load/benchmark.js`：迁移到 API v3 的路径、分页参数（`page_size`）与 `{code, msg, data, pagination}` 响应约定
+- `frontend/web/src/hooks/useTable.ts`：`confirmBox` 被误写成自递归（`await confirmBox(...)`），会让所有走
+  `useTable().remove()` 的删除操作永久挂起；改为调用 `ElMessageBox.confirm`
 
 ### 新增
 
+- **后端批量与事务端点**（消除前端逐条调用的技术债，均带权限码与启动期审计）：
+    - `POST /content/article/batch/publish` 批量发布 / 撤回（`article:publish`）
+    - `POST /content/comment/batch/decide` 批量通过 / 拒绝（`comment:approve`）
+    - `POST /content/comment/{id}/reply` 管理端回复（以当前登录用户为作者，`comment:edit`）
+    - `POST /content/media/batch/update` 批量改可见性 / 所属文件夹（`media:upload`）
+    - `POST /content/category/{id}/merge` **同一事务内**迁移子分类与文章后删除源分类（`category:delete`）
+    - 路由总数 650 → 655；`tests/test_v3_content.py` 补路由与鉴权断言
+- **前端接入上述端点**：文章批量发布、评论批量审核与回复、媒体批量移动/公开、分类合并全部改为**单次请求**，
+  不再由前端 `Promise.allSettled` 逐条调用
+- **后台列表页批量升级**：除 content 域外 23 个仍用旧骨架的页面统一补上 **URL 查询同步**（刷新保持筛选）与
+  **首次加载骨架屏 + 空态**；另 10 个手写列表页（extension/plugin·widget、gamification/badges·points、
+  ops/notification·supervisor·webhook·backup、system/log·menu）补齐骨架屏与空态
+- **前台补齐"加载失败态"**：新增 `components/site/ErrorState.vue`，并让 `ArticleListSection` 支持 `error` / `retry`
+  —— 此前接口异常会被伪装成「暂无内容」，现在明确显示失败原因与重试按钮；文章列表、搜索、分类页、分类总览、
+  专家列表、首页文章区、关注流全部接入（详情页保持 `createError` 语义）
+- 后台**媒体库重构**（`/content/media`）：文件树（增删改文件夹）+ **网格/列表双视图**（视图选择持久化）+
+  **拖拽上传**（拖到内容区任意位置，自动归入当前文件夹）+ 详情侧栏（预览/元信息/URL 复制/元数据编辑/删除）+
+  批量操作（移动到文件夹、设为公开/私有、批量删除）；筛选支持关键词/类型/可见性，URL 同步
+- 后台**评论管理重构**（`/content/comment`）：三个标签页对应审核状态（全部/待审核/已通过，带待审数量徽标）+
+  批量通过/拒绝（后端 `batch/decide` 单次请求）+ **管理员回复**（后端 `/{id}/reply`，以当前登录用户为作者）
+    + 内容编辑、垃圾评分高亮、跳转所属文章
+- 后台**分类管理重构**（`/content/category`）：树形列表 + **拖拽排序**（同层内 HTML5 DnD，只对 `sort_order`
+  变化的行发请求）+ **内联重命名**（点击名称就地编辑）+ **合并**（后端 `/{id}/merge` 在**同一事务**内迁移
+  子分类与该分类下文章后删除源分类）+ 可见性开关
+- 后台**标签管理重构**（`/content/tag`）：内联重命名（目标同名即**合并**，使用后端 `rename` 的 `merged` 结果）+
+  按标签查看文章（抽屉，含状态与时间）+ 删除（提示将影响多少篇文章）+ 排序切换（文章数/名称）
+- 后台 **content 域剩余页面统一到新骨架**：
+    - `approvals`（审批）：重写为 `AdminPage` + `AdminListShell`，保留详情步骤条与时间线、通过/驳回；
+      审批需要逐条阅读内容，因此**刻意不提供批量操作**
+    - `shortcodes`（短代码）：重写为骨架 + 抽屉表单，新增「复制用法」、启用开关（行内切换）与 code 锁定提示
+    - `custom-post-types`：重写为骨架 + 抽屉表单，新增 slug 锁定提示、菜单图标/位置、启用状态列
+    - `page-builder` / `third-party-publish` / `collaboration`：保留既有功能结构，补 **URL 查询同步**
+      （刷新保持筛选）、首次加载骨架屏与空态
+    - `styles/admin.css` 新增**旧类名兼容样式**（`.page-container` / `.table-toolbar` / `.table-pagination`
+      按新令牌定义），因此尚未迁移的页面（system/ops/ai/marketing/commerce/gamification 等）也自动跟随
+      深浅色与自选配色，后台整体观感一致
+- 后台**页面管理**（`/content/page`）：此前是 `<Placeholder>` 占位页，现支持分页列表 + 关键词/状态筛选、
+  新建与编辑（标题、别名、上级页面、模板、排序、摘要、内容、SEO 三件套）、发布/撤回、单条与批量删除、
+  前台链接跳转（复用既有 `pageApi`，无需后端改动）
+- 后台**权限组管理**（`/system/group`）：新增 `api/modules/group.ts` 与页面 —— 树形列表、增删改、
+  组成员（远程搜索用户、全量覆盖）、组角色绑定（含数据范围展示与说明）；后台菜单新增 `GroupList`，
+  已通过 `seed_admin_menus --apply --grant-system-roles` 入库并授权（4 个内置角色 × 67 个菜单）
+- `roles` 接口补 `data_scope` 字段（`role/schema.py::RoleOut` + `role/service.py::_to_out`），
+  前端 `RoleItem` 同步 —— 便于辨识数据范围为「自定义组」的角色
 - `install.py`：**跨平台交互式安装 / 初始化脚本**（仅依赖标准库）—— 环境自检 → 生成 `.env` 并写入 4 个强随机密钥
   （已存在则备份后补齐占位项）→ 检查/下载静态 ffmpeg → `docker compose up -d --build` 并等待 `/api/v3/health`
   → `alembic upgrade head` → 选装种子数据（RBAC / 后台菜单与授权 / 成长体系 / 历史批次菜单）→ 按内置角色创建用户。

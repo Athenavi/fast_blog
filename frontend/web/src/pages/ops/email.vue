@@ -135,7 +135,10 @@ const subTable = useTable({fetcher: (params) => emailApi.subscriptions(params)})
           </el-button>
         </div>
       </template>
-      <el-table v-loading="configsLoading" :data="configs" border>
+      <AdminTableSkeleton v-if="configsLoading && !configs.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!configsLoading && !configs.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="configsLoading" :data="configs" border>
         <el-table-column :label="$t('admin.ops.email.provider')" prop="provider" width="110"/>
         <el-table-column :label="$t('admin.ops.email.fromEmail')" min-width="180" prop="from_email"/>
         <el-table-column :label="$t('admin.ops.email.fromName')" prop="from_name" width="140"/>

@@ -25,7 +25,7 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
-from src.api.v3.modules.content.category.schema import CategoryCreate, CategoryUpdate
+from src.api.v3.modules.content.category.schema import CategoryCreate, CategoryMergeRequest, CategoryUpdate
 from src.api.v3.modules.content.category.service import category_service
 
 router = APIRouter(prefix="/category", tags=["content-category"], route_class=OperationLogRoute)
@@ -104,6 +104,18 @@ async def delete_category_compat(
 ) -> dict:
     await category_service.delete_category(db, category_id)
     return resp.success(None, msg="已删除")
+
+
+@router.post("/{category_id}/merge", response_model=ResponseModel, summary="合并分类（子分类与文章一并迁移）")
+async def merge_category(
+    category_id: int,
+    payload: CategoryMergeRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.CATEGORY_DELETE),
+) -> dict:
+    data = await category_service.merge_category(db, category_id, payload.target_id)
+    return resp.success(data, msg=f"已合并（子分类 {data['moved_children']} / 文章 {data['moved_articles']}）")
 
 
 # ─────────────────────────── 详情 / 更新 / 删除 ───────────────────────────

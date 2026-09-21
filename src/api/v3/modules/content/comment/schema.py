@@ -64,3 +64,16 @@ class CommentUpdate(SchemaBase):
 
 class CommentBatchDeleteRequest(SchemaBase):
     ids: List[int] = Field(min_length=1)
+
+
+class CommentBatchDecideRequest(SchemaBase):
+    """批量审核：approve=True 通过 / False 拒绝"""
+
+    ids: List[int] = Field(min_length=1, description="评论 id 列表")
+    approve: bool = Field(default=True)
+
+
+class CommentReplyRequest(SchemaBase):
+    """管理端回复内容"""
+
+    content: str = Field(min_length=1, max_length=5000)

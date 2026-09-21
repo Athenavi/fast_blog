@@ -69,6 +69,7 @@ const {
 } = useTable<LoginAttemptItem, AttemptQueryForm>({
   fetcher: (params) => securityApi.attempts(params),
   defaultQuery: {username: '', is_success: undefined},
+  syncUrl: true,
 })
 
 // ---- 黑名单 ----
@@ -138,7 +139,10 @@ async function onDeleteBlacklist(row: BlacklistItem) {
             </el-form-item>
           </el-form>
 
-          <el-table v-loading="attemptLoading" :data="attemptList" border stripe>
+          <AdminTableSkeleton v-if="attemptLoading && !attemptList.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!attemptLoading && !attemptList.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="attemptLoading" :data="attemptList" border stripe>
             <el-table-column label="ID" prop="id" width="80"/>
             <el-table-column :label="$t('admin.system.security.username')" min-width="130" prop="username"
                              show-overflow-tooltip/>

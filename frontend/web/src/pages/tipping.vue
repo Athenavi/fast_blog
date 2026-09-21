@@ -262,13 +262,12 @@ onMounted(load)
       <Skeleton class="h-60 w-full"/>
     </div>
 
-    <EmptyState
+    <ErrorState
       v-else-if="failed && !earnings"
       :description="$t('common.networkError')"
       :title="$t('tipping.loadFailed')"
-    >
-      <Button class="mt-3" size="sm" variant="outline" @click="load()">{{ $t('common.retry') }}</Button>
-    </EmptyState>
+      @retry="load()"
+    />
 
     <template v-else>
       <!-- 收益概览 -->

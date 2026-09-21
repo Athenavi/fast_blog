@@ -533,7 +533,9 @@ onMounted(async () => {
         </el-button>
       </div>
 
-      <el-table v-loading="loading" :data="list" row-key="path">
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" row-key="path">
         <el-table-column :label="$t('admin.ops.backup.filename')" min-width="260">
           <template #default="{row}">
             <div>{{ row.filename || row.path }}</div>

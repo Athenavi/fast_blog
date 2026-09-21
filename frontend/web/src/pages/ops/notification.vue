@@ -72,6 +72,38 @@ async function markRead(row: NotificationItem): Promise<void> {
   await loadUnread()
 }
 
+// ---------------------------------------------------------------- 多选与批量
+const selectedIds = ref<number[]>([])
+
+function onSelectionChange(rows: NotificationItem[]): void {
+  selectedIds.value = rows.map((row) => row.id)
+}
+
+function clearSelection(): void {
+  selectedIds.value = []
+}
+
+async function batchRead(): Promise<void> {
+  if (!selectedIds.value.length) return
+  const result = await notificationApi.batchRead([...selectedIds.value])
+  ElMessage.success(t('admin.common.batchDone', {n: result.affected}))
+  clearSelection()
+  await refresh()
+}
+
+async function batchDelete(): Promise<void> {
+  if (!selectedIds.value.length) return
+  await ElMessageBox.confirm(
+    t('admin.ops.notification.deleteSelectedConfirm', {n: selectedIds.value.length}),
+    t('admin.common.notice'),
+    {type: 'warning'},
+  )
+  const result = await notificationApi.batchDelete([...selectedIds.value])
+  ElMessage.success(t('admin.common.batchDone', {n: result.affected}))
+  clearSelection()
+  await refresh()
+}
+
 async function readAll(): Promise<void> {
   const result = await notificationApi.readAll()
   ElMessage.success(t('admin.ops.notification.markedRead', {n: result?.affected ?? 0}))
@@ -127,7 +159,19 @@ onMounted(refresh)
         </el-button>
       </div>
 
-      <el-table v-loading="loading" :data="list" row-key="id">
+      <AdminSelectionBar :count="selectedIds.length" @clear="clearSelection">
+        <el-button v-auth="'module_ops:notification:edit'" plain type="primary" @click="batchRead">
+          {{ $t('admin.ops.notification.batchRead') }}
+        </el-button>
+        <el-button v-auth="'module_ops:notification:edit'" plain type="danger" @click="batchDelete">
+          {{ $t('admin.common.delete') }}
+        </el-button>
+      </AdminSelectionBar>
+
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" row-key="id" @selection-change="onSelectionChange">
+        <el-table-column type="selection" width="46"/>
         <el-table-column label="ID" prop="id" width="80"/>
         <el-table-column :label="$t('admin.cache.level')" width="100">
           <template #default="{row}">

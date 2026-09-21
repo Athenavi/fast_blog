@@ -98,6 +98,11 @@ class ArticleBatchDeleteRequest(SchemaBase):
     ids: List[int] = Field(min_length=1, description="待删除文章 id 列表")
 
 
+class ArticleBatchPublishRequest(SchemaBase):
+    ids: List[int] = Field(min_length=1, description="文章 id 列表")
+    publish: bool = Field(default=True, description="True 发布 / False 撤回")
+
+
 class ArticlePublicQuery(SchemaBase):
     page: int = Field(default=1, ge=1)
     page_size: int = Field(default=20, ge=1, le=100)

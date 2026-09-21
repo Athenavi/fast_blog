@@ -7,7 +7,7 @@ FastBlog 前端：**Nuxt 4.5 单工程**同时承载
 - **管理后台**（`/dashboard`、`/system/**`、`/content/**`、`/analytics/**`、`/extension/**`、`/ops/**`、`/marketing/**`、
   `/commerce/**`、`/gamification/**`、`/my/**`…）—— `ssr: false`，SPA 行为。
 
-当前规模：**87 个页面**、**62 个 `api/modules/*.ts`**、9 个 composable、i18n **2830 个 key**（中英对称）。
+当前规模：**87 个页面**、**63 个 `api/modules/*.ts`**、9 个 composable、i18n **3067 个 key**（中英对称）。
 
 ## 环境要求
 

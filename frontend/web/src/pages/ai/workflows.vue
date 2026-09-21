@@ -44,6 +44,7 @@ const {
 } = useTable<AiWorkflowItem, AiWorkflowQueryForm>({
   fetcher: (params) => aiApi.listWorkflows(params),
   defaultQuery: {task_type: '', status: ''},
+  syncUrl: true,
 })
 
 // ---- 任务类型 / 可用配置（发起任务用）----
@@ -225,7 +226,10 @@ async function onDelete(row: AiWorkflowItem): Promise<void> {
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.ai.userId')" prop="user_id" width="90"/>
         <el-table-column :label="$t('admin.ai.taskType')" width="130">

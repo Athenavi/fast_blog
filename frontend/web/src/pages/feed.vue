@@ -83,16 +83,13 @@ onMounted(load)
       @change="onPage"
     />
 
-    <EmptyState
+    <ErrorState
       v-else-if="failed"
       :description="$t('common.networkError')"
       :title="$t('feed.loadFailed')"
       class="mt-6"
-    >
-      <Button class="mt-3" size="sm" variant="outline" @click="load()">
-        {{ $t('common.retry') }}
-      </Button>
-    </EmptyState>
+      @retry="load()"
+    />
 
     <EmptyState v-else :description="$t('feed.emptyDesc')" :title="$t('feed.empty')" class="mt-6">
       <NuxtLink class="mt-3" to="/experts">

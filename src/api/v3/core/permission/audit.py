@@ -39,6 +39,8 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     ("POST", "/api/v3/ops/notification/{notification_id}/read"): "标记本人通知已读",
     ("DELETE", "/api/v3/ops/notification/{notification_id}"): "删除本人通知",
     ("DELETE", "/api/v3/ops/notification/clean"): "清理本人通知",
+    ("POST", "/api/v3/ops/notification/batch/read"): "批量标记本人通知已读",
+    ("POST", "/api/v3/ops/notification/batch/delete"): "批量删除本人通知",
     # ---- 移动端：用户端 API，设计上仅需认证（与后台管理权限分离）----
     ("POST", "/api/v3/mobile/auth/login"): "移动端登录（认证前）",
     ("POST", "/api/v3/mobile/auth/register"): "移动端注册（认证前）",

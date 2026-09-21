@@ -207,7 +207,9 @@ onMounted(async () => {
         <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
       </div>
 
-      <el-table v-loading="loading" :data="list" row-key="id">
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" row-key="id">
         <el-table-column :label="$t('admin.widget.order')" prop="order_index" width="90">
           <template #default="{row}">
             <el-button :disabled="row.order_index <= 0" link @click="move(row, -1)">↑</el-button>

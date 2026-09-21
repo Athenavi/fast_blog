@@ -19,7 +19,7 @@ import type {ArticleItem, CategoryItem} from '@/types/content'
 
 const site = await useSiteInfo()
 
-const {data: articlePage} = await useAsyncData('home-articles', () =>
+const {data: articlePage, error, refresh: refreshList} = await useAsyncData('home-articles', () =>
   apiPage<ArticleItem>('/content/article/public/list', {page: 1, page_size: 6}),
 )
 const {data: categories} = await useAsyncData('home-categories', () =>
@@ -93,6 +93,10 @@ useSeoMeta({
       </div>
 
       <ArticleListSection
+
+        :error="Boolean(error)"
+
+        @retry="refreshList"
         :articles="articles"
         :page="1"
         :pages="0"

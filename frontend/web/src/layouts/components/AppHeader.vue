@@ -10,6 +10,20 @@
     </el-breadcrumb>
 
     <div class="header__right">
+      <el-dropdown @command="onThemeCommand">
+        <el-icon :title="$t('admin.theme.toggle')" class="header__icon">
+          <Moon v-if="isDark"/>
+          <Sunny v-else/>
+        </el-icon>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="light">{{ $t('admin.theme.light') }}</el-dropdown-item>
+            <el-dropdown-item command="dark">{{ $t('admin.theme.dark') }}</el-dropdown-item>
+            <el-dropdown-item command="system">{{ $t('admin.theme.system') }}</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+
       <LanguageSwitcher/>
 
       <el-badge :value="unread" :hidden="unread === 0" class="header__badge">
@@ -42,6 +56,7 @@ import {computed, onMounted, ref} from 'vue'
 import {ElMessageBox} from '@/utils/feedback'
 
 import {notificationApi} from '@/api'
+import {type ThemeMode, useTheme} from '@/composables/useTheme'
 import {useAppStore} from '@/store/modules/app'
 import {usePermissionStore} from '@/store/modules/permission'
 import {useUserStore} from '@/store/modules/user'
@@ -49,10 +64,16 @@ import {useUserStore} from '@/store/modules/user'
 const appStore = useAppStore()
 const userStore = useUserStore()
 const permissionStore = usePermissionStore()
+const {isDark, setTheme} = useTheme()
 const route = useRoute()
 const router = useRouter()
 
 const {t, te} = useI18n()
+
+/** 头部主题切换：浅色 / 深色 / 跟随系统（与前台共用同一份偏好，见 useTheme） */
+function onThemeCommand(command: string): void {
+  setTheme(command as ThemeMode)
+}
 
 const unread = ref(0)
 
@@ -104,7 +125,7 @@ onMounted(loadUnread)
 .header__collapse {
   font-size: 18px;
   cursor: pointer;
-  color: #4b5563;
+  color: var(--admin-fg-muted);
 }
 
 .header__breadcrumb {
@@ -120,7 +141,7 @@ onMounted(loadUnread)
 .header__icon {
   font-size: 18px;
   cursor: pointer;
-  color: #4b5563;
+  color: var(--admin-fg-muted);
 }
 
 .header__user {
@@ -133,6 +154,6 @@ onMounted(loadUnread)
 
 .header__username {
   font-size: 14px;
-  color: #374151;
+  color: var(--admin-fg);
 }
 </style>

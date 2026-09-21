@@ -19,6 +19,7 @@ from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission.scope import ensure_object_in_scope
 from src.api.v3.modules.content.media.crud import media_crud, media_folder_crud
 from src.api.v3.modules.content.media.schema import (
+    MediaBatchUpdateRequest,
     MediaFolderCreate,
     MediaFolderUpdate,
     MediaUpdate,
@@ -233,6 +234,26 @@ class MediaService:
             logger.exception("媒体上传 webhook 触发失败")
 
     # ------------------------------------------------------------------ 更新 / 删除
+    async def batch_update(self, db: AsyncSession, payload: MediaBatchUpdateRequest) -> int:
+        """批量更新可见性 / 所属文件夹：逐条复用 update_media，忽略不存在的 id"""
+        fields: dict[str, Any] = {}
+        if payload.is_public is not None:
+            fields["is_public"] = payload.is_public
+        # 显式传了 folder_id（含 null）才更新，否则保持原值
+        if "folder_id" in payload.model_fields_set:
+            fields["folder_id"] = payload.folder_id
+        if not fields:
+            return 0
+
+        count = 0
+        for media_id in payload.ids:
+            try:
+                await self.update_media(db, media_id, MediaUpdate(**fields))
+                count += 1
+            except NotFoundError:
+                continue
+        return count
+
     async def update_media(self, db: AsyncSession, media_id: int, payload: MediaUpdate) -> dict:
         media = await media_crud.get(db, media_id)
         if media is None:

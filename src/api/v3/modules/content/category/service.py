@@ -6,7 +6,7 @@
 
 from typing import List, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article.article import Article
@@ -124,6 +124,49 @@ class CategoryService:
                 return
             current = parent.parent_id
         raise BadRequestError("分类层级过深，疑似存在循环引用")
+
+    async def merge_category(self, db: AsyncSession, source_id: int, target_id: int) -> dict:
+        """把源分类合并到目标分类（同一事务内完成）
+
+        - 源分类的直接子分类挂到目标分类下（层级本身不变）
+        - 源分类下的文章改挂到目标分类
+        - 最后删除源分类（复用 delete_category 的一致性检查）
+
+        目标分类是源分类的后代时拒绝，避免形成环。
+        """
+        if source_id == target_id:
+            raise BadRequestError("不能合并到自身")
+
+        source = await self.get_category(db, source_id)
+        target = await self.get_category(db, target_id)
+
+        cursor: Optional[Category] = target
+        while cursor is not None and cursor.parent_id is not None:
+            if cursor.parent_id == source.id:
+                raise BadRequestError("目标分类是源分类的子分类，无法合并")
+            cursor = await category_crud.get(db, cursor.parent_id)
+
+        moved_children = int(
+            (
+                await db.execute(
+                    update(Category).where(Category.parent_id == source_id).values(parent_id=target_id)
+                )
+            ).rowcount
+            or 0
+        )
+        moved_articles = int(
+            (
+                await db.execute(
+                    update(Article).where(Article.category == source_id).values(category=target_id)
+                )
+            ).rowcount
+            or 0
+        )
+
+        await self.delete_category(db, source_id)
+        logger.info("分类合并完成 source=%s target=%s 子分类=%s 文章=%s", source_id, target_id, moved_children,
+                    moved_articles)
+        return {"moved_children": moved_children, "moved_articles": moved_articles}
 
     async def delete_category(self, db: AsyncSession, category_id: int) -> None:
         await self.get_category(db, category_id)

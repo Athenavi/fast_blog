@@ -21,8 +21,8 @@ useHead({
   },
   script: [
     {
-      // 首屏前同步解析 system 偏好，避免闪色
-      innerHTML: `(function(){try{var m=document.documentElement.dataset.theme;var s=localStorage.getItem('fb-theme-mode');if(s==='system'||!s){document.documentElement.dataset.theme=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}else if(s==='dark'||s==='light'){document.documentElement.dataset.theme=s;}}catch(e){}})()`,
+      // 首屏前同步解析 system 偏好，避免闪色；同时维护 `html.dark`（Element Plus 暗色主题的挂载点）
+      innerHTML: `(function(){try{var el=document.documentElement;var s=localStorage.getItem('fb-theme-mode');var m=el.dataset.theme;var d;if(s==='system'||!s){d=window.matchMedia('(prefers-color-scheme: dark)').matches;}else if(s==='dark'||s==='light'){d=(s==='dark');}else{d=(m==='dark');}el.dataset.theme=d?'dark':'light';el.classList.toggle('dark',d);}catch(e){}})()`,
       tagPosition: 'head',
     },
   ],

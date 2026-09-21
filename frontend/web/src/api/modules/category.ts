@@ -39,6 +39,11 @@ export const categoryApi = {
   update: (id: number, data: Partial<CategoryPayload>) =>
     http.put<CategoryItem>(`/content/category/${id}`, data),
   remove: (id: number) => http.delete<null>(`/content/category/${id}`),
+  /** 合并到目标分类：子分类与文章由后端在**同一事务**内迁移，随后删除源分类 */
+  merge: (id: number, targetId: number) =>
+    http.post<{ moved_children: number; moved_articles: number }>(`/content/category/${id}/merge`, {
+      target_id: targetId,
+    }),
   publicList: () => http.page<CategoryItem>('/content/category/public'),
   publicTree: () => http.get<CategoryItem[]>('/content/category/public/tree'),
 }

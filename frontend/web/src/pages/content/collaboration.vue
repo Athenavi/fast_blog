@@ -208,6 +208,7 @@ const {
   fetcher: (params) =>
     collaborationApi.listTasks(currentWorkspaceId.value ?? 0, params),
   defaultQuery: {status: ''},
+  syncUrl: true,
   immediate: false,
 })
 
@@ -360,6 +361,7 @@ const {
 } = useTable<InviteItem, PageQuery & { target_type?: string }>({
   fetcher: (params) => collaborationApi.listInvites(params),
   defaultQuery: {keyword: '', target_type: ''},
+  syncUrl: true,
 })
 
 const inviteFormVisible = ref(false)
@@ -466,7 +468,14 @@ function onTabChange(name: string | number) {
             <el-button :icon="Refresh" @click="loadWorkspaces()">{{ $t('admin.common.refresh') }}</el-button>
           </div>
 
-          <el-table v-loading="workspaceLoading" :data="workspaces" border stripe>
+          <AdminTableSkeleton v-if="workspaceLoading && !workspaces.length" :rows="5"/>
+          <AdminEmpty
+            v-else-if="!workspaceLoading && !workspaces.length"
+            :desc="$t('admin.content.collaboration.emptyDesc')"
+            :title="$t('admin.content.collaboration.emptyTitle')"
+          />
+
+          <el-table v-else v-loading="workspaceLoading" :data="workspaces" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="160" prop="name"
                              show-overflow-tooltip/>
             <el-table-column :label="$t('admin.content.collaboration.slug')" min-width="140" prop="slug"

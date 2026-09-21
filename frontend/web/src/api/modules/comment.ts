@@ -52,8 +52,14 @@ export const commentApi = {
   remove: (id: number) => http.delete<null>(`/content/comment/${id}`),
   batchDelete: (ids: number[]) =>
     http.post<{ affected: number }>('/content/comment/batch/delete', {ids}),
+  /** 批量通过 / 拒绝（approve=true 通过） */
+  batchDecide: (ids: number[], approve = true) =>
+    http.post<{ affected: number }>('/content/comment/batch/decide', {ids, approve}),
   approve: (id: number) => http.post<CommentItem>(`/content/comment/${id}/approve`),
   reject: (id: number) => http.post<CommentItem>(`/content/comment/${id}/reject`),
+  /** 管理员回复：管理端端点，以当前登录用户为作者写入子评论（后端直接放行审核） */
+  reply: (commentId: number, content: string) =>
+    http.post<CommentItem>(`/content/comment/${commentId}/reply`, {content}),
   like: (id: number) =>
     http.post<{ comment_id: number; liked: boolean; likes: number }>(
       `/content/comment/${id}/like`,

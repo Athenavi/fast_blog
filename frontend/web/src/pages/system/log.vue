@@ -169,7 +169,9 @@ onMounted(loadList)
         <el-button :icon="Refresh" circle class="ml-auto" @click="loadList"/>
       </div>
 
-      <el-table v-loading="loading" :data="list" row-key="id">
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" row-key="id">
         <el-table-column label="ID" prop="id" width="80"/>
         <el-table-column :label="$t('admin.system.log.user')" width="150">
           <template #default="{row}">

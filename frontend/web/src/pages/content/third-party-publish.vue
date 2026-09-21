@@ -60,6 +60,7 @@ void loadPlatforms()
 const channelTable = useTable<PublishChannelItem, PublishChannelQuery>({
   fetcher: (params) => thirdPartyPublishApi.listChannels(params),
   defaultQuery: {keyword: '', platform: '', is_active: undefined},
+  syncUrl: true,
 })
 
 const channelFormVisible = ref(false)
@@ -189,6 +190,7 @@ async function removeChannel(row: PublishChannelItem): Promise<void> {
 const taskTable = useTable<PublishTaskItem, PublishTaskQuery>({
   fetcher: (params) => thirdPartyPublishApi.listTasks(params),
   defaultQuery: {status: ''},
+  syncUrl: true,
 })
 
 const taskFormVisible = ref(false)
@@ -370,7 +372,14 @@ function statusTagType(status: string): 'success' | 'danger' | 'warning' | 'info
           </span>
         </div>
 
-        <el-table v-loading="channelTable.loading.value" :data="channelTable.list.value" border stripe>
+        <AdminTableSkeleton v-if="channelTable.loading.value && !channelTable.list.value.length" :rows="5"/>
+        <AdminEmpty
+          v-else-if="!channelTable.loading.value && !channelTable.list.value.length"
+          :desc="$t('admin.content.thirdPartyPublish.emptyDesc')"
+          :title="$t('admin.content.thirdPartyPublish.emptyTitle')"
+        />
+
+        <el-table v-else v-loading="channelTable.loading.value" :data="channelTable.list.value" border stripe>
           <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
           <el-table-column :label="$t('admin.content.thirdPartyPublish.channel.platform')" min-width="170">
             <template #default="{ row }">

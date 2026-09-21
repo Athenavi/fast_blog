@@ -43,6 +43,7 @@ const {
 } = useTable<AiConfigItem, AiConfigQueryForm>({
   fetcher: (params) => aiApi.listConfigs(params),
   defaultQuery: {provider: '', is_active: undefined},
+  syncUrl: true,
 })
 
 // ---- 新建 / 编辑 ----
@@ -235,7 +236,10 @@ async function onDelete(row: AiConfigItem) {
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.ai.userId')" prop="user_id" width="90"/>
         <el-table-column :label="$t('admin.common.name')" min-width="130" prop="name" show-overflow-tooltip/>

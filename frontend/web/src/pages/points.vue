@@ -178,13 +178,12 @@ onMounted(load)
       <Skeleton class="h-40 w-full"/>
     </div>
 
-    <EmptyState
+    <ErrorState
       v-else-if="failed"
       :description="$t('common.networkError')"
       :title="$t('points.loadFailed')"
-    >
-      <Button class="mt-3" size="sm" variant="outline" @click="load()">{{ $t('common.retry') }}</Button>
-    </EmptyState>
+      @retry="load()"
+    />
 
     <template v-else>
       <!-- 账户概览 + 签到 -->

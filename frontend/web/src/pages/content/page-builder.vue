@@ -44,6 +44,7 @@ const {
 } = useTable<PageBuilderItem, PageBuilderQueryForm>({
   fetcher: (params) => pageBuilderApi.list(params),
   defaultQuery: {keyword: '', is_published: undefined},
+  syncUrl: true,
 })
 
 // ---- 新建 / 编辑 ----
@@ -294,7 +295,14 @@ function saveBlock() {
       </div>
 
       <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :desc="$t('admin.content.pageBuilder.emptyDesc')"
+        :title="$t('admin.content.pageBuilder.emptyTitle')"
+      />
+
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column :label="$t('admin.content.pageBuilder.pageTitle')" min-width="160" prop="title"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.content.pageBuilder.slug')" min-width="140" prop="slug"

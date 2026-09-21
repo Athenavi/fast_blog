@@ -77,6 +77,7 @@ const {
 } = useTable<AlertItem, PageQuery & { severity?: string; is_resolved?: boolean }>({
   fetcher: (params) => monitoringApi.listAlerts(params),
   defaultQuery: {keyword: '', severity: '', is_resolved: undefined},
+  syncUrl: true,
 })
 
 const alertFormVisible = ref(false)
@@ -393,7 +394,10 @@ onMounted(() => {
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: alertTotal}) }}</span>
           </div>
 
-          <el-table v-loading="alertLoading" :data="alertList" border stripe>
+          <AdminTableSkeleton v-if="alertLoading && !alertList.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!alertLoading && !alertList.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="alertLoading" :data="alertList" border stripe>
             <el-table-column :label="$t('admin.system.monitoring.alertType')" min-width="140"
                              prop="alert_type"/>
             <el-table-column :label="$t('admin.system.monitoring.severity')" align="center" width="110">

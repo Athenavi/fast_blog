@@ -22,4 +22,10 @@ export const notificationApi = {
   readAll: () => http.post<{ affected: number }>('/ops/notification/read-all'),
   remove: (id: number) => http.delete<null>(`/ops/notification/${id}`),
   clean: () => http.delete<{ affected: number }>('/ops/notification/clean'),
+  /** 批量标记已读（仅本人通知） */
+  batchRead: (ids: number[]) =>
+    http.post<{ affected: number }>('/ops/notification/batch/read', {ids}),
+  /** 批量删除（仅本人通知） */
+  batchDelete: (ids: number[]) =>
+    http.post<{ affected: number }>('/ops/notification/batch/delete', {ids}),
 }

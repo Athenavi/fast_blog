@@ -1,7 +1,7 @@
 """notification 模块的响应模型"""
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import Field
 
@@ -25,3 +25,9 @@ class UnreadCountOut(SchemaBase):
 
 class AffectedOut(SchemaBase):
     affected: int = 0
+
+
+class NotificationBatchRequest(SchemaBase):
+    """批量操作本人通知：标记已读 / 删除"""
+
+    ids: List[int] = Field(min_length=1, description="通知 id 列表")

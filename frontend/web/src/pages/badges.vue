@@ -152,13 +152,12 @@ onMounted(load)
       <Skeleton v-for="i in 6" :key="i" class="h-20 w-full"/>
     </div>
 
-    <EmptyState
+    <ErrorState
       v-else-if="failed"
       :description="$t('common.networkError')"
       :title="$t('badges.loadFailed')"
-    >
-      <Button class="mt-3" size="sm" variant="outline" @click="load()">{{ $t('common.retry') }}</Button>
-    </EmptyState>
+      @retry="load()"
+    />
 
     <template v-else>
       <!-- 我的勋章 -->

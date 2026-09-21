@@ -1,16 +1,18 @@
 <script lang="ts" setup>
+const {t} = useI18n()
 /**
- * 短代码管理
+ * 短代码管理（列表 + 抽屉表单）
  *
- * 对齐 v3 `/content/shortcode`（code 创建后锁定，重复 409 由请求拦截器统一提示）。
- * 页面骨架与 system/sensitive-words 页一致：搜索区 + 表格 + 抽屉表单。
+ * 对齐 v3 `/content/shortcode`：`code` 创建后锁定（更新负载不含 code，重复 409 由请求拦截器提示）。
+ * 列表支持按 `is_active` 筛选，开关可就地切换启用状态。
  */
-import {CopyDocument, Plus, Refresh, Search} from '@element-plus/icons-vue'
-import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {computed, reactive, ref} from 'vue'
+import {CopyDocument, Delete, Edit, Plus} from '@element-plus/icons-vue'
+import {reactive, ref} from 'vue'
 
-import {shortcodeApi, type ShortcodeItem, type ShortcodeQuery} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {shortcodeApi, type ShortcodeItem, type ShortcodePayload, type ShortcodeQuery} from '@/api'
+import {useAdminList} from '@/composables/useAdminList'
+import {ElMessage} from '@/utils/feedback'
+import {formatDateTime} from '@/utils/format'
 
 definePageMeta({
   layout: 'admin',
@@ -19,238 +21,246 @@ definePageMeta({
   permission: 'module_content:shortcode:view',
 })
 
-const {t} = useI18n()
-
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-} = useTable<ShortcodeItem, ShortcodeQuery>({
+const list = useAdminList<ShortcodeItem, ShortcodeQuery>({
   fetcher: (params) => shortcodeApi.list(params),
   defaultQuery: {keyword: '', is_active: undefined},
+  syncUrl: true,
 })
 
-// ---- 新建 / 编辑 ----
-const formVisible = ref(false)
-const editingId = ref<number | null>(null)
+const ACTIVE_OPTIONS = computed(() => [
+  {label: t('admin.content.shortcode.activeLabel'), value: true},
+  {label: t('admin.content.shortcode.inactiveLabel'), value: false},
+])
+
+function usage(item: ShortcodeItem): string {
+  return `[${item.code}]`
+}
+
+async function copyUsage(item: ShortcodeItem): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(usage(item))
+    ElMessage.success(t('admin.content.shortcode.copied'))
+  } catch {
+    ElMessage.warning(t('admin.content.shortcode.copyFailed'))
+  }
+}
+
+async function toggleActive(item: ShortcodeItem, value: boolean): Promise<void> {
+  await shortcodeApi.update(item.id, {is_active: value})
+  ElMessage.success(t('admin.content.shortcode.saved'))
+  await list.reload()
+}
+
+// ---------------------------------------------------------------- 抽屉表单
+const drawerVisible = ref(false)
 const saving = ref(false)
-const form = reactive<{
-  code: string;
-  name: string;
-  description: string;
-  content: string;
-  is_active: boolean
-}>({
-  code: '',
-  name: '',
-  description: '',
-  content: '',
-  is_active: true,
-})
+const editingId = ref<number | null>(null)
 
-const formTitle = computed(() => (editingId.value ? t('admin.content.shortcode.editTitle') : t('admin.content.shortcode.createTitle')))
+function emptyForm(): ShortcodePayload {
+  return {code: '', name: '', description: '', content: '', is_active: true}
+}
 
-function openCreate() {
+const form = reactive<ShortcodePayload>(emptyForm())
+
+const formRules = computed(() => ({
+  code: [{required: !editingId.value, message: t('admin.content.shortcode.codeRequired'), trigger: 'blur'}],
+  name: [{required: true, message: t('admin.content.shortcode.nameRequired'), trigger: 'blur'}],
+  content: [{required: true, message: t('admin.content.shortcode.contentRequired'), trigger: 'blur'}],
+}))
+
+function openCreate(): void {
   editingId.value = null
-  Object.assign(form, {code: '', name: '', description: '', content: '', is_active: true})
-  formVisible.value = true
+  Object.assign(form, emptyForm())
+  drawerVisible.value = true
 }
 
-function openEdit(row: ShortcodeItem) {
-  editingId.value = row.id
+function openEdit(item: ShortcodeItem): void {
+  editingId.value = item.id
   Object.assign(form, {
-    code: row.code,
-    name: row.name,
-    description: row.description || '',
-    content: row.content,
-    is_active: row.is_active,
+    code: item.code,
+    name: item.name,
+    description: item.description ?? '',
+    content: item.content,
+    is_active: item.is_active,
   })
-  formVisible.value = true
+  drawerVisible.value = true
 }
 
-async function submitForm() {
-  if (!editingId.value && !form.code.trim()) {
-    ElMessage.warning(t('admin.content.shortcode.codeRequired'))
-    return
-  }
-  if (!form.name.trim()) {
-    ElMessage.warning(t('admin.content.shortcode.nameRequired'))
-    return
-  }
-  if (!form.content.trim()) {
-    ElMessage.warning(t('admin.content.shortcode.contentRequired'))
-    return
-  }
+async function submitForm(): Promise<void> {
   saving.value = true
   try {
-    const payload = {
-      name: form.name.trim(),
-      description: form.description || null,
-      content: form.content,
-      is_active: form.is_active,
-    }
     if (editingId.value) {
-      await shortcodeApi.update(editingId.value, payload)
+      // code 创建后锁定，更新时不提交
+      await shortcodeApi.update(editingId.value, {
+        name: form.name,
+        description: form.description,
+        content: form.content,
+        is_active: form.is_active,
+      })
+      ElMessage.success(t('admin.content.shortcode.saved'))
     } else {
-      await shortcodeApi.create({...payload, code: form.code.trim()})
+      await shortcodeApi.create({...form})
+      ElMessage.success(t('admin.content.shortcode.created'))
     }
-    ElMessage.success(t('admin.common.save'))
-    formVisible.value = false
-    await load()
+    drawerVisible.value = false
+    await list.reload()
   } finally {
     saving.value = false
   }
 }
 
-async function onDelete(row: ShortcodeItem) {
-  await ElMessageBox.confirm(
-    t('admin.content.shortcode.deleteConfirm', {name: row.name || row.code}),
+async function removeRow(item: ShortcodeItem): Promise<void> {
+  await list.remove(
+    () => shortcodeApi.remove(item.id),
+    t('admin.content.shortcode.deleteConfirm', {name: item.name}),
     t('admin.common.notice'),
-    {type: 'warning'},
+    t('admin.content.shortcode.deleted'),
   )
-  await shortcodeApi.remove(row.id)
-  ElMessage.success(t('admin.common.delete'))
-  await load()
-}
-
-// ---- 复制代码 ----
-function copyCode(code: string): void {
-  navigator.clipboard
-    ?.writeText(code)
-    .then(() => ElMessage.success(t('admin.content.shortcode.copied')))
-    .catch(() => ElMessage.warning(t('admin.content.shortcode.copyFailed')))
 }
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <!-- 搜索区 -->
-      <el-form :inline="true" :model="query" @submit.prevent="search()">
+  <AdminPage :desc="$t('admin.content.shortcode.desc')" :title="$t('admin.content.shortcode.title')">
+    <template #actions>
+      <el-button v-auth="'module_content:shortcode:create'" :icon="Plus" type="primary" @click="openCreate">
+        {{ $t('admin.content.shortcode.createTitle') }}
+      </el-button>
+    </template>
+
+    <AdminListShell
+      :empty-desc="list.hasFilters.value ? $t('admin.content.shortcode.emptyFiltered') : $t('admin.content.shortcode.emptyDesc')"
+      :empty-title="list.hasFilters.value ? $t('admin.content.shortcode.emptyFiltered') : $t('admin.content.shortcode.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :rows="list.rows.value"
+      :selectable="false"
+      :total="list.total.value"
+      @refresh="list.reload"
+      @reset="list.reset"
+      @search="list.search"
+      @page-change="list.onPageChange"
+      @size-change="list.onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.content.shortcode.keyword')">
           <el-input
-            v-model="query.keyword"
-            :placeholder="$t('admin.content.shortcode.keywordPlaceholder')"
+            v-model="list.query.keyword"
             clearable
+            :placeholder="$t('admin.content.shortcode.keywordPlaceholder')"
             style="width: 200px"
-            @keyup.enter="search()"
+            @keyup.enter="list.search()"
           />
         </el-form-item>
         <el-form-item :label="$t('admin.common.status')">
-          <el-select v-model="query.is_active" :placeholder="$t('admin.common.all')" clearable style="width: 110px">
-            <el-option :label="$t('admin.common.enabled')" :value="true"/>
-            <el-option :label="$t('admin.common.disabled')" :value="false"/>
+          <el-select v-model="list.query.is_active" :placeholder="$t('admin.common.all')" clearable
+                     style="width: 140px">
+            <el-option v-for="item in ACTIVE_OPTIONS" :key="String(item.value)" :label="item.label"
+                       :value="item.value"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <!-- 操作区 -->
-      <div class="table-toolbar">
+      <template #empty-actions>
         <el-button v-auth="'module_content:shortcode:create'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.content.shortcode.createTitle') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <!-- 表格 -->
-      <el-table v-loading="loading" :data="list" border stripe>
-        <el-table-column :label="$t('admin.content.shortcode.code')" min-width="170" prop="code"
-                         show-overflow-tooltip>
-          <template #default="{ row }">
-            <span class="shortcode-code">{{ (row as ShortcodeItem).code }}</span>
-            <el-button :icon="CopyDocument" class="shortcode-copy" link size="small"
-                       @click="copyCode((row as ShortcodeItem).code)"/>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.common.description')" min-width="160" prop="description"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.content.shortcode.content')" min-width="220" prop="content"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.common.status')" width="90">
-          <template #default="{ row }">
-            <el-tag :type="(row as ShortcodeItem).is_active ? 'success' : 'info'" size="small">
-              {{ (row as ShortcodeItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled') }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="140">
-          <template #default="{ row }">
-            <el-button v-auth="'module_content:shortcode:edit'" link type="primary"
-                       @click="openEdit(row as ShortcodeItem)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_content:shortcode:delete'" link type="danger"
-                       @click="onDelete(row as ShortcodeItem)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <el-table-column :label="$t('admin.content.shortcode.code')" width="190">
+        <template #default="{row}">
+          <el-tag class="shortcode-code" size="small" type="info">{{ usage(row as ShortcodeItem) }}</el-tag>
+          <el-button :icon="CopyDocument" :title="$t('admin.content.shortcode.copyUsage')" link size="small"
+                     @click="copyUsage(row as ShortcodeItem)"/>
+        </template>
+      </el-table-column>
 
-      <!-- 分页 -->
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+      <el-table-column :label="$t('admin.common.name')" min-width="160">
+        <template #default="{row}">
+          <div class="admin-cell-title">{{ row.name }}</div>
+          <div v-if="row.description" class="admin-cell-sub">{{ row.description }}</div>
+        </template>
+      </el-table-column>
 
-    <!-- 新建 / 编辑 -->
-    <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="460px">
-      <el-form :model="form" label-width="90px">
-        <el-form-item :label="$t('admin.content.shortcode.code')" required>
+      <el-table-column :label="$t('admin.content.shortcode.content')" min-width="240">
+        <template #default="{row}">
+          <code class="shortcode-preview">{{ (row.content || '').slice(0, 80) }}</code>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.status')" width="100">
+        <template #default="{row}">
+          <el-switch
+            v-auth="'module_content:shortcode:edit'"
+            :model-value="row.is_active"
+            size="small"
+            @update:model-value="(value: string | number | boolean) => toggleActive(row as ShortcodeItem, Boolean(value))"
+          />
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.updatedAt')" width="170">
+        <template #default="{row}">{{ formatDateTime(row.updated_at) }}</template>
+      </el-table-column>
+
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="170">
+        <template #default="{row}">
+          <el-button v-auth="'module_content:shortcode:edit'" :icon="Edit" link type="primary"
+                     @click="openEdit(row as ShortcodeItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_content:shortcode:delete'" :icon="Delete" link type="danger"
+                     @click="removeRow(row as ShortcodeItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
+
+    <AdminFormDrawer
+      v-model="drawerVisible"
+      :loading="saving"
+      :size="620"
+      :title="editingId ? $t('admin.content.shortcode.editTitle') : $t('admin.content.shortcode.createTitle')"
+      @confirm="submitForm"
+    >
+      <el-form ref="formRef" :model="form" :rules="formRules" label-position="top">
+        <el-form-item :label="$t('admin.content.shortcode.code')" prop="code">
           <el-input v-model="form.code" :disabled="!!editingId"
                     :placeholder="$t('admin.content.shortcode.codePlaceholder')"/>
+          <div v-if="editingId" class="admin-cell-sub">{{ $t('admin.content.shortcode.codeLockedHint') }}</div>
         </el-form-item>
-        <el-form-item :label="$t('admin.common.name')" required>
+        <el-form-item :label="$t('admin.common.name')" prop="name">
           <el-input v-model="form.name" :placeholder="$t('admin.content.shortcode.namePlaceholder')"/>
         </el-form-item>
         <el-form-item :label="$t('admin.common.description')">
-          <el-input v-model="form.description"/>
+          <el-input v-model="form.description" :rows="2" maxlength="255" show-word-limit type="textarea"/>
         </el-form-item>
-        <el-form-item :label="$t('admin.content.shortcode.content')" required>
-          <el-input
-            v-model="form.content"
-            :autosize="{minRows: 6, maxRows: 14}"
-            :placeholder="$t('admin.content.shortcode.contentPlaceholder')"
-            type="textarea"
-          />
+        <el-form-item :label="$t('admin.content.shortcode.content')" prop="content">
+          <el-input v-model="form.content" :placeholder="$t('admin.content.shortcode.contentPlaceholder')"
+                    :rows="10" type="textarea"/>
         </el-form-item>
-        <el-form-item :label="$t('admin.common.status')">
+        <el-form-item :label="$t('admin.content.shortcode.activeLabel')">
           <el-switch v-model="form.is_active"/>
         </el-form-item>
       </el-form>
-      <template #footer>
-        <el-button @click="formVisible = false">{{ $t('admin.common.cancel') }}</el-button>
-        <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
-      </template>
-    </el-drawer>
-  </div>
+    </AdminFormDrawer>
+  </AdminPage>
 </template>
 
 <style scoped>
 .shortcode-code {
-  margin-right: 4px;
-  font-family: Menlo, Consolas, monospace;
-  color: var(--el-color-primary);
+  font-family: var(--font-mono, monospace);
+}
+
+.shortcode-preview {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
 }
 </style>

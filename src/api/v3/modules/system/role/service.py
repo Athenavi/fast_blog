@@ -46,6 +46,7 @@ class RoleService:
             "is_system": bool(role.is_system),
             "is_active": bool(role.is_active),
             "parent_id": role.parent_id,
+            "data_scope": role.data_scope,
             "created_at": role.created_at,
             "permission_count": await self._count_capabilities(db, role.id),
             "user_count": await self._count_users(db, role.id),

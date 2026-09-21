@@ -47,3 +47,9 @@ class CategoryUpdate(SchemaBase):
     icon: Optional[str] = None
     color: Optional[str] = None
     is_visible: Optional[bool] = None
+
+
+class CategoryMergeRequest(SchemaBase):
+    """合并：把当前分类并入 `target_id`（其子分类与文章会一并迁移）"""
+
+    target_id: int = Field(description="目标分类 id")

@@ -279,7 +279,10 @@ onMounted(() => {
             </el-button>
           </div>
 
-          <el-table v-loading="ssoLoading" :data="ssoList" border stripe>
+          <AdminTableSkeleton v-if="ssoLoading && !ssoList.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!ssoLoading && !ssoList.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="ssoLoading" :data="ssoList" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
             <el-table-column :label="$t('admin.system.integration.providerType')" prop="provider_type" width="110"/>
             <el-table-column :label="$t('admin.system.integration.clientId')" min-width="150" prop="client_id"

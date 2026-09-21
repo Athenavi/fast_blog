@@ -1,0 +1,500 @@
+/* ============================================================================
+ * 后台设计令牌与骨架样式
+ *
+ * **按需加载**：只由 `layouts/admin.vue` 动态引入（见那里的说明），
+ * 绝不进前台初始包。
+ *
+ * 与前台共用同一套语义色（oklch 值取自 `styles/index.css`），并**映射到
+ * Element Plus 变量**——这样 el-* 组件自动跟随令牌，页面里不再出现硬编码色值。
+ *
+ * 约定：
+ *   - 页面/组件只用 `--admin-*` 与 `--el-*` 变量，不写死颜色；
+ *   - 深浅色通过 `html.dark` / `html[data-theme='dark']` 切换（`useTheme()` 会同时置两者）；
+ *   - 自选配色通过 `html[data-accent='...']` 切换主色系（与前台一致）。
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------- 浅色令牌 */
+html {
+  color-scheme: light;
+
+  /* 语义色 */
+  --admin-canvas: oklch(97.4% 0.003 250);
+  --admin-surface: oklch(100% 0 0);
+  --admin-surface-soft: oklch(98.2% 0.004 250);
+  --admin-surface-hover: oklch(96.4% 0.004 250);
+  --admin-fg: oklch(23% 0.02 260);
+  --admin-fg-muted: oklch(50% 0.015 260);
+  --admin-fg-subtle: oklch(68% 0.012 260);
+  --admin-line: oklch(92.5% 0.006 260);
+  --admin-line-strong: oklch(86% 0.01 260);
+  --admin-primary: oklch(52% 0.18 258);
+  --admin-primary-hover: oklch(46% 0.18 258);
+  --admin-primary-soft: oklch(96% 0.03 258);
+  --admin-success: oklch(56% 0.14 155);
+  --admin-warning: oklch(68% 0.15 75);
+  --admin-danger: oklch(58% 0.2 25);
+  --admin-info: oklch(58% 0.02 260);
+
+  /* 侧边栏（后台是深色导航，与内容区形成层次） */
+  --admin-sidebar-bg: oklch(24% 0.02 260);
+  --admin-sidebar-fg: oklch(84% 0.012 260);
+  --admin-sidebar-fg-active: oklch(100% 0 0);
+  --admin-sidebar-line: oklch(32% 0.02 260);
+
+  /* 间距 / 圆角 / 阴影 / 字号 */
+  --admin-gap-xs: 4px;
+  --admin-gap-sm: 8px;
+  --admin-gap: 16px;
+  --admin-gap-lg: 24px;
+  --admin-radius-sm: 6px;
+  --admin-radius: 10px;
+  --admin-radius-lg: 14px;
+  --admin-font-sm: 13px;
+  --admin-shadow-card: 0 1px 2px rgb(15 23 42 / 4%), 0 1px 3px rgb(15 23 42 / 6%);
+  --admin-shadow-pop: 0 10px 30px rgb(15 23 42 / 12%);
+
+  /* ---- Element Plus 变量映射 ---- */
+  --el-color-primary: var(--admin-primary);
+  --el-color-success: var(--admin-success);
+  --el-color-warning: var(--admin-warning);
+  --el-color-danger: var(--admin-danger);
+  --el-color-error: var(--admin-danger);
+  --el-color-info: var(--admin-info);
+
+  --el-bg-color: var(--admin-surface);
+  --el-bg-color-page: var(--admin-canvas);
+  --el-bg-color-overlay: var(--admin-surface);
+  --el-text-color-primary: var(--admin-fg);
+  --el-text-color-regular: var(--admin-fg-muted);
+  --el-text-color-secondary: var(--admin-fg-subtle);
+  --el-text-color-placeholder: var(--admin-fg-subtle);
+  --el-border-color: var(--admin-line);
+  --el-border-color-light: var(--admin-line);
+  --el-border-color-lighter: var(--admin-line);
+  --el-border-color-extra-light: var(--admin-line);
+  --el-fill-color-blank: var(--admin-surface);
+  --el-fill-color-light: var(--admin-surface-soft);
+  --el-fill-color-lighter: var(--admin-surface-soft);
+  --el-fill-color: var(--admin-surface-hover);
+  --el-mask-color: rgb(255 255 255 / 70%);
+  --el-box-shadow-light: var(--admin-shadow-card);
+
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: var(--admin-radius-sm);
+  --el-border-radius-round: 999px;
+
+  /* ---- 主色/语义色的浅色变体（EP 用它们做 hover/禁用/浅底） ---- */
+  --el-color-primary-light-3: color-mix(in oklab, var(--admin-primary) 70%, white);
+  --el-color-primary-light-5: color-mix(in oklab, var(--admin-primary) 50%, white);
+  --el-color-primary-light-7: color-mix(in oklab, var(--admin-primary) 30%, white);
+  --el-color-primary-light-8: color-mix(in oklab, var(--admin-primary) 20%, white);
+  --el-color-primary-light-9: color-mix(in oklab, var(--admin-primary) 10%, white);
+  --el-color-primary-dark-2: color-mix(in oklab, var(--admin-primary) 80%, black);
+  --el-color-success-light-3: color-mix(in oklab, var(--admin-success) 70%, white);
+  --el-color-success-light-5: color-mix(in oklab, var(--admin-success) 50%, white);
+  --el-color-success-light-9: color-mix(in oklab, var(--admin-success) 10%, white);
+  --el-color-warning-light-3: color-mix(in oklab, var(--admin-warning) 70%, white);
+  --el-color-warning-light-5: color-mix(in oklab, var(--admin-warning) 50%, white);
+  --el-color-warning-light-9: color-mix(in oklab, var(--admin-warning) 10%, white);
+  --el-color-danger-light-3: color-mix(in oklab, var(--admin-danger) 70%, white);
+  --el-color-danger-light-5: color-mix(in oklab, var(--admin-danger) 50%, white);
+  --el-color-danger-light-9: color-mix(in oklab, var(--admin-danger) 10%, white);
+  --el-color-error-light-3: color-mix(in oklab, var(--admin-danger) 70%, white);
+  --el-color-info-light-3: color-mix(in oklab, var(--admin-info) 70%, white);
+  --el-color-info-light-9: color-mix(in oklab, var(--admin-info) 10%, white);
+}
+
+/* ---------------------------------------------------------------- 深色令牌 */
+html.dark,
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  --admin-canvas: oklch(19% 0.015 260);
+  --admin-surface: oklch(23% 0.015 260);
+  --admin-surface-soft: oklch(26.5% 0.015 260);
+  --admin-surface-hover: oklch(29% 0.015 260);
+  --admin-fg: oklch(94% 0.008 250);
+  --admin-fg-muted: oklch(74% 0.015 255);
+  --admin-fg-subtle: oklch(60% 0.015 255);
+  --admin-line: oklch(31% 0.015 260);
+  --admin-line-strong: oklch(40% 0.02 260);
+  --admin-primary-soft: oklch(30% 0.05 258);
+
+  --admin-sidebar-bg: oklch(17% 0.015 260);
+  --admin-sidebar-fg: oklch(76% 0.012 260);
+  --admin-sidebar-line: oklch(27% 0.02 260);
+
+  --admin-shadow-card: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 24%);
+  --admin-shadow-pop: 0 12px 32px rgb(0 0 0 / 45%);
+
+  --el-mask-color: rgb(0 0 0 / 70%);
+
+  /* 深色下 EP 的浅色变体要往黑色方向混，否则 hover 会发白 */
+  --el-color-primary-light-3: color-mix(in oklab, var(--admin-primary) 70%, black);
+  --el-color-primary-light-5: color-mix(in oklab, var(--admin-primary) 50%, black);
+  --el-color-primary-light-7: color-mix(in oklab, var(--admin-primary) 30%, black);
+  --el-color-primary-light-8: color-mix(in oklab, var(--admin-primary) 20%, black);
+  --el-color-primary-light-9: color-mix(in oklab, var(--admin-primary) 12%, black);
+  --el-color-primary-dark-2: color-mix(in oklab, var(--admin-primary) 80%, white);
+  --el-color-success-light-3: color-mix(in oklab, var(--admin-success) 70%, black);
+  --el-color-success-light-5: color-mix(in oklab, var(--admin-success) 50%, black);
+  --el-color-success-light-9: color-mix(in oklab, var(--admin-success) 12%, black);
+  --el-color-warning-light-3: color-mix(in oklab, var(--admin-warning) 70%, black);
+  --el-color-warning-light-5: color-mix(in oklab, var(--admin-warning) 50%, black);
+  --el-color-warning-light-9: color-mix(in oklab, var(--admin-warning) 12%, black);
+  --el-color-danger-light-3: color-mix(in oklab, var(--admin-danger) 70%, black);
+  --el-color-danger-light-5: color-mix(in oklab, var(--admin-danger) 50%, black);
+  --el-color-danger-light-9: color-mix(in oklab, var(--admin-danger) 12%, black);
+  --el-color-error-light-3: color-mix(in oklab, var(--admin-danger) 70%, black);
+  --el-color-info-light-3: color-mix(in oklab, var(--admin-info) 70%, black);
+  --el-color-info-light-9: color-mix(in oklab, var(--admin-info) 12%, black);
+}
+
+/* ---------------------------------------------------------------- 自选配色 */
+html[data-accent='violet'] {
+  --admin-primary: oklch(52% 0.2 300);
+  --admin-primary-hover: oklch(46% 0.2 300);
+  --admin-primary-soft: oklch(96% 0.03 300);
+}
+
+html[data-accent='emerald'] {
+  --admin-primary: oklch(55% 0.14 165);
+  --admin-primary-hover: oklch(49% 0.14 165);
+  --admin-primary-soft: oklch(96% 0.04 165);
+}
+
+html[data-accent='rose'] {
+  --admin-primary: oklch(58% 0.18 15);
+  --admin-primary-hover: oklch(52% 0.18 15);
+  --admin-primary-soft: oklch(96% 0.03 15);
+}
+
+html[data-accent='amber'] {
+  --admin-primary: oklch(64% 0.15 72);
+  --admin-primary-hover: oklch(57% 0.15 72);
+  --admin-primary-soft: oklch(97% 0.04 80);
+}
+
+html.dark[data-accent='violet'],
+html[data-theme='dark'][data-accent='violet'] {
+  --admin-primary-soft: oklch(30% 0.05 300);
+}
+
+html.dark[data-accent='emerald'],
+html[data-theme='dark'][data-accent='emerald'] {
+  --admin-primary-soft: oklch(30% 0.05 165);
+}
+
+html.dark[data-accent='rose'],
+html[data-theme='dark'][data-accent='rose'] {
+  --admin-primary-soft: oklch(30% 0.05 15);
+}
+
+html.dark[data-accent='amber'],
+html[data-theme='dark'][data-accent='amber'] {
+  --admin-primary-soft: oklch(32% 0.05 80);
+}
+
+/* ---------------------------------------------------------------- EP 观感收敛 */
+.el-card {
+  border-color: var(--admin-line);
+  border-radius: var(--admin-radius-lg);
+  box-shadow: var(--admin-shadow-card) !important;
+}
+
+.el-card__header {
+  padding: var(--admin-gap) var(--admin-gap-lg);
+  border-bottom-color: var(--admin-line);
+  font-weight: 600;
+}
+
+.el-card__body {
+  padding: var(--admin-gap-lg);
+}
+
+.el-table {
+  --el-table-border-color: var(--admin-line);
+  --el-table-header-bg-color: var(--admin-surface-soft);
+  --el-table-header-text-color: var(--admin-fg-muted);
+  --el-table-row-hover-bg-color: var(--admin-surface-hover);
+  font-size: 13.5px;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+}
+
+.el-table .cell {
+  word-break: break-word;
+}
+
+.el-dialog,
+.el-drawer {
+  --el-dialog-border-radius: var(--admin-radius-lg);
+  border-radius: var(--admin-radius-lg);
+}
+
+.el-dialog__header,
+.el-drawer__header {
+  margin-right: 0;
+  padding: var(--admin-gap) var(--admin-gap-lg);
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--admin-line);
+  font-weight: 600;
+}
+
+.el-dialog__body,
+.el-drawer__body {
+  padding: var(--admin-gap-lg);
+}
+
+.el-dialog__footer {
+  padding: var(--admin-gap-sm) var(--admin-gap-lg) var(--admin-gap);
+  border-top: 1px solid var(--admin-line);
+}
+
+.el-button {
+  font-weight: 500;
+}
+
+.el-tag {
+  border-radius: var(--admin-radius-sm);
+}
+
+.el-pagination {
+  --el-pagination-button-bg-color: transparent;
+  font-weight: 500;
+}
+
+.el-form-item__label {
+  color: var(--admin-fg-muted);
+  font-weight: 500;
+}
+
+.el-alert {
+  border-radius: var(--admin-radius);
+}
+
+.el-empty {
+  --el-empty-padding: var(--admin-gap-lg) 0;
+}
+
+/* ---------------------------------------------------------------- 骨架类 */
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap);
+  padding: var(--admin-gap);
+}
+
+.admin-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--admin-gap);
+  flex-wrap: wrap;
+}
+
+.admin-page__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--admin-fg);
+}
+
+.admin-page__desc {
+  margin: var(--admin-gap-xs) 0 0;
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+.admin-page__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  flex-wrap: wrap;
+}
+
+.admin-card {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-card);
+}
+
+.admin-card--pad {
+  padding: var(--admin-gap-lg);
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--admin-gap);
+}
+
+.admin-toolbar__spacer {
+  flex: 1 1 auto;
+}
+
+.admin-toolbar__total {
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+.admin-filter .el-form-item {
+  margin-right: var(--admin-gap);
+  margin-bottom: var(--admin-gap-sm);
+}
+
+.admin-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--admin-gap);
+}
+
+/* 选中若干行后浮出的批量操作条 */
+.admin-selection-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  margin-bottom: var(--admin-gap-sm);
+  padding: var(--admin-gap-sm) var(--admin-gap);
+  border: 1px solid color-mix(in oklab, var(--admin-primary) 30%, var(--admin-line));
+  border-radius: var(--admin-radius);
+  background: var(--admin-primary-soft);
+}
+
+.admin-selection-bar__count {
+  font-size: var(--admin-font-sm);
+  font-weight: 600;
+  color: var(--admin-fg);
+}
+
+.admin-selection-bar__spacer {
+  flex: 1 1 auto;
+}
+
+/* 表格里的主副标题单元格 / 缩略图 */
+.admin-cell-title {
+  font-weight: 500;
+  color: var(--admin-fg);
+}
+
+.admin-cell-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
+}
+
+.admin-thumb {
+  width: 48px;
+  height: 36px;
+  border-radius: var(--admin-radius-sm);
+  object-fit: cover;
+  background: var(--admin-surface-soft);
+  border: 1px solid var(--admin-line);
+}
+
+/* 编辑页分栏：左侧主表单 + 右侧设置栏 */
+.admin-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--admin-gap);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .admin-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 骨架屏 */
+.admin-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap-sm);
+  padding: var(--admin-gap) 0;
+}
+
+/* 空状态 */
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  padding: 48px var(--admin-gap);
+  text-align: center;
+}
+
+.admin-empty__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--admin-fg);
+}
+
+.admin-empty__desc {
+  max-width: 420px;
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+.admin-empty__actions {
+  display: flex;
+  gap: var(--admin-gap-sm);
+  margin-top: var(--admin-gap-sm);
+}
+
+/* ---------------------------------------------------------------- 旧页面兼容
+ * 早期页面用的是 `.page-container` / `.table-toolbar` / `.table-pagination` 这些局部类名。
+ * 这里给出与新骨架等价的全局定义，让尚未迁移的页面也跟随令牌（深浅色 + 自选配色）保持一致；
+ * 页面迁移到 AdminPage / AdminListShell 之后可以删掉各自的 scoped 样式。
+ */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap);
+  padding: var(--admin-gap);
+}
+
+.page-card {
+  padding: var(--admin-gap-lg);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-surface);
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--admin-gap);
+}
+
+.table-toolbar__total {
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+.table-toolbar__title {
+  font-size: var(--admin-font-sm);
+  font-weight: 600;
+  color: var(--admin-fg-muted);
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--admin-gap);
+}
+
+/* 网格卡片（媒体库等） */
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--admin-gap);
+}

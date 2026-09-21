@@ -460,7 +460,9 @@ async function openLog(row: SupervisorProcess): Promise<void> {
 
     <!-- 进程登记 + 实时状态 -->
     <el-card class="mt-4" shadow="never">
-      <el-table v-loading="loading" :data="processes" row-key="name">
+      <AdminTableSkeleton v-if="loading && !processes.length" :rows="5"/>
+      <AdminEmpty v-else-if="!loading && !processes.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="processes" row-key="name">
         <el-table-column :label="$t('admin.ops.supervisor.process')" min-width="180">
           <template #default="{ row }">
             <div class="font-medium">{{ (row as SupervisorProcess).name }}</div>

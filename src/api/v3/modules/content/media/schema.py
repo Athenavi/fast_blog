@@ -47,6 +47,14 @@ class MediaBatchDeleteRequest(SchemaBase):
     ids: List[int] = Field(min_length=1)
 
 
+class MediaBatchUpdateRequest(SchemaBase):
+    """批量更新：只提交需要改的字段；`folder_id` 显式传 null 表示移出文件夹"""
+
+    ids: List[int] = Field(min_length=1, description="媒体 id 列表")
+    is_public: Optional[bool] = None
+    folder_id: Optional[int] = None
+
+
 class MediaFolderOut(SchemaBase):
     id: int
     name: str

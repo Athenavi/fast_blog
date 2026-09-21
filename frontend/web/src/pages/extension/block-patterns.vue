@@ -26,6 +26,7 @@ const {
 } = useTable<BlockPatternItem, { keyword?: string; category?: string }>({
   fetcher: (params) => blockPatternApi.list(params),
   defaultQuery: {keyword: '', category: ''},
+  syncUrl: true,
 })
 
 const formVisible = ref(false)
@@ -118,7 +119,10 @@ async function onDelete(row: BlockPatternItem) {
         <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
       </div>
 
-      <el-table v-loading="loading" :data="list" border stripe>
+      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
+
+      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column :label="$t('admin.extension.blockPattern.blockTitle')" min-width="160" prop="title"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.extension.blockPattern.blockName')" min-width="120" prop="name"

@@ -18,7 +18,7 @@ const site = await useSiteInfo()
 const page = computed(() => Number(route.query.page || 1))
 const certType = computed(() => (route.query.type ? String(route.query.type) : undefined))
 
-const {data: pageData, pending} = await useAsyncData(
+const {data: pageData, pending, error, refresh: refreshList} = await useAsyncData(
   () => `experts-${page.value}-${certType.value ?? 'all'}`,
   () =>
     apiPage<CertificationItem>('/gamification/certification/experts', {
@@ -82,6 +82,8 @@ useSeoMeta({
     <div v-if="pending" class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <Skeleton v-for="i in 6" :key="i" class="h-32 w-full"/>
     </div>
+
+    <ErrorState v-else-if="error" class="mt-8" @retry="refreshList"/>
 
     <EmptyState v-else-if="!experts.length" :description="$t('experts.emptyDesc')" :title="$t('experts.empty')"/>
 

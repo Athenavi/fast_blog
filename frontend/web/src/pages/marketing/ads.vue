@@ -57,6 +57,7 @@ const {
 } = useTable<AdItem, AdQueryForm>({
   fetcher: (params) => adApi.list(params),
   defaultQuery: {keyword: '', placement_id: undefined, is_active: undefined},
+  syncUrl: true,
 })
 
 // ---- 广告位列表 ----
@@ -279,7 +280,10 @@ async function deletePlacement(row: AdPlacementItem) {
             <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: adTotal}) }}</span>
           </div>
 
-          <el-table v-loading="adLoading" :data="adList" border stripe>
+          <AdminTableSkeleton v-if="adLoading && !adList.length" :rows="5"/>
+
+          <AdminEmpty v-else-if="!adLoading && !adList.length" :title="$t('admin.common.empty')"/>
+          <el-table v-else v-loading="adLoading" :data="adList" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="160" prop="title" show-overflow-tooltip/>
             <el-table-column :label="$t('admin.marketing.ad.adType')" prop="ad_type" width="90"/>
             <el-table-column :label="$t('admin.marketing.ad.placement')" width="120">

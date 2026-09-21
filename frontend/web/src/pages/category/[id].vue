@@ -14,7 +14,7 @@ const {data: categories} = await useAsyncData('all-categories', () =>
 )
 const category = computed(() => (categories.value || []).find((item) => item.id === categoryId))
 
-const {data: pageData, pending} = await useAsyncData(
+const {data: pageData, pending, error, refresh: refreshList} = await useAsyncData(
   () => `category-${categoryId}-${page.value}`,
   () =>
     apiPage<ArticleItem>('/content/article/public/list', {
@@ -43,6 +43,10 @@ useSeoMeta({
     <p v-if="category?.description" class="mt-2 text-fg-muted">{{ category.description }}</p>
 
     <ArticleListSection
+
+      :error="Boolean(error)"
+
+      @retry="refreshList"
       :articles="articles"
       :loading="pending"
       :page="page"
