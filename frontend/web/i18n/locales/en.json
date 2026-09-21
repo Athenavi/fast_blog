@@ -1832,7 +1832,13 @@
         "blocks": "Content (JSON)",
         "public": "Public",
         "private": "Private",
-        "deleteConfirm": "Delete this block pattern?"
+        "deleteConfirm": "Delete this block pattern?",
+        "desc": "Reusable block patterns: name, title, category and editor JSON. Public patterns can be inserted directly in the editor.",
+        "keyword": "Keyword",
+        "category": "Category",
+        "emptyTitle": "No block patterns",
+        "emptyDesc": "No block pattern created yet.",
+        "emptyFiltered": "No block patterns match the current filters"
       }
     },
     "analytics": {

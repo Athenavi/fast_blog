@@ -1832,7 +1832,13 @@
         "blocks": "内容 (JSON)",
         "public": "公开",
         "private": "私有",
-        "deleteConfirm": "确认删除该区块模板？"
+        "deleteConfirm": "确认删除该区块模板？",
+        "desc": "可复用的区块模板：名称、标题、分类与编辑器 JSON，公开后可在编辑器里直接插入。",
+        "keyword": "关键词",
+        "category": "分类",
+        "emptyTitle": "暂无区块模板",
+        "emptyDesc": "还没有创建任何区块模板。",
+        "emptyFiltered": "没有符合当前条件的区块模板"
       }
     },
     "analytics": {

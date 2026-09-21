@@ -4,12 +4,12 @@
  *
  * 对齐 v3 `/extension/block-pattern`：`blocks` 列存编辑器 JSON。
  */
-import {Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
 import {blockPatternApi, type BlockPatternItem} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -20,14 +20,25 @@ definePageMeta({
 
 const {t} = useI18n()
 
-const {
-  list, loading, total, page, pageSize, query, search, reset, load,
-  onPageChange, onSizeChange,
-} = useTable<BlockPatternItem, { keyword?: string; category?: string }>({
+const patternState = useAdminList<BlockPatternItem, { keyword?: string; category?: string }>({
   fetcher: (params) => blockPatternApi.list(params),
   defaultQuery: {keyword: '', category: ''},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数，避免整页重写带来的回归风险
+const list = patternState.rows
+const loading = patternState.loading
+const failed = patternState.failed
+const total = patternState.total
+const page = patternState.page
+const pageSize = patternState.pageSize
+const query = patternState.query
+const search = patternState.search
+const reset = patternState.reset
+const load = patternState.reload
+const onPageChange = patternState.onPageChange
+const onSizeChange = patternState.onSizeChange
 
 const formVisible = ref(false)
 const editingId = ref<number | null>(null)
@@ -97,37 +108,45 @@ async function onDelete(row: BlockPatternItem) {
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <el-form :inline="true" @submit.prevent="search()">
-        <el-form-item :label="$t('admin.system.sensitiveWord.keyword')">
+  <AdminPage :desc="$t('admin.extension.blockPattern.desc')" :title="$t('admin.extension.blockPattern.title')">
+    <AdminListShell
+      :empty-desc="patternState.hasFilters.value
+        ? $t('admin.extension.blockPattern.emptyFiltered')
+        : $t('admin.extension.blockPattern.emptyDesc')"
+      :empty-title="$t('admin.extension.blockPattern.emptyTitle')"
+      :failed="failed"
+      :loading="loading"
+      :page="page"
+      :page-size="pageSize"
+      :rows="list"
+      :selectable="false"
+      :total="total"
+      @refresh="load()"
+      @reset="reset()"
+      @search="search()"
+      @page-change="onPageChange"
+      @size-change="onSizeChange"
+    >
+      <template #filters>
+        <el-form-item :label="$t('admin.extension.blockPattern.keyword')">
           <el-input v-model="query.keyword" clearable style="width: 180px" @keyup.enter="search()"/>
         </el-form-item>
-        <el-form-item :label="$t('admin.system.sensitiveWord.category')">
+        <el-form-item :label="$t('admin.extension.blockPattern.category')">
           <el-input v-model="query.category" clearable style="width: 140px"/>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <div class="table-toolbar">
+      <template #actions>
         <el-button v-auth="'module_extension:block_pattern:create'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.extension.blockPattern.createTitle') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
-      <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column :label="$t('admin.extension.blockPattern.blockTitle')" min-width="160" prop="title"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.extension.blockPattern.blockName')" min-width="120" prop="name"
                          show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.system.sensitiveWord.category')" prop="category" width="110"/>
+      <el-table-column :label="$t('admin.extension.blockPattern.category')" prop="category" width="110"/>
         <el-table-column :label="$t('admin.extension.blockPattern.keywords')" min-width="140" prop="keywords"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.common.status')" width="90">
@@ -151,14 +170,7 @@ async function onDelete(row: BlockPatternItem) {
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
-
-      <el-pagination
-        :current-page="page" :page-size="pageSize" :total="total"
-        background class="table-pagination" layout="total, sizes, prev, pager, next"
-        @current-change="onPageChange" @size-change="onSizeChange"
-      />
-    </el-card>
+    </AdminListShell>
 
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="520px">
       <el-form :model="form" label-width="90px">
@@ -171,7 +183,7 @@ async function onDelete(row: BlockPatternItem) {
         <el-form-item :label="$t('admin.common.description')">
           <el-input v-model="form.description"/>
         </el-form-item>
-        <el-form-item :label="$t('admin.system.sensitiveWord.category')">
+        <el-form-item :label="$t('admin.extension.blockPattern.category')">
           <el-input v-model="form.category"/>
         </el-form-item>
         <el-form-item :label="$t('admin.extension.blockPattern.keywords')">
@@ -189,5 +201,5 @@ async function onDelete(row: BlockPatternItem) {
         <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-drawer>
-  </div>
+  </AdminPage>
 </template>

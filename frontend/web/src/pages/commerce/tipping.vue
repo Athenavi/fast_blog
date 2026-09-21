@@ -17,7 +17,7 @@ import {onMounted, reactive, ref} from 'vue'
 import {tippingApi, type TipStats, type WithdrawalItem} from '@/api'
 import type {PageQuery} from '@/api/types'
 import {formatDateTime} from '@/utils/format'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -39,23 +39,25 @@ interface WithdrawalQueryForm extends PageQuery {
   status?: string
 }
 
-const {
-  list,
-  loading: tableLoading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load: loadWithdrawals,
-  onPageChange,
-  onSizeChange,
-} = useTable<WithdrawalItem, WithdrawalQueryForm>({
+const withdrawalState = useAdminList<WithdrawalItem, WithdrawalQueryForm>({
   fetcher: (params) => tippingApi.withdrawals(params),
   defaultQuery: {status: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名（含 tableLoading / loadWithdrawals 这两个别名）
+const list = withdrawalState.rows
+const tableLoading = withdrawalState.loading
+const tableFailed = withdrawalState.failed
+const total = withdrawalState.total
+const page = withdrawalState.page
+const pageSize = withdrawalState.pageSize
+const query = withdrawalState.query
+const search = withdrawalState.search
+const reset = withdrawalState.reset
+const loadWithdrawals = withdrawalState.reload
+const onPageChange = withdrawalState.onPageChange
+const onSizeChange = withdrawalState.onSizeChange
 
 const reviewDialog = ref(false)
 const reviewTarget = ref<WithdrawalItem | null>(null)
@@ -214,10 +216,18 @@ onMounted(load)
         </div>
       </template>
 
-      <AdminTableSkeleton v-if="loading || tableLoading && !list.length" :rows="5"/>
+      <AdminTableSkeleton v-if="tableLoading && !list.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!loading || tableLoading && !list.length" :title="$t('admin.common.empty')"/>
-      <el-table v-else v-loading="loading || tableLoading" :data="list" border stripe>
+      <AdminEmpty
+        v-else-if="!tableLoading && !list.length"
+        :title="tableFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="tableFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="tableFailed" :icon="Refresh" @click="loadWithdrawals()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
+      <el-table v-else v-loading="tableLoading" :data="list" border stripe>
         <el-table-column :label="$t('admin.tipping.user')" min-width="120">
           <template #default="{ row }">{{ row.username || `#${row.user_id}` }}</template>
         </el-table-column>

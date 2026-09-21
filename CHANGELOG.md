@@ -106,6 +106,19 @@
     - `content/media`：文件夹侧栏 + 网格/列表**双视图** + 详情抽屉，列表壳只覆盖其中一种视图；
       该页已使用 `useAdminList`，URL 同步 / 三态 / 统一工具条均已具备
     - `content/article/[id]`：文章编辑页，非列表
+- `extension/block-patterns` 迁移到列表壳（页内三态/`<el-table>`/分页交给列表壳）；
+  筛选标签此前借用敏感词模块文案（`admin.system.sensitiveWord.keyword/category`），
+  已换成本模块自己的 key
+
+### B 第 3 小批（marketing + analytics + commerce，进行中）
+
+- `commerce/tipping` 迁移到 `useAdminList`，并**修掉一个真实缺陷**：表格的骨架/空态判断里混进了统计卡的
+  `loading`——写法是 `v-else-if="!loading || tableLoading && !list.length"`，当统计已加载完且**表格有数据**时
+  该表达式仍为真，会把有数据的表格盖成「暂无数据」。现改为只依据表格自身的 `tableLoading`，
+  同时补上失败态与重试
+- 本批其余页面盘点（均为「useTable + 标签页 + 三态」复合结构，待逐页处理）：
+  `analytics/report`、`commerce/payment`、`commerce/revenue`、`marketing/ads`、`marketing/forms`、
+  `marketing/vip`；`analytics/search`、`analytics/seo` 为非列表页（保持原结构）
 - 剩余待迁移（均为大页面，解构形式不一）：`content/page-builder`（无前缀解构）、
   `content/collaboration`（重命名解构，多列表）、`content/third-party-publish`（直接持有
   `useTable` 返回值，模板走 `x.list.value`）、`extension/block-patterns`、`extension/plugin`、
