@@ -241,7 +241,15 @@ export type {WidgetItem, WidgetPayload} from './modules/widget'
 
 // ---------------------------------------------------------------- ops
 export {backupApi} from './modules/backup'
-export type {BackupItem, BackupSchedule} from './modules/backup'
+export type {
+  BackupChainItem,
+  BackupChainPlan,
+  BackupIncrementalResult,
+  BackupItem,
+  BackupSchedule,
+  BackupVerifyCheck,
+  BackupVerifyResult,
+} from './modules/backup'
 
 export {webhookApi} from './modules/webhook'
 export type {WebhookItem, WebhookPayload} from './modules/webhook'
@@ -490,3 +498,18 @@ export type {
   PublishTaskItem,
   PublishTaskQuery,
 } from './modules/thirdPartyPublish'
+
+// ---------------------------------------------------------------- 批次 18（ops 进程监督）
+export {supervisorApi} from './modules/supervisor'
+export type {
+  SupervisorAction,
+  SupervisorActionResult,
+  SupervisorConfig,
+  SupervisorHealth,
+  SupervisorHealthConfig,
+  SupervisorLog,
+  SupervisorMetrics,
+  SupervisorProcess,
+  SupervisorProcessPayload,
+  SupervisorProbe,
+} from './modules/supervisor'

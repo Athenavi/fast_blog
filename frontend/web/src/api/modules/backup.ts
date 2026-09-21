@@ -26,6 +26,48 @@ export interface BackupSchedule {
   [key: string]: unknown
 }
 
+/** 恢复链上的一环（基准在前、目标在后） */
+export interface BackupChainItem {
+  filename?: string | null
+  type?: string | null
+  created_at?: string | null
+  tables?: string[]
+  size_human?: string | null
+}
+
+export interface BackupChainPlan {
+  length: number
+  items: BackupChainItem[]
+}
+
+/** 校验结果里的一项检查 */
+export interface BackupVerifyCheck {
+  name: string
+  passed: boolean
+  detail: string
+}
+
+export interface BackupVerifyResult {
+  valid: boolean
+  path?: string | null
+  kind?: string | null
+  size?: number | null
+  size_human?: string | null
+  checksum?: { expected?: string; actual?: string; matched?: boolean } | null
+  checks: BackupVerifyCheck[]
+}
+
+/** 增量 / 差异备份结果（`skipped` 表示没有检测到变化） */
+export interface BackupIncrementalResult {
+  success?: boolean
+  skipped?: boolean
+  message?: string
+  changed_tables?: string[]
+  backup_path?: string | null
+
+  [key: string]: unknown
+}
+
 export const backupApi = {
   list: (params?: { backup_type?: string; limit?: number }) =>
     http.page<BackupItem>('/ops/backup', params),
@@ -33,6 +75,21 @@ export const backupApi = {
     http.post<Record<string, unknown>>('/ops/backup/database', undefined, {backup_type}),
   createFiles: () => http.post<Record<string, unknown>>('/ops/backup/files'),
   createFull: () => http.post<Record<string, unknown>>('/ops/backup/full'),
+  /** 增量 / 差异备份：只导出相对基准变化的表的数据（base_path 缺省取最近一次全量） */
+  createIncremental: (payload?: {
+    base_path?: string | null
+    tables?: string[] | null
+    differential?: boolean
+  }) => http.post<BackupIncrementalResult>('/ops/backup/incremental', payload ?? {}),
+  /** 恢复链预览：增量要挂在哪些备份后面才能还原 */
+  chain: (backup_path: string) =>
+    http.get<BackupChainPlan>('/ops/backup/chain', {backup_path}),
+  /** 按恢复链还原（基准 → 增量依次应用） */
+  restoreChain: (backup_path: string, truncate = true) =>
+    http.post<Record<string, unknown>>('/ops/backup/restore-chain', {backup_path, truncate}),
+  /** 校验备份完整性（真读文件：sha256 / 归档可读 / pg_restore --list） */
+  verify: (backup_path: string) =>
+    http.post<BackupVerifyResult>('/ops/backup/verify', {backup_path}),
   restore: (backup_file: string, backup_type = 'database') =>
     http.post<Record<string, unknown>>('/ops/backup/restore', {backup_file, backup_type}),
   remove: (backup_path: string) => http.delete<{ deleted: boolean }>('/ops/backup', {backup_path}),

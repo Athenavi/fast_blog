@@ -4,6 +4,11 @@
 脱敏策略：落库前把 ``api_token`` 明文加密为 AES-256-GCM（``core/secret_box.py``，
 与 ai/config、third_party_publish 共用同一实现）；
 读取时永不回传，只回 ``has_api_token``。更新时 api_token 留空保持原值。
+
+``api_token`` 是**按 provider 语义复用的凭据槽**（Cloudflare API Token /
+AWS Secret Access Key / 阿里云 AccessKey Secret / 腾讯云 SecretKey），
+非敏感标识（access_key_id / secret_id / distribution_id / region / endpoint）
+放 ``settings`` —— 详见 ``remote.py``。
 """
 
 import json
@@ -85,12 +90,16 @@ class CDNService:
         return value if isinstance(value, dict) else {}
 
     def _token_for(self, provider: str, config: dict) -> str:
-        """按需解密凭据：**只有 cloudflare 需要 token**，其它 provider 不去碰密文
+        """按需解密凭据：**只有需要凭据的 provider 才去碰密文**，其它 provider 不去解密
+
+        ``api_token`` 这个密文槽按 provider 承载不同语义（Cloudflare API Token /
+        AWS Secret Access Key / 阿里云 AccessKey Secret / 腾讯云 SecretKey），见
+        ``remote.py`` 的 ``CREDENTIAL_PROVIDERS``。
 
         历史密文可能因 SECRET_KEY 变更而解不开；那时只有真正需要它的 provider 才报错，
-        不会把 custom / 未实现 provider 的诊断信息掩盖成"凭据解密失败"。
+        不会把 custom 等无需凭据的 provider 的诊断信息掩盖成"凭据解密失败"。
         """
-        if provider != "cloudflare":
+        if provider not in cdn_remote.CREDENTIAL_PROVIDERS:
             return ""
         encrypted = str(config.get("api_token_encrypted") or "")
         if not encrypted:
@@ -99,7 +108,7 @@ class CDNService:
             return decrypt_secret(encrypted)
         except ValueError as exc:
             raise BadRequestError(
-                "CDN 凭据无法解密（SECRET_KEY 变更或数据损坏）；请在 CDN 配置页重新填写 api_token"
+                "CDN 凭据无法解密（SECRET_KEY 变更或数据损坏）；请在 CDN 配置页重新填写凭据"
             ) from exc
 
     async def _provider_or_400(self, db: AsyncSession) -> tuple[str, dict]:

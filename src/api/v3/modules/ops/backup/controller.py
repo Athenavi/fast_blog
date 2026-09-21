@@ -4,16 +4,20 @@
 
     GET    /api/v3/ops/backup                备份列表
     POST   /api/v3/ops/backup/database       数据库备份
+    POST   /api/v3/ops/backup/incremental    增量 / 差异备份（相对基准的变化表快照）
     POST   /api/v3/ops/backup/files          文件备份
     POST   /api/v3/ops/backup/full           全量备份
     POST   /api/v3/ops/backup/restore        恢复
+    GET    /api/v3/ops/backup/chain          恢复链预览（增量要挂在哪些备份后面）
+    POST   /api/v3/ops/backup/restore-chain  按恢复链还原（基准 → 增量）
+    POST   /api/v3/ops/backup/verify         校验备份完整性
     DELETE /api/v3/ops/backup                删除某个备份（?backup_path=）
     POST   /api/v3/ops/backup/cleanup        清理过期备份
     GET    /api/v3/ops/backup/stats          备份统计
     GET    /api/v3/ops/backup/schedule       备份计划
     PUT    /api/v3/ops/backup/schedule       更新备份计划
 
-权限码：``backup:create`` / ``backup:restore`` / ``backup:delete`` / ``settings:view`` / ``settings:edit``
+权限码：``backup:view`` / ``backup:create`` / ``backup:restore`` / ``backup:delete``
 """
 
 from typing import Optional
@@ -25,7 +29,13 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
-from src.api.v3.modules.ops.backup.schema import RestoreRequest, ScheduleUpdate
+from src.api.v3.modules.ops.backup.schema import (
+    BackupPathRequest,
+    IncrementalRequest,
+    RestoreChainRequest,
+    RestoreRequest,
+    ScheduleUpdate,
+)
 from src.api.v3.modules.ops.backup.service import backup_ops_service
 
 router = APIRouter(prefix="/backup", tags=["ops-backup"], route_class=OperationLogRoute)
@@ -81,6 +91,57 @@ async def restore_backup(
 ) -> dict:
     result = await backup_ops_service.restore(payload.backup_file, payload.backup_type)
     return resp.success(result, msg="恢复完成")
+
+
+# ---------------------------------------------------------------- 增量 / 差异备份
+@router.post("/incremental", response_model=ResponseModel, summary="创建增量 / 差异备份")
+async def backup_incremental(
+    payload: IncrementalRequest,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.BACKUP_CREATE),
+) -> dict:
+    """只导出「相对基准发生变化」的表的数据（结构由基准备份提供）。"""
+    result = await backup_ops_service.create_incremental(
+        base_path=payload.base_path,
+        tables=payload.tables,
+        differential=payload.differential,
+    )
+    msg = "无变化，已跳过" if result.get("skipped") else "增量备份完成"
+    return resp.success(result, msg=msg)
+
+
+@router.get("/chain", response_model=ResponseModel, summary="恢复链预览")
+async def backup_chain(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.BACKUP_VIEW),
+    backup_path: str = Query(description="增量 / 差异备份的路径或文件名"),
+) -> dict:
+    """增量 / 差异备份还原时要先走这些前置备份（基准在前、目标在后）。"""
+    return resp.success(await backup_ops_service.chain_plan(backup_path))
+
+
+@router.post("/restore-chain", response_model=ResponseModel, summary="按恢复链还原")
+async def restore_backup_chain(
+    payload: RestoreChainRequest,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.BACKUP_RESTORE),
+) -> dict:
+    result = await backup_ops_service.restore_chain(
+        payload.backup_path, truncate=payload.truncate
+    )
+    return resp.success(result, msg="已按恢复链还原")
+
+
+# ---------------------------------------------------------------- 校验
+@router.post("/verify", response_model=ResponseModel, summary="校验备份完整性")
+async def verify_backup(
+    payload: BackupPathRequest,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.BACKUP_VIEW),
+) -> dict:
+    """真读文件：sha256 比对 + 归档可读 + ``pg_restore --list``，逐项给出结论。"""
+    result = await backup_ops_service.verify(payload.backup_path)
+    return resp.success(result, msg="校验完成")
 
 
 @router.post("/cleanup", response_model=ResponseModel, summary="清理过期备份")

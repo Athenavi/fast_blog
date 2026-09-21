@@ -213,6 +213,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'EmailService', path: '/ops/email', title: '邮件服务', permission: 'module_ops:email:view'},
       {name: 'CDN', path: '/ops/cdn', title: 'CDN 配置', permission: 'module_ops:cdn:view'},
       {name: 'Upgrade', path: '/ops/upgrade', title: '在线升级', permission: 'module_ops:upgrade:view'},
+      {
+        name: 'Supervisor',
+        path: '/ops/supervisor',
+        title: '进程监督',
+        permission: 'module_ops:supervisor:view'
+      },
       {name: 'Enterprise', path: '/ops/enterprise', title: '企业版授权', permission: 'module_ops:enterprise:view'},
       {name: 'Deployments', path: '/ops/deployments', title: '部署脚本', permission: 'module_ops:deployment:view'},
     ],
