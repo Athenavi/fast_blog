@@ -33,7 +33,14 @@ import re
 import sys
 from pathlib import Path
 
-MENUS_TS = Path("frontend/web/src/utils/menus.ts")
+#: 项目根由脚本自身位置推导，**不依赖当前工作目录**。
+#: 早期实现写的是相对路径 ``Path("frontend/web/src/utils/menus.ts")``，在项目根之外的
+#: 目录运行时会误报 ``[ERROR] 未找到 frontend/web/src/utils/menus.ts``（文件其实就在项目里）。
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+MENUS_TS = PROJECT_ROOT / "frontend" / "web" / "src" / "utils" / "menus.ts"
 
 #: 取 `key: 'value'` / `key: 123` / `key: true`
 _KV_RE = re.compile(r"(\w+)\s*:\s*(?:'([^']*)'|\"([^\"]*)\"|(true|false|-?\d+))")
