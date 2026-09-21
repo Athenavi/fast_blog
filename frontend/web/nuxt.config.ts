@@ -117,6 +117,9 @@ export default defineNuxtConfig({
       '/api': {
         target: `${process.env.VITE_PROXY_TARGET || 'http://localhost:9421'}/api`,
         changeOrigin: true,
+        // 群聊是 WebSocket（`/api/v3/chat/message/ws/{group_id}`）：
+        // 不转发 Upgrade 头的话 dev 下会一直"实时连接已断开"
+        ws: true,
       },
     },
   },

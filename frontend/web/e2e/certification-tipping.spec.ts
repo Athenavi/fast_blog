@@ -16,6 +16,9 @@ const CASES: Array<{ path: string; text: RegExp }> = [
   {path: '/certification', text: /我的专家认证/},
   {path: '/tipping', text: /打赏与收益/},
   {path: '/vip', text: /VIP/},
+  {path: '/feed', text: /关注动态/},
+  {path: '/chat', text: /群聊/},
+  {path: '/home/admin', text: /admin/},
   {path: '/points', text: /积分/},
   {path: '/badges', text: /勋章/},
   {path: '/gamification/points', text: /积分统计/},
@@ -25,8 +28,8 @@ const CASES: Array<{ path: string; text: RegExp }> = [
 ]
 
 test.describe('用户成长与打赏', () => {
-  // 该用例要逐个访问 9 个页面（dev 模式下每页首次编译都要等），30s 默认超时不够
-  test.describe.configure({timeout: 120_000})
+  // 该用例要逐个访问 12 个页面（dev 模式下每页首次编译都要等），30s 默认超时不够
+  test.describe.configure({timeout: 180_000})
 
   test('新增页面可渲染且无控制台错误', async ({authenticatedPage: page}) => {
     const problems: string[] = []
