@@ -128,27 +128,27 @@ onMounted(load)
 
       <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.points.totalAccounts') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.totalAccounts') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.total_accounts ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.points.totalBalance') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.totalBalance') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.total_balance ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.points.totalEarned') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.totalEarned') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.total_earned ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.points.totalSpent') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.totalSpent') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.total_spent ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.points.transactionCount') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.transactionCount') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.transaction_count ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.points.activeRules') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.activeRules') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.active_rules ?? 0 }}</p>
         </el-card>
       </div>

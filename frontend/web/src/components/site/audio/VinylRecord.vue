@@ -91,7 +91,8 @@ const GROOVES = [5, 10, 15, 20, 25, 30, 35] as const
 
         <!-- 中心标签 -->
         <div class="relative z-10 h-28 w-28 overflow-hidden rounded-full ring-2 ring-white/10 xl:h-32 xl:w-32">
-          <img v-if="coverImage" :alt="t('audio.cover')" :src="coverImage" class="h-full w-full object-cover">
+          <img v-if="coverImage" :alt="t('audio.cover')" :src="coverImage" class="h-full w-full object-cover"
+               decoding="async">
           <div v-else
                class="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600">
             <span v-if="loading" class="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"/>

@@ -17,8 +17,8 @@ const userStore = useUserStore()
 
 const loading = ref(true)
 const saving = ref(false)
-const message = ref('')
-const error = ref('')
+const toast = useToast()
+const {errors, validate, clearField, fieldProps, errorId} = useFormErrors()
 
 const profile = ref<MobileProfile | null>(null)
 const stats = ref<MobileUserStats | null>(null)
@@ -34,20 +34,18 @@ onMounted(async () => {
     form.profile_picture = detail.profile_picture || ''
     form.locale = detail.locale || ''
   } catch {
-    error.value = t('user.loadFailed')
+    toast.error(t('user.loadFailed'))
   } finally {
     loading.value = false
   }
 })
 
 async function save(): Promise<void> {
-  message.value = ''
-  error.value = ''
-
-  if (form.password && form.password.length < 8) {
-    error.value = t('user.passwordMinLength')
-    return
-  }
+  const passed = validate({
+    password: () =>
+      form.password && form.password.length < 8 ? t('user.passwordMinLength') : null,
+  })
+  if (!passed) return
 
   // 只提交发生变化的字段
   const payload: MobileProfileUpdate = {}
@@ -59,7 +57,7 @@ async function save(): Promise<void> {
   if (form.password) payload.password = form.password
 
   if (!Object.keys(payload).length) {
-    message.value = t('user.noChanges')
+    toast.info(t('user.noChanges'))
     return
   }
 
@@ -67,9 +65,9 @@ async function save(): Promise<void> {
   try {
     profile.value = await mobileApi.updateProfile(payload)
     form.password = ''
-    message.value = t('user.saved')
+    toast.success(t('user.saved'))
   } catch {
-    error.value = t('user.saveFailed')
+    toast.error(t('user.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -98,7 +96,7 @@ useSeoMeta({title: t('user.center'), robots: 'noindex'})
         <CardContent class="flex flex-wrap items-center gap-5 p-5">
           <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-pill bg-surface-soft">
             <img v-if="profile?.profile_picture" :alt="$t('user.avatar')" :src="profile.profile_picture"
-                 class="h-full w-full object-cover">
+                 class="h-full w-full object-cover" decoding="async" loading="lazy">
             <span v-else class="text-lg font-semibold text-fg-muted">
               {{ (profile?.username || '?').slice(0, 1).toUpperCase() }}
             </span>
@@ -195,14 +193,18 @@ useSeoMeta({title: t('user.center'), robots: 'noindex'})
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.newPassword') }}</label>
-              <Input v-model="form.password" :placeholder="$t('user.newPasswordPlaceholder')" type="password"/>
+              <Input
+                v-model="form.password"
+                :placeholder="$t('user.newPasswordPlaceholder')"
+                type="password"
+                v-bind="fieldProps('password')"
+                @input="clearField('password')"
+              />
+              <p v-if="errors.password" :id="errorId('password')" class="mt-1.5 text-sm text-danger">
+                {{ errors.password }}
+              </p>
             </div>
           </div>
-
-          <p v-if="error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
-          <p v-else-if="message" class="rounded-control bg-success-soft px-3 py-2 text-sm text-success">
-            {{ message }}
-          </p>
 
           <div class="flex items-center justify-between pt-1">
             <Button variant="outline" @click="logout">

@@ -199,7 +199,8 @@ async function bulkDelete(): Promise<void> {
 
       <el-table-column width="72">
         <template #default="{row}">
-          <img v-if="row.cover_image" :src="row.cover_image" alt="" class="admin-thumb"/>
+          <img v-if="row.cover_image" :src="row.cover_image" alt="" class="admin-thumb" decoding="async"
+               loading="lazy"/>
           <span v-else class="admin-thumb admin-thumb--empty"/>
         </template>
       </el-table-column>

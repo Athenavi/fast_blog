@@ -186,7 +186,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
                     :alt="item.alt_text || item.original_filename || item.filename || t('site.imageFallbackAlt')"
                     :src="item.thumbnail_url || item.file_url || ''"
                     class="h-full w-full object-cover"
-                    loading="lazy"
+                    decoding="async" loading="lazy"
                   >
                 </button>
               </div>

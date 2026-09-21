@@ -214,7 +214,7 @@ onMounted(async () => {
           <Button type="button" variant="outline" @click="pickCover">{{ $t('myPosts.uploadFromLocal') }}</Button>
         </div>
         <img v-if="form.cover_image" :alt="$t('myPosts.coverPreviewAlt')" :src="form.cover_image"
-             class="mt-2 h-32 w-full rounded-card object-cover">
+             class="mt-2 h-32 w-full rounded-card object-cover" decoding="async">
       </div>
 
       <div>

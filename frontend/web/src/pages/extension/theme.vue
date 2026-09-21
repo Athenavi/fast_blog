@@ -121,7 +121,7 @@ onMounted(loadAll)
           <div v-loading="loading">
             <div v-if="active" class="theme">
               <img v-if="active.screenshot" :alt="$t('admin.extension.theme.themeScreenshot')"
-                   :src="String(active.screenshot)" class="theme__shot">
+                   :src="String(active.screenshot)" class="theme__shot" decoding="async">
               <div v-else class="theme__placeholder">{{ $t('admin.extension.theme.noPreviewImage') }}</div>
 
               <p class="theme__name">{{ active.name || active.slug }}</p>

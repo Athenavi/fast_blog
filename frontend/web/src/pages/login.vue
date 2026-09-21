@@ -19,14 +19,17 @@ const userStore = useUserStore()
 
 const form = reactive({identifier: '', password: '', remember_me: true})
 const loading = ref(false)
-const error = ref('')
+/** 提交级错误（凭据错误 / 2FA 提示），字段级错误由 useFormErrors 承担 */
+const submitError = ref('')
+const {errors, validate, clearField, fieldProps, errorId} = useFormErrors()
 
 async function onSubmit(): Promise<void> {
-  error.value = ''
-  if (!form.identifier.trim() || !form.password) {
-    error.value = t('login.errorRequired')
-    return
-  }
+  submitError.value = ''
+  const passed = validate({
+    identifier: () => (form.identifier.trim() ? null : t('login.identifierRequired')),
+    password: () => (form.password ? null : t('login.passwordRequired')),
+  })
+  if (!passed) return
 
   loading.value = true
   try {
@@ -36,7 +39,7 @@ async function onSubmit(): Promise<void> {
 
     const result = await userStore.login(payload)
     if (result.requires2fa) {
-      error.value = t('login.twoFactorMobileHint')
+      submitError.value = t('login.twoFactorMobileHint')
       return
     }
 
@@ -46,7 +49,7 @@ async function onSubmit(): Promise<void> {
     await navigateTo(String(route.query.redirect || fallback), {replace: true})
   } catch {
     // 具体错误由 request 拦截器提示，这里给出兜底文案
-    error.value = error.value || t('login.errorInvalid')
+    submitError.value = submitError.value || t('login.errorInvalid')
   } finally {
     loading.value = false
   }
@@ -68,17 +71,35 @@ async function onSubmit(): Promise<void> {
               <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('login.usernameOrEmail') }}</label>
               <div class="relative">
                 <Icon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" name="user"/>
-                <Input v-model="form.identifier" :placeholder="$t('login.usernameOrEmailPlaceholder')" class="pl-9"/>
+                <Input
+                  v-model="form.identifier"
+                  :placeholder="$t('login.usernameOrEmailPlaceholder')"
+                  class="pl-9"
+                  v-bind="fieldProps('identifier')"
+                  @input="clearField('identifier')"
+                />
               </div>
+              <p v-if="errors.identifier" :id="errorId('identifier')" class="mt-1.5 text-sm text-danger">
+                {{ errors.identifier }}
+              </p>
             </div>
 
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('login.password') }}</label>
               <div class="relative">
                 <Icon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" name="lock"/>
-                <Input v-model="form.password" :placeholder="$t('login.passwordPlaceholder')" class="pl-9"
-                       type="password"/>
+                <Input
+                  v-model="form.password"
+                  :placeholder="$t('login.passwordPlaceholder')"
+                  class="pl-9"
+                  type="password"
+                  v-bind="fieldProps('password')"
+                  @input="clearField('password')"
+                />
               </div>
+              <p v-if="errors.password" :id="errorId('password')" class="mt-1.5 text-sm text-danger">
+                {{ errors.password }}
+              </p>
             </div>
 
             <label class="flex cursor-pointer items-center gap-2 text-sm text-fg-muted">
@@ -86,7 +107,9 @@ async function onSubmit(): Promise<void> {
               {{ $t('login.keepSignedIn') }}
             </label>
 
-            <p v-if="error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
+            <p v-if="submitError" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+              {{ submitError }}
+            </p>
 
             <Button :disabled="loading" class="w-full" type="submit">
               <Icon v-if="loading" class="h-4 w-4 animate-spin" name="loader-circle"/>

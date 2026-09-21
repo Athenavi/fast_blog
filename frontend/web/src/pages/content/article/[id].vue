@@ -303,7 +303,7 @@ onMounted(() => {
                 :placeholder="$t('admin.content.article.coverImageUrl')"
                 @input="dirty = true"
               />
-              <img v-if="form.cover_image" :src="form.cover_image" alt="" class="cover-preview"/>
+              <img v-if="form.cover_image" :src="form.cover_image" alt="" class="cover-preview" decoding="async"/>
             </el-form-item>
           </el-form>
         </el-card>

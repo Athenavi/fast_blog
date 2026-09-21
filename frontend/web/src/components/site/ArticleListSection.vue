@@ -45,7 +45,9 @@ const emit = defineEmits<{ (e: 'change', page: number): void; (e: 'retry'): void
       v-else
       :description="props.emptyDescription"
       :title="props.emptyTitle || t('site.emptyArticles')"
-    />
+    >
+      <slot name="empty-action"/>
+    </EmptyState>
 
     <PaginationBar
       v-if="!props.loading && !props.error"

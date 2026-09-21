@@ -163,31 +163,31 @@ onMounted(load)
 
       <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.tipping.tipCount') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.tipping.tipCount') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.tip_count ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.tipping.paidCount') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.tipping.paidCount') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.paid_count ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.tipping.paidAmount') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.tipping.paidAmount') }}</p>
           <p class="mt-1 text-xl font-semibold">¥{{ yuan(stats?.paid_amount) }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.tipping.withdrawalPending') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.tipping.withdrawalPending') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.withdrawal_pending ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.tipping.totalAmount') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.tipping.totalAmount') }}</p>
           <p class="mt-1 text-xl font-semibold">¥{{ yuan(stats?.total_amount) }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.tipping.withdrawalCount') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.tipping.withdrawalCount') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.withdrawal_count ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.tipping.withdrawalPaid') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.tipping.withdrawalPaid') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.withdrawal_paid ?? 0 }}</p>
         </el-card>
       </div>

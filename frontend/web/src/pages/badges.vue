@@ -166,7 +166,12 @@ onMounted(load)
           {{ $t('badges.mine') }}
           <span class="ml-1 text-sm font-normal text-fg-muted">({{ mine.length }})</span>
         </h2>
-        <p v-if="!mine.length" class="mt-3 text-sm text-fg-muted">{{ $t('badges.emptyMine') }}</p>
+        <div v-if="!mine.length" class="mt-3">
+          <p class="text-sm text-fg-muted">{{ $t('badges.emptyMine') }}</p>
+          <NuxtLink class="mt-2 inline-block" to="/feed">
+            <Button size="sm" variant="outline">{{ $t('feed.goDiscover') }}</Button>
+          </NuxtLink>
+        </div>
         <ul v-else class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <li
             v-for="item in mine"

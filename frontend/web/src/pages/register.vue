@@ -18,24 +18,28 @@ const userStore = useUserStore()
 
 const form = reactive({username: '', email: '', password: '', confirm: ''})
 const loading = ref(false)
-const error = ref('')
+/** 提交级错误（如用户名/邮箱已被占用），字段级错误由 useFormErrors 承担 */
+const submitError = ref('')
+const {errors, validate, clearField, fieldProps, errorId} = useFormErrors()
 
 /** 与后端 MobileRegisterRequest 的约束保持一致 */
 const USERNAME_RE = /^[a-zA-Z0-9_]+$/
 
-function validate(): string {
-  const username = form.username.trim()
-  if (username.length < 3 || username.length > 30) return t('register.ruleUsernameLength')
-  if (!USERNAME_RE.test(username)) return t('register.ruleUsernameChars')
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) return t('register.ruleEmailInvalid')
-  if (form.password.length < 8) return t('register.rulePasswordLength')
-  if (form.password !== form.confirm) return t('register.rulePasswordMismatch')
-  return ''
-}
-
 async function onSubmit(): Promise<void> {
-  error.value = validate()
-  if (error.value) return
+  submitError.value = ''
+  const passed = validate({
+    username: () => {
+      const username = form.username.trim()
+      if (username.length < 3 || username.length > 30) return t('register.ruleUsernameLength')
+      if (!USERNAME_RE.test(username)) return t('register.ruleUsernameChars')
+      return null
+    },
+    email: () =>
+      /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim()) ? null : t('register.ruleEmailInvalid'),
+    password: () => (form.password.length < 8 ? t('register.rulePasswordLength') : null),
+    confirm: () => (form.password !== form.confirm ? t('register.rulePasswordMismatch') : null),
+  })
+  if (!passed) return
 
   loading.value = true
   try {
@@ -52,7 +56,7 @@ async function onSubmit(): Promise<void> {
     }
     await navigateTo('/', {replace: true})
   } catch {
-    error.value = t('register.errorTaken')
+    submitError.value = t('register.errorTaken')
   } finally {
     loading.value = false
   }
@@ -72,25 +76,62 @@ async function onSubmit(): Promise<void> {
           <form class="space-y-4" @submit.prevent="onSubmit">
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.username') }}</label>
-              <Input v-model="form.username" :placeholder="$t('register.usernameHint')"/>
+              <Input
+                v-model="form.username"
+                :placeholder="$t('register.usernameHint')"
+                v-bind="fieldProps('username')"
+                @input="clearField('username')"
+              />
+              <p v-if="errors.username" :id="errorId('username')" class="mt-1.5 text-sm text-danger">
+                {{ errors.username }}
+              </p>
             </div>
 
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.email') }}</label>
-              <Input v-model="form.email" :placeholder="$t('register.emailHint')" type="email"/>
+              <Input
+                v-model="form.email"
+                :placeholder="$t('register.emailHint')"
+                type="email"
+                v-bind="fieldProps('email')"
+                @input="clearField('email')"
+              />
+              <p v-if="errors.email" :id="errorId('email')" class="mt-1.5 text-sm text-danger">
+                {{ errors.email }}
+              </p>
             </div>
 
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.password') }}</label>
-              <Input v-model="form.password" :placeholder="$t('register.passwordHint')" type="password"/>
+              <Input
+                v-model="form.password"
+                :placeholder="$t('register.passwordHint')"
+                type="password"
+                v-bind="fieldProps('password')"
+                @input="clearField('password')"
+              />
+              <p v-if="errors.password" :id="errorId('password')" class="mt-1.5 text-sm text-danger">
+                {{ errors.password }}
+              </p>
             </div>
 
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.confirmPassword') }}</label>
-              <Input v-model="form.confirm" :placeholder="$t('register.confirmPasswordPlaceholder')" type="password"/>
+              <Input
+                v-model="form.confirm"
+                :placeholder="$t('register.confirmPasswordPlaceholder')"
+                type="password"
+                v-bind="fieldProps('confirm')"
+                @input="clearField('confirm')"
+              />
+              <p v-if="errors.confirm" :id="errorId('confirm')" class="mt-1.5 text-sm text-danger">
+                {{ errors.confirm }}
+              </p>
             </div>
 
-            <p v-if="error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
+            <p v-if="submitError" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+              {{ submitError }}
+            </p>
 
             <Button :disabled="loading" class="w-full" type="submit">
               <Icon v-if="loading" class="h-4 w-4 animate-spin" name="loader-circle"/>

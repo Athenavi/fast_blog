@@ -120,7 +120,7 @@ onKeyStroke('ArrowRight', () => {
         v-if="kind === 'image' && current.url"
         :alt="current.name || ''"
         :src="current.url"
-        class="max-h-full max-w-full rounded-card object-contain"
+        class="max-h-full max-w-full rounded-card object-contain" decoding="async"
       >
       <video
         v-else-if="kind === 'video' && current.url"
@@ -177,7 +177,7 @@ onKeyStroke('ArrowRight', () => {
             v-if="(item.mimeType || '').startsWith('image/') && item.url"
             :alt="item.name || ''"
             :src="item.url"
-            class="h-full w-full object-cover"
+            class="h-full w-full object-cover" decoding="async" loading="lazy"
           >
           <span v-else class="flex h-full w-full items-center justify-center bg-surface-soft">
             <Icon class="h-4 w-4 text-fg-subtle" name="file-text"/>

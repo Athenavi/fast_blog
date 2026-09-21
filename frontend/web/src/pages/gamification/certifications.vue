@@ -156,31 +156,31 @@ onMounted(load)
 
       <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.certifications.total') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.certifications.total') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.total ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.certifications.pending') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.certifications.pending') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.pending ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.certifications.approved') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.certifications.approved') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.approved ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.certifications.expiringSoon') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.certifications.expiringSoon') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.expiring_soon ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.certifications.rejected') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.certifications.rejected') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.rejected ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.certifications.revoked') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.certifications.revoked') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.revoked ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.certifications.expired') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.certifications.expired') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.expired ?? 0 }}</p>
         </el-card>
       </div>

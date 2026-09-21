@@ -197,7 +197,9 @@
     "twoFactorMobileHint": "Two-factor authentication is enabled. Finish verification in the mobile app",
     "errorInvalid": "Login failed. Please check your username and password",
     "backToHome": "← Back to home",
-    "keepSignedIn": "Keep me signed in"
+    "keepSignedIn": "Keep me signed in",
+    "identifierRequired": "Please enter your username or email",
+    "passwordRequired": "Please enter your password"
   },
   "register": {
     "title": "Create Account",
@@ -397,7 +399,9 @@
     "emptyDesc": "Try another category or come back later.",
     "seoTitle": "Articles - {name}",
     "viewsCount": "{n} views",
-    "liked": "Liked"
+    "liked": "Liked",
+    "emptyInCategory": "No articles in this category yet",
+    "viewAllArticles": "View all articles"
   },
   "comment": {
     "title": "Comment",
@@ -837,7 +841,11 @@
         "resource": "Resource",
         "exported": "Exported {n} log entries",
         "cleaned": "Cleaned logs older than {n} days",
-        "purgeAction": "Purge old logs"
+        "purgeAction": "Purge old logs",
+        "desc": "Every admin write is recorded by OperationLogRoute. Search by user, action, level and date range, then export or purge by age.",
+        "emptyTitle": "No logs",
+        "emptyDesc": "No operation logs in the current time range.",
+        "emptyFiltered": "No logs match the current filters"
       },
       "menu": {
         "title": "Menus",
@@ -1005,7 +1013,11 @@
         "importBtn": "Import",
         "importEmpty": "Import list is empty",
         "importResult": "{total} in total, {added} added, {duplicated} duplicates skipped",
-        "deleteConfirm": "Delete this word? It will be removed from the anti-spam cache immediately."
+        "deleteConfirm": "Delete this word? It will be removed from the anti-spam cache immediately.",
+        "desc": "Maintain the sensitive-word list: levels, hit action (block/replace/warn) and bulk import. Writes take effect immediately.",
+        "emptyTitle": "Word list is empty",
+        "emptyDesc": "No sensitive word yet — use \"Bulk import\" to add many at once.",
+        "emptyFiltered": "No sensitive words match the current filters"
       },
       "gdpr": {
         "title": "GDPR Consent Records",
@@ -1021,7 +1033,11 @@
         "userId": "User ID",
         "details": "Details",
         "ipAddress": "IP Address",
-        "deleteConfirm": "Delete this consent record?"
+        "deleteConfirm": "Delete this consent record?",
+        "desc": "Consent records written by front-end authorization actions. This page is for review and governance (deleting expired records).",
+        "emptyTitle": "No consent records",
+        "emptyDesc": "No consent has been recorded yet; records appear here after users authorize on the site.",
+        "emptyFiltered": "No consent records match the current filters"
       },
       "integration": {
         "title": "Integrations",
@@ -1058,7 +1074,14 @@
         "autoSync": "Auto-sync users",
         "syncInterval": "Sync Interval (s)",
         "hasSecret": "Secret Set",
-        "hasPassword": "Password Set"
+        "hasPassword": "Password Set",
+        "desc": "Configure SSO (OAuth2 / OIDC / SAML) and LDAP. Credentials are write-only: leave blank on update to keep the stored value.",
+        "active": "Active",
+        "inactive": "Inactive",
+        "ssoEmptyTitle": "No SSO provider",
+        "ssoEmptyDesc": "No SSO identity provider has been configured yet.",
+        "ldapEmptyTitle": "No LDAP config",
+        "ldapEmptyDesc": "No LDAP directory has been configured yet."
       },
       "social": {
         "title": "Social Account Bindings",
@@ -1069,7 +1092,11 @@
         "hasToken": "Token Present",
         "tokenExpiresAt": "Token Expires At",
         "unbind": "Unbind",
-        "unbindConfirm": "Unbind this social account?"
+        "unbindConfirm": "Unbind this social account?",
+        "desc": "Review third-party OAuth bindings and unbind them. Tokens are never returned, only a \"has token\" flag.",
+        "emptyTitle": "No bindings",
+        "emptyDesc": "No user has linked a third-party account yet.",
+        "emptyFiltered": "No bindings match the current filters"
       },
       "security": {
         "title": "Security Center",
@@ -1091,7 +1118,13 @@
         "tokenIdentifier": "Token Identifier",
         "reason": "Reason",
         "expiresAt": "Expires At",
-        "deleteBlacklistConfirm": "Delete this blacklist entry?"
+        "deleteBlacklistConfirm": "Delete this blacklist entry?",
+        "desc": "Last 24 hours at a glance: login attempts, failure rate, locked accounts and the token blacklist.",
+        "emptyTitle": "No login attempts",
+        "emptyDesc": "No login attempts in the last 24 hours.",
+        "emptyFiltered": "No login attempts match the current filters",
+        "blacklistEmptyTitle": "Blacklist is empty",
+        "blacklistEmptyDesc": "No revoked tokens right now."
       },
       "site": {
         "title": "Multisite",
@@ -1111,7 +1144,14 @@
         "isDefault": "Set as default site",
         "defaultTag": "Default",
         "keywordPlaceholder": "name / slug / domain",
-        "deleteConfirm": "Delete this site?"
+        "deleteConfirm": "Delete this site?",
+        "keyword": "Keyword",
+        "active": "Active",
+        "inactive": "Inactive",
+        "desc": "Manage multiple sites: domain bindings, theme and language, default site and status.",
+        "emptyTitle": "No sites",
+        "emptyDesc": "No site has been configured yet.",
+        "emptyFiltered": "No sites match the current filters"
       },
       "group": {
         "groupManagement": "Permission groups",

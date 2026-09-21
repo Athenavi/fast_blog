@@ -71,8 +71,14 @@ useSeoMeta({
       :page="page"
       :pages="pageData?.pages ?? 0"
       class="mt-8"
-      :empty-description="$t('article.emptyDesc')"
+      :empty-description="categoryId ? $t('article.emptyInCategory') : $t('article.emptyDesc')"
       @change="changePage"
-    />
+    >
+      <template v-if="categoryId" #empty-action>
+        <Button class="mt-3" size="sm" variant="outline" @click="selectCategory()">
+          {{ $t('article.viewAllArticles') }}
+        </Button>
+      </template>
+    </ArticleListSection>
   </div>
 </template>

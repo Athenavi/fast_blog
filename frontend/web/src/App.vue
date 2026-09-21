@@ -33,4 +33,7 @@ useHead({
   <NuxtLayout>
     <NuxtPage/>
   </NuxtLayout>
+
+  <!-- 全局提示宿主：登录/注册等 layout:false 的页面同样需要 -->
+  <ToastHost/>
 </template>

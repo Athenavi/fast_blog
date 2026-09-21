@@ -5,13 +5,16 @@
  * 对齐 v3 `/system/integration`：SSO Provider 与 LDAP 两组 CRUD。
  * 凭据（client_secret / bind_password）只写不读，响应仅含 has_* 布尔位；
  * 更新时留空保持原值。
+ *
+ * 后端这两个列表接口不分页（直接返回数组），因此列表壳关闭分页器。
  */
 import {Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
 import {integrationApi, type LdapConfigItem, type SsoProviderItem} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import type {PageQuery} from '@/api/types'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -25,12 +28,7 @@ const {t} = useI18n()
 const activeTab = ref<'sso' | 'ldap'>('sso')
 
 // ---- SSO ----
-const {
-  list: ssoList,
-  loading: ssoLoading,
-  search: ssoSearch,
-  load: ssoLoad,
-} = useTable<SsoProviderItem>({
+const sso = useAdminList<SsoProviderItem, PageQuery>({
   // 列表接口不分页（返回数组），包一层以满足 fetcher 契约
   fetcher: async () => {
     const items = await integrationApi.listSso()
@@ -134,7 +132,7 @@ async function submitSso() {
     }
     ElMessage.success(t('admin.common.save'))
     ssoFormVisible.value = false
-    await ssoLoad()
+    await sso.reload()
   } finally {
     ssoSaving.value = false
   }
@@ -144,15 +142,11 @@ async function deleteSso(row: SsoProviderItem) {
   await ElMessageBox.confirm(t('admin.system.integration.deleteSsoConfirm'), t('admin.common.notice'), {type: 'warning'})
   await integrationApi.removeSso(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await ssoLoad()
+  await sso.reload()
 }
 
 // ---- LDAP ----
-const {
-  list: ldapList,
-  loading: ldapLoading,
-  load: ldapLoad,
-} = useTable<LdapConfigItem>({
+const ldap = useAdminList<LdapConfigItem, PageQuery>({
   fetcher: async () => {
     const items = await integrationApi.listLdap()
     return {items: items ?? [], total: items?.length ?? 0, page: 1, pageSize: 0, pages: 1}
@@ -246,7 +240,7 @@ async function submitLdap() {
     }
     ElMessage.success(t('admin.common.save'))
     ldapFormVisible.value = false
-    await ldapLoad()
+    await ldap.reload()
   } finally {
     ldapSaving.value = false
   }
@@ -256,122 +250,145 @@ async function deleteLdap(row: LdapConfigItem) {
   await ElMessageBox.confirm(t('admin.system.integration.deleteLdapConfirm'), t('admin.common.notice'), {type: 'warning'})
   await integrationApi.removeLdap(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await ldapLoad()
+  await ldap.reload()
 }
 
 onMounted(() => {
-  ssoSearch().catch(() => {
+  sso.reload().catch(() => {
   })
-  ldapLoad().catch(() => {
+  ldap.reload().catch(() => {
   })
 })
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <el-tabs v-model="activeTab">
-        <!-- SSO -->
-        <el-tab-pane :label="$t('admin.system.integration.tabSso')" name="sso">
-          <div class="table-toolbar">
+  <AdminPage :desc="$t('admin.system.integration.desc')" :title="$t('admin.system.integration.title')">
+    <el-tabs v-model="activeTab">
+      <!-- SSO -->
+      <el-tab-pane :label="$t('admin.system.integration.tabSso')" name="sso">
+        <AdminListShell
+          :empty-desc="$t('admin.system.integration.ssoEmptyDesc')"
+          :empty-title="$t('admin.system.integration.ssoEmptyTitle')"
+          :failed="sso.failed.value"
+          :loading="sso.loading.value"
+          :page="sso.page.value"
+          :page-size="sso.pageSize.value"
+          :paginate="false"
+          :rows="sso.rows.value"
+          :selectable="false"
+          :total="sso.total.value"
+          @refresh="sso.reload"
+        >
+          <template #actions>
             <el-button v-auth="'module_system:integration:create'" :icon="Plus" type="primary" @click="openSsoCreate">
               {{ $t('admin.system.integration.createSso') }}
             </el-button>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="ssoLoading && !ssoList.length" :rows="5"/>
+          <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.integration.providerType')" prop="provider_type" width="110"/>
+          <el-table-column :label="$t('admin.system.integration.clientId')" min-width="150" prop="client_id"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.integration.hasSecret')" width="110">
+            <template #default="{ row }">
+              <el-tag :type="(row as SsoProviderItem).has_client_secret ? 'success' : 'info'" size="small">
+                {{
+                  (row as SsoProviderItem).has_client_secret ? $t('admin.common.yes') : $t('admin.common.no')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.status')" width="90">
+            <template #default="{ row }">
+              <el-tag :type="(row as SsoProviderItem).is_active ? 'success' : 'info'" size="small">
+                {{
+                  (row as SsoProviderItem).is_active
+                    ? $t('admin.system.integration.active')
+                    : $t('admin.system.integration.inactive')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button v-auth="'module_system:integration:edit'" link type="primary"
+                         @click="openSsoEdit(row as SsoProviderItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_system:integration:delete'" link type="danger"
+                         @click="deleteSso(row as SsoProviderItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
+      </el-tab-pane>
 
-          <AdminEmpty v-else-if="!ssoLoading && !ssoList.length" :title="$t('admin.common.empty')"/>
-          <el-table v-else v-loading="ssoLoading" :data="ssoList" border stripe>
-            <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.integration.providerType')" prop="provider_type" width="110"/>
-            <el-table-column :label="$t('admin.system.integration.clientId')" min-width="150" prop="client_id"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.integration.hasSecret')" width="110">
-              <template #default="{ row }">
-                <el-tag :type="(row as SsoProviderItem).has_client_secret ? 'success' : 'info'" size="small">
-                  {{
-                    (row as SsoProviderItem).has_client_secret ? $t('admin.common.yes') : $t('admin.common.no')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.status')" width="90">
-              <template #default="{ row }">
-                <el-tag :type="(row as SsoProviderItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as SsoProviderItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_system:integration:edit'" link type="primary"
-                           @click="openSsoEdit(row as SsoProviderItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_system:integration:delete'" link type="danger"
-                           @click="deleteSso(row as SsoProviderItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-
-        <!-- LDAP -->
-        <el-tab-pane :label="$t('admin.system.integration.tabLdap')" name="ldap">
-          <div class="table-toolbar">
+      <!-- LDAP -->
+      <el-tab-pane :label="$t('admin.system.integration.tabLdap')" name="ldap">
+        <AdminListShell
+          :empty-desc="$t('admin.system.integration.ldapEmptyDesc')"
+          :empty-title="$t('admin.system.integration.ldapEmptyTitle')"
+          :failed="ldap.failed.value"
+          :loading="ldap.loading.value"
+          :page="ldap.page.value"
+          :page-size="ldap.pageSize.value"
+          :paginate="false"
+          :rows="ldap.rows.value"
+          :selectable="false"
+          :total="ldap.total.value"
+          @refresh="ldap.reload"
+        >
+          <template #actions>
             <el-button v-auth="'module_system:integration:create'" :icon="Plus" type="primary" @click="openLdapCreate">
               {{ $t('admin.system.integration.createLdap') }}
             </el-button>
-          </div>
+          </template>
 
-          <el-table v-loading="ldapLoading" :data="ldapList" border stripe>
-            <el-table-column :label="$t('admin.system.integration.serverUrl')" min-width="200" prop="server_url"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.integration.bindDn')" min-width="180" prop="bind_dn"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.integration.hasPassword')" width="110">
-              <template #default="{ row }">
-                <el-tag :type="(row as LdapConfigItem).has_bind_password ? 'success' : 'info'" size="small">
-                  {{
-                    (row as LdapConfigItem).has_bind_password ? $t('admin.common.yes') : $t('admin.common.no')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.system.integration.useSsl')" width="90">
-              <template #default="{ row }">
-                {{ (row as LdapConfigItem).use_ssl ? $t('admin.common.yes') : $t('admin.common.no') }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.status')" width="90">
-              <template #default="{ row }">
-                <el-tag :type="(row as LdapConfigItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as LdapConfigItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_system:integration:edit'" link type="primary"
-                           @click="openLdapEdit(row as LdapConfigItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_system:integration:delete'" link type="danger"
-                           @click="deleteLdap(row as LdapConfigItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
+          <el-table-column :label="$t('admin.system.integration.serverUrl')" min-width="200" prop="server_url"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.integration.bindDn')" min-width="180" prop="bind_dn"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.integration.hasPassword')" width="110">
+            <template #default="{ row }">
+              <el-tag :type="(row as LdapConfigItem).has_bind_password ? 'success' : 'info'" size="small">
+                {{
+                  (row as LdapConfigItem).has_bind_password ? $t('admin.common.yes') : $t('admin.common.no')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.system.integration.useSsl')" width="90">
+            <template #default="{ row }">
+              {{ (row as LdapConfigItem).use_ssl ? $t('admin.common.yes') : $t('admin.common.no') }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.status')" width="90">
+            <template #default="{ row }">
+              <el-tag :type="(row as LdapConfigItem).is_active ? 'success' : 'info'" size="small">
+                {{
+                  (row as LdapConfigItem).is_active
+                    ? $t('admin.system.integration.active')
+                    : $t('admin.system.integration.inactive')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button v-auth="'module_system:integration:edit'" link type="primary"
+                         @click="openLdapEdit(row as LdapConfigItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_system:integration:delete'" link type="danger"
+                         @click="deleteLdap(row as LdapConfigItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- SSO 表单 -->
     <el-drawer v-model="ssoFormVisible" :title="ssoFormTitle" destroy-on-close size="520px">
@@ -473,5 +490,5 @@ onMounted(() => {
         <el-button :loading="ldapSaving" type="primary" @click="submitLdap">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-drawer>
-  </div>
+  </AdminPage>
 </template>

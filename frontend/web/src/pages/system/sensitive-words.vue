@@ -3,15 +3,15 @@
  * 敏感词库管理（T5-11 样板域）
  *
  * 对齐 v3 `/system/sensitive-word`（复用共享反垃圾服务，写操作即时生效）。
- * 页面骨架与 role/user 页一致：搜索区 + 表格 + 抽屉表单 + 批量导入弹窗。
+ * 页面结构：列表壳（筛选 + 表格 + 分页）+ 抽屉表单 + 批量导入弹窗。
  */
-import {Plus, Refresh, Search, Upload} from '@element-plus/icons-vue'
+import {Plus, Upload} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
 import {sensitiveWordApi, type SensitiveWordItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -28,19 +28,7 @@ interface SensitiveWordQueryForm extends PageQuery {
   is_active?: boolean
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-} = useTable<SensitiveWordItem, SensitiveWordQueryForm>({
+const list = useAdminList<SensitiveWordItem, SensitiveWordQueryForm>({
   fetcher: (params) => sensitiveWordApi.list(params),
   defaultQuery: {keyword: '', level: undefined, is_active: undefined},
   syncUrl: true,
@@ -109,7 +97,7 @@ async function submitForm() {
     }
     ElMessage.success(t('admin.common.save'))
     formVisible.value = false
-    await load()
+    await list.reload()
   } finally {
     saving.value = false
   }
@@ -119,12 +107,12 @@ async function onDelete(row: SensitiveWordItem) {
   await ElMessageBox.confirm(t('admin.system.sensitiveWord.deleteConfirm'), t('admin.common.notice'), {type: 'warning'})
   await sensitiveWordApi.remove(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await load()
+  await list.reload()
 }
 
 async function toggleActive(row: SensitiveWordItem) {
   await sensitiveWordApi.update(row.id, {is_active: !row.is_active})
-  await load()
+  await list.reload()
 }
 
 // ---- 批量导入 ----
@@ -154,7 +142,7 @@ async function submitImport() {
       duplicated: result.duplicated ?? 0,
     }))
     importVisible.value = false
-    await load()
+    await list.reload()
   } finally {
     importing.value = false
   }
@@ -166,118 +154,110 @@ function levelTag(level: number): string {
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <!-- 搜索区 -->
-      <el-form :inline="true" :model="query" @submit.prevent="search()">
+  <AdminPage :desc="$t('admin.system.sensitiveWord.desc')" :title="$t('admin.system.sensitiveWord.title')">
+    <template #actions>
+      <el-button v-auth="'module_system:sensitive_word:create'" :icon="Plus" type="primary" @click="openCreate">
+        {{ $t('admin.system.sensitiveWord.createTitle') }}
+      </el-button>
+      <el-button v-auth="'module_system:sensitive_word:create'" :icon="Upload" @click="openImport">
+        {{ $t('admin.system.sensitiveWord.importTitle') }}
+      </el-button>
+    </template>
+
+    <AdminListShell
+      :empty-desc="list.hasFilters.value
+        ? $t('admin.system.sensitiveWord.emptyFiltered')
+        : $t('admin.system.sensitiveWord.emptyDesc')"
+      :empty-title="$t('admin.system.sensitiveWord.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :rows="list.rows.value"
+      :selectable="false"
+      :total="list.total.value"
+      @refresh="list.reload"
+      @reset="list.reset"
+      @search="list.search"
+      @page-change="list.onPageChange"
+      @size-change="list.onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.system.sensitiveWord.keyword')">
           <el-input
-            v-model="query.keyword"
-            :placeholder="$t('admin.system.sensitiveWord.keywordPlaceholder')"
+            v-model="list.query.keyword"
             clearable
+            :placeholder="$t('admin.system.sensitiveWord.keywordPlaceholder')"
             style="width: 200px"
-            @keyup.enter="search()"
+            @keyup.enter="list.search()"
           />
         </el-form-item>
         <el-form-item :label="$t('admin.system.sensitiveWord.level')">
-          <el-select v-model="query.level" :placeholder="$t('admin.common.all')" clearable style="width: 110px">
+          <el-select v-model="list.query.level" :placeholder="$t('admin.common.all')" clearable style="width: 110px">
             <el-option :label="$t('admin.system.sensitiveWord.levelLow')" :value="1"/>
             <el-option :label="$t('admin.system.sensitiveWord.levelMid')" :value="2"/>
             <el-option :label="$t('admin.system.sensitiveWord.levelHigh')" :value="3"/>
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('admin.common.status')">
-          <el-select v-model="query.is_active" :placeholder="$t('admin.common.all')" clearable style="width: 110px">
+          <el-select v-model="list.query.is_active" :placeholder="$t('admin.common.all')" clearable
+                     style="width: 110px">
             <el-option :label="$t('admin.system.sensitiveWord.active')" :value="true"/>
             <el-option :label="$t('admin.system.sensitiveWord.inactive')" :value="false"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <!-- 操作区 -->
-      <div class="table-toolbar">
-        <el-button v-auth="'module_system:sensitive_word:create'" :icon="Plus" type="primary" @click="openCreate">
-          {{ $t('admin.system.sensitiveWord.createTitle') }}
-        </el-button>
-        <el-button v-auth="'module_system:sensitive_word:create'" :icon="Upload" @click="openImport">
-          {{ $t('admin.system.sensitiveWord.importTitle') }}
-        </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
-
-      <!-- 表格 -->
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
-      <el-table v-else v-loading="loading" :data="list" border stripe>
-        <el-table-column :label="$t('admin.system.sensitiveWord.word')" min-width="160" prop="word"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.system.sensitiveWord.level')" width="90">
-          <template #default="{ row }">
-            <el-tag :type="levelTag(row.level)" size="small">
-              {{
-                row.level === 3 ? $t('admin.system.sensitiveWord.levelHigh') : row.level === 2 ? $t('admin.system.sensitiveWord.levelMid') : $t('admin.system.sensitiveWord.levelLow')
-              }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.system.sensitiveWord.action')" width="100">
-          <template #default="{ row }">
+      <el-table-column :label="$t('admin.system.sensitiveWord.word')" min-width="160" prop="word"
+                       show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.system.sensitiveWord.level')" width="90">
+        <template #default="{ row }">
+          <el-tag :type="levelTag(row.level)" size="small">
             {{
-              row.action === 'block' ? $t('admin.system.sensitiveWord.actionBlock') : row.action === 'replace' ? $t('admin.system.sensitiveWord.actionReplace') : $t('admin.system.sensitiveWord.actionWarn')
+              row.level === 3 ? $t('admin.system.sensitiveWord.levelHigh') : row.level === 2 ? $t('admin.system.sensitiveWord.levelMid') : $t('admin.system.sensitiveWord.levelLow')
             }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.system.sensitiveWord.replacement')" min-width="120" prop="replacement"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.system.sensitiveWord.category')" min-width="100" prop="category"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.common.status')" width="90">
-          <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-              {{ row.is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive') }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="220">
-          <template #default="{ row }">
-            <el-button v-auth="'module_system:sensitive_word:edit'" link type="primary"
-                       @click="openEdit(row as SensitiveWordItem)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button
-              v-auth="'module_system:sensitive_word:edit'"
-              :type="row.is_active ? 'warning' : 'success'"
-              link
-              @click="toggleActive(row as SensitiveWordItem)"
-            >
-              {{ row.is_active ? $t('admin.system.sensitiveWord.inactive') : $t('admin.system.sensitiveWord.active') }}
-            </el-button>
-            <el-button v-auth="'module_system:sensitive_word:delete'" link type="danger"
-                       @click="onDelete(row as SensitiveWordItem)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.system.sensitiveWord.action')" width="100">
+        <template #default="{ row }">
+          {{
+            row.action === 'block' ? $t('admin.system.sensitiveWord.actionBlock') : row.action === 'replace' ? $t('admin.system.sensitiveWord.actionReplace') : $t('admin.system.sensitiveWord.actionWarn')
+          }}
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.system.sensitiveWord.replacement')" min-width="120" prop="replacement"
+                       show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.system.sensitiveWord.category')" min-width="100" prop="category"
+                       show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.common.status')" width="90">
+        <template #default="{ row }">
+          <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+            {{ row.is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive') }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="220">
+        <template #default="{ row }">
+          <el-button v-auth="'module_system:sensitive_word:edit'" link type="primary"
+                     @click="openEdit(row as SensitiveWordItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button
+            v-auth="'module_system:sensitive_word:edit'"
+            :type="row.is_active ? 'warning' : 'success'"
+            link
+            @click="toggleActive(row as SensitiveWordItem)"
+          >
+            {{ row.is_active ? $t('admin.system.sensitiveWord.inactive') : $t('admin.system.sensitiveWord.active') }}
+          </el-button>
+          <el-button v-auth="'module_system:sensitive_word:delete'" link type="danger"
+                     @click="onDelete(row as SensitiveWordItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
 
     <!-- 新建 / 编辑 -->
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="460px">
@@ -348,5 +328,5 @@ function levelTag(level: number): string {
         </el-button>
       </template>
     </el-dialog>
-  </div>
+  </AdminPage>
 </template>

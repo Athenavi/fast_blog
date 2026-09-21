@@ -26,6 +26,7 @@ const page = ref(1)
 const loading = ref(false)
 const uploading = ref(false)
 const message = ref('')
+const toast = useToast()
 const error = ref('')
 
 const activeFolder = ref<number | undefined>(undefined)
@@ -245,7 +246,7 @@ async function saveEdit(): Promise<void> {
         .filter(Boolean),
     })
     editing.value = null
-    message.value = t('media.saved')
+    toast.success(t('media.saved'))
     await loadList()
   } finally {
     editSaving.value = false
@@ -275,7 +276,7 @@ async function createFolder(): Promise<void> {
       parent_id: activeFolder.value ?? null,
     })
     folderDialog.value = false
-    message.value = t('media.folderCreated')
+    toast.success(t('media.folderCreated'))
     await loadFolders()
   } finally {
     folderSaving.value = false
@@ -290,7 +291,7 @@ async function copyUrl(item: MobileMediaItem): Promise<void> {
   if (!item.file_url) return
   try {
     await navigator.clipboard.writeText(item.file_url)
-    message.value = t('media.linkCopied')
+    toast.success(t('media.linkCopied'))
   } catch {
     error.value = t('media.copyFailed')
   }
@@ -437,7 +438,7 @@ onMounted(refresh)
                   :alt="(item as MobileMediaItem).alt_text || (item as MobileMediaItem).original_filename || ''"
                   :src="(item as MobileMediaItem).thumbnail_url || (item as MobileMediaItem).file_url || ''"
                   class="h-full w-full object-cover"
-                  loading="lazy"
+                  decoding="async" loading="lazy"
                 >
                 <Icon v-else class="h-8 w-8 text-fg-subtle" name="image"/>
               </div>

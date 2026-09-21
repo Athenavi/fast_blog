@@ -37,7 +37,7 @@ interface PublicPlan {
   features: string[]
 }
 
-const {data: payload} = await useAsyncData('vip-plans', () =>
+const {data: payload, error: plansError, refresh: reloadPlans} = await useAsyncData('vip-plans', () =>
   apiGet<{ plans: PublicPlan[] }>('/marketing/vip/public/plans'),
 )
 
@@ -49,8 +49,7 @@ const premium = ref<PremiumContentItem[]>([])
 const loadingMine = ref(false)
 const busyPlan = ref<number | null>(null)
 const cancelling = ref(false)
-const notice = ref('')
-const error = ref('')
+const toast = useToast()
 
 const SUBSCRIPTION_STATUS: Record<number, string> = {
   0: 'vip.statusActive',
@@ -91,8 +90,6 @@ async function loadMine(): Promise<void> {
 
 /** 开通 / 续费：真实下单（金额由服务端按套餐取） */
 async function subscribe(plan: PublicPlan): Promise<void> {
-  notice.value = ''
-  error.value = ''
   if (!userStore.isLoggedIn) {
     await navigateTo('/login')
     return
@@ -101,28 +98,26 @@ async function subscribe(plan: PublicPlan): Promise<void> {
   try {
     const result = await vipSelfApi.createPayment(plan.id)
     const url = typeof result.payment?.payment_url === 'string' ? result.payment.payment_url : ''
-    notice.value = t('vip.orderCreated', {order: result.order.order_no})
+    toast.success(t('vip.orderCreated', {order: result.order.order_no}))
     if (url && import.meta.client) {
       window.open(url, '_blank', 'noopener,noreferrer')
     }
     await loadMine()
   } catch (thrown) {
-    error.value = thrown instanceof Error ? thrown.message : t('common.networkError')
+    toast.error(thrown instanceof Error ? thrown.message : t('common.networkError'))
   } finally {
     busyPlan.value = null
   }
 }
 
 async function cancelSubscription(): Promise<void> {
-  notice.value = ''
-  error.value = ''
   cancelling.value = true
   try {
     await vipSelfApi.cancel()
-    notice.value = t('vip.cancelSuccess')
+    toast.success(t('vip.cancelSuccess'))
     await loadMine()
   } catch (thrown) {
-    error.value = thrown instanceof Error ? thrown.message : t('common.networkError')
+    toast.error(thrown instanceof Error ? thrown.message : t('common.networkError'))
   } finally {
     cancelling.value = false
   }
@@ -143,13 +138,6 @@ useSeoMeta({
       <h1 class="text-2xl font-bold tracking-tight text-fg sm:text-3xl">{{ $t('vip.title') }}</h1>
       <p class="mt-3 text-base leading-relaxed text-fg-muted">{{ $t('vip.subtitle') }}</p>
     </header>
-
-    <p v-if="notice" class="mt-6 rounded-card border border-line bg-surface-soft px-4 py-2.5 text-sm text-fg">
-      {{ notice }}
-    </p>
-    <p v-if="error" class="mt-6 rounded-card border border-danger/40 bg-surface-soft px-4 py-2.5 text-sm text-danger">
-      {{ error }}
-    </p>
 
     <!-- 我的订阅（仅客户端） -->
     <ClientOnly>
@@ -241,7 +229,9 @@ useSeoMeta({
     </ClientOnly>
 
     <!-- 套餐网格 -->
-    <div v-if="plans.length" class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+    <ErrorState v-if="plansError" class="mt-10" @retry="reloadPlans"/>
+
+    <div v-else-if="plans.length" class="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       <article
         v-for="plan in plans"
         :key="plan.id"

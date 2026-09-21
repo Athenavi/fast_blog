@@ -500,7 +500,8 @@ onMounted(loadFolders)
               @dblclick="openDetail(item)"
             >
               <div class="media-card__thumb">
-                <img v-if="isImage(item) && thumbOf(item)" :alt="item.alt_text || ''" :src="thumbOf(item)"/>
+                <img v-if="isImage(item) && thumbOf(item)" :alt="item.alt_text || ''" :src="thumbOf(item)"
+                     decoding="async" loading="lazy"/>
                 <el-icon v-else class="media-card__icon">
                   <component :is="typeIcon(item)"/>
                 </el-icon>
@@ -543,7 +544,8 @@ onMounted(loadFolders)
             <el-table-column type="selection" width="46"/>
             <el-table-column width="72">
               <template #default="{row}">
-                <img v-if="isImage(row) && thumbOf(row)" :src="thumbOf(row)" alt="" class="admin-thumb"/>
+                <img v-if="isImage(row) && thumbOf(row)" :src="thumbOf(row)" alt="" class="admin-thumb" decoding="async"
+                     loading="lazy"/>
                 <el-icon v-else class="media-card__icon">
                   <component :is="typeIcon(row)"/>
                 </el-icon>
@@ -619,7 +621,7 @@ onMounted(loadFolders)
       <div v-if="detailItem" class="media-detail">
         <div class="media-detail__preview">
           <img v-if="isImage(detailItem) && thumbOf(detailItem)" :alt="detailItem.alt_text || ''"
-               :src="thumbOf(detailItem)"/>
+               :src="thumbOf(detailItem)" decoding="async"/>
           <video v-else-if="isVideo(detailItem) && detailItem.file_url" :src="detailItem.file_url" controls/>
           <audio v-else-if="isAudio(detailItem) && detailItem.file_url" :src="detailItem.file_url" controls/>
           <el-icon v-else class="media-detail__icon">

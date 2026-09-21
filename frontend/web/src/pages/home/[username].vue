@@ -114,7 +114,7 @@ useSeoMeta({
           v-if="profile.profile_picture"
           :alt="displayName"
           :src="profile.profile_picture"
-          class="h-full w-full object-cover"
+          class="h-full w-full object-cover" decoding="async" loading="lazy"
         >
         <Icon v-else class="h-7 w-7" name="user"/>
       </span>

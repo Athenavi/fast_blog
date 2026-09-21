@@ -33,6 +33,8 @@ withDefaults(
     /** 最近一次加载失败（展示错误态而不是"暂无数据"） */
     failed?: boolean
     selectable?: boolean
+    /** 接口不分页时置 false：不渲染分页器（工具条的"共 N 条"仍保留） */
+    paginate?: boolean
     rowKey?: string
     emptyTitle?: string
     emptyDesc?: string
@@ -43,6 +45,7 @@ withDefaults(
     loading: false,
     failed: false,
     selectable: true,
+    paginate: true,
     rowKey: 'id',
     selectionCount: 0,
     pageSizes: () => [10, 20, 50, 100],
@@ -119,7 +122,7 @@ const {t} = useI18n()
       </el-table>
 
       <el-pagination
-        v-if="total > 0"
+        v-if="paginate && total > 0"
         :current-page="page"
         :page-size="pageSize"
         :page-sizes="pageSizes"

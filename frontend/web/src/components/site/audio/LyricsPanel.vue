@@ -79,7 +79,8 @@ function highlightCount(index: number, tokenCount: number): number {
       </button>
 
       <div class="h-14 w-14 shrink-0 overflow-hidden rounded-xl shadow-lg">
-        <img v-if="coverImage" :alt="t('audio.cover')" :src="coverImage" class="h-full w-full object-cover">
+        <img v-if="coverImage" :alt="t('audio.cover')" :src="coverImage" class="h-full w-full object-cover"
+             decoding="async">
         <span v-else
               class="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600">
           <Icon class="h-6 w-6 text-white/80" name="music"/>

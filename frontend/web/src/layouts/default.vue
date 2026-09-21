@@ -21,5 +21,6 @@ await initThemeSlots()
 
     <!-- 移动端底部导航：首页 / 关于 / 我的（仅 <md 显示，见组件注释） -->
     <MobileBottomNav/>
+
   </div>
 </template>

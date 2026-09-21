@@ -85,7 +85,11 @@ useSeoMeta({
 
     <ErrorState v-else-if="error" class="mt-8" @retry="refreshList"/>
 
-    <EmptyState v-else-if="!experts.length" :description="$t('experts.emptyDesc')" :title="$t('experts.empty')"/>
+    <EmptyState v-else-if="!experts.length" :description="$t('experts.emptyDesc')" :title="$t('experts.empty')">
+      <NuxtLink class="mt-3" to="/feed">
+        <Button size="sm" variant="outline">{{ $t('feed.goDiscover') }}</Button>
+      </NuxtLink>
+    </EmptyState>
 
     <ul v-else class="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       <li v-for="item in experts" :key="item.id" class="rounded-card border border-line bg-surface p-4">

@@ -92,7 +92,7 @@ onMounted(() => {
       v-if="props.article.cover_image"
       :alt="props.article.title"
       :src="props.article.cover_image"
-      class="mt-7 w-full rounded-card object-cover"
+      class="mt-7 w-full rounded-card object-cover" decoding="async"
     >
 
     <!-- 需要 VIP：正文未下发 -->

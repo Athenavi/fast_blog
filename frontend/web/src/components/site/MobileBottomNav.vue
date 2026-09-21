@@ -14,7 +14,7 @@ import type {IconName} from '@/lib/icons'
  * 与原实现的两点差异：
  *  1. 原版用 JS 判断 `window.innerWidth < 768` 决定是否渲染 —— 首屏会闪一下；
  *     这里改用 CSS `md:hidden`，SSR 直接不输出，更稳。
- *  2. 原版写死灰阶色（`text-gray-500` / `text-blue-600`），这里用语义令牌，
+ *  2. 原版写死灰阶色（`text-fg-muted` / `text-blue-600`），这里用语义令牌，
  *     跟随主题与用户自选配色。
  */
 const navItems: Array<{ name: string; href: string; icon: IconName }> = [

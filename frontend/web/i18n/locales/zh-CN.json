@@ -197,7 +197,9 @@
     "twoFactorMobileHint": "该账号启用了双因素认证，请前往移动端完成二次验证",
     "errorInvalid": "登录失败，请检查用户名与密码",
     "backToHome": "← 返回首页",
-    "keepSignedIn": "保持登录"
+    "keepSignedIn": "保持登录",
+    "identifierRequired": "请输入用户名或邮箱",
+    "passwordRequired": "请输入密码"
   },
   "register": {
     "title": "创建账号",
@@ -397,7 +399,9 @@
     "emptyDesc": "换个分类看看，或者稍后再来。",
     "seoTitle": "文章 - {name}",
     "viewsCount": "{n} 次浏览",
-    "liked": "已赞"
+    "liked": "已赞",
+    "emptyInCategory": "该分类下暂无文章",
+    "viewAllArticles": "查看全部文章"
   },
   "comment": {
     "title": "评论",
@@ -837,7 +841,11 @@
         "resource": "资源",
         "exported": "已导出 {n} 条日志",
         "cleaned": "已清理 {n} 天前的日志",
-        "purgeAction": "清理历史日志"
+        "purgeAction": "清理历史日志",
+        "desc": "所有后台写操作由 OperationLogRoute 自动落库；本页可按用户、动作、级别与时间范围检索，并导出或按天数清理。",
+        "emptyTitle": "暂无日志",
+        "emptyDesc": "当前时间范围内还没有操作日志。",
+        "emptyFiltered": "没有符合当前条件的日志"
       },
       "menu": {
         "title": "菜单",
@@ -1005,7 +1013,11 @@
         "importBtn": "导入",
         "importEmpty": "导入列表为空",
         "importResult": "共 {total} 个，新增 {added} 个，重复跳过 {duplicated} 个",
-        "deleteConfirm": "确认删除该敏感词？删除后立即从反垃圾缓存移除。"
+        "deleteConfirm": "确认删除该敏感词？删除后立即从反垃圾缓存移除。",
+        "desc": "维护敏感词库：分级（低/中/高）、命中动作（拦截/替换/告警）与批量导入，写操作即时生效。",
+        "emptyTitle": "词库为空",
+        "emptyDesc": "还没有任何敏感词，可用「批量导入」一次性添加。",
+        "emptyFiltered": "没有符合当前条件的敏感词"
       },
       "gdpr": {
         "title": "合规同意记录",
@@ -1021,7 +1033,11 @@
         "userId": "用户 ID",
         "details": "详情",
         "ipAddress": "IP 地址",
-        "deleteConfirm": "确定删除该条同意记录吗？"
+        "deleteConfirm": "确定删除该条同意记录吗？",
+        "desc": "前台授权动作写入的同意记录，本页用于查阅与治理（删除过期记录）。",
+        "emptyTitle": "暂无同意记录",
+        "emptyDesc": "还没有任何同意记录，用户在前台授权后会出现在这里。",
+        "emptyFiltered": "没有符合当前条件的同意记录"
       },
       "integration": {
         "title": "第三方集成",
@@ -1058,7 +1074,14 @@
         "autoSync": "自动同步用户",
         "syncInterval": "同步间隔（秒）",
         "hasSecret": "密钥已配置",
-        "hasPassword": "密码已配置"
+        "hasPassword": "密码已配置",
+        "desc": "接入 SSO（OAuth2 / OIDC / SAML）与 LDAP：凭据只写不读，更新时留空即保持原值。",
+        "active": "启用",
+        "inactive": "禁用",
+        "ssoEmptyTitle": "暂无 SSO 配置",
+        "ssoEmptyDesc": "还没有接入任何 SSO 身份提供方。",
+        "ldapEmptyTitle": "暂无 LDAP 配置",
+        "ldapEmptyDesc": "还没有接入任何 LDAP 目录服务。"
       },
       "social": {
         "title": "社交账号绑定",
@@ -1069,7 +1092,11 @@
         "hasToken": "令牌已取到",
         "tokenExpiresAt": "令牌过期时间",
         "unbind": "解绑",
-        "unbindConfirm": "确定解除该社交账号绑定吗？"
+        "unbindConfirm": "确定解除该社交账号绑定吗？",
+        "desc": "查看第三方 OAuth 绑定档案并发起解绑；令牌不回传，仅以「已授权」位表示。",
+        "emptyTitle": "暂无绑定记录",
+        "emptyDesc": "还没有用户绑定第三方账号。",
+        "emptyFiltered": "没有符合当前条件的绑定记录"
       },
       "security": {
         "title": "安全中心",
@@ -1091,7 +1118,13 @@
         "tokenIdentifier": "令牌标识",
         "reason": "原因",
         "expiresAt": "过期时间",
-        "deleteBlacklistConfirm": "确定删除该黑名单记录吗？"
+        "deleteBlacklistConfirm": "确定删除该黑名单记录吗？",
+        "desc": "近 24 小时的登录与令牌风险总览：登录尝试、失败率、锁定账户与令牌黑名单。",
+        "emptyTitle": "暂无登录记录",
+        "emptyDesc": "近 24 小时内没有登录尝试记录。",
+        "emptyFiltered": "没有符合当前条件的登录尝试",
+        "blacklistEmptyTitle": "黑名单为空",
+        "blacklistEmptyDesc": "当前没有被吊销的令牌。"
       },
       "site": {
         "title": "多站点管理",
@@ -1111,7 +1144,14 @@
         "isDefault": "设为默认站点",
         "defaultTag": "默认",
         "keywordPlaceholder": "名称 / 标识 / 域名",
-        "deleteConfirm": "确定删除该站点吗？"
+        "deleteConfirm": "确定删除该站点吗？",
+        "keyword": "关键词",
+        "active": "启用",
+        "inactive": "禁用",
+        "desc": "管理多站点：域名绑定、主题与语言、默认站点与启用状态。",
+        "emptyTitle": "暂无站点",
+        "emptyDesc": "还没有配置任何站点。",
+        "emptyFiltered": "没有符合当前条件的站点"
       },
       "group": {
         "groupManagement": "权限组管理",

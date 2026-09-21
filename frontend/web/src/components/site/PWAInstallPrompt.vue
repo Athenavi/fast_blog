@@ -64,7 +64,8 @@ onBeforeUnmount(() => {
       role="dialog"
     >
       <div class="flex items-start gap-3">
-        <img alt="" class="h-10 w-10 flex-shrink-0 rounded-control" src="/icon.svg">
+        <img alt="" class="h-10 w-10 flex-shrink-0 rounded-control" decoding="async" height="40" src="/icon.svg"
+             width="40">
 
         <div class="min-w-0 flex-1">
           <p class="text-sm font-medium text-fg">{{ $t('site.installTitle') }}</p>

@@ -200,7 +200,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
         v-if="kind === 'image' && current.file_url"
         :alt="current.alt_text || current.original_filename || ''"
         :src="current.file_url"
-        class="max-h-full max-w-full object-contain"
+        class="max-h-full max-w-full object-contain" decoding="async"
       >
       <video
         v-else-if="kind === 'video' && current.file_url"
@@ -271,7 +271,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
           :alt="file.alt_text || ''"
           :src="file.thumbnail_url || file.file_url || ''"
           class="h-full w-full object-cover"
-          loading="lazy"
+          decoding="async" loading="lazy"
         >
         <span v-else class="flex h-full w-full items-center justify-center bg-white/5">
           <Icon class="h-5 w-5 text-white/30" name="file-text"/>

@@ -45,6 +45,35 @@
 
 ### 新增
 
+- **前台表单校验统一（D2）**：新增 `composables/useFormErrors.ts` —— 字段级校验 + `aria-invalid`
+  / `aria-describedby` + 重新输入自动清除该字段错误；`login` / `register` / `profile` 从「只提示
+  第一个错误」改为**逐字段定位**（此前用户不知道是哪个输入框有问题，读屏也无法关联）；
+  `ToastHost` 上移到 `app.vue`，使 `layout: false` 的登录/注册页同样能收到提示
+- **后台列表页迁移（B 第 1 小批，进行中）**：`system/social-accounts`、`system/gdpr`、`system/security`、
+  `system/sites`、`system/sensitive-words`、`system/integrations`、`system/log` 已迁移到 `AdminPage` +
+  `AdminListShell` + `useAdminList`（筛选栏、工具条、骨架、空/错态、分页统一），补齐 `desc` 与
+  空态/筛选无结果文案；其余 system/ops 页面按同一范式推进。细节：
+    - `system/security`、`system/integrations` 都是双标签页，两个列表各自使用列表壳（避免 Element Plus
+      卡片套卡片）；`security` 的黑名单列表不写 URL，以免与「登录尝试」争用同一份 query
+    - `AdminListShell` 新增 `paginate` 开关：`system/integrations` 的两个接口返回数组、不分页，
+      此时隐藏分页器但保留工具条的「共 N 条」
+    - `system/sites`、`system/integrations` 的筛选项/状态列此前借用了敏感词模块的文案
+      （`admin.system.sensitiveWord.*`），已换成本模块自己的 key
+    - `system/log` 的日期范围由原来的数组状态改为**扁平化的 `start_date` / `end_date`**，
+      这样整套筛选条件都能进 URL（刷新/分享保留时间范围）；导出复用同一套判空规则
+
+- **前台 UI/UX 收口（批次 1，用户确认方案 dec-9655ab5083bd2640）**：
+    - **令牌收口**：24 处硬编码灰阶（`text-gray-500` / `text-gray-400` 等）改为语义令牌
+      （`text-fg-muted` / `text-fg-subtle`）；`components/site/audio/*` 播放器配色、媒体灯箱遮罩、
+      `.plugin-pages/*` 示例页保留硬编码并在注释中写明例外理由
+    - **图片与无障碍**：24 个 `<img>` 补 `decoding="async"`（8 个列表缩略图补 `loading="lazy"`，
+      PWA 图标补 `width/height`），消除解析阻塞与 CLS 风险
+    - **前台内容页**：VIP 套餐列表补**失败态**（此前失败只会显示空占位）；分类筛选空态新增
+      「查看全部文章」出口；专家列表与「我的勋章」空态新增「去发现」入口
+    - **统一反馈**：新增 `composables/useToast.ts` + `components/site/ToastHost.vue`
+      （挂载于 `layouts/default.vue`，`aria-live="polite"`，点击可关闭）；媒体库、个人资料、
+      VIP 页的操作结果提示从各自的内联 `message` ref 改为统一 toast
+
 - **后端批量与事务端点**（消除前端逐条调用的技术债，均带权限码与启动期审计）：
     - `POST /content/article/batch/publish` 批量发布 / 撤回（`article:publish`）
     - `POST /content/comment/batch/decide` 批量通过 / 拒绝（`comment:approve`）

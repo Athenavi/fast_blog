@@ -108,7 +108,7 @@ function skip(delta: number): void {
           type="button"
           @click="emit('minimize')"
         >
-          <img v-if="coverImage" :alt="''" :src="coverImage" class="h-full w-full object-cover">
+          <img v-if="coverImage" :alt="''" :src="coverImage" class="h-full w-full object-cover" decoding="async">
           <span v-else
                 class="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600">
             <Icon class="h-5 w-5 text-white/70" name="music"/>

@@ -76,7 +76,7 @@ onBeforeUnmount(() => {
           type="button"
           @click="emit('restore')"
         >
-          <img v-if="coverImage" :alt="''" :src="coverImage" class="h-full w-full object-cover">
+          <img v-if="coverImage" :alt="''" :src="coverImage" class="h-full w-full object-cover" decoding="async">
           <span v-else
                 class="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600">
             <Icon class="h-6 w-6 text-white/70" name="music"/>
@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
         :class="{ 'is-playing': isPlaying }"
         class="vinyl-mini-disc relative h-16 w-16 cursor-pointer overflow-hidden rounded-full border-2 border-white/20 shadow-2xl"
       >
-        <img v-if="coverImage" :alt="''" :src="coverImage" class="h-full w-full object-cover">
+        <img v-if="coverImage" :alt="''" :src="coverImage" class="h-full w-full object-cover" decoding="async">
         <span v-else
               class="flex h-full w-full items-center justify-center bg-gradient-to-br from-purple-600 to-pink-600">
           <Icon class="h-8 w-8 text-white/80" name="music"/>

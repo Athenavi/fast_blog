@@ -11,7 +11,7 @@ import {computed, reactive, ref} from 'vue'
 
 import {siteApi, type SiteItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -26,19 +26,7 @@ interface SiteQueryForm extends PageQuery {
   is_active?: boolean
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-} = useTable<SiteItem, SiteQueryForm>({
+const list = useAdminList<SiteItem, SiteQueryForm>({
   fetcher: (params) => siteApi.list(params),
   defaultQuery: {is_active: undefined},
   syncUrl: true,
@@ -136,7 +124,7 @@ async function submitForm() {
     }
     ElMessage.success(t('admin.common.save'))
     formVisible.value = false
-    await load()
+    await list.reload()
   } finally {
     saving.value = false
   }
@@ -146,102 +134,92 @@ async function onDelete(row: SiteItem) {
   await ElMessageBox.confirm(t('admin.system.site.deleteConfirm'), t('admin.common.notice'), {type: 'warning'})
   await siteApi.remove(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await load()
+  await list.reload()
 }
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <!-- 搜索区 -->
-      <el-form :inline="true" :model="query" @submit.prevent="search()">
-        <el-form-item :label="$t('admin.system.sensitiveWord.keyword')">
+  <AdminPage :desc="$t('admin.system.site.desc')" :title="$t('admin.system.site.title')">
+    <template #actions>
+      <el-button v-auth="'module_system:site:create'" :icon="Plus" type="primary" @click="openCreate">
+        {{ $t('admin.system.site.createTitle') }}
+      </el-button>
+    </template>
+
+    <AdminListShell
+      :empty-desc="list.hasFilters.value ? $t('admin.system.site.emptyFiltered') : $t('admin.system.site.emptyDesc')"
+      :empty-title="$t('admin.system.site.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :rows="list.rows.value"
+      :selectable="false"
+      :total="list.total.value"
+      @refresh="list.reload"
+      @reset="list.reset"
+      @search="list.search"
+      @page-change="list.onPageChange"
+      @size-change="list.onSizeChange"
+    >
+      <template #filters>
+        <el-form-item :label="$t('admin.system.site.keyword')">
           <el-input
-            v-model="query.keyword"
-            :placeholder="$t('admin.system.site.keywordPlaceholder')"
+            v-model="list.query.keyword"
             clearable
+            :placeholder="$t('admin.system.site.keywordPlaceholder')"
             style="width: 200px"
-            @keyup.enter="search()"
+            @keyup.enter="list.search()"
           />
         </el-form-item>
         <el-form-item :label="$t('admin.common.status')">
-          <el-select v-model="query.is_active" :placeholder="$t('admin.common.all')" clearable style="width: 110px">
-            <el-option :label="$t('admin.system.sensitiveWord.active')" :value="true"/>
-            <el-option :label="$t('admin.system.sensitiveWord.inactive')" :value="false"/>
+          <el-select v-model="list.query.is_active" :placeholder="$t('admin.common.all')" clearable
+                     style="width: 110px">
+            <el-option :label="$t('admin.system.site.active')" :value="true"/>
+            <el-option :label="$t('admin.system.site.inactive')" :value="false"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <!-- 操作区 -->
-      <div class="table-toolbar">
-        <el-button v-auth="'module_system:site:create'" :icon="Plus" type="primary" @click="openCreate">
-          {{ $t('admin.system.site.createTitle') }}
-        </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
-
-      <!-- 表格 -->
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
-      <el-table v-else v-loading="loading" :data="list" border stripe>
-        <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.system.site.slug')" prop="slug" width="120"/>
-        <el-table-column :label="$t('admin.system.site.domain')" min-width="160" prop="domain" show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.system.site.additionalDomains')" min-width="160">
-          <template #default="{ row }">
-            {{ ((row as SiteItem).additional_domains || []).join(', ') || '—' }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.system.site.theme')" prop="theme" width="110"/>
-        <el-table-column :label="$t('admin.system.site.isDefault')" width="90">
-          <template #default="{ row }">
-            <el-tag v-if="(row as SiteItem).is_default" size="small" type="warning">
-              {{ $t('admin.system.site.defaultTag') }}
-            </el-tag>
-            <span v-else>—</span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.status')" width="90">
-          <template #default="{ row }">
-            <el-tag :type="(row as SiteItem).is_active ? 'success' : 'info'" size="small">
-              {{
-                (row as SiteItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
-              }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-          <template #default="{ row }">
-            <el-button v-auth="'module_system:site:edit'" link type="primary"
-                       @click="openEdit(row as SiteItem)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_system:site:delete'" link type="danger"
-                       @click="onDelete(row as SiteItem)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+      <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.system.site.slug')" prop="slug" width="120"/>
+      <el-table-column :label="$t('admin.system.site.domain')" min-width="160" prop="domain" show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.system.site.additionalDomains')" min-width="160">
+        <template #default="{ row }">
+          {{ ((row as SiteItem).additional_domains || []).join(', ') || '—' }}
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.system.site.theme')" prop="theme" width="110"/>
+      <el-table-column :label="$t('admin.system.site.isDefault')" width="90">
+        <template #default="{ row }">
+          <el-tag v-if="(row as SiteItem).is_default" size="small" type="warning">
+            {{ $t('admin.system.site.defaultTag') }}
+          </el-tag>
+          <span v-else>—</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.status')" width="90">
+        <template #default="{ row }">
+          <el-tag :type="(row as SiteItem).is_active ? 'success' : 'info'" size="small">
+            {{
+              (row as SiteItem).is_active ? $t('admin.system.site.active') : $t('admin.system.site.inactive')
+            }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+        <template #default="{ row }">
+          <el-button v-auth="'module_system:site:edit'" link type="primary"
+                     @click="openEdit(row as SiteItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_system:site:delete'" link type="danger"
+                     @click="onDelete(row as SiteItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
 
     <!-- 新建 / 编辑 -->
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="520px">
@@ -282,5 +260,5 @@ async function onDelete(row: SiteItem) {
         <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-drawer>
-  </div>
+  </AdminPage>
 </template>

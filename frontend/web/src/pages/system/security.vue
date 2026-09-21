@@ -5,13 +5,12 @@
  * 对齐 v3 `/system/security`：总览聚合（24h）+ 登录尝试列表 + 令牌黑名单。
  * 锁定账户管理由 `/system/log` 覆盖，本页不重复。
  */
-import {Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, ref} from 'vue'
 
 import {type BlacklistItem, type LoginAttemptItem, securityApi, type SecurityOverview,} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -48,41 +47,20 @@ const stats = computed<Array<{ label: string; value: number | string }>>(() => {
   ]
 })
 
-// ---- 登录尝试 ----
+// ---- 登录尝试（筛选条件写入 URL）----
 interface AttemptQueryForm extends PageQuery {
   username?: string
   is_success?: boolean
 }
 
-const {
-  list: attemptList,
-  loading: attemptLoading,
-  total: attemptTotal,
-  page: attemptPage,
-  pageSize: attemptPageSize,
-  query: attemptQuery,
-  search: attemptSearch,
-  reset: attemptReset,
-  load: attemptLoad,
-  onPageChange: onAttemptPageChange,
-  onSizeChange: onAttemptSizeChange,
-} = useTable<LoginAttemptItem, AttemptQueryForm>({
+const attempts = useAdminList<LoginAttemptItem, AttemptQueryForm>({
   fetcher: (params) => securityApi.attempts(params),
   defaultQuery: {username: '', is_success: undefined},
   syncUrl: true,
 })
 
-// ---- 黑名单 ----
-const {
-  list: blacklist,
-  loading: blacklistLoading,
-  total: blacklistTotal,
-  page: blacklistPage,
-  pageSize: blacklistPageSize,
-  load: blacklistLoad,
-  onPageChange: onBlacklistPageChange,
-  onSizeChange: onBlacklistSizeChange,
-} = useTable<BlacklistItem, PageQuery>({
+// ---- 令牌黑名单（无筛选条件，因此不写 URL，避免与上一个列表争用 query）----
+const blacklist = useAdminList<BlacklistItem, PageQuery>({
   fetcher: (params) => securityApi.blacklist(params),
 })
 
@@ -92,13 +70,13 @@ async function onDeleteBlacklist(row: BlacklistItem) {
   })
   await securityApi.removeBlacklist(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await Promise.all([loadOverview(), blacklistLoad()])
+  await Promise.all([loadOverview(), blacklist.reload()])
 }
 </script>
 
 <template>
-  <div class="page-container">
-    <!-- 统计卡 -->
+  <AdminPage :desc="$t('admin.system.security.desc')" :title="$t('admin.system.security.title')">
+    <!-- 统计卡：页面级信息，放在列表壳之外 -->
     <div v-if="stats.length" class="mb-4 grid grid-cols-2 gap-3 md:grid-cols-5">
       <el-card v-for="item in stats" :key="item.label" shadow="never">
         <div class="text-xs text-fg-subtle">{{ item.label }}</div>
@@ -106,119 +84,114 @@ async function onDeleteBlacklist(row: BlacklistItem) {
       </el-card>
     </div>
 
-    <el-card shadow="never">
-      <el-tabs v-model="activeTab">
-        <!-- 登录尝试 -->
-        <el-tab-pane :label="$t('admin.system.security.tabAttempts')" name="attempts">
-          <el-form :inline="true" :model="attemptQuery" @submit.prevent="attemptSearch()">
+    <el-tabs v-model="activeTab">
+      <!-- 登录尝试 -->
+      <el-tab-pane :label="$t('admin.system.security.tabAttempts')" name="attempts">
+        <AdminListShell
+          :empty-desc="attempts.hasFilters.value
+            ? $t('admin.system.security.emptyFiltered')
+            : $t('admin.system.security.emptyDesc')"
+          :empty-title="$t('admin.system.security.emptyTitle')"
+          :failed="attempts.failed.value"
+          :loading="attempts.loading.value"
+          :page="attempts.page.value"
+          :page-size="attempts.pageSize.value"
+          :rows="attempts.rows.value"
+          :selectable="false"
+          :total="attempts.total.value"
+          @refresh="attempts.reload"
+          @reset="attempts.reset"
+          @search="attempts.search"
+          @page-change="attempts.onPageChange"
+          @size-change="attempts.onSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.system.security.username')">
               <el-input
-                v-model="attemptQuery.username"
-                :placeholder="$t('admin.system.security.usernamePlaceholder')"
+                v-model="attempts.query.username"
                 clearable
+                :placeholder="$t('admin.system.security.usernamePlaceholder')"
                 style="width: 180px"
-                @keyup.enter="attemptSearch()"
+                @keyup.enter="attempts.search()"
               />
             </el-form-item>
             <el-form-item :label="$t('admin.system.security.result')">
               <el-select
-                v-model="attemptQuery.is_success"
-                :placeholder="$t('admin.common.all')"
+                v-model="attempts.query.is_success"
                 clearable
+                :placeholder="$t('admin.common.all')"
                 style="width: 110px"
               >
                 <el-option :label="$t('admin.system.security.resultSuccess')" :value="true"/>
                 <el-option :label="$t('admin.system.security.resultFailure')" :value="false"/>
               </el-select>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="attemptSearch()">
-                {{ $t('admin.common.search') }}
+          </template>
+
+          <el-table-column label="ID" prop="id" width="80"/>
+          <el-table-column :label="$t('admin.system.security.username')" min-width="130" prop="username"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.security.ipAddress')" min-width="130" prop="ip_address"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.security.result')" width="90">
+            <template #default="{ row }">
+              <el-tag :type="(row as LoginAttemptItem).is_success ? 'success' : 'danger'" size="small">
+                {{
+                  (row as LoginAttemptItem).is_success
+                    ? $t('admin.system.security.resultSuccess')
+                    : $t('admin.system.security.resultFailure')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.system.security.failureReason')" min-width="150" prop="failure_reason"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.security.userAgent')" min-width="200" prop="user_agent"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.common.createdAt')" min-width="170" prop="created_at"
+                           show-overflow-tooltip/>
+        </AdminListShell>
+      </el-tab-pane>
+
+      <!-- 令牌黑名单 -->
+      <el-tab-pane :label="$t('admin.system.security.tabBlacklist')" name="blacklist">
+        <AdminListShell
+          :empty-desc="$t('admin.system.security.blacklistEmptyDesc')"
+          :empty-title="$t('admin.system.security.blacklistEmptyTitle')"
+          :failed="blacklist.failed.value"
+          :loading="blacklist.loading.value"
+          :page="blacklist.page.value"
+          :page-size="blacklist.pageSize.value"
+          :rows="blacklist.rows.value"
+          :selectable="false"
+          :total="blacklist.total.value"
+          @refresh="blacklist.reload"
+          @page-change="blacklist.onPageChange"
+          @size-change="blacklist.onSizeChange"
+        >
+          <el-table-column label="ID" prop="id" width="80"/>
+          <el-table-column :label="$t('admin.system.security.tokenIdentifier')" min-width="220"
+                           prop="token_identifier" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.security.reason')" min-width="150" prop="reason"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.security.expiresAt')" min-width="170" prop="expires_at"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.common.createdAt')" min-width="170" prop="created_at"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
+            <template #default="{ row }">
+              <el-button
+                v-auth="'module_system:security:delete'"
+                link
+                type="danger"
+                @click="onDeleteBlacklist(row as BlacklistItem)"
+              >
+                {{ $t('admin.common.delete') }}
               </el-button>
-              <el-button :icon="Refresh" @click="attemptReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
-
-          <AdminTableSkeleton v-if="attemptLoading && !attemptList.length" :rows="5"/>
-
-          <AdminEmpty v-else-if="!attemptLoading && !attemptList.length" :title="$t('admin.common.empty')"/>
-          <el-table v-else v-loading="attemptLoading" :data="attemptList" border stripe>
-            <el-table-column label="ID" prop="id" width="80"/>
-            <el-table-column :label="$t('admin.system.security.username')" min-width="130" prop="username"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.security.ipAddress')" min-width="130" prop="ip_address"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.security.result')" width="90">
-              <template #default="{ row }">
-                <el-tag :type="(row as LoginAttemptItem).is_success ? 'success' : 'danger'" size="small">
-                  {{
-                    (row as LoginAttemptItem).is_success
-                      ? $t('admin.system.security.resultSuccess')
-                      : $t('admin.system.security.resultFailure')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.system.security.failureReason')" min-width="150" prop="failure_reason"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.security.userAgent')" min-width="200" prop="user_agent"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.common.createdAt')" min-width="170" prop="created_at"
-                             show-overflow-tooltip/>
-          </el-table>
-
-          <el-pagination
-            :current-page="attemptPage"
-            :page-size="attemptPageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="attemptTotal"
-            background
-            class="table-pagination"
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="onAttemptPageChange"
-            @size-change="onAttemptSizeChange"
-          />
-        </el-tab-pane>
-
-        <!-- 令牌黑名单 -->
-        <el-tab-pane :label="$t('admin.system.security.tabBlacklist')" name="blacklist">
-          <el-table v-loading="blacklistLoading" :data="blacklist" border stripe>
-            <el-table-column label="ID" prop="id" width="80"/>
-            <el-table-column :label="$t('admin.system.security.tokenIdentifier')" min-width="220"
-                             prop="token_identifier" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.security.reason')" min-width="150" prop="reason"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.security.expiresAt')" min-width="170" prop="expires_at"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.common.createdAt')" min-width="170" prop="created_at"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
-              <template #default="{ row }">
-                <el-button
-                  v-auth="'module_system:security:delete'"
-                  link
-                  type="danger"
-                  @click="onDeleteBlacklist(row as BlacklistItem)"
-                >
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination
-            :current-page="blacklistPage"
-            :page-size="blacklistPageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="blacklistTotal"
-            background
-            class="table-pagination"
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="onBlacklistPageChange"
-            @size-change="onBlacklistSizeChange"
-          />
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
-  </div>
+            </template>
+          </el-table-column>
+        </AdminListShell>
+      </el-tab-pane>
+    </el-tabs>
+  </AdminPage>
 </template>

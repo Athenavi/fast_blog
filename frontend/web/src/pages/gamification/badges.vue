@@ -114,15 +114,15 @@ onMounted(load)
 
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.badges.totalDefinitions') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.badges.totalDefinitions') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.total_definitions ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.badges.activeDefinitions') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.badges.activeDefinitions') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.active_definitions ?? 0 }}</p>
         </el-card>
         <el-card shadow="never">
-          <p class="text-xs text-gray-500">{{ $t('admin.gamification.badges.totalAwarded') }}</p>
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.badges.totalAwarded') }}</p>
           <p class="mt-1 text-xl font-semibold">{{ stats?.total_awarded ?? 0 }}</p>
         </el-card>
       </div>
