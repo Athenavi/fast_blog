@@ -85,7 +85,7 @@ class UpgradeStepOut(SchemaBase):
 
 
 class UpgradeExecutePayload(SchemaBase):
-    """POST /execute 请求体：**真实升级**（改文件、跑迁移、可选重启）"""
+    """POST /execute 请求体：**真实升级**（改文件、跑迁移、可选停服与重启）"""
 
     target_version: str = Field(min_length=1, max_length=64)
     confirm: bool = Field(
@@ -94,6 +94,15 @@ class UpgradeExecutePayload(SchemaBase):
     )
     run_migration: bool = Field(default=True, description="替换后执行 alembic upgrade head")
     clear_cache: bool = Field(default=True, description="替换后清理 storage/cache")
+    stop_service: Optional[str] = Field(
+        default=None,
+        max_length=100,
+        description=(
+            "可选：ops/supervisor 里登记的进程名。给了就先执行其 stop_command、"
+            "替换完成后再执行 start_command（『停服 → 替换 → 起服』编排）；"
+            "stop 失败会**中止升级**，不带着半停服状态继续替换"
+        ),
+    )
 
 
 class UpgradeExecuteOut(SchemaBase):

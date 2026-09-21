@@ -201,6 +201,11 @@ CDN_EDIT = "module_ops:cdn:edit"
 #: 批次 18：CDN 远端动作（清缓存 / 预热）
 CDN_EXECUTE = "module_ops:cdn:execute"
 
+#: 批次 18：进程监督（原 process_supervisor 整合进 ops/supervisor）
+SUPERVISOR_VIEW = "module_ops:supervisor:view"
+SUPERVISOR_CONFIG = "module_ops:supervisor:config"
+SUPERVISOR_EXECUTE = "module_ops:supervisor:execute"
+
 # ============================================================ T5-11 批次 5（可做项）
 UPGRADE_VIEW = "module_ops:upgrade:view"
 UPGRADE_EXECUTE = "module_ops:upgrade:execute"
@@ -536,6 +541,9 @@ CODE_LABELS: dict[str, str] = {
     CDN_VIEW: "查看 CDN 配置",
     CDN_EDIT: "编辑 CDN 配置",
     CDN_EXECUTE: "执行 CDN 远端动作（清缓存/预热）",
+    SUPERVISOR_VIEW: "查看进程监督（状态/健康/指标/日志）",
+    SUPERVISOR_CONFIG: "编辑进程监督登记",
+    SUPERVISOR_EXECUTE: "启停/重启托管进程",
     UPGRADE_VIEW: "查看在线升级",
     UPGRADE_EXECUTE: "执行升级操作",
 }

@@ -41,17 +41,19 @@ def setup_signal_handlers():
 
 
 def run_supervisor_mode():
-    try:
-        from process_supervisor.supervisor_launcher import SupervisedLauncher
-        supervisor = SupervisedLauncher()
-        supervisor.setup_signal_handlers()
-        if not supervisor.start_system():
-            logger.error("监督器启动失败")
-            sys.exit(1)
-        supervisor.monitor_system()
-    except Exception as e:
-        logger.error(f"监督器运行异常: {e}")
-        sys.exit(1)
+    """已废弃：独立监督器进程被 ``ops/supervisor`` 取代（2026-09-21 批次 18）
+
+    原 ``process_supervisor/`` 的多进程托管与 9422 管理页已整合进主应用的
+    ``src/api/v3/modules/ops/supervisor``（进程登记 / 三层健康检查 / 受控启停 / 日志）。
+    进程生命周期归部署层（Docker / systemd）—— 因此这里**明确拒绝启动**，
+    而不是留下一个 import 就会炸的分支。
+    """
+    logger.error(
+        "`--mode supervisor` 已废弃：进程监督已整合进主应用，见 "
+        "docs/refactor/SUPERVISOR_PLAN.md 与 /api/v3/ops/supervisor/*；"
+        "部署请用 docker compose / systemd 管理进程，或直接以 `--mode app` 启动。"
+    )
+    sys.exit(2)
 
 
 def main():

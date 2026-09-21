@@ -137,7 +137,7 @@ class ReleaseBuilder:
         files = []
         backend_dirs = [
             "src", "apps", "django_blog", "shared", "config",
-            "process_supervisor",
+
             "scripts", "docs", "static"
         ]
         for d in backend_dirs:
@@ -430,7 +430,7 @@ class UpdatePackageBuilder:
     def collect_update_files(self, changed_files: List[str]) -> List[Path]:
         include_dirs = [
             "src", "apps", "django_blog", "shared", "config",
-            "process_supervisor",
+
             "scripts", "frontend"  # 前端源码目录（Nuxt）
         ]
         include_root = ["main.py", "requirements.txt", "version.txt", ".env_example", "README.md"]

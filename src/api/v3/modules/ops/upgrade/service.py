@@ -15,6 +15,8 @@ from shared.utils.auto_update_checker import auto_update_checker
 from shared.utils.update_history import update_history_manager
 from shared.utils.version_manager import version_manager
 from src.api.v3.core.exceptions import BadRequestError
+from src.api.v3.modules.ops.supervisor import runtime as supervisor_runtime
+from src.api.v3.modules.ops.supervisor.service import supervisor_service
 from src.api.v3.modules.ops.upgrade import packages as upgrade_packages
 from src.api.v3.modules.ops.upgrade.executor import upgrade_executor
 from src.api.v3.modules.ops.upgrade.schema import (
@@ -337,17 +339,29 @@ class UpgradeService:
             raise BadRequestError(f"预检未通过，拒绝执行：{failed}")
 
         restart = (await self.get_settings(db)).get("restart_command")
+
+        # P3 编排：可选的"停服 → 替换 → 起服"（进程登记来自 ops/supervisor）
+        service_entry: dict | None = None
+        if payload.stop_service:
+            service_entry = await supervisor_service.entry_or_404(db, payload.stop_service)
+            if not service_entry.get("stop_command") and not service_entry.get("start_command"):
+                raise BadRequestError(
+                    f"进程「{payload.stop_service}」未登记 stop_command / start_command，无法参与升级编排"
+                )
+
         _EXECUTING["target_version"] = target
         if wait:
             try:
                 return await self._run_execute(
-                    target, payload.run_migration, payload.clear_cache, restart
+                    target, payload.run_migration, payload.clear_cache, restart, service_entry
                 )
             finally:
                 _EXECUTING.clear()
 
         task = asyncio.create_task(
-            self._run_execute(target, payload.run_migration, payload.clear_cache, restart)
+            self._run_execute(
+                target, payload.run_migration, payload.clear_cache, restart, service_entry
+            )
         )
         _TASKS.add(task)
         task.add_done_callback(_TASKS.discard)
@@ -365,9 +379,36 @@ class UpgradeService:
         run_migration: bool,
         clear_cache: bool,
         restart_command: str | None,
+        service_entry: dict | None = None,
     ) -> dict:
+        """执行升级；``service_entry`` 非空时按『停服 → 替换 → 起服』编排"""
         global _LAST_RESULT
+        pre_steps: list[dict] = []
         try:
+            if service_entry is not None:
+                stop = await asyncio.to_thread(supervisor_runtime.run_action, service_entry, "stop")
+                pre_steps.append(
+                    {
+                        "step": f"stop_service:{service_entry.get('name')}",
+                        "ok": bool(stop.get("ok")),
+                        "detail": str(stop.get("detail") or ""),
+                    }
+                )
+                if not stop.get("ok"):
+                    # 停服失败就**不再替换**，避免"停了一半还改了代码"
+                    data = UpgradeExecuteOut.model_validate(
+                        {
+                            "dry_run": False,
+                            "ok": False,
+                            "target_version": target,
+                            "need_restart": False,
+                            "restart_detail": "停服失败，升级已中止（未替换任何文件）",
+                            "steps": pre_steps,
+                        }
+                    ).model_dump(mode="json")
+                    _LAST_RESULT = data
+                    return data
+
             result = await upgrade_executor.execute(
                 target,
                 run_migration=run_migration,
@@ -375,6 +416,25 @@ class UpgradeService:
                 restart_command=restart_command,
             )
             data = UpgradeExecuteOut.model_validate(result.to_dict()).model_dump(mode="json")
+            steps = pre_steps + list(data.get("steps") or [])
+
+            if service_entry is not None:
+                start = await asyncio.to_thread(
+                    supervisor_runtime.run_action, service_entry, "start"
+                )
+                steps.append(
+                    {
+                        "step": f"start_service:{service_entry.get('name')}",
+                        "ok": bool(start.get("ok")),
+                        "detail": str(start.get("detail") or ""),
+                    }
+                )
+                if not start.get("ok"):
+                    data["ok"] = False
+                    data["restart_detail"] = (
+                        f"升级已完成，但起服失败：{start.get('detail')}（请手工拉起服务）"
+                    )
+            data["steps"] = steps
             _LAST_RESULT = data
             return data
         finally:
