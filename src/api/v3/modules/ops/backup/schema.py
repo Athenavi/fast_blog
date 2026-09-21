@@ -105,3 +105,50 @@ class RestoreChainPlanOut(SchemaBase):
 
     length: int = 0
     items: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class CloudConfigPayload(SchemaBase):
+    """云存储配置（密钥只写不读；留空保持原值）"""
+
+    provider: Optional[str] = Field(default=None, description="s3 / oss")
+    bucket: Optional[str] = Field(default=None, max_length=255)
+    region: Optional[str] = Field(
+        default=None, max_length=100, description="S3 默认 us-east-1 / OSS 默认 oss-cn-hangzhou"
+    )
+    endpoint: Optional[str] = Field(
+        default=None, max_length=500, description="自定义端点（私有云 / MinIO / 内网）"
+    )
+    prefix: Optional[str] = Field(default=None, max_length=255, description="object key 前缀，默认 backups")
+    access_key_id: Optional[str] = Field(default=None, max_length=255)
+    secret: Optional[str] = Field(
+        default=None, description="密钥（入参）；落库前 AES-256-GCM 加密，留空保持原值"
+    )
+
+
+class CloudConfigOut(SchemaBase):
+    provider: Optional[str] = None
+    bucket: Optional[str] = None
+    region: Optional[str] = None
+    endpoint: Optional[str] = None
+    prefix: Optional[str] = None
+    access_key_id: Optional[str] = None
+    has_secret: bool = False
+    updated_at: Optional[str] = None
+    model_config = {"extra": "allow"}
+
+
+class CloudUploadRequest(SchemaBase):
+    backup_path: str = Field(description="要上传的备份（路径或文件名）")
+
+
+class CloudUploadOut(SchemaBase):
+    """上传结果（云端位置）"""
+
+    provider: str = ""
+    bucket: Optional[str] = None
+    key: Optional[str] = None
+    size: Optional[int] = None
+    endpoint: Optional[str] = None
+    location: Optional[str] = None
+    status_code: Optional[int] = None
+    model_config = {"extra": "allow"}

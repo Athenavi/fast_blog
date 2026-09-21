@@ -11,7 +11,7 @@ const {t} = useI18n()
  * 增量/差异备份不能单独还原，会先拉恢复链并在确认框里列出每一步。
  * 样式统一使用 Element Plus 的 CSS 变量。
  */
-import {CircleCheck, Connection, Delete, Download, Refresh, Upload} from '@element-plus/icons-vue'
+import {CircleCheck, Connection, Delete, Download, Refresh, Upload, UploadFilled} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {h, reactive, ref} from 'vue'
 
@@ -19,6 +19,7 @@ import {
   backupApi,
   type BackupChainItem,
   type BackupChainPlan,
+  type BackupCloudPayload,
   type BackupItem,
   type BackupSchedule,
   type BackupVerifyResult,
@@ -258,6 +259,82 @@ async function saveSchedule(): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------- 云存储
+const cloudForm = reactive<BackupCloudPayload & { secret: string }>({
+  provider: '',
+  bucket: '',
+  region: '',
+  endpoint: '',
+  prefix: 'backups',
+  access_key_id: '',
+  secret: '',
+})
+const cloudHasSecret = ref(false)
+const cloudLoading = ref(false)
+const cloudSaving = ref(false)
+const cloudUploading = ref<string | null>(null)
+
+async function loadCloud(): Promise<void> {
+  cloudLoading.value = true
+  try {
+    const config = await backupApi.cloud()
+    cloudHasSecret.value = config.has_secret
+    cloudForm.provider = config.provider || ''
+    cloudForm.bucket = config.bucket || ''
+    cloudForm.region = config.region || ''
+    cloudForm.endpoint = config.endpoint || ''
+    cloudForm.prefix = config.prefix || 'backups'
+    cloudForm.access_key_id = config.access_key_id || ''
+    cloudForm.secret = ''
+  } finally {
+    cloudLoading.value = false
+  }
+}
+
+async function saveCloud(): Promise<void> {
+  cloudSaving.value = true
+  try {
+    await backupApi.saveCloud({
+      provider: cloudForm.provider,
+      bucket: cloudForm.bucket,
+      region: cloudForm.region,
+      endpoint: cloudForm.endpoint,
+      prefix: cloudForm.prefix,
+      access_key_id: cloudForm.access_key_id,
+      secret: cloudForm.secret || undefined,
+    })
+    ElMessage.success(t('admin.ops.backup.cloudSaved'))
+    await loadCloud()
+  } finally {
+    cloudSaving.value = false
+  }
+}
+
+/** 把某个备份上传到云端（真实调用 S3 / OSS；失败原因由后端带回） */
+async function uploadToCloud(row: BackupItem): Promise<void> {
+  const file = row.filename || row.path || ''
+  if (!file) return
+  await ElMessageBox.confirm(
+    t('admin.ops.backup.cloudUploadConfirm', {file}),
+    t('admin.common.notice'),
+    {type: 'info'},
+  )
+  cloudUploading.value = file
+  try {
+    const result = await backupApi.uploadToCloud(file)
+    ElMessage.success(t('admin.ops.backup.cloudUploadDone', {location: result.location || ''}))
+    await Promise.all([loadList(), loadStats()])
+  } finally {
+    cloudUploading.value = null
+  }
+}
+
+/** 该备份在云端的位置（上传过的会在 metadata 里留痕） */
+function cloudLocation(row: BackupItem): string {
+  const info = row.cloud as { location?: string } | undefined
+  return info?.location || ''
+}
+
 function typeLabel(row: BackupItem | BackupChainItem): string {
   const key = row.type || (row as BackupItem).backup_type || ''
   return TYPE_LABELS[key] || key || '-'
@@ -271,7 +348,7 @@ function chainSummary(row: BackupItem): string {
 }
 
 onMounted(async () => {
-  await Promise.all([loadList(), loadStats(), loadSchedule()])
+  await Promise.all([loadList(), loadStats(), loadSchedule(), loadCloud()])
 })
 </script>
 
@@ -339,6 +416,75 @@ onMounted(async () => {
       </el-col>
     </el-row>
 
+    <!-- 云存储备份 -->
+    <el-card v-loading="cloudLoading" class="mt-4" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>{{ $t('admin.ops.backup.cloudTitle') }}</span>
+          <el-button
+            v-auth="'module_ops:backup:cloud'"
+            :loading="cloudSaving"
+            link
+            type="primary"
+            @click="saveCloud"
+          >
+            {{ $t('admin.common.save') }}
+          </el-button>
+        </div>
+      </template>
+      <p class="hint">{{ $t('admin.ops.backup.cloudHint') }}</p>
+      <el-form :model="cloudForm" label-width="130px" size="small">
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item :label="$t('admin.ops.backup.cloudProvider')">
+              <el-select v-model="cloudForm.provider" clearable style="width: 100%">
+                <el-option label="AWS S3 / 兼容" value="s3"/>
+                <el-option label="阿里云 OSS" value="oss"/>
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item :label="$t('admin.ops.backup.cloudBucket')">
+              <el-input v-model="cloudForm.bucket" placeholder="my-bucket"/>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item :label="$t('admin.ops.backup.cloudRegion')">
+              <el-input v-model="cloudForm.region" placeholder="us-east-1 / oss-cn-hangzhou"/>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item :label="$t('admin.ops.backup.cloudPrefix')">
+              <el-input v-model="cloudForm.prefix" placeholder="backups"/>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item :label="$t('admin.ops.backup.cloudAccessKeyId')">
+              <el-input v-model="cloudForm.access_key_id" placeholder="AKIA... / LTAI..."/>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item :label="$t('admin.ops.backup.cloudSecret')">
+              <el-input
+                v-model="cloudForm.secret"
+                :placeholder="cloudHasSecret
+                  ? $t('admin.ops.backup.cloudSecretKeepHint')
+                  : $t('admin.ops.backup.cloudSecretPlaceholder')"
+                show-password
+                type="password"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item :label="$t('admin.ops.backup.cloudEndpoint')">
+          <el-input v-model="cloudForm.endpoint" placeholder="https://oss-cn-hangzhou.aliyuncs.com"/>
+          <div class="hint">{{ $t('admin.ops.backup.cloudEndpointHint') }}</div>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
     <!-- 备份列表 -->
     <el-card class="mt-4" shadow="never">
       <el-form :inline="true" @submit.prevent>
@@ -392,6 +538,9 @@ onMounted(async () => {
           <template #default="{row}">
             <div>{{ row.filename || row.path }}</div>
             <div v-if="isChainBackup(row)" class="hint">{{ chainSummary(row) }}</div>
+            <div v-if="cloudLocation(row)" class="hint">
+              {{ $t('admin.ops.backup.cloudUploaded', {location: cloudLocation(row)}) }}
+            </div>
           </template>
         </el-table-column>
         <el-table-column :label="$t('admin.cache.level')" width="100">
@@ -406,13 +555,23 @@ onMounted(async () => {
         <el-table-column :label="$t('admin.common.createdAt')" width="170">
           <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
         </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="300">
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="390">
           <template #default="{row}">
             <el-button v-auth="'module_ops:backup:view'" :icon="CircleCheck" link type="success" @click="verify(row)">
               {{ $t('admin.ops.backup.verify') }}
             </el-button>
             <el-button v-if="isChainBackup(row)" :icon="Connection" link type="primary" @click="openChain(row)">
               {{ $t('admin.ops.backup.chainView') }}
+            </el-button>
+            <el-button
+              v-auth="'module_ops:backup:cloud'"
+              :icon="UploadFilled"
+              :loading="cloudUploading === (row.filename || row.path)"
+              link
+              type="primary"
+              @click="uploadToCloud(row)"
+            >
+              {{ $t('admin.ops.backup.cloudUpload') }}
             </el-button>
             <el-button v-auth="'module_ops:backup:restore'" :icon="Upload" link type="warning" @click="restore(row)">
               {{ $t('admin.ops.backup.restore') }}

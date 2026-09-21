@@ -39,6 +39,7 @@ from urllib.parse import quote, urlparse
 
 import httpx
 
+from src.api.v3.core import sigv4
 from src.api.v3.core.exceptions import BadRequestError
 
 #: 单次远端请求超时（秒）
@@ -236,44 +237,11 @@ async def _custom_call(
 
 
 # ================================================================ AWS CloudFront（SigV4）
-def aws_signing_key(secret_access_key: str, date_stamp: str, region: str, service: str) -> bytes:
-    """AWS SigV4 的派生签名密钥（纯函数；``AWS4`` 前缀 + 四层 HMAC）
-
-    与 AWS 官方文档《Examples of the complete Version 4 signing process (Python)》一致。
-    """
-    key = f"AWS4{secret_access_key}".encode("utf-8")
-    k_date = hmac.new(key, date_stamp.encode("utf-8"), hashlib.sha256).digest()
-    k_region = hmac.new(k_date, region.encode("utf-8"), hashlib.sha256).digest()
-    k_service = hmac.new(k_region, service.encode("utf-8"), hashlib.sha256).digest()
-    return hmac.new(k_service, b"aws4_request", hashlib.sha256).digest()
-
-
-def aws_sigv4_signature(
-    *,
-    secret_access_key: str,
-    credential_scope: str,
-    amz_date: str,
-    canonical_request: str,
-) -> str:
-    """SigV4 签名：``HMAC-SHA256(SigningKey, StringToSign)``（纯函数，便于单测）"""
-    string_to_sign = "\n".join(
-        [
-            "AWS4-HMAC-SHA256",
-            amz_date,
-            credential_scope,
-            hashlib.sha256(canonical_request.encode("utf-8")).hexdigest(),
-        ]
-    )
-    date_stamp, region, service = _parse_credential_scope(credential_scope)
-    signing_key = aws_signing_key(secret_access_key, date_stamp, region, service)
-    return hmac.new(signing_key, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
-
-
-def _parse_credential_scope(scope: str) -> tuple[str, str, str]:
-    parts = scope.split("/")
-    if len(parts) != 4 or parts[3] != "aws4_request":
-        raise ValueError(f"非法的 SigV4 credential scope：{scope}")
-    return parts[0], parts[1], parts[2]
+# SigV4 的纯函数实现已抽到 ``core/sigv4.py``（与备份的 S3 上传共用同一份，避免两处实现漂移；
+# 官方向量用例见 tests/test_v3_cdn_remote.py）。这里保留原名字，既有调用方与测试无需改动。
+aws_signing_key = sigv4.signing_key
+aws_sigv4_signature = sigv4.signature
+_parse_credential_scope = sigv4.parse_credential_scope
 
 
 def aws_cloudfront_headers(

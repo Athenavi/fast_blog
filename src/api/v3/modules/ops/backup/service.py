@@ -1,11 +1,20 @@
-"""backup 模块业务逻辑（薄封装 ``BackupService``）"""
+"""backup 模块业务逻辑（薄封装 ``BackupService`` + 云存储编排）"""
 
 import asyncio
+import json
+import os
+from datetime import datetime
 from typing import List, Optional
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.backup_service import BackupService
 from src.api.v3.core.exceptions import BadRequestError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.secret_box import decrypt_secret, encrypt_secret
+from src.api.v3.modules.ops.backup import cloud
+from src.api.v3.modules.ops.backup.schema import CloudConfigPayload
+from src.api.v3.modules.system.setting.service import setting_service
 
 logger = get_logger("backup")
 
@@ -133,6 +142,84 @@ class BackupOpsService:
     async def cleanup(self, days_to_keep: Optional[int] = None) -> dict:
         result = await self._service.cleanup_old_backups(days=days_to_keep)
         return result or {}
+
+    # ------------------------------------------------------------------ 云存储
+    async def cloud_config(self, db: AsyncSession) -> dict:
+        """读云存储配置（密钥永不回传，只回 ``has_secret``）"""
+        return cloud.mask(await self._raw_cloud_config(db))
+
+    async def save_cloud_config(self, db: AsyncSession, payload: CloudConfigPayload) -> dict:
+        """保存云存储配置（密钥落库前加密；留空保持原值）"""
+        if payload.provider and payload.provider not in cloud.SUPPORTED_CLOUD_PROVIDERS:
+            raise BadRequestError(
+                f"不支持的云存储提供商：{payload.provider}（可选 {list(cloud.SUPPORTED_CLOUD_PROVIDERS)}）"
+            )
+        existing = await self._raw_cloud_config(db)
+        data = payload.model_dump(mode="json", exclude_unset=True)
+        if data.get("secret"):
+            data["secret_encrypted"] = encrypt_secret(str(data.pop("secret")))
+        else:
+            data.pop("secret", None)  # 留空保持原值
+        data["updated_at"] = _now_iso()
+        merged = {**existing, **data}
+        await setting_service.upsert(
+            db,
+            cloud.CLOUD_SETTING_KEY,
+            value=json.dumps(merged, ensure_ascii=False),
+            setting_type="json",
+            description="备份云存储配置（ops/backup 管理；密钥已加密）",
+            is_public=False,
+        )
+        logger.info("backup 云存储配置已更新：provider=%s", merged.get("provider"))
+        return cloud.mask(merged)
+
+    async def upload_to_cloud(self, db: AsyncSession, backup_path: str) -> dict:
+        """把某个备份上传到已配置的云存储（**真实调用**；未配置 / 凭据坏掉一律如实报错）"""
+        config = await self._raw_cloud_config(db)
+        provider = str(config.get("provider") or "").strip()
+        if not provider:
+            raise BadRequestError("尚未配置云存储提供商（provider），无法上传")
+        if provider not in cloud.SUPPORTED_CLOUD_PROVIDERS:
+            raise BadRequestError(
+                f"不支持的云存储提供商：{provider}（可选 {list(cloud.SUPPORTED_CLOUD_PROVIDERS)}）"
+            )
+
+        secret = self._cloud_secret(config)
+        resolved = await asyncio.to_thread(self._service.resolve_backup_path, backup_path)
+        if not resolved:
+            raise BadRequestError(f"备份不存在或不在备份目录内：{backup_path}")
+
+        filename = os.path.basename(resolved)
+        key = cloud.build_object_key(str(config.get("prefix") or cloud.DEFAULT_PREFIX), filename)
+        result = await cloud.upload_backup(
+            provider=provider, config=config, secret=secret, path=resolved, key=key
+        )
+        await asyncio.to_thread(self._service.record_cloud_upload, resolved, result)
+        logger.info("backup 已上传到云端：%s → %s", filename, result.get("location"))
+        return result
+
+    async def _raw_cloud_config(self, db: AsyncSession) -> dict:
+        try:
+            setting = await setting_service.get_setting(db, cloud.CLOUD_SETTING_KEY)
+        except Exception:  # noqa: BLE001 - 键不存在即"尚未配置"
+            return {}
+        value = setting.get("parsed_value") or {}
+        return value if isinstance(value, dict) else {}
+
+    def _cloud_secret(self, config: dict) -> str:
+        encrypted = str(config.get("secret_encrypted") or "")
+        if not encrypted:
+            return ""
+        try:
+            return decrypt_secret(encrypted)
+        except ValueError as exc:
+            raise BadRequestError(
+                "云存储密钥无法解密（SECRET_KEY 变更或数据损坏）；请在配置页重新填写"
+            ) from exc
+
+
+def _now_iso() -> str:
+    return datetime.now().isoformat(timespec="seconds")
 
 
 backup_ops_service = BackupOpsService()

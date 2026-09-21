@@ -11,13 +11,17 @@
     GET    /api/v3/ops/backup/chain          恢复链预览（增量要挂在哪些备份后面）
     POST   /api/v3/ops/backup/restore-chain  按恢复链还原（基准 → 增量）
     POST   /api/v3/ops/backup/verify         校验备份完整性
+    GET    /api/v3/ops/backup/cloud          云存储配置（密钥不回传）
+    PUT    /api/v3/ops/backup/cloud          保存云存储配置（密钥加密落库）
+    POST   /api/v3/ops/backup/cloud/upload   上传备份到云存储（S3 / OSS）
     DELETE /api/v3/ops/backup                删除某个备份（?backup_path=）
     POST   /api/v3/ops/backup/cleanup        清理过期备份
     GET    /api/v3/ops/backup/stats          备份统计
     GET    /api/v3/ops/backup/schedule       备份计划
     PUT    /api/v3/ops/backup/schedule       更新备份计划
 
-权限码：``backup:view`` / ``backup:create`` / ``backup:restore`` / ``backup:delete``
+权限码：``backup:view`` / ``backup:create`` / ``backup:restore`` / ``backup:delete`` /
+``backup:cloud``（云存储配置与上传单独授权：目标桶与凭据是敏感配置）
 """
 
 from typing import Optional
@@ -26,11 +30,13 @@ from fastapi import APIRouter, Query
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
-from src.api.v3.core.deps import AuthControl, CurrentUser
+from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.ops.backup.schema import (
     BackupPathRequest,
+    CloudConfigPayload,
+    CloudUploadRequest,
     IncrementalRequest,
     RestoreChainRequest,
     RestoreRequest,
@@ -142,6 +148,39 @@ async def verify_backup(
     """真读文件：sha256 比对 + 归档可读 + ``pg_restore --list``，逐项给出结论。"""
     result = await backup_ops_service.verify(payload.backup_path)
     return resp.success(result, msg="校验完成")
+
+
+# ---------------------------------------------------------------- 云存储
+@router.get("/cloud", response_model=ResponseModel, summary="云存储配置")
+async def get_cloud_config(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.BACKUP_VIEW),
+) -> dict:
+    """密钥永不回传，只回 ``has_secret``。"""
+    return resp.success(await backup_ops_service.cloud_config(db))
+
+
+@router.put("/cloud", response_model=ResponseModel, summary="保存云存储配置")
+async def save_cloud_config(
+    payload: CloudConfigPayload,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.BACKUP_CLOUD),
+) -> dict:
+    return resp.success(await backup_ops_service.save_cloud_config(db, payload), msg="已保存")
+
+
+@router.post("/cloud/upload", response_model=ResponseModel, summary="上传备份到云存储")
+async def upload_backup_to_cloud(
+    payload: CloudUploadRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.BACKUP_CLOUD),
+) -> dict:
+    """真实上传到 S3 / OSS；未配置、凭据坏掉、云端拒绝都会带回原因。"""
+    result = await backup_ops_service.upload_to_cloud(db, payload.backup_path)
+    return resp.success(result, msg="已上传到云端")
 
 
 @router.post("/cleanup", response_model=ResponseModel, summary="清理过期备份")

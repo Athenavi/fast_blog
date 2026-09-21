@@ -68,6 +68,42 @@ export interface BackupIncrementalResult {
   [key: string]: unknown
 }
 
+/** 云存储配置（密钥只写不读，响应只有 has_secret） */
+export interface BackupCloudConfig {
+  provider?: string | null
+  bucket?: string | null
+  region?: string | null
+  endpoint?: string | null
+  prefix?: string | null
+  access_key_id?: string | null
+  has_secret: boolean
+  updated_at?: string | null
+
+  [key: string]: unknown
+}
+
+export interface BackupCloudPayload {
+  provider?: string
+  bucket?: string
+  region?: string
+  endpoint?: string
+  prefix?: string
+  access_key_id?: string
+  secret?: string
+}
+
+/** 云上传结果 */
+export interface BackupCloudUploadResult {
+  provider: string
+  bucket?: string | null
+  key?: string | null
+  size?: number | null
+  endpoint?: string | null
+  location?: string | null
+
+  [key: string]: unknown
+}
+
 export const backupApi = {
   list: (params?: { backup_type?: string; limit?: number }) =>
     http.page<BackupItem>('/ops/backup', params),
@@ -90,6 +126,13 @@ export const backupApi = {
   /** 校验备份完整性（真读文件：sha256 / 归档可读 / pg_restore --list） */
   verify: (backup_path: string) =>
     http.post<BackupVerifyResult>('/ops/backup/verify', {backup_path}),
+  /** 云存储配置（密钥不回传，只有 has_secret） */
+  cloud: () => http.get<BackupCloudConfig>('/ops/backup/cloud'),
+  saveCloud: (data: BackupCloudPayload) =>
+    http.put<BackupCloudConfig>('/ops/backup/cloud', data),
+  /** 把某个备份上传到云存储（真实调用 S3 / OSS） */
+  uploadToCloud: (backup_path: string) =>
+    http.post<BackupCloudUploadResult>('/ops/backup/cloud/upload', {backup_path}),
   restore: (backup_file: string, backup_type = 'database') =>
     http.post<Record<string, unknown>>('/ops/backup/restore', {backup_file, backup_type}),
   remove: (backup_path: string) => http.delete<{ deleted: boolean }>('/ops/backup', {backup_path}),

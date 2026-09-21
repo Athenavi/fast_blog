@@ -244,6 +244,9 @@ export {backupApi} from './modules/backup'
 export type {
   BackupChainItem,
   BackupChainPlan,
+  BackupCloudConfig,
+  BackupCloudPayload,
+  BackupCloudUploadResult,
   BackupIncrementalResult,
   BackupItem,
   BackupSchedule,

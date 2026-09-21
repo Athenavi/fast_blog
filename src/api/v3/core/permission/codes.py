@@ -189,6 +189,8 @@ BACKUP_VIEW = "module_ops:backup:view"
 BACKUP_CREATE = "module_ops:backup:create"
 BACKUP_RESTORE = "module_ops:backup:restore"
 BACKUP_DELETE = "module_ops:backup:delete"
+#: 云存储（S3 / OSS）配置与上传：凭据与目标桶是敏感配置，单独授权
+BACKUP_CLOUD = "module_ops:backup:cloud"
 
 WEBHOOK_VIEW = "module_ops:webhook:view"
 WEBHOOK_EDIT = "module_ops:webhook:edit"
@@ -534,6 +536,7 @@ CODE_LABELS: dict[str, str] = {
     BACKUP_CREATE: "创建备份",
     BACKUP_RESTORE: "恢复备份",
     BACKUP_DELETE: "删除备份",
+    BACKUP_CLOUD: "配置云存储并上传备份",
     WEBHOOK_VIEW: "查看 Webhook",
     WEBHOOK_EDIT: "编辑 Webhook",
     NOTIFICATION_VIEW: "查看通知",

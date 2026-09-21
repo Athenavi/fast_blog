@@ -1138,6 +1138,30 @@ class BackupService:
         entries = [line for line in result.stdout.decode('utf-8', errors='replace').splitlines() if line.strip()]
         return True, f'数据库备份可读，{len(entries)} 个条目'
 
+    # ==================== 云上传留痕 ====================
+    def record_cloud_upload(self, backup_path: str, info: Dict[str, Any]) -> bool:
+        """把云上传结果写回备份元数据（列表里能看到"上传到哪"）；返回是否写入成功"""
+        resolved = self.resolve_backup_path(backup_path)
+        if not resolved:
+            return False
+        payload = {**info, 'uploaded_at': datetime.now().isoformat()}
+        if os.path.isdir(resolved):
+            metadata_path = os.path.join(resolved, 'metadata.json')
+            if not os.path.exists(metadata_path):
+                return False
+            with open(metadata_path, 'r', encoding='utf-8') as handle:
+                metadata = json.load(handle)
+            metadata['cloud'] = payload
+            with open(metadata_path, 'w', encoding='utf-8') as handle:
+                json.dump(metadata, handle, ensure_ascii=False, indent=2)
+            return True
+        metadata = self._load_metadata(resolved)
+        if not metadata:
+            return False
+        metadata['cloud'] = payload
+        self._save_metadata(resolved, metadata)
+        return True
+
 
 # 全局实例
 backup_service = BackupService()
