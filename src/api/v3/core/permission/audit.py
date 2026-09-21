@@ -96,7 +96,7 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
      "/api/v3/mobile/vip/callback/{provider}"): "VIP 支付网关回调（公开；由 payment-gateway 插件验签，验签不过不开通订阅）",
     # ---- chat/message（批次 17）：前端用户在群里发言，仅认证 + 群成员校验 ----
     ("POST", "/api/v3/chat/message"): "群聊发言（仅认证；必须是该群成员，非成员 403/404）",
-    ("DELETE", "/api/v3/chat/message/{message_id}"): "撤回自己的群消息（仅认证；只能删本人发出的消息，软删除）",
+    ("DELETE", "/api/v3/chat/message/item/{message_id}"): "撤回自己的群消息（仅认证；只能删本人发出的消息，软删除）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

@@ -9,8 +9,10 @@
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.chat import ChatMessage
 from src.api.v3.core.exceptions import ConflictError, NotFoundError
 from src.api.v3.modules.chat.group.crud import chat_group_crud, chat_group_member_crud
 from src.api.v3.modules.chat.group.schema import (
@@ -69,6 +71,10 @@ class ChatGroupService:
         row = await chat_group_crud.get(db, group_id)
         if row is None:
             raise NotFoundError("群聊不存在")
+        # 群消息是批次 17 新增的关联表：显式清空，避免外键挡住群删除
+        # （迁移里也声明了 ON DELETE CASCADE，这里是语义上更明确的一层）
+        await db.execute(sa_delete(ChatMessage).where(ChatMessage.group == group_id))
+        await db.commit()
         members, _total = await chat_group_member_crud.list(db, page=1, page_size=0, filters={"group": group_id})
         for member in members:
             await chat_group_member_crud.remove(db, member)

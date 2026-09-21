@@ -60,6 +60,25 @@ export interface MobileUserStats {
   likes_received: number
 }
 
+/** 用户公开主页（`GET /mobile/user/public/{username}`，**公开**）
+ *
+ * 字段是**白名单**：不含 email / 权限等敏感字段。`is_private` 为真时后端只回
+ * id / username / profile_picture，其余为 null/0/false（bio 与 stats 都不泄露）。
+ */
+export interface MobilePublicProfile {
+  id: number
+  username: string
+  profile_picture?: string | null
+  bio?: string | null
+  vip_level: number
+  date_joined?: string | null
+  is_private: boolean
+  is_following: boolean
+  is_mutual: boolean
+  is_certified: boolean
+  stats: { articles: number; followers: number; following: number }
+}
+
 // ---------------------------------------------------------------- 媒体库
 
 export interface MobileMediaItem {
@@ -176,6 +195,10 @@ export const mobileApi = {
     http.put<MobileProfile>('/mobile/user/profile', payload),
 
   stats: () => http.get<MobileUserStats>('/mobile/user/stats'),
+
+  /** 用户公开主页（公开；登录时额外带关注标记） */
+  publicProfile: (username: string) =>
+    http.get<MobilePublicProfile>(`/mobile/user/public/${encodeURIComponent(username)}`),
 
   // ---- 前台媒体库（只操作自己的数据）----
   mediaUpload: (file: File) => {

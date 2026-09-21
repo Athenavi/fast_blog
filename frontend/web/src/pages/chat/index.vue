@@ -17,7 +17,7 @@
  *  - 实时连接断开 → 顶部状态提示 + 重试按钮；
  *  - 发送 / 撤回失败 → 输入保留并提示（错误 toast 由 request 层统一提示）。
  */
-import {chatApi, type ChatGroupItem, chatMessageApi, type ChatMessageItem} from '@/api'
+import {chatMessageApi, type ChatMessageItem, type MyChatGroup} from '@/api'
 import {useUserStore} from '@/store/modules/user'
 import {formatDateTime} from '@/utils/format'
 
@@ -31,7 +31,7 @@ const currentUserId = computed(() => userStore.userInfo?.id ?? null)
 const PAGE_SIZE = 50
 
 // ---- 群列表 ----
-const groups = ref<ChatGroupItem[]>([])
+const groups = ref<MyChatGroup[]>([])
 const groupsLoading = ref(false)
 const groupsError = ref(false)
 
@@ -66,7 +66,7 @@ function isOwn(message: ChatMessageItem): boolean {
   return currentUserId.value !== null && message.user_id === currentUserId.value
 }
 
-function groupLabel(group: ChatGroupItem): string {
+function groupLabel(group: MyChatGroup): string {
   return group.name || `#${group.id}`
 }
 
@@ -75,8 +75,8 @@ async function loadGroups(): Promise<void> {
   groupsLoading.value = true
   groupsError.value = false
   try {
-    const result = await chatApi.listGroups({page: 1, page_size: 50})
-    groups.value = result.items
+    // 只列本人加入的群（`/chat/message/my-groups`，不需要 group:view 管理权限）
+    groups.value = await chatMessageApi.myGroups()
   } catch {
     groupsError.value = true
   } finally {

@@ -46,3 +46,18 @@ class ChatMessageOut(SchemaBase):
     parent_message: Optional[int] = None
     is_deleted: bool = False
     created_at: Optional[datetime] = None
+
+
+class MyChatGroupOut(SchemaBase):
+    """我加入的群聊（前台聊天页左栏）
+
+    只列**本人加入**的群，因此不需要 `module_chat:group:view` 管理权限。
+    """
+
+    id: int
+    name: Optional[str] = None
+    avatar: Optional[str] = None
+    description: Optional[str] = None
+    member_count: int = 0
+    last_message_at: Optional[datetime] = None
+    role: Optional[str] = None

@@ -11,6 +11,7 @@ import {categoryApi, type CategoryItem, mobileApi} from '@/api'
 const props = defineProps<{ articleId?: number }>()
 const emit = defineEmits<{ (e: 'saved', id: number): void }>()
 
+const {t} = useI18n()
 const isEdit = computed(() => props.articleId !== undefined)
 
 /** 正文字模式：富文本（Tiptap RichEditor）或源码（HTML / Markdown） */
@@ -72,7 +73,7 @@ async function loadArticle(): Promise<void> {
       required_vip_level: detail.required_vip_level ?? 0,
     })
   } catch {
-    error.value = '加载文章失败，可能不存在或不属于你'
+    error.value = t('myPosts.loadFailed')
   } finally {
     loading.value = false
   }
@@ -101,9 +102,9 @@ async function pickCover(): Promise<void> {
     try {
       const uploaded = await mobileApi.mediaUpload(file)
       form.cover_image = uploaded.file_url ?? ''
-      message.value = '封面已上传'
+      message.value = t('myPosts.coverUploaded')
     } catch {
-      error.value = '封面上传失败'
+      error.value = t('myPosts.coverUploadFailed')
     } finally {
       saving.value = false
     }
@@ -117,7 +118,7 @@ async function save(): Promise<void> {
 
   const title = form.title.trim()
   if (!title) {
-    error.value = '请填写标题'
+    error.value = t('myPosts.titleRequired')
     return
   }
 
@@ -139,10 +140,10 @@ async function save(): Promise<void> {
       ? await mobileApi.updateMyArticle(props.articleId as number, payload)
       : await mobileApi.createDraft(payload)
 
-    message.value = isEdit.value ? '已保存' : '草稿已创建'
+    message.value = isEdit.value ? t('myPosts.saved') : t('myPosts.draftCreated')
     emit('saved', saved.id)
   } catch {
-    error.value = '保存失败，请稍后重试'
+    error.value = t('myPosts.saveFailed')
   } finally {
     saving.value = false
   }
@@ -157,13 +158,12 @@ onMounted(async () => {
   <div class="mx-auto max-w-read px-4 py-10">
     <div class="flex items-end justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold tracking-tight text-fg">{{ isEdit ? '编辑文章' : '写文章' }}</h1>
-        <p class="mt-1.5 text-sm text-fg-muted">
-          投稿将以<strong class="font-medium text-fg">草稿</strong>保存，发布由管理员审核后执行。
-        </p>
+        <h1 class="text-2xl font-bold tracking-tight text-fg">
+          {{ isEdit ? $t('myPosts.editTitle') : $t('myPosts.createTitle') }}</h1>
+        <p class="mt-1.5 text-sm text-fg-muted">{{ $t('myPosts.draftNotice') }}</p>
       </div>
       <NuxtLink to="/my/posts">
-        <Button variant="outline">返回列表</Button>
+        <Button variant="outline">{{ $t('myPosts.backToList') }}</Button>
       </NuxtLink>
     </div>
 
@@ -174,53 +174,55 @@ onMounted(async () => {
 
     <form v-else class="mt-6 space-y-4" @submit.prevent="save">
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-fg">标题 <span class="text-danger">*</span></label>
-        <Input v-model="form.title" maxlength="255" placeholder="文章标题"/>
+        <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldTitle') }} <span
+          class="text-danger">*</span></label>
+        <Input v-model="form.title" :placeholder="$t('myPosts.titlePlaceholder')" maxlength="255"/>
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-fg">URL 别名</label>
-          <Input v-model="form.slug" placeholder="留空由后端生成"/>
+          <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldSlug') }}</label>
+          <Input v-model="form.slug" :placeholder="$t('myPosts.slugPlaceholder')"/>
         </div>
         <div>
-          <label class="mb-1.5 block text-sm font-medium text-fg">分类</label>
+          <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldCategory') }}</label>
           <select
             v-model="form.category_id"
             class="h-9 w-full rounded-control border border-line bg-surface px-3 text-sm text-fg"
           >
-            <option :value="undefined">未分类</option>
+            <option :value="undefined">{{ $t('myPosts.uncategorized') }}</option>
             <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
           </select>
         </div>
       </div>
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-fg">摘要</label>
+        <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldExcerpt') }}</label>
         <textarea
           v-model="form.excerpt"
           class="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           maxlength="255"
-          placeholder="一两句话概括内容，用于列表与搜索展示"
+          :placeholder="$t('myPosts.excerptPlaceholder')"
           rows="2"
         />
       </div>
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-fg">封面</label>
+        <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldCover') }}</label>
         <div class="flex items-center gap-2">
-          <Input v-model="form.cover_image" class="flex-1" placeholder="封面图地址"/>
-          <Button type="button" variant="outline" @click="pickCover">从本地上传</Button>
+          <Input v-model="form.cover_image" :placeholder="$t('myPosts.coverPlaceholder')" class="flex-1"/>
+          <Button type="button" variant="outline" @click="pickCover">{{ $t('myPosts.uploadFromLocal') }}</Button>
         </div>
-        <img v-if="form.cover_image" :src="form.cover_image" alt="封面预览"
+        <img v-if="form.cover_image" :alt="$t('myPosts.coverPreviewAlt')" :src="form.cover_image"
              class="mt-2 h-32 w-full rounded-card object-cover">
       </div>
 
       <div>
-        <label class="mb-1.5 block text-sm font-medium text-fg">标签</label>
+        <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldTags') }}</label>
         <div class="flex gap-2">
-          <Input v-model="tagInput" class="flex-1" placeholder="输入后回车添加" @keyup.enter.prevent="addTag"/>
-          <Button type="button" variant="outline" @click="addTag">添加</Button>
+          <Input v-model="tagInput" :placeholder="$t('myPosts.tagPlaceholder')" class="flex-1"
+                 @keyup.enter.prevent="addTag"/>
+          <Button type="button" variant="outline" @click="addTag">{{ $t('myPosts.addTag') }}</Button>
         </div>
         <div v-if="form.tags.length" class="mt-2 flex flex-wrap gap-1.5">
           <button
@@ -250,32 +252,33 @@ onMounted(async () => {
 
       <div>
         <div class="mb-1.5 flex items-center justify-between">
-          <label class="block text-sm font-medium text-fg">正文</label>
+          <label class="block text-sm font-medium text-fg">{{ $t('myPosts.fieldContent') }}</label>
           <div class="flex items-center gap-1 rounded-control bg-surface-soft p-0.5 text-xs">
             <button
               :class="contentMode === 'rich' ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted'"
               class="rounded-control px-2 py-1 transition-colors"
               type="button"
               @click="contentMode = 'rich'"
-            >富文本
+            >{{ $t('myPosts.modeRich') }}
             </button>
             <button
               :class="contentMode === 'source' ? 'bg-surface text-fg shadow-sm' : 'text-fg-muted'"
               class="rounded-control px-2 py-1 transition-colors"
               type="button"
               @click="contentMode = 'source'"
-            >源码
+            >{{ $t('myPosts.modeSource') }}
             </button>
           </div>
         </div>
 
         <!-- 富文本（Tiptap） / 源码（HTML、Markdown）两种模式共用同一个 form.content -->
-        <RichEditor v-if="contentMode === 'rich'" v-model="form.content" placeholder="开始写作…"/>
+        <RichEditor v-if="contentMode === 'rich'" v-model="form.content"
+                    :placeholder="$t('myPosts.contentPlaceholder')"/>
         <textarea
           v-else
           v-model="form.content"
           class="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm leading-relaxed text-fg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-          placeholder="支持 HTML / Markdown 源码"
+          :placeholder="$t('myPosts.sourcePlaceholder')"
           rows="16"
         />
       </div>
@@ -285,12 +288,12 @@ onMounted(async () => {
 
       <div class="flex items-center justify-end gap-2 pt-1">
         <NuxtLink to="/my/posts">
-          <Button type="button" variant="outline">取消</Button>
+          <Button type="button" variant="outline">{{ $t('myPosts.cancel') }}</Button>
         </NuxtLink>
         <Button :disabled="saving" type="submit">
           <Icon v-if="saving" class="h-4 w-4 animate-spin" name="loader-circle"/>
           <Icon v-else class="h-4 w-4" name="save"/>
-          {{ isEdit ? '保存修改' : '保存草稿' }}
+          {{ isEdit ? $t('myPosts.saveUpdate') : $t('myPosts.saveDraft') }}
         </Button>
       </div>
     </form>

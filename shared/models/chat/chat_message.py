@@ -26,7 +26,12 @@ class ChatMessage(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='消息 ID')
 
-    group = Column(BigInteger, ForeignKey('chat_groups.id'), nullable=False, doc='群聊 ID')
+    group = Column(
+        BigInteger,
+        ForeignKey('chat_groups.id', ondelete='CASCADE'),
+        nullable=False,
+        doc='群聊 ID（群解散时消息一并删除）',
+    )
 
     user = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='发送者 ID')
 
@@ -37,7 +42,10 @@ class ChatMessage(Base):
     attachment_url = Column(String(500), nullable=True, doc='附件 URL（图片/文件）')
 
     parent_message = Column(
-        BigInteger, ForeignKey('chat_messages.id'), nullable=True, doc='引用的消息 ID（回复）'
+        BigInteger,
+        ForeignKey('chat_messages.id', ondelete='SET NULL'),
+        nullable=True,
+        doc='引用的消息 ID（回复；被引用消息删除时置空）',
     )
 
     is_deleted = Column(Boolean, default=False, doc='是否已撤回（软删除）')

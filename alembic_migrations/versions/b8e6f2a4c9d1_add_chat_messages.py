@@ -38,9 +38,11 @@ def upgrade() -> None:
         ),
         sa.Column("created_at", sa.DateTime(), nullable=True, comment="创建时间"),
         sa.Column("updated_at", sa.DateTime(), nullable=True, comment="更新时间"),
-        sa.ForeignKeyConstraint(["group"], ["chat_groups.id"]),
+        # 群被解散时消息一并删除（否则新表的外键会挡住 `DELETE /chat/group/{id}`）；
+        # 被引用的消息删除时回复链置空（不连带删回复）。
+        sa.ForeignKeyConstraint(["group"], ["chat_groups.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["user"], ["users.id"]),
-        sa.ForeignKeyConstraint(["parent_message"], ["chat_messages.id"]),
+        sa.ForeignKeyConstraint(["parent_message"], ["chat_messages.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index(

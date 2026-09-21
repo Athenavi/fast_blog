@@ -474,4 +474,5 @@ export type {
   ChatMessagePayload,
   ChatMessageQuery,
   ChatMessageSendResult,
+  MyChatGroup,
 } from './modules/chatMessage'

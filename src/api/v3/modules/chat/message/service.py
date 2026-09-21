@@ -314,6 +314,38 @@ class ChatMessageService:
             item.group, {"type": "recall", "id": item.id, "group_id": item.group}
         )
 
+    # ------------------------------------------------------------ 我的群
+    async def my_groups(self, db: AsyncSession, user_id: int) -> list[dict]:
+        """当前用户加入的群聊（前台聊天页左栏）
+
+        **不需要** ``module_chat:group:view`` 管理权限 —— 只列本人加入的群，
+        按最后消息时间倒序（还没有消息的群排最后）。
+        """
+        rows = (
+            await db.execute(
+                select(ChatGroupMember, ChatGroup)
+                .join(ChatGroup, ChatGroup.id == ChatGroupMember.group)
+                .where(ChatGroupMember.user == user_id)
+                .order_by(
+                    ChatGroup.last_message_at.desc().nullslast(), ChatGroup.id.desc()
+                )
+            )
+        ).all()
+        return [
+            {
+                "id": group.id,
+                "name": group.name,
+                "avatar": group.avatar,
+                "description": group.description,
+                "member_count": int(group.member_count or 0),
+                "last_message_at": (
+                    group.last_message_at.isoformat() if group.last_message_at else None
+                ),
+                "role": member.role,
+            }
+            for member, group in rows
+        ]
+
     # ------------------------------------------------------------ 工具
     @staticmethod
     async def _usernames(

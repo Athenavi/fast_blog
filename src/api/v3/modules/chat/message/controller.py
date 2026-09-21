@@ -2,6 +2,7 @@
 
 ::
 
+    GET    /api/v3/chat/message/my-groups          我加入的群聊（登录；前台聊天页左栏）
     GET    /api/v3/chat/message/{group_id}           群内消息（登录 + 群成员；分页，时间正序）
     POST   /api/v3/chat/message                      发送消息（登录 + 群成员；落库 + Redis 广播）
     DELETE /api/v3/chat/message/item/{message_id}    撤回本人消息（登录；软删除 + 广播 recall）
@@ -32,6 +33,12 @@ from src.api.v3.modules.chat.message.service import chat_message_service, group_
 logger = get_logger("chat.message")
 
 router = APIRouter(prefix="/message", tags=["chat-message"], route_class=OperationLogRoute)
+
+
+@router.get("/my-groups", response_model=ResponseModel, summary="我加入的群聊")
+async def my_groups(db: DBSession, current: CurrentUser) -> dict:
+    """前台聊天页左栏：只列**本人加入**的群（不需要 group:view 管理权限）"""
+    return resp.success(await chat_message_service.my_groups(db, current.id))
 
 
 @router.get("/{group_id}", response_model=ResponseModel, summary="群内消息（分页，时间正序）")

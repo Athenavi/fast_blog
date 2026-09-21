@@ -43,7 +43,24 @@ export interface ChatMessagePayload {
 /** 发送后落库返回的消息对象 */
 export type ChatMessageSendResult = ChatMessageItem
 
+/** 我加入的群聊（前台聊天页左栏；`GET /chat/message/my-groups`）
+ *
+ * 只列**本人加入**的群，因此不需要后台的 `module_chat:group:view` 权限。
+ */
+export interface MyChatGroup {
+  id: number
+  name?: string | null
+  avatar?: string | null
+  description?: string | null
+  member_count: number
+  last_message_at?: string | null
+  role?: string | null
+}
+
 export const chatMessageApi = {
+  /** 我加入的群聊（前台左栏；仅需登录） */
+  myGroups: () => http.get<MyChatGroup[]>('/chat/message/my-groups'),
+
   /** 群内历史消息（分页；`page=1` 即最近一段，返回按时间升序） */
   list: (groupId: number, params?: ChatMessageQuery) =>
     http.page<ChatMessageItem>(`/chat/message/${groupId}`, params),
