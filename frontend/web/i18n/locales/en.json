@@ -2015,7 +2015,11 @@
         "cleaned": "Cleaned {n}",
         "cleanRead": "Clean read",
         "batchRead": "Mark selected as read",
-        "deleteSelectedConfirm": "Delete the {n} selected notifications?"
+        "deleteSelectedConfirm": "Delete the {n} selected notifications?",
+        "desc": "Your in-app notifications (every endpoint scopes to the current user): filter unread only, mark read individually or in bulk, delete and clean up.",
+        "emptyTitle": "No notifications",
+        "emptyDesc": "You have no notifications yet.",
+        "emptyFiltered": "No unread notifications"
       },
       "webhook": {
         "enterANameAndCallbackUrl": "Enter a name and callback URL",
@@ -2041,7 +2045,11 @@
         "usedToVerifyRequestSignatures": "Used to verify request signatures",
         "testConfirm": "Send a test event to \"{name}\"?",
         "triggered": "Triggered: {event}",
-        "deleteConfirm": "Delete webhook \"{name}\"?"
+        "deleteConfirm": "Delete webhook \"{name}\"?",
+        "title": "Webhook",
+        "desc": "Subscribe to site events and call external URLs. The secret is only used for signature verification and is never returned.",
+        "emptyTitle": "No webhooks",
+        "emptyDesc": "No webhook configured yet. Once created, events will call the given URL."
       },
       "migration": {
         "title": "Migrations",
@@ -2090,7 +2098,12 @@
         "dailyLimit": "Daily limit",
         "subTitle": "Email subscriptions",
         "subscribed": "Subscribed",
-        "fromEmailRequired": "From email is required"
+        "fromEmailRequired": "From email is required",
+        "desc": "Email delivery configuration (credentials are write-only: leave blank to keep the stored value) and site-wide subscriptions.",
+        "configEmptyTitle": "No email config",
+        "configEmptyDesc": "No email service configured yet — create one to start sending notifications.",
+        "subEmptyTitle": "No subscriptions",
+        "subEmptyDesc": "No user has subscribed to email yet."
       },
       "cdn": {
         "title": "CDN Configuration",

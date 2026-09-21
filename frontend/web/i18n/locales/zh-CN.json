@@ -2015,7 +2015,11 @@
         "cleaned": "已清理 {n} 条",
         "cleanRead": "清理已读",
         "batchRead": "批量标记已读",
-        "deleteSelectedConfirm": "确定删除选中的 {n} 条通知吗？"
+        "deleteSelectedConfirm": "确定删除选中的 {n} 条通知吗？",
+        "desc": "你的站内通知（所有接口都以当前登录用户为收件人）：可只看未读、逐条或批量标记已读、删除与清理。",
+        "emptyTitle": "暂无通知",
+        "emptyDesc": "还没有任何通知。",
+        "emptyFiltered": "没有未读通知"
       },
       "webhook": {
         "enterANameAndCallbackUrl": "请填写名称与回调地址",
@@ -2041,7 +2045,11 @@
         "usedToVerifyRequestSignatures": "用于校验请求签名",
         "testConfirm": "向「{name}」发送一条测试事件？",
         "triggered": "已触发：{event}",
-        "deleteConfirm": "确定删除 Webhook「{name}」吗？"
+        "deleteConfirm": "确定删除 Webhook「{name}」吗？",
+        "title": "Webhook",
+        "desc": "订阅站内事件并回调外部地址；密钥仅用于签名校验，保存后不再回显。",
+        "emptyTitle": "暂无 Webhook",
+        "emptyDesc": "还没有配置 Webhook，创建后事件触发时会回调指定地址。"
       },
       "migration": {
         "title": "数据迁移",
@@ -2090,7 +2098,12 @@
         "dailyLimit": "每日上限",
         "subTitle": "邮件订阅",
         "subscribed": "已订阅",
-        "fromEmailRequired": "请填写发件邮箱"
+        "fromEmailRequired": "请填写发件邮箱",
+        "desc": "邮件发送服务配置（凭据只写不读，留空表示保持原值）与站点邮件订阅情况。",
+        "configEmptyTitle": "暂无邮件配置",
+        "configEmptyDesc": "还没有配置任何邮件服务，创建后才能发送通知邮件。",
+        "subEmptyTitle": "暂无订阅记录",
+        "subEmptyDesc": "还没有用户订阅邮件。"
       },
       "cdn": {
         "title": "CDN 配置",

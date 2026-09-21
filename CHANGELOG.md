@@ -78,6 +78,22 @@
     `migrations` 迁移完成。这三个页面此前用的是**重命名解构**（`list: scriptList`、`loading: scriptLoading`
     …），因此迁移脚本按「字段 → 目标属性」逐项映射并还原出原变量名（`list→rows`、`load→reload`），
     模板无需改动；5 个列表的空态统一升级为「失败态 + 重试」
+  - **ops 域第二批**：`webhook`、`notification` 迁移完成
+      - `webhook` 的分页器原本**没有把页码传给后端**（`webhookApi.list()` 不带参数），是"看起来能翻页"的假象；
+        接口本身返回全量，因此改用列表壳并关闭分页器（`paginate=false`），如实反映接口能力
+      - `notification` 的多选、批量条交给列表壳内置能力，页面只保留批量动作本身；
+        「只看未读」开关关掉时从请求里**移除** `unread_only` 字段（而不是传 `false`）
+  - **ops 域收尾**（第 1 小批完成）：
+      - `email`：配置列表（接口返回数组 → `paginate=false`）与订阅列表都接入列表壳；
+        配置状态列此前借用敏感词模块文案，改用 `admin.common.enabled/disabled`；订阅项类型由
+        内联 `{subscribed: boolean}` 换回真实类型 `EmailSubscriptionItem`
+      - `backup`、`supervisor`：判定为**面板型页面**（多张统计/操作卡片 + 一个进程或备份表），
+        保持原结构不套列表壳，但两者的加载函数此前只有 `try/finally`——**请求失败时界面静默显示"空"**，
+        现补上失败态与重试
+      - `cdn`（纯配置表单，无列表）、`upgrade`（表格是升级检查结果与历史，不是可筛选的分页列表）
+        判定为**不适用**列表壳，保持原结构
+  - **至此 B 第 1 小批（system 16 + ops 10 = 26 页）全部处理完毕**：
+    20 页迁移到 `AdminPage` + `AdminListShell`（含 6 个双列表/多列表页），6 页判定为不适用并给出理由
 - **样式块内的硬编码色收口**（补 A 包的遗漏）：上一轮只替换了 Tailwind 类名，**没有覆盖 `<style>` 块**。
   实测 8 个文件存在不随主题变化的固定色值，共 **25 处**——`#f5f7fa` / `#fafcff`（浅底）、`#909399` /
   `#6b7280` / `#9ca3af` / `#606266`（灰字）、`#409eff`（主色）、`#ebeef5`（边框）等，在暗色模式下会露出

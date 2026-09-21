@@ -2,14 +2,16 @@
 /**
  * 邮件服务（T5-11 批次 2）
  *
- * 对齐 v3 `/ops/email`：服务配置（凭据脱敏，单激活）+ 订阅列表。
+ * 对齐 v3 `/ops/email`：服务配置（凭据脱敏，留空保持原值）+ 邮件订阅列表。
+ * 两个列表都不带筛选条件：配置数量有限（不分页），订阅列表分页。
  */
-import {Plus, Refresh} from '@element-plus/icons-vue'
+import {Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {computed, onMounted, reactive, ref} from 'vue'
+import {computed, reactive, ref} from 'vue'
 
-import {emailApi, type EmailConfigItem} from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {emailApi, type EmailConfigItem, type EmailSubscriptionItem} from '@/api'
+import type {PageQuery} from '@/api/types'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -20,20 +22,17 @@ definePageMeta({
 
 const {t} = useI18n()
 
-const configs = ref<EmailConfigItem[]>([])
-const configsLoading = ref(false)
+// ---- 服务配置（接口返回数组，不分页）----
+const configs = useAdminList<EmailConfigItem, PageQuery>({
+  fetcher: async () => {
+    const items = await emailApi.configs()
+    return {items: items ?? [], total: items?.length ?? 0, page: 1, pageSize: 0, pages: 1}
+  },
+})
 
-async function loadConfigs() {
-  configsLoading.value = true
-  try {
-    configs.value = await emailApi.configs()
-  } finally {
-    configsLoading.value = false
-  }
-}
-
-onMounted(() => {
-  loadConfigs()
+// ---- 订阅 ----
+const subs = useAdminList<EmailSubscriptionItem, PageQuery>({
+  fetcher: (params) => emailApi.subscriptions(params),
 })
 
 // ---- 配置编辑 ----
@@ -107,7 +106,7 @@ async function submitConfig() {
     }
     ElMessage.success(t('admin.common.save'))
     formVisible.value = false
-    await loadConfigs()
+    await configs.reload()
   } finally {
     saving.value = false
   }
@@ -117,83 +116,92 @@ async function onDelete(row: EmailConfigItem) {
   await ElMessageBox.confirm(t('admin.ops.email.deleteConfirm'), t('admin.common.notice'), {type: 'warning'})
   await emailApi.removeConfig(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await loadConfigs()
+  await configs.reload()
 }
-
-// ---- 订阅 ----
-const subTable = useTable({fetcher: (params) => emailApi.subscriptions(params)})
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card class="mb-4" shadow="never">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <span>{{ $t('admin.ops.email.configTitle') }}</span>
-          <el-button v-auth="'module_ops:email:edit'" :icon="Plus" size="small" type="primary" @click="openCreate">
-            {{ $t('admin.ops.email.createConfig') }}
-          </el-button>
-        </div>
+  <AdminPage :desc="$t('admin.ops.email.desc')" :title="$t('admin.ops.email.title')">
+    <!-- 服务配置 -->
+    <AdminListShell
+      :empty-desc="$t('admin.ops.email.configEmptyDesc')"
+      :empty-title="$t('admin.ops.email.configEmptyTitle')"
+      :failed="configs.failed.value"
+      :loading="configs.loading.value"
+      :page="configs.page.value"
+      :page-size="configs.pageSize.value"
+      :paginate="false"
+      :rows="configs.rows.value"
+      :selectable="false"
+      :total="configs.total.value"
+      @refresh="configs.reload"
+    >
+      <template #actions>
+        <span class="mr-2 font-medium">{{ $t('admin.ops.email.configTitle') }}</span>
+        <el-button v-auth="'module_ops:email:edit'" :icon="Plus" type="primary" @click="openCreate">
+          {{ $t('admin.ops.email.createConfig') }}
+        </el-button>
       </template>
-      <AdminTableSkeleton v-if="configsLoading && !configs.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!configsLoading && !configs.length" :title="$t('admin.common.empty')"/>
-      <el-table v-else v-loading="configsLoading" :data="configs" border>
-        <el-table-column :label="$t('admin.ops.email.provider')" prop="provider" width="110"/>
-        <el-table-column :label="$t('admin.ops.email.fromEmail')" min-width="180" prop="from_email"/>
-        <el-table-column :label="$t('admin.ops.email.fromName')" prop="from_name" width="140"/>
-        <el-table-column :label="$t('admin.ops.email.smtpHost')" min-width="160" prop="smtp_host"/>
-        <el-table-column :label="$t('admin.ops.email.hasKey')" width="110">
-          <template #default="{ row }">
+      <el-table-column :label="$t('admin.ops.email.provider')" prop="provider" width="110"/>
+      <el-table-column :label="$t('admin.ops.email.fromEmail')" min-width="180" prop="from_email"/>
+      <el-table-column :label="$t('admin.ops.email.fromName')" prop="from_name" width="140"/>
+      <el-table-column :label="$t('admin.ops.email.smtpHost')" min-width="160" prop="smtp_host"/>
+      <el-table-column :label="$t('admin.ops.email.hasKey')" width="110">
+        <template #default="{ row }">
+          {{
+            (row as EmailConfigItem).has_api_key || (row as EmailConfigItem).has_smtp_password ? $t('admin.common.yes') : $t('admin.common.no')
+          }}
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.status')" width="90">
+        <template #default="{ row }">
+          <el-tag :type="(row as EmailConfigItem).is_active ? 'success' : 'info'" size="small">
             {{
-              (row as EmailConfigItem).has_api_key || (row as EmailConfigItem).has_smtp_password ? $t('admin.common.yes') : $t('admin.common.no')
+              (row as EmailConfigItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
             }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.status')" width="90">
-          <template #default="{ row }">
-            <el-tag :type="(row as EmailConfigItem).is_active ? 'success' : 'info'" size="small">
-              {{
-                (row as EmailConfigItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
-              }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" width="150">
-          <template #default="{ row }">
-            <el-button v-auth="'module_ops:email:edit'" link type="primary" @click="openEdit(row as EmailConfigItem)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_ops:email:delete'" link type="danger" @click="onDelete(row as EmailConfigItem)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.actions')" width="150">
+        <template #default="{ row }">
+          <el-button v-auth="'module_ops:email:edit'" link type="primary" @click="openEdit(row as EmailConfigItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_ops:email:delete'" link type="danger" @click="onDelete(row as EmailConfigItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
 
-    <el-card shadow="never">
-      <template #header>
-        <div class="flex items-center justify-between">
-          <span>{{ $t('admin.ops.email.subTitle') }}</span>
-          <el-button :icon="Refresh" size="small" @click="subTable.load()">{{ $t('admin.common.refresh') }}</el-button>
-        </div>
+    <!-- 邮件订阅 -->
+    <AdminListShell
+      :empty-desc="$t('admin.ops.email.subEmptyDesc')"
+      :empty-title="$t('admin.ops.email.subEmptyTitle')"
+      :failed="subs.failed.value"
+      :loading="subs.loading.value"
+      :page="subs.page.value"
+      :page-size="subs.pageSize.value"
+      :rows="subs.rows.value"
+      :selectable="false"
+      :total="subs.total.value"
+      class="mt-4"
+      @refresh="subs.reload"
+      @page-change="subs.onPageChange"
+    >
+      <template #actions>
+        <span class="mr-2 font-medium">{{ $t('admin.ops.email.subTitle') }}</span>
       </template>
-      <el-table v-loading="subTable.loading.value" :data="subTable.list.value" border>
-        <el-table-column :label="$t('admin.marketing.vip.userId')" prop="user_id" width="110"/>
-        <el-table-column :label="$t('admin.ops.email.subscribed')" width="110">
-          <template #default="{ row }">
-            {{ (row as { subscribed: boolean }).subscribed ? $t('admin.common.yes') : $t('admin.common.no') }}
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.content.approval.createdAt')" min-width="180" prop="created_at"/>
-      </el-table>
-      <el-pagination
-        :current-page="subTable.page.value" :page-size="subTable.pageSize.value" :total="subTable.total.value"
-        background class="table-pagination" layout="total, prev, pager, next"
-        @current-change="subTable.onPageChange"
-      />
-    </el-card>
+
+      <el-table-column :label="$t('admin.marketing.vip.userId')" prop="user_id" width="110"/>
+      <el-table-column :label="$t('admin.ops.email.subscribed')" width="110">
+        <template #default="{ row }">
+          {{ (row as EmailSubscriptionItem).subscribed ? $t('admin.common.yes') : $t('admin.common.no') }}
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.content.approval.createdAt')" min-width="180" prop="created_at"/>
+    </AdminListShell>
 
     <!-- 配置编辑 -->
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="480px">
@@ -248,5 +256,11 @@ const subTable = useTable({fetcher: (params) => emailApi.subscriptions(params)})
         <el-button :loading="saving" type="primary" @click="submitConfig">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-drawer>
-  </div>
+  </AdminPage>
 </template>
+
+<style scoped>
+.mr-2 {
+  margin-right: 8px;
+}
+</style>

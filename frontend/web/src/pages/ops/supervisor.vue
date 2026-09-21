@@ -37,6 +37,8 @@ const {t} = useI18n()
 // ---------------------------------------------------------------- 登记列表
 const loading = ref(false)
 const processes = ref<SupervisorProcess[]>([])
+/** 列表加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const updatedAt = ref<string | null>(null)
 const issues = ref<string[]>([])
 const probingName = ref<string | null>(null)
@@ -51,11 +53,17 @@ const disabledCount = computed(() => processes.value.filter((row) => !row.is_act
 
 async function load(): Promise<void> {
   loading.value = true
+  loadFailed.value = false
   try {
     const data = await supervisorApi.list()
     processes.value = data.processes ?? []
     updatedAt.value = data.updated_at ?? null
     issues.value = data.issues ?? []
+  } catch {
+    // 失败时清空并置错误态，避免把"请求失败"显示成"暂无进程"
+    loadFailed.value = true
+    processes.value = []
+    issues.value = []
   } finally {
     loading.value = false
   }
@@ -461,7 +469,15 @@ async function openLog(row: SupervisorProcess): Promise<void> {
     <!-- 进程登记 + 实时状态 -->
     <el-card class="mt-4" shadow="never">
       <AdminTableSkeleton v-if="loading && !processes.length" :rows="5"/>
-      <AdminEmpty v-else-if="!loading && !processes.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !processes.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="processes" row-key="name">
         <el-table-column :label="$t('admin.ops.supervisor.process')" min-width="180">
           <template #default="{ row }">

@@ -4,15 +4,18 @@ const {t} = useI18n()
  * 站内通知
  *
  * 对齐 v3 `/ops/notification`：列表（可只看未读）、未读数、标记已读、
- * 全部已读、删除单条、清理已读。所有接口都以「当前用户」为 recipient。
+ * 全部已读、删除单条、清理已读，以及批量标记已读 / 批量删除。
+ * 所有接口都以「当前用户」为 recipient（服务层强制）。
  *
- * 样式统一使用 Element Plus 的 CSS 变量，避免写死色值。
+ * 多选与批量条由 `AdminListShell` 提供，这里只需实现批量动作本身。
  */
 import {Delete, Refresh} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {reactive, ref} from 'vue'
+import {computed, ref} from 'vue'
 
 import {notificationApi, type NotificationItem} from '@/api'
+import type {PageQuery} from '@/api/types'
+import {useAdminList} from '@/composables/useAdminList'
 import {formatDateTime} from '@/utils/format'
 
 definePageMeta({
@@ -22,28 +25,25 @@ definePageMeta({
   permission: 'module_ops:notification:view',
 })
 
-const loading = ref(false)
-const list = ref<NotificationItem[]>([])
-const total = ref(0)
-const unread = ref(0)
-const unreadOnly = ref(false)
-
-const query = reactive({page: 1, page_size: 20})
-
-async function loadList(): Promise<void> {
-  loading.value = true
-  try {
-    const data = await notificationApi.list({
-      page: query.page,
-      page_size: query.page_size,
-      ...(unreadOnly.value ? {unread_only: true} : {}),
-    })
-    list.value = data.items
-    total.value = data.total
-  } finally {
-    loading.value = false
-  }
+interface NotificationQueryForm extends PageQuery {
+  unread_only?: boolean
 }
+
+const list = useAdminList<NotificationItem, NotificationQueryForm>({
+  fetcher: (params) => notificationApi.list(params),
+  defaultQuery: {unread_only: undefined},
+  syncUrl: true,
+})
+
+/** 只看未读：关掉时从请求里移除该字段（而不是传 false） */
+const unreadOnly = computed({
+  get: () => list.query.unread_only === true,
+  set: (value: boolean) => {
+    list.query.unread_only = value ? true : undefined
+  },
+})
+
+const unread = ref(0)
 
 async function loadUnread(): Promise<void> {
   try {
@@ -54,13 +54,9 @@ async function loadUnread(): Promise<void> {
   }
 }
 
-function onFilterChange(): void {
-  query.page = 1
-  loadList()
-}
-
+/** 列表 + 未读数一起刷新（未读数变化会影响工具条徽标） */
 async function refresh(): Promise<void> {
-  await Promise.all([loadList(), loadUnread()])
+  await Promise.all([list.reload(), loadUnread()])
 }
 
 // ---------------------------------------------------------------- 操作
@@ -72,35 +68,24 @@ async function markRead(row: NotificationItem): Promise<void> {
   await loadUnread()
 }
 
-// ---------------------------------------------------------------- 多选与批量
-const selectedIds = ref<number[]>([])
-
-function onSelectionChange(rows: NotificationItem[]): void {
-  selectedIds.value = rows.map((row) => row.id)
-}
-
-function clearSelection(): void {
-  selectedIds.value = []
-}
-
 async function batchRead(): Promise<void> {
-  if (!selectedIds.value.length) return
-  const result = await notificationApi.batchRead([...selectedIds.value])
+  if (!list.selectedIds.value.length) return
+  const result = await notificationApi.batchRead([...list.selectedIds.value])
   ElMessage.success(t('admin.common.batchDone', {n: result.affected}))
-  clearSelection()
+  list.clearSelection()
   await refresh()
 }
 
 async function batchDelete(): Promise<void> {
-  if (!selectedIds.value.length) return
+  if (!list.selectedIds.value.length) return
   await ElMessageBox.confirm(
-    t('admin.ops.notification.deleteSelectedConfirm', {n: selectedIds.value.length}),
+    t('admin.ops.notification.deleteSelectedConfirm', {n: list.selectedIds.value.length}),
     t('admin.common.notice'),
     {type: 'warning'},
   )
-  const result = await notificationApi.batchDelete([...selectedIds.value])
+  const result = await notificationApi.batchDelete([...list.selectedIds.value])
   ElMessage.success(t('admin.common.batchDone', {n: result.affected}))
-  clearSelection()
+  list.clearSelection()
   await refresh()
 }
 
@@ -135,114 +120,104 @@ onMounted(refresh)
 </script>
 
 <template>
-  <div class="page-container">
-    <el-card shadow="never">
-      <div class="toolbar">
-        <el-badge :hidden="unread === 0" :value="unread" class="badge">
-          <el-button :icon="Refresh" @click="refresh">{{ $t('admin.common.refresh') }}</el-button>
-        </el-badge>
+  <AdminPage :desc="$t('admin.ops.notification.desc')" :title="$t('admin.ops.notification.notifications')">
+    <template #actions>
+      <el-badge :hidden="unread === 0" :value="unread" class="mr-2">
+        <el-button :icon="Refresh" @click="refresh">{{ $t('admin.common.refresh') }}</el-button>
+      </el-badge>
 
-        <el-switch
-          v-model="unreadOnly"
-          :active-text="$t('admin.ops.notification.unreadOnly')"
-          inline-prompt
-          @change="onFilterChange"
-        />
+      <el-button v-auth="'module_ops:notification:edit'" @click="readAll">
+        {{ $t('admin.ops.notification.markAllAsRead') }}
+      </el-button>
+      <el-button v-auth="'module_ops:notification:edit'" :icon="Delete" plain type="danger" @click="cleanRead">
+        {{ $t('admin.ops.notification.cleanRead') }}
+      </el-button>
+    </template>
 
-        <div class="spacer"/>
+    <AdminListShell
+      :empty-desc="list.hasFilters.value
+        ? $t('admin.ops.notification.emptyFiltered')
+        : $t('admin.ops.notification.emptyDesc')"
+      :empty-title="$t('admin.ops.notification.emptyTitle')"
+      :failed="list.failed.value"
+      :loading="list.loading.value"
+      :page="list.page.value"
+      :page-size="list.pageSize.value"
+      :page-sizes="[20, 50, 100]"
+      :rows="list.rows.value"
+      :selection-count="list.selectedCount.value"
+      :total="list.total.value"
+      @refresh="refresh"
+      @reset="list.reset"
+      @search="list.search"
+      @clear-selection="list.clearSelection"
+      @page-change="list.onPageChange"
+      @selection-change="list.onSelectionChange"
+      @size-change="list.onSizeChange"
+    >
+      <template #filters>
+        <el-form-item :label="$t('admin.ops.notification.unreadOnly')">
+          <el-switch v-model="unreadOnly" @change="list.search()"/>
+        </el-form-item>
+      </template>
 
-        <el-button v-auth="'module_ops:notification:edit'" @click="readAll">
-          {{ $t('admin.ops.notification.markAllAsRead') }}
-        </el-button>
-        <el-button v-auth="'module_ops:notification:edit'" :icon="Delete" plain type="danger" @click="cleanRead">
-          {{ $t('admin.ops.notification.cleanRead') }}
-        </el-button>
-      </div>
-
-      <AdminSelectionBar :count="selectedIds.length" @clear="clearSelection">
+      <template #bulk>
         <el-button v-auth="'module_ops:notification:edit'" plain type="primary" @click="batchRead">
           {{ $t('admin.ops.notification.batchRead') }}
         </el-button>
         <el-button v-auth="'module_ops:notification:edit'" plain type="danger" @click="batchDelete">
           {{ $t('admin.common.delete') }}
         </el-button>
-      </AdminSelectionBar>
+      </template>
 
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
-      <el-table v-else v-loading="loading" :data="list" row-key="id" @selection-change="onSelectionChange">
-        <el-table-column type="selection" width="46"/>
-        <el-table-column label="ID" prop="id" width="80"/>
-        <el-table-column :label="$t('admin.cache.level')" width="100">
-          <template #default="{row}">
-            <el-tag :type="typeTag(row.type)" size="small">{{
-                row.type || t('admin.ops.notification.notifications')
-              }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="200">
-          <template #default="{row}">
-            <span :class="row.is_read ? 'read' : 'unread'">{{ row.title || '-' }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('article.content')" min-width="300" prop="message" show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.common.status')" width="90">
-          <template #default="{row}">
-            <el-tag :type="row.is_read ? 'info' : 'primary'" size="small">
-              {{ row.is_read ? t('admin.ops.notification.read') : t('admin.ops.notification.unread') }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.system.log.time')" width="170">
-          <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="160">
-          <template #default="{row}">
-            <el-button v-if="!row.is_read" link type="primary" @click="markRead(row)">
-              {{ $t('admin.ops.notification.markAsRead') }}
-            </el-button>
-            <el-button
-              v-auth="'module_ops:notification:edit'"
-              :icon="Delete"
-              link
-              type="danger"
-              @click="removeRow(row)"
-            >
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-pagination
-        v-model:current-page="query.page"
-        v-model:page-size="query.page_size"
-        :page-sizes="[20, 50, 100]"
-        :total="total"
-        class="pagination"
-        layout="total, sizes, prev, pager, next"
-        @current-change="loadList"
-        @size-change="onFilterChange"
-      />
-    </el-card>
-  </div>
+      <el-table-column label="ID" prop="id" width="80"/>
+      <el-table-column :label="$t('admin.cache.level')" width="100">
+        <template #default="{row}">
+          <el-tag :type="typeTag(row.type)" size="small">{{
+              row.type || t('admin.ops.notification.notifications')
+            }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.system.menu.itemTitle')" min-width="200">
+        <template #default="{row}">
+          <span :class="row.is_read ? 'read' : 'unread'">{{ row.title || '-' }}</span>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('article.content')" min-width="300" prop="message" show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.common.status')" width="90">
+        <template #default="{row}">
+          <el-tag :type="row.is_read ? 'info' : 'primary'" size="small">
+            {{ row.is_read ? t('admin.ops.notification.read') : t('admin.ops.notification.unread') }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.system.log.time')" width="170">
+        <template #default="{row}">{{ formatDateTime(row.created_at) }}</template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="160">
+        <template #default="{row}">
+          <el-button v-if="!row.is_read" link type="primary" @click="markRead(row)">
+            {{ $t('admin.ops.notification.markAsRead') }}
+          </el-button>
+          <el-button
+            v-auth="'module_ops:notification:edit'"
+            :icon="Delete"
+            link
+            type="danger"
+            @click="removeRow(row)"
+          >
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
+  </AdminPage>
 </template>
 
 <style scoped>
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.badge {
+.mr-2 {
   margin-right: 8px;
-}
-
-.spacer {
-  flex: 1;
 }
 
 .read {
@@ -252,10 +227,5 @@ onMounted(refresh)
 .unread {
   font-weight: 600;
   color: var(--el-text-color-primary);
-}
-
-.pagination {
-  justify-content: flex-end;
-  margin-top: 16px;
 }
 </style>

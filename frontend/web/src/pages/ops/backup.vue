@@ -49,6 +49,8 @@ function isChainBackup(row: BackupItem | BackupChainItem): boolean {
 
 const loading = ref(false)
 const list = ref<BackupItem[]>([])
+/** 列表加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const total = ref(0)
 const stats = ref<Record<string, unknown> | null>(null)
 const creating = ref(false)
@@ -57,6 +59,7 @@ const query = reactive({page: 1, page_size: 20, backup_type: ''})
 
 async function loadList(): Promise<void> {
   loading.value = true
+  loadFailed.value = false
   try {
     const data = await backupApi.list({
       limit: 100,
@@ -64,6 +67,11 @@ async function loadList(): Promise<void> {
     })
     list.value = data.items
     total.value = data.total
+  } catch {
+    // 失败时清空列表并置错误态，避免把"请求失败"显示成"暂无备份"
+    loadFailed.value = true
+    list.value = []
+    total.value = 0
   } finally {
     loading.value = false
   }
@@ -534,7 +542,15 @@ onMounted(async () => {
       </div>
 
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="loadList()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" row-key="path">
         <el-table-column :label="$t('admin.ops.backup.filename')" min-width="260">
           <template #default="{row}">
