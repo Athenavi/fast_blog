@@ -39,6 +39,8 @@ const {data: articlePage, pending, error, refresh} = await useAsyncData(
   () =>
     apiPage<ArticleItem>('/content/article/public/list', {
       user_id: profile.value?.id,
+      // VIP 文章不列进公开清单（点进去才需权限）；后端 public_list 的 exclude_vip
+      exclude_vip: true,
       page: page.value,
       page_size: PAGE_SIZE,
     }),

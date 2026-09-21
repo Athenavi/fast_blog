@@ -11,7 +11,10 @@
     GET    /api/v3/ops/migration/{task_id}/log          任务日志
 
 权限码：``module_ops:migration:view/create/edit/delete``。
-执行引擎为二期（``start`` 仅流转状态，见 service docstring）。
+
+**执行引擎**（批次 18 起）：``start`` 会真实导入 ``config.file_path`` 指向的
+**WordPress WXR**（分类 / 标签 / 文章，含草稿）；覆盖范围与跳过规则见
+``wxr_importer.py`` 的模块 docstring，全部逐条写进任务日志。
 """
 
 from typing import Optional
@@ -79,14 +82,23 @@ async def delete_task(
     return resp.success(None, msg="已删除")
 
 
-@router.post("/{task_id}/start", response_model=ResponseModel, summary="启动任务")
+@router.post("/{task_id}/start", response_model=ResponseModel, summary="启动任务（真实导入）")
 async def start_task(
     task_id: int,
     db: DBSession,
     _current: CurrentUser,
     _perm=AuthControl(codes.MIGRATION_EDIT),
+    wait: bool = Query(
+        default=False, description="同步等待导入完成（便于测试小文件）；默认后台执行"
+    ),
 ) -> dict:
-    return resp.success(await migration_service.start_task(db, task_id), msg="已启动")
+    """启动后**真的会导入**：解析 ``config.file_path`` 指向的 WXR 并逐条入库，
+    进度（``progress`` / ``migrated_items``）与日志实时可查。
+
+    平台没有导入器、文件缺失 / 过大都会直接返回错误 —— 不会留下"看着在跑"的假任务。
+    """
+    task = await migration_service.start_task(db, task_id, wait=wait)
+    return resp.success(task, msg="已完成" if wait and task.get("status") == "completed" else "已启动")
 
 
 @router.post("/{task_id}/cancel", response_model=ResponseModel, summary="取消任务")

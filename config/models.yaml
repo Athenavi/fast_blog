@@ -7733,7 +7733,7 @@ models:
         description: 日志 ID
       task_id:
         type: bigint
-        description: 迁移任务 ID
+        description: 迁移任务 ID（任务删除时日志级联删除；级联只在模型/迁移里体现）
         foreignKey: MigrationTask
         index: true
       log_level:
@@ -8858,3 +8858,170 @@ models:
         columns:
           - status
         comment: 状态索引
+
+  # ============ 批次 18：多平台发布（third-party-publish 底座）============
+  PublishChannel:
+    description: 第三方发布渠道（多平台发布的渠道配置）
+    fields:
+      name:
+        type: string
+        required: true
+        maxLength: 100
+        description: 渠道名（如「我的公众号」）
+      platform:
+        type: string
+        required: true
+        maxLength: 32
+        description: 平台标识（wechat_mp/zhihu/...）—— 必须是适配器注册表里的 key
+      endpoint:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 平台 API 基址覆盖（私有部署 / 自建网关用）
+      credentials_encrypted:
+        type: text
+        nullable: true
+        description: 凭据（JSON 序列化后 AES-256-GCM 加密；**永不回传**，只回 has_credentials）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      created_by:
+        type: bigint
+        nullable: true
+        description: 创建人 ID
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    indexes:
+      - name: idx_publish_channels_platform_name
+        columns:
+          - platform
+          - name
+        comment: 同一平台下渠道名唯一
+    comment: 多平台发布的渠道配置（凭据加密存储；平台适配器按 platform 注册）
+    module: third_party_publish
+    orm: true
+    table: publish_channels
+
+  PublishTask:
+    description: 第三方发布任务（文章 × 渠道）
+    fields:
+      article_id:
+        type: bigint
+        required: true
+        description: 文章 ID
+        foreignKey: Article
+      channel_id:
+        type: bigint
+        required: true
+        description: 渠道 ID
+        foreignKey: PublishChannel
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: 状态（pending/publishing/success/failed）
+      attempts:
+        type: integer
+        default: 0
+        description: 已尝试次数（含手动重试）
+      last_error:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 最近一次失败原因（成功时清空）
+      external_id:
+        type: string
+        maxLength: 128
+        nullable: true
+        description: 平台侧文档 ID
+      external_url:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 平台侧链接
+      payload:
+        type: text
+        nullable: true
+        description: 发布载荷快照（JSON，重试用同一份，保证可复现）
+      created_by:
+        type: bigint
+        nullable: true
+        description: 创建人 ID
+        foreignKey: User
+      started_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最近一次开始时间
+      finished_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最近一次结束时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    indexes:
+      - name: idx_publish_tasks_article_channel
+        columns:
+          - article_id
+          - channel_id
+        comment: 同一文章 + 同一渠道只保留一条任务（重试复用）
+      - name: idx_publish_tasks_status_created
+        columns:
+          - status
+          - created_at
+        comment: 状态 + 创建时间索引
+    comment: 多平台发布任务（状态机由 service 驱动；未注册适配器的平台如实失败）
+    module: third_party_publish
+    orm: true
+    table: publish_tasks
+
+  PublishLog:
+    description: 第三方发布尝试记录（每次执行/重试一条）
+    fields:
+      task_id:
+        type: bigint
+        required: true
+        description: 发布任务 ID
+        foreignKey: PublishTask
+      status:
+        type: string
+        maxLength: 20
+        required: true
+        description: 本次结果（success/failed）
+      message:
+        type: text
+        nullable: true
+        description: 结果说明 / 错误信息
+      duration_ms:
+        type: integer
+        nullable: true
+        description: 本次耗时（毫秒）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    indexes:
+      - name: idx_publish_logs_task_created
+        columns:
+          - task_id
+          - created_at
+        comment: 任务 + 时间索引
+    comment: 多平台发布的尝试记录（任务被删除时级联删除）
+    module: third_party_publish
+    orm: true
+    table: publish_logs

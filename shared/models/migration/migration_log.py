@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - MigrationLog
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class MigrationLog(Base):
@@ -24,7 +23,11 @@ class MigrationLog(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='日志 ID')
 
-    task_id = Column(BigInteger, ForeignKey('migration_tasks.id'), doc='迁移任务 ID')
+    task_id = Column(
+        BigInteger,
+        ForeignKey('migration_tasks.id', ondelete='CASCADE'),
+        doc='迁移任务 ID（任务删除时日志一并删除）',
+    )
 
 
     log_level = Column(String(20), default='info', doc='日志级别')

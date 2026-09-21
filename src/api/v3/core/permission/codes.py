@@ -219,6 +219,13 @@ PAGE_BUILDER_CREATE = "module_content:page_builder:create"
 PAGE_BUILDER_EDIT = "module_content:page_builder:edit"
 PAGE_BUILDER_DELETE = "module_content:page_builder:delete"
 
+# ---- 批次 18：多平台发布（third-party-publish 底座）----
+THIRD_PARTY_PUBLISH_VIEW = "module_content:third_party_publish:view"
+THIRD_PARTY_PUBLISH_CREATE = "module_content:third_party_publish:create"
+THIRD_PARTY_PUBLISH_EDIT = "module_content:third_party_publish:edit"
+THIRD_PARTY_PUBLISH_DELETE = "module_content:third_party_publish:delete"
+THIRD_PARTY_PUBLISH_EXECUTE = "module_content:third_party_publish:execute"
+
 # ============================================================ T5-11 批次 7（commerce 域）
 PAYMENT_VIEW = "module_commerce:payment:view"
 PAYMENT_CREATE = "module_commerce:payment:create"
@@ -473,6 +480,12 @@ CODE_LABELS: dict[str, str] = {
     PAGE_BUILDER_CREATE: "创建搭建页面",
     PAGE_BUILDER_EDIT: "编辑搭建页面",
     PAGE_BUILDER_DELETE: "删除搭建页面",
+    # ---- third_party_publish（批次 18）----
+    THIRD_PARTY_PUBLISH_VIEW: "查看多平台发布",
+    THIRD_PARTY_PUBLISH_CREATE: "新建发布渠道/任务",
+    THIRD_PARTY_PUBLISH_EDIT: "编辑发布渠道",
+    THIRD_PARTY_PUBLISH_DELETE: "删除发布渠道/任务",
+    THIRD_PARTY_PUBLISH_EXECUTE: "手动重试发布",
     # ---- commerce（批次 7）----
     PAYMENT_VIEW: "查看支付网关与交易",
     PAYMENT_CREATE: "创建支付配置",

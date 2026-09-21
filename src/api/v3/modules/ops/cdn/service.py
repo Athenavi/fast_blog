@@ -1,33 +1,21 @@
 """ops.cdn 模块业务逻辑：CDN 配置（持久化到 system_settings，凭据脱敏）
 
 存储键：``cdn.config``（setting_type=json，is_public=False —— 不进公开配置端点）。
-脱敏策略：落库前把 ``api_token`` 明文加密为 AES-256-GCM（与 ai/config 同格式）；
+脱敏策略：落库前把 ``api_token`` 明文加密为 AES-256-GCM（``core/secret_box.py``，
+与 ai/config、third_party_publish 共用同一实现）；
 读取时永不回传，只回 ``has_api_token``。更新时 api_token 留空保持原值。
 """
 
-import base64
-import hashlib
 import json
-import os
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v3.core.exceptions import BadRequestError
+from src.api.v3.core.secret_box import encrypt_secret
 from src.api.v3.modules.ops.cdn.schema import CDNConfigOut, CDNConfigPayload, SUPPORTED_PROVIDERS
 from src.api.v3.modules.system.setting.service import setting_service
 
 CDN_SETTING_KEY = "cdn.config"
-
-
-def _encrypt_secret(raw: str) -> str:
-    from shared.config.settings import settings
-
-    key = hashlib.sha256(settings.SECRET_KEY.encode("utf-8")).digest()
-    aesgcm = AESGCM(key)
-    nonce = os.urandom(12)
-    ciphertext = aesgcm.encrypt(nonce, raw.encode("utf-8"), None)
-    return base64.b64encode(nonce + ciphertext).decode("utf-8")
 
 
 def _mask(config: dict) -> dict:
@@ -62,7 +50,7 @@ class CDNService:
 
         data = payload.model_dump(mode="json", exclude_unset=True)
         if data.get("api_token"):
-            data["api_token_encrypted"] = _encrypt_secret(data.pop("api_token"))
+            data["api_token_encrypted"] = encrypt_secret(data.pop("api_token"))
         else:
             data.pop("api_token", None)  # 留空保持原值
         data["updated_at"] = _now_iso()

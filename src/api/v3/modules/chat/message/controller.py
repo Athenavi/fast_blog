@@ -13,7 +13,9 @@
   - HTTP 写端点登记在 ``src/api/v3/core/permission/audit.py`` 的 ``EXEMPT_WRITE_ENDPOINTS``；
   - WebSocket 路由没有 ``methods``，**启动期权限审计会跳过它**，因此准入逻辑必须写在
     路由体内（``chat_websocket`` 里）：「解析不出身份 → 4401 关闭」「非群成员 → 4403 关闭」。
-    鉴权复用了 ``src/api/v3/core/ws_auth.py`` 的 ``resolve_ws_user``，不自行实现。
+    鉴权复用了 ``src/api/v3/core/ws_auth.py`` 的 ``resolve_ws_user``，不自行实现；
+    **拒绝时必须先 accept 再 close**（``accept_then_close``）：未 accept 就 close 会让
+    uvicorn 直接 403 拒绝握手，浏览器只看得到 1006，拿不到 4401/4403。
 """
 
 import json
@@ -26,7 +28,12 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import CurrentUser, DBSession
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.router_class import OperationLogRoute
-from src.api.v3.core.ws_auth import resolve_ws_user
+from src.api.v3.core.ws_auth import (
+    WS_CLOSE_FORBIDDEN,
+    WS_CLOSE_UNAUTHORIZED,
+    accept_then_close,
+    resolve_ws_user,
+)
 from src.api.v3.modules.chat.message.schema import ChatMessageCreate
 from src.api.v3.modules.chat.message.service import chat_message_service, group_broadcaster
 
@@ -81,16 +88,19 @@ async def chat_websocket(websocket: WebSocket, group_id: int, db: DBSession) -> 
       - 解析不出身份 → ``4401`` 关闭后 return；
       - 非该群成员（含群不存在）→ ``4403`` 关闭后 return。
 
+    准入失败**先 accept 再 close**（``accept_then_close``）：未 accept 就 close 会被
+    uvicorn 当成拒绝握手（HTTP 403），浏览器侧只能看到 ``1006``。
+
     ``accept`` 之后订阅 ``chat:group:{group_id}`` 频道，把收到的 JSON 转发给本连接；
     循环读文本帧仅用于忽略心跳（客户端可发 ``{"type":"ping"}``，服务端回 ``pong``）；
     断开时在 ``finally`` 清理订阅。
     """
     user = await resolve_ws_user(db, websocket)
     if user is None:
-        await websocket.close(code=4401)
+        await accept_then_close(websocket, WS_CLOSE_UNAUTHORIZED, "unauthorized")
         return
     if not await chat_message_service.is_member(db, group_id, user.id):
-        await websocket.close(code=4403)
+        await accept_then_close(websocket, WS_CLOSE_FORBIDDEN, "not a member")
         return
 
     await websocket.accept()

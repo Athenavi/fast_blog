@@ -319,6 +319,7 @@ class ArticleService:
         post_type: Optional[str] = None,
         user_id: Optional[int] = None,
         user_ids: Optional[Sequence[int]] = None,
+        exclude_vip: bool = False,
     ) -> Tuple[List[dict], int]:
         stmt = self._published_stmt()
         if category_id is not None:
@@ -327,6 +328,10 @@ class ArticleService:
             stmt = stmt.where(Article.post_type == post_type)
         if user_id is not None:
             stmt = stmt.where(Article.user == user_id)
+        if exclude_vip:
+            # 作者主页等"对外展示清单"用：VIP 文章点进去才锁定，列表里先不露出。
+            # `isnot(True)` 同时覆盖 NULL（历史行未回填）与 False。
+            stmt = stmt.where(Article.is_vip_only.isnot(True))
         if user_ids is not None:
             # 空集合 → `IN ()` 语义即"没有文章"（关注流为空时的正确结果，不是全量）
             stmt = stmt.where(Article.user.in_(list(user_ids)))

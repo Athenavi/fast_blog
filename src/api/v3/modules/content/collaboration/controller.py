@@ -60,7 +60,12 @@ from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
-from src.api.v3.core.ws_auth import resolve_ws_user
+from src.api.v3.core.ws_auth import (
+    WS_CLOSE_FORBIDDEN,
+    WS_CLOSE_UNAUTHORIZED,
+    accept_then_close,
+    resolve_ws_user,
+)
 from src.api.v3.modules.content.collaboration.comment_service import comment_service
 from src.api.v3.modules.content.collaboration.invite_service import invite_service
 from src.api.v3.modules.content.collaboration.schema import (
@@ -460,11 +465,13 @@ async def yjs_websocket(websocket: WebSocket, document_id: int, db: DBSession) -
 
     与 v2 的差别：**鉴权失败直接 4401 关闭**（v2 是匿名放行），且文档归属由
     ``require_document_access`` 把关（作者本人，或持有指向该文档的有效邀请码）。
+
+    拒绝连接用 ``accept_then_close``：未 accept 就 close 时 uvicorn 按 ASGI 规范
+    直接以 HTTP 403 拒绝握手，浏览器侧只看到 ``1006``（无法区分"没登录"与"没权限"）。
     """
     user = await resolve_ws_user(db, websocket)
     if user is None:
-        # 未握手就关闭：客户端拿到 HTTP 403，不会误以为"连上了"
-        await websocket.close(code=4401)
+        await accept_then_close(websocket, WS_CLOSE_UNAUTHORIZED, "unauthorized")
         return
     try:
         await invite_service.require_document_access(
@@ -472,7 +479,7 @@ async def yjs_websocket(websocket: WebSocket, document_id: int, db: DBSession) -
         )
     except Exception as exc:  # noqa: BLE001 - 准入失败一律关闭
         logger.info("yjs 准入被拒: user=%s document=%s reason=%s", user.id, document_id, exc)
-        await websocket.close(code=4403)
+        await accept_then_close(websocket, WS_CLOSE_FORBIDDEN, "forbidden")
         return
 
     await websocket.accept()

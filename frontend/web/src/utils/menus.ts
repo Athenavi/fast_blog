@@ -71,6 +71,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '协作管理',
         permission: 'module_content:collaboration:view'
       },
+      {
+        name: 'ThirdPartyPublish',
+        path: '/content/third-party-publish',
+        title: '多平台发布',
+        permission: 'module_content:third_party_publish:view'
+      },
     ],
   },
   {

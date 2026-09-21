@@ -1,32 +1,20 @@
 """ai.config 模块业务逻辑：AI 提供商配置（凭据脱敏）
 
-加密格式与 ``shared/utils/crypto.EncryptedField`` 一致：base64(nonce(12B) + ciphertext + tag)，
-密钥 = SHA256(SECRET_KEY)。本模块**只加密、不解密**（响应只回 has_api_key），
+加密格式见 ``core/secret_box.py``：base64(nonce(12B) + ciphertext + tag)，
+密钥 = SHA256(SECRET_KEY)（与 ops/cdn、third_party_publish 共用同一实现）。
+本模块**只加密、不解密**（响应只回 has_api_key），
 因此 SECRET_KEY 轮换不会破坏管理功能，但二期执行引擎解密密钥时需固定 SECRET_KEY。
 """
 
-import base64
-import hashlib
-import os
 from datetime import datetime
 from typing import Optional
 
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v3.core.exceptions import ConflictError, NotFoundError
+from src.api.v3.core.secret_box import encrypt_secret
 from src.api.v3.modules.ai.config.crud import ai_config_crud
 from src.api.v3.modules.ai.config.schema import AIConfigCreate, AIConfigOut, AIConfigUpdate
-
-
-def _encrypt_secret(raw: str) -> str:
-    from shared.config.settings import settings
-
-    key = hashlib.sha256(settings.SECRET_KEY.encode("utf-8")).digest()
-    aesgcm = AESGCM(key)
-    nonce = os.urandom(12)
-    ciphertext = aesgcm.encrypt(nonce, raw.encode("utf-8"), None)
-    return base64.b64encode(nonce + ciphertext).decode("utf-8")
 
 
 def _to_out(row) -> dict:
@@ -53,7 +41,7 @@ class AIConfigService:
         if await ai_config_crud.exists(db, user_id=payload.user_id, name=payload.name):
             raise ConflictError(f"该用户下已存在同名配置: {payload.name}")
         data = payload.model_dump() | {
-            "api_key_encrypted": _encrypt_secret(payload.api_key),
+            "api_key_encrypted": encrypt_secret(payload.api_key),
             "created_at": datetime.now(),
             "updated_at": datetime.now(),
         }
@@ -70,7 +58,7 @@ class AIConfigService:
             if await ai_config_crud.exists(db, user_id=row.user_id, name=data["name"]):
                 raise ConflictError(f"该用户下已存在同名配置: {data['name']}")
         if data.get("api_key"):
-            data["api_key_encrypted"] = _encrypt_secret(data.pop("api_key"))
+            data["api_key_encrypted"] = encrypt_secret(data.pop("api_key"))
         else:
             data.pop("api_key", None)  # 留空保持原值
         updated = await ai_config_crud.update(db, row, data | {"updated_at": datetime.now()})

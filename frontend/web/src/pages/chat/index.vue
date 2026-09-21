@@ -40,6 +40,14 @@ const activeGroupId = ref<number | null>(null)
 const messages = ref<ChatMessageItem[]>([])
 const messagesLoading = ref(false)
 const messagesError = ref(false)
+/** 服务端消息总数（> 已加载条数时说明还有更早的消息） */
+const messagesTotal = ref(0)
+/** 已加载到的最早一页（`page=1` 为最近一段，逐页向更早翻） */
+const oldestPage = ref(1)
+const olderLoading = ref(false)
+const olderError = ref(false)
+
+const hasOlder = computed(() => messages.value.length < messagesTotal.value)
 
 // ---- 发送 / 撤回 ----
 const draft = ref('')
@@ -70,6 +78,19 @@ function groupLabel(group: MyChatGroup): string {
   return group.name || `#${group.id}`
 }
 
+/** 附件链接的展示名：取 URL 最后一段（去掉 query/hash 后 decode），取不到就回退原文 */
+function attachmentName(url: string): string {
+  const [withoutQuery = ''] = url.split('?')
+  const [path = ''] = withoutQuery.split('#')
+  const name = path.substring(path.lastIndexOf('/') + 1)
+  if (!name) return url
+  try {
+    return decodeURIComponent(name)
+  } catch {
+    return name
+  }
+}
+
 // ---------------------------------------------------------------- 群列表
 async function loadGroups(): Promise<void> {
   groupsLoading.value = true
@@ -88,15 +109,47 @@ async function loadGroups(): Promise<void> {
 async function loadMessages(groupId: number): Promise<void> {
   messagesLoading.value = true
   messagesError.value = false
+  olderError.value = false
+  oldestPage.value = 1
   try {
     const result = await chatMessageApi.list(groupId, {page: 1, page_size: PAGE_SIZE})
     if (activeGroupId.value !== groupId) return // 等待期间已切换群，丢弃过期结果
     messages.value = result.items
+    messagesTotal.value = result.total
     void nextTick(scrollToBottom)
   } catch {
     if (activeGroupId.value === groupId) messagesError.value = true
   } finally {
     messagesLoading.value = false
+  }
+}
+
+/** 向更早翻一页；插入后保持视口位置（不跳到顶部也不跳到底部） */
+async function loadOlder(): Promise<void> {
+  const groupId = activeGroupId.value
+  if (groupId === null || olderLoading.value || !hasOlder.value) return
+  olderLoading.value = true
+  olderError.value = false
+  const el = listBody.value
+  const beforeHeight = el?.scrollHeight ?? 0
+  const beforeTop = el?.scrollTop ?? 0
+  try {
+    const nextPage = oldestPage.value + 1
+    const result = await chatMessageApi.list(groupId, {page: nextPage, page_size: PAGE_SIZE})
+    if (activeGroupId.value !== groupId) return // 等待期间已切换群，丢弃过期结果
+    const known = new Set(messages.value.map((item) => item.id))
+    const older = result.items.filter((item) => !known.has(item.id))
+    messages.value = [...older, ...messages.value]
+    messagesTotal.value = result.total
+    oldestPage.value = nextPage
+    if (older.length) {
+      await nextTick()
+      if (el) el.scrollTop = el.scrollHeight - beforeHeight + beforeTop
+    }
+  } catch {
+    if (activeGroupId.value === groupId) olderError.value = true
+  } finally {
+    olderLoading.value = false
   }
 }
 
@@ -180,6 +233,7 @@ function openGroup(groupId: number): void {
   recallError.value = false
   activeGroupId.value = groupId
   messages.value = []
+  messagesTotal.value = 0
   void loadMessages(groupId)
   connectSocket(groupId)
 }
@@ -343,6 +397,13 @@ onBeforeUnmount(closeSocket)
             <EmptyState v-else-if="!messages.length" :title="$t('chatRoom.emptyMessages')"/>
 
             <template v-else>
+              <!-- 更早的消息：后端按页向更早翻（page=1 即最近一段） -->
+              <div v-if="hasOlder" class="flex flex-col items-center gap-1 pb-2">
+                <Button :disabled="olderLoading" size="sm" variant="outline" @click="loadOlder">
+                  {{ $t('chatRoom.loadMore') }}
+                </Button>
+                <p v-if="olderError" class="text-xs text-danger">{{ $t('chatRoom.loadFailed') }}</p>
+              </div>
               <div
                 v-for="message in messages"
                 :key="message.id"
@@ -371,7 +432,9 @@ onBeforeUnmount(closeSocket)
                         target="_blank"
                       >
                         <Icon class="h-3.5 w-3.5 shrink-0" name="file-text"/>
-                        <span class="truncate">{{ message.attachment_url }}</span>
+                        <span class="truncate">
+                          {{ $t('chatRoom.attachment') }} · {{ attachmentName(message.attachment_url || '') }}
+                        </span>
                       </a>
                     </template>
                   </div>

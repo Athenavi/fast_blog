@@ -112,14 +112,17 @@ export default defineNuxtConfig({
   // 因此 target 必须带同样的路径前缀，否则后端收到的是 /v3/** 而 404。
   // 媒体文件统一走 /api/v3/content/media/{id}/file 与 /api/v3/assets/storage/**，
   // 因此不再需要 /media 代理规则——它会把前台页面路由 /media 劫持给后端。
+  //
+  // **WebSocket 不走这里**：`Upgrade` 事件既不经过 nitro.devProxy（它是 HTTP 中间件），
+  // 也不经过 Vite 的 `server.proxy`（dev 下 Vite 只是中间件，没有自己的 HTTP server，
+  // 实测其 `configure` 回调收不到 upgrade）。因此浏览器侧的 WS 在 dev 下**直连后端**，
+  // 由运行时配置 `NUXT_PUBLIC_WS_BASE_URL` 指定（见 .env.development）；生产留空，
+  // 走同源，由 nginx 转发（`nginx.conf` 里 `map $http_upgrade $connection_upgrade`）。
   nitro: {
     devProxy: {
       '/api': {
         target: `${process.env.VITE_PROXY_TARGET || 'http://localhost:9421'}/api`,
         changeOrigin: true,
-        // 群聊是 WebSocket（`/api/v3/chat/message/ws/{group_id}`）：
-        // 不转发 Upgrade 头的话 dev 下会一直"实时连接已断开"
-        ws: true,
       },
     },
   },
@@ -129,6 +132,10 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '',
+      // 浏览器侧 WebSocket 基址。**dev 下必须显式指定**（如 ws://127.0.0.1:9421），
+      // 因为 WS 的 upgrade 既不经 nitro.devProxy 也不经 Vite proxy（见上面的说明）；
+      // 生产留空 → 同源，由 nginx 转发 Upgrade。
+      wsBaseUrl: process.env.NUXT_PUBLIC_WS_BASE_URL || '',
       // RUM 上报端点；留空表示只本地采集（后端 v3 暂无该端点）
       rumEndpoint: process.env.NUXT_PUBLIC_RUM_ENDPOINT || '',
     },

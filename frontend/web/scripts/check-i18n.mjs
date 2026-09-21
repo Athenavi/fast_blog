@@ -89,7 +89,36 @@ for (const file of walk(SRC_DIR)) {
     })
 }
 
-// 6) 报告
+// 6) 文案必须能被 vue-i18n **编译**：像 `JSON，如 {"a": "b"}` 这种"看着像插值"的文本，
+//    会让页面在渲染期直接抛错（Vite overlay + 白屏）；key 存在、type-check 也发现不了。
+//    这里用真正的 message-compiler 逐个过一遍（字面量花括号要写成 `{'{'}`）。
+const compileErrors = []
+{
+    // 用 vue-i18n 真正的编译入口（`@intlify/core-base` 的 `compile`，vue-i18n 依赖它）：
+    // `@intlify/message-compiler` 的 `baseCompile` 对这种文本**不报错**，抓不住问题。
+    const {compile} = await import('@intlify/core-base')
+    for (const file of LOCALE_FILES) {
+        const data = JSON.parse(fs.readFileSync(path.join(LOCALE_DIR, file), 'utf-8'))
+        const stack = [[data, '']]
+        while (stack.length) {
+            const [node, prefix] = stack.pop()
+            for (const [key, value] of Object.entries(node)) {
+                const full = prefix ? `${prefix}.${key}` : key
+                if (typeof value === 'string') {
+                    try {
+                        compile(value, {})
+                    } catch (error) {
+                        compileErrors.push(`${file}: ${full} -> ${String(error.message).split('\n')[0]}`)
+                    }
+                } else if (value && typeof value === 'object') {
+                    stack.push([value, full])
+                }
+            }
+        }
+    }
+}
+
+// 7) 报告
 const missing = [...used].filter((key) => !base.has(key)).sort()
 console.log(`locale 文件：${LOCALE_FILES.join(', ')}`)
 console.log(`key 总数：${base.size}（${first}）`)
@@ -111,12 +140,17 @@ if (malformed.length) {
     for (const line of malformed) console.log(`  - ${line}`)
 }
 
+if (compileErrors.length) {
+    console.log('\n❌ 这些文案无法被 vue-i18n 编译（多半是写了 `{...}` 字面量，需转义为 `{\'{\'}`）：')
+    for (const line of compileErrors) console.log(`  - ${line}`)
+}
+
 if (missing.length) {
     console.log('\n❌ 代码里用到但 locale 缺失的 key：')
     for (const key of missing) console.log(`  - ${key}`)
 }
 
-if (missing.length || missingMenus.length || malformed.length || asymmetric.length) {
+if (missing.length || missingMenus.length || malformed.length || asymmetric.length || compileErrors.length) {
     process.exit(1)
 }
 

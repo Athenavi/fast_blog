@@ -20,6 +20,8 @@ npm run type-check   # nuxt typecheck
 VITE_PORT=5173                                 # 开发端口
 VITE_PROXY_TARGET=http://localhost:9421        # dev 代理目标（同时供 SSR 服务端请求）
 NUXT_PUBLIC_API_BASE_URL=http://localhost:9421 # SSR 阶段请求后端的绝对地址；浏览器侧留空走同源
+NUXT_PUBLIC_WS_BASE_URL=ws://127.0.0.1:9421    # 浏览器侧 WebSocket 基址；仅 dev 需要
+                                               # （WS 的 Upgrade 不经 nitro/Vite 代理），生产留空走同源
 ```
 
 ## 目录

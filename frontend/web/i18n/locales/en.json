@@ -1395,6 +1395,69 @@
         "deleteConfirm": "Delete shortcode \"{name}\"?",
         "copied": "Code copied",
         "copyFailed": "Copy failed, please copy manually"
+      },
+      "thirdPartyPublish": {
+        "title": "Multi-platform publish",
+        "keyword": "Keyword",
+        "noPlatforms": "No platform adapter is registered yet. You can configure channels now; adapters are added platform by platform. Until an adapter exists, publish tasks fail and state the exact reason.",
+        "tabChannels": "Channels",
+        "tabTasks": "Publish tasks",
+        "status": {
+          "pending": "Pending",
+          "publishing": "Publishing",
+          "success": "Success",
+          "failed": "Failed"
+        },
+        "channel": {
+          "createTitle": "New channel",
+          "editTitle": "Edit channel",
+          "nameRequired": "Channel name is required",
+          "namePlaceholder": "e.g. My WeChat account",
+          "platformRequired": "Platform key is required",
+          "keywordPlaceholder": "Name / platform",
+          "platform": "Platform",
+          "platformPlaceholder": "e.g. wechat_mp (key in the adapter registry)",
+          "platformHint": "Registered platforms: {list}",
+          "endpoint": "API base override",
+          "endpointPlaceholder": "Optional, for self-hosted gateways",
+          "credentials": "Credentials",
+          "credentialsPlaceholder": "JSON object, e.g. with keys app_id / app_secret",
+          "credentialsKeep": "Credentials are encrypted and never returned; leave blank to keep the current value",
+          "credentialsInvalid": "Credentials must be a valid JSON object",
+          "hasCredentials": "Configured",
+          "noCredentials": "Not configured",
+          "adapterReady": "Adapter ready",
+          "adapterMissing": "Adapter pending",
+          "verify": "Verify",
+          "verifyOk": "Verification passed",
+          "verifyFailed": "Verification failed",
+          "deleteConfirm": "Delete channel \"{name}\"? Its publish tasks and logs are deleted too."
+        },
+        "task": {
+          "createTitle": "New publish task",
+          "createAndRun": "Create and run",
+          "formRequired": "Pick an article and a channel",
+          "createdOk": "Published",
+          "createdFailed": "Task created, but publishing failed (see \"Last error\")",
+          "retry": "Retry",
+          "retryOk": "Retry succeeded",
+          "retryFailed": "Retry failed again (see \"Last error\")",
+          "deleteConfirm": "Delete task #{id}?",
+          "detail": "Detail",
+          "detailTitle": "Task detail",
+          "article": "Article",
+          "articlePlaceholder": "Search by title",
+          "channel": "Channel",
+          "channelPlaceholder": "Pick a channel",
+          "status": "Status",
+          "attempts": "Attempts",
+          "lastError": "Last error",
+          "updatedAt": "Updated at",
+          "externalUrl": "External URL",
+          "logs": "Attempt logs",
+          "logMessage": "Message",
+          "logDuration": "Duration (ms)"
+        }
       }
     },
     "widget": {
@@ -2326,7 +2389,8 @@
     "PointsManage": "Points Management",
     "BadgesManage": "Badge Management",
     "CertificationReview": "Certification Review",
-    "TippingManage": "Tipping & Withdrawals"
+    "TippingManage": "Tipping & Withdrawals",
+    "ThirdPartyPublish": "Multi-platform publish"
   },
   "category": {
     "subtitle": "Browse all articles by category",
@@ -2836,6 +2900,7 @@
     "retry": "Retry",
     "recall": "Recall",
     "recalled": "This message was recalled",
+    "attachment": "Attachment",
     "recallFailed": "Failed to recall",
     "loadMore": "Load earlier messages",
     "members": "{n} members"

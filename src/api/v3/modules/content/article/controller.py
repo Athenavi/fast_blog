@@ -56,6 +56,9 @@ async def public_articles(
     keyword: Optional[str] = Query(default=None),
     post_type: Optional[str] = Query(default=None),
     user_id: Optional[int] = Query(default=None, description="只看某位作者的公开文章"),
+    exclude_vip: bool = Query(
+        default=False, description="排除仅 VIP 可见的文章（作者主页文章列表用）"
+    ),
 ) -> dict:
     items, total = await article_service.public_list(
         db,
@@ -66,6 +69,7 @@ async def public_articles(
         keyword=keyword,
         post_type=post_type,
         user_id=user_id,
+        exclude_vip=exclude_vip,
     )
     return resp.success_page(items, total, page, page_size)
 

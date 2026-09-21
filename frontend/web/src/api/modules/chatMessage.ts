@@ -4,6 +4,8 @@
  * 历史读取与发送走 HTTP；实时收发走原生 WebSocket（由 `wsUrl` 构造连接地址）。
  * 认证与 `message.ts` 一致：走 `@/api/request`，自动注入 Bearer token 并在 401 时静默刷新。
  */
+import {useRuntimeConfig} from '#imports'
+
 import {STORAGE_TOKEN} from '@/constants'
 import {storage} from '@/utils/storage'
 
@@ -78,11 +80,17 @@ export const chatMessageApi = {
    * 浏览器原生 WebSocket **无法自定义请求头**，因此不能沿用 `Authorization: Bearer`；
    * 这里把 token 拼进 query（`?token=`）——后端 `resolve_ws_user` 的第三级回退会读取它
    * （优先级：Cookie `access_token` → 子协议 `bearer.<token>` → query `token`）。
+   *
+   * 基址取 `runtimeConfig.public.wsBaseUrl`：**dev 下必须配**（如 `ws://127.0.0.1:9421`），
+   * 因为 WS 的 upgrade 既不经过 `nitro.devProxy` 也不经过 Vite 的 `server.proxy`；
+   * 留空表示同源（生产形态，由 nginx 转发 Upgrade）。
    */
   wsUrl: (groupId: number): string => {
+    const configured = String(useRuntimeConfig().public.wsBaseUrl || '')
     const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const base = configured ? configured.replace(/\/+$/, '') : `${proto}//${window.location.host}`
     const token = storage.get<string>(STORAGE_TOKEN) || ''
     const query = token ? `?token=${encodeURIComponent(token)}` : ''
-    return `${proto}//${window.location.host}/api/v3/chat/message/ws/${groupId}${query}`
+    return `${base}/api/v3/chat/message/ws/${groupId}${query}`
   },
 }

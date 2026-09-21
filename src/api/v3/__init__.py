@@ -61,7 +61,7 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "user",
     ),
     "/content": ("approval", "article", "category", "collaboration", "comment", "custom_post_type", "media", "page", "page_builder",
-                 "shortcode", "tag"),
+                 "shortcode", "tag", "third_party_publish"),
     "/analytics": ("dashboard", "report", "search", "seo"),
     "/ops": ("backup", "cdn", "deployment", "email", "enterprise", "migration", "notification", "upgrade", "webhook"),
     "/extension": ("block_pattern", "plugin", "theme", "widget"),

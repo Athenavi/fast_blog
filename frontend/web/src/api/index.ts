@@ -476,3 +476,17 @@ export type {
   ChatMessageSendResult,
   MyChatGroup,
 } from './modules/chatMessage'
+
+// ---------------------------------------------------------------- 批次 18（多平台发布底座）
+export {thirdPartyPublishApi} from './modules/thirdPartyPublish'
+export type {
+  PublishChannelItem,
+  PublishChannelPayload,
+  PublishChannelQuery,
+  PublishChannelVerifyResult,
+  PublishLogItem,
+  PublishPlatform,
+  PublishTaskDetail,
+  PublishTaskItem,
+  PublishTaskQuery,
+} from './modules/thirdPartyPublish'

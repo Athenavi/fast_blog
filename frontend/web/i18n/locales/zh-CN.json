@@ -1395,6 +1395,69 @@
         "deleteConfirm": "确定删除短代码「{name}」吗？",
         "copied": "代码已复制",
         "copyFailed": "复制失败，请手动复制"
+      },
+      "thirdPartyPublish": {
+        "title": "多平台发布",
+        "keyword": "关键词",
+        "noPlatforms": "当前没有已接入的平台适配器：可以先把渠道配置好，适配器按清单分期接入；适配器接入前，发布任务会如实失败并写明原因。",
+        "tabChannels": "渠道配置",
+        "tabTasks": "发布任务",
+        "status": {
+          "pending": "待执行",
+          "publishing": "执行中",
+          "success": "成功",
+          "failed": "失败"
+        },
+        "channel": {
+          "createTitle": "新建渠道",
+          "editTitle": "编辑渠道",
+          "nameRequired": "请填写渠道名",
+          "namePlaceholder": "如「我的公众号」",
+          "platformRequired": "请填写平台标识",
+          "keywordPlaceholder": "渠道名 / 平台标识",
+          "platform": "平台标识",
+          "platformPlaceholder": "如 wechat_mp（适配器注册表的 key）",
+          "platformHint": "当前已接入的平台：{list}",
+          "endpoint": "API 基址覆盖",
+          "endpointPlaceholder": "可选，自建网关时填写",
+          "credentials": "凭据",
+          "credentialsPlaceholder": "JSON 对象，例如 app_id / app_secret 等键名",
+          "credentialsKeep": "凭据加密存储、永不回传；编辑时留空表示保持原值",
+          "credentialsInvalid": "凭据必须是合法的 JSON 对象",
+          "hasCredentials": "已配置",
+          "noCredentials": "未配置",
+          "adapterReady": "适配器已接入",
+          "adapterMissing": "适配器待接入",
+          "verify": "自检",
+          "verifyOk": "自检通过",
+          "verifyFailed": "自检未通过",
+          "deleteConfirm": "确定删除渠道「{name}」？该渠道下的发布任务与记录也会一并删除。"
+        },
+        "task": {
+          "createTitle": "新建发布任务",
+          "createAndRun": "创建并执行",
+          "formRequired": "请选择文章与渠道",
+          "createdOk": "发布成功",
+          "createdFailed": "已创建任务，但发布未成功（原因见「最近错误」）",
+          "retry": "重试",
+          "retryOk": "重试成功",
+          "retryFailed": "重试仍未成功（原因见「最近错误」）",
+          "deleteConfirm": "确定删除任务 #{id}？",
+          "detail": "详情",
+          "detailTitle": "任务详情",
+          "article": "文章",
+          "articlePlaceholder": "搜索文章标题",
+          "channel": "渠道",
+          "channelPlaceholder": "选择渠道",
+          "status": "状态",
+          "attempts": "尝试次数",
+          "lastError": "最近错误",
+          "updatedAt": "更新时间",
+          "externalUrl": "平台链接",
+          "logs": "尝试记录",
+          "logMessage": "说明",
+          "logDuration": "耗时(ms)"
+        }
       }
     },
     "widget": {
@@ -2326,7 +2389,8 @@
     "PointsManage": "积分管理",
     "BadgesManage": "勋章管理",
     "CertificationReview": "认证审核",
-    "TippingManage": "打赏与提现"
+    "TippingManage": "打赏与提现",
+    "ThirdPartyPublish": "多平台发布"
   },
   "category": {
     "subtitle": "按分类浏览全部文章",
@@ -2836,6 +2900,7 @@
     "retry": "重试",
     "recall": "撤回",
     "recalled": "该消息已撤回",
+    "attachment": "附件",
     "recallFailed": "撤回失败",
     "loadMore": "加载更早的消息",
     "members": "{n} 名成员"
