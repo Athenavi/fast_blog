@@ -1,10 +1,13 @@
 <script lang="ts" setup>
 /**
- * CDN 配置（T5-11 批次 4）
+ * CDN 配置（T5-11 批次 4；远端动作批次 18）
  *
- * 对齐 v3 `/ops/cdn/config`（GET/PUT，单配置）。
- * api_token 只写不读（响应只有 has_api_token），留空保持原值；
- * 实际清缓存/预热等远端动作为二期。
+ * 对齐 v3 `/ops/cdn/config`（GET/PUT，单配置）与 `/ops/cdn/purge`、`/ops/cdn/preheat`。
+ * api_token 只写不读（响应只有 has_api_token），留空保持原值。
+ *
+ * **远端动作是真实调用**：cloudflare 走官方 purge_cache API、custom 调自建网关；
+ * 厂商签名未接入的 provider（aws/aliyun/tencent）与 cloudflare 的预热都会被后端
+ * 明确拒绝 —— 页面如实显示错误原因，不显示任何"看起来成功"的结果。
  */
 import {ElMessage} from '@/utils/feedback'
 import {onMounted, reactive, ref} from 'vue'
@@ -88,6 +91,50 @@ async function submit(): Promise<void> {
     saving.value = false
   }
 }
+
+// ---------------------------------------------------------------- 远端动作
+const purgeUrlsText = ref('')
+const purgeEverything = ref(false)
+const purging = ref(false)
+const preheating = ref(false)
+
+/** URL 支持换行或逗号分隔 */
+function parsePurgeUrls(): string[] {
+  return purgeUrlsText.value
+    .split(/[\n,]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+async function runPurge(): Promise<void> {
+  const urls = parsePurgeUrls()
+  if (!purgeEverything.value && !urls.length) {
+    ElMessage.warning(t('admin.ops.cdn.remote.urlsRequired'))
+    return
+  }
+  purging.value = true
+  try {
+    const result = await cdnApi.purge({urls, purge_everything: purgeEverything.value})
+    ElMessage.success(result.message || t('admin.ops.cdn.remote.purgeOk'))
+  } finally {
+    purging.value = false
+  }
+}
+
+async function runPreheat(): Promise<void> {
+  const urls = parsePurgeUrls()
+  if (!urls.length) {
+    ElMessage.warning(t('admin.ops.cdn.remote.urlsRequired'))
+    return
+  }
+  preheating.value = true
+  try {
+    const result = await cdnApi.preheat({urls})
+    ElMessage.success(result.message || t('admin.ops.cdn.remote.preheatOk'))
+  } finally {
+    preheating.value = false
+  }
+}
 </script>
 
 <template>
@@ -142,5 +189,57 @@ async function submit(): Promise<void> {
         </el-form-item>
       </el-form>
     </el-card>
+
+    <!-- 远端动作：真实调用厂商接口；未接入/未配置时后端会带原因拒绝 -->
+    <el-card class="remote-card" shadow="never">
+      <template #header>
+        <span>{{ $t('admin.ops.cdn.remote.title') }}</span>
+      </template>
+
+      <el-form label-width="130px" style="max-width: 640px">
+        <el-form-item :label="$t('admin.ops.cdn.remote.urls')">
+          <el-input
+            v-model="purgeUrlsText"
+            :autosize="{minRows: 3, maxRows: 8}"
+            :placeholder="$t('admin.ops.cdn.remote.urlsPlaceholder')"
+            type="textarea"
+          />
+        </el-form-item>
+        <el-form-item :label="$t('admin.ops.cdn.remote.purgeEverything')">
+          <el-switch v-model="purgeEverything"/>
+          <span class="remote-hint">{{ $t('admin.ops.cdn.remote.purgeEverythingHint') }}</span>
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            v-auth="'module_ops:cdn:execute'"
+            :loading="purging"
+            type="primary"
+            @click="runPurge"
+          >
+            {{ $t('admin.ops.cdn.remote.purge') }}
+          </el-button>
+          <el-button
+            v-auth="'module_ops:cdn:execute'"
+            :loading="preheating"
+            @click="runPreheat"
+          >
+            {{ $t('admin.ops.cdn.remote.preheat') }}
+          </el-button>
+        </el-form-item>
+        <p class="remote-hint">{{ $t('admin.ops.cdn.remote.hint') }}</p>
+      </el-form>
+    </el-card>
   </div>
 </template>
+
+<style scoped>
+.remote-card {
+  margin-top: 16px;
+}
+
+.remote-hint {
+  margin-left: 10px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+</style>

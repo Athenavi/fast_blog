@@ -1,13 +1,16 @@
 """
 SQLAlchemy 模型定义 - SystemSettings
-由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+由代码生成器自动生成 (基于 models.yaml / routes.yaml)
 生成时间：2026-06-13 23:12:16
+
+> 2026-09-21（批次 18）手工最小改动：``setting_value`` 由 ``String(255)`` 改为 ``Text``。
+> 该列同时承载 JSON 配置（如 ``cdn.config``），255 字符会让保存直接 500；
+> ``models.yaml`` 已同步，迁移见 ``e5b7c9d1f3a6_system_settings_value_text.py``。
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class SystemSettings(Base):
@@ -21,7 +24,7 @@ class SystemSettings(Base):
 
     setting_key = Column(String(100), nullable=True, doc='设置键')
 
-    setting_value = Column(String(255), nullable=True, doc='设置值')
+    setting_value = Column(Text, nullable=True, doc='设置值（JSON 配置同样存这里，故用 TEXT）')
 
     setting_type = Column(String(255), default='string', doc='设置类型')
 

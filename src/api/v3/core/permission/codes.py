@@ -198,6 +198,8 @@ NOTIFICATION_EDIT = "module_ops:notification:edit"
 
 CDN_VIEW = "module_ops:cdn:view"
 CDN_EDIT = "module_ops:cdn:edit"
+#: 批次 18：CDN 远端动作（清缓存 / 预热）
+CDN_EXECUTE = "module_ops:cdn:execute"
 
 # ============================================================ T5-11 批次 5（可做项）
 UPGRADE_VIEW = "module_ops:upgrade:view"
@@ -533,6 +535,7 @@ CODE_LABELS: dict[str, str] = {
     NOTIFICATION_EDIT: "管理通知",
     CDN_VIEW: "查看 CDN 配置",
     CDN_EDIT: "编辑 CDN 配置",
+    CDN_EXECUTE: "执行 CDN 远端动作（清缓存/预热）",
     UPGRADE_VIEW: "查看在线升级",
     UPGRADE_EXECUTE: "执行升级操作",
 }

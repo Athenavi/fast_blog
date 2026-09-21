@@ -1746,7 +1746,8 @@
         "cancelled": "Cancelled",
         "logs": "Logs",
         "logLevel": "Level",
-        "engineHint": "The execution engine ships in phase 2: create task records and move statuses now; importers land per platform later."
+        "engineHint": "Starting the task really imports the WordPress WXR file referenced by file_path in the config (posts only; pages / attachments are skipped and logged).",
+        "filePathHint": "Put file_path in the config, pointing to a WordPress export (.xml) file visible to the server."
       },
       "email": {
         "title": "Email",
@@ -1783,7 +1784,20 @@
         "settings": "Extra Settings (JSON)",
         "settingsPlaceholder": "Example: cache_ttl: 86400",
         "active": "Enable CDN",
-        "invalidJson": "Extra settings is not valid JSON"
+        "invalidJson": "Extra settings is not valid JSON",
+        "remote": {
+          "title": "Remote actions",
+          "urls": "URLs",
+          "urlsPlaceholder": "One URL per line (comma separated also works)",
+          "purgeEverything": "Purge everything",
+          "purgeEverythingHint": "Cloudflare only (clears the whole zone cache)",
+          "purge": "Purge cache",
+          "preheat": "Preheat",
+          "purgeOk": "Cache purge submitted",
+          "preheatOk": "Preheat submitted",
+          "urlsRequired": "Enter at least one URL (or turn on \"Purge everything\")",
+          "hint": "Remote actions call the real CDN API; providers without signature support and Cloudflare preheat are rejected with a reason."
+        }
       },
       "upgrade": {
         "title": "Online Upgrade",

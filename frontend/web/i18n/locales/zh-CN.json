@@ -1746,7 +1746,8 @@
         "cancelled": "已取消",
         "logs": "日志",
         "logLevel": "级别",
-        "engineHint": "执行引擎为二期：当前可创建任务档案并流转状态，真实导入器按来源平台逐步接入。"
+        "engineHint": "启动后会真实导入配置里 file_path 指向的 WordPress WXR 文件（当前支持 post；page / attachment 会跳过并写进日志）。",
+        "filePathHint": "配置里填 file_path，指向服务端可见的 WordPress 导出文件（.xml）。"
       },
       "email": {
         "title": "邮件服务",
@@ -1783,7 +1784,20 @@
         "settings": "扩展设置（JSON）",
         "settingsPlaceholder": "示例：cache_ttl: 86400",
         "active": "启用 CDN",
-        "invalidJson": "扩展设置不是合法 JSON"
+        "invalidJson": "扩展设置不是合法 JSON",
+        "remote": {
+          "title": "远端动作",
+          "urls": "URL 列表",
+          "urlsPlaceholder": "每行一个 URL（也支持逗号分隔）",
+          "purgeEverything": "全量清理",
+          "purgeEverythingHint": "仅 Cloudflare 支持（清空整个 zone 缓存）",
+          "purge": "清缓存",
+          "preheat": "预热",
+          "purgeOk": "已提交清缓存",
+          "preheatOk": "已提交预热",
+          "urlsRequired": "请填写要处理的 URL（或打开「全量清理」）",
+          "hint": "远端动作会真实调用 CDN 接口；厂商签名未接入的 provider 与 Cloudflare 的预热会被明确拒绝。"
+        }
       },
       "upgrade": {
         "title": "在线升级",

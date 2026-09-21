@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 /**
- * 数据迁移任务（T5-11 批次 2）
+ * 数据迁移任务（T5-11 批次 2；真实导入批次 18）
  *
  * 对齐 v3 `/ops/migration`：任务档案 + 启动/取消 + 日志。
- * 执行引擎为二期：start 只流转状态（见模块 docstring）。
+ * **start 会真的导入** `config.file_path` 指向的 WordPress WXR（进度与日志实时可查）；
+ * 平台没有导入器 / 文件不存在 / 文件过大都会直接报错，不会留下"看着在跑"的假任务。
  */
 import {Plus, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
@@ -51,7 +52,12 @@ const formTitle = computed(() =>
 
 function openCreate() {
   editingId.value = null
-  Object.assign(form, {task_name: '', source_platform: 'wordpress', config_text: '{\n  \n}', total_items: 0})
+  Object.assign(form, {
+    task_name: '',
+    source_platform: 'wordpress',
+    config_text: '{\n  "file_path": ""\n}',
+    total_items: 0
+  })
   formVisible.value = true
 }
 
@@ -252,6 +258,7 @@ async function openLogs(row: MigrationTaskItem) {
         </el-form-item>
         <el-form-item :label="$t('admin.ops.migration.configLabel')">
           <el-input v-model="form.config_text" :autosize="{minRows: 6, maxRows: 14}" type="textarea"/>
+          <div class="config-hint">{{ $t('admin.ops.migration.filePathHint') }}</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -270,3 +277,11 @@ async function openLogs(row: MigrationTaskItem) {
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.config-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+</style>

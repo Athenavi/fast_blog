@@ -1086,8 +1086,8 @@ models:
         maxLength: 100
         description: 设置键
       setting_value:
-        type: string
-        description: 设置值
+        type: text
+        description: 设置值（**同时承载 JSON 配置**，如 cdn.config；故用 text 而非 string(255)）
       setting_type:
         type: string
         enum:

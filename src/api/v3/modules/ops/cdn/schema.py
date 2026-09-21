@@ -28,3 +28,21 @@ class CDNConfigOut(SchemaBase):
     settings: Optional[dict] = None
     is_active: bool = False
     updated_at: Optional[str] = None
+
+
+class CDNPurgePayload(SchemaBase):
+    """清缓存 / 预热的入参"""
+
+    urls: list[str] = Field(default_factory=list, description="要处理的 URL 列表")
+    purge_everything: bool = Field(default=False, description="全量清理（仅 Cloudflare 支持）")
+
+
+class CDNPurgeResult(SchemaBase):
+    """远端动作结果（``success=false`` 的情况一律由异常承载，不会返回"看起来成功"）"""
+
+    provider: str
+    success: bool = True
+    status_code: Optional[int] = None
+    purge_everything: bool = False
+    urls: list[str] = Field(default_factory=list)
+    message: Optional[str] = None
