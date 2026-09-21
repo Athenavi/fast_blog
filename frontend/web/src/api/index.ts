@@ -92,6 +92,10 @@ export type {
   AiConfigItem,
   AiConfigPayload,
   AiConfigQuery,
+  AiConfigTestResult,
+  AiProviderItem,
+  AiTaskTypeItem,
+  AiWorkflowExecutePayload,
   AiWorkflowItem,
   AiWorkflowQuery,
 } from './modules/ai'

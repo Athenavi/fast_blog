@@ -280,6 +280,8 @@ AI_CONFIG_DELETE = "module_ai:config:delete"
 
 AI_WORKFLOW_VIEW = "module_ai:workflow:view"
 AI_WORKFLOW_DELETE = "module_ai:workflow:delete"
+#: 执行 AI 任务（会真实调用外部模型、消耗额度，因此单独授权）
+AI_WORKFLOW_EXECUTE = "module_ai:workflow:execute"
 
 # ============================================================ chat 域（T5-11 批次 4）
 CHAT_GROUP_VIEW = "module_chat:group:view"
@@ -469,6 +471,7 @@ CODE_LABELS: dict[str, str] = {
     AI_CONFIG_DELETE: "删除 AI 配置",
     AI_WORKFLOW_VIEW: "查看 AI 工作流",
     AI_WORKFLOW_DELETE: "删除 AI 工作流记录",
+    AI_WORKFLOW_EXECUTE: "执行 AI 任务（调用外部模型）",
     # ---- chat ----
     CHAT_GROUP_VIEW: "查看群聊",
     CHAT_GROUP_CREATE: "创建群聊",

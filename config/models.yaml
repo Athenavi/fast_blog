@@ -8129,7 +8129,20 @@ models:
         type: string
         maxLength: 50
         default: openai
-        description: "Provider (openai, deepseek, anthropic, custom)"
+        description: "Provider (openai, deepseek, qwen, ollama, anthropic, claude, custom ...)"
+      api_version:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: "API version: Anthropic uses anthropic-version header, OpenAI-compatible uses api-version query (Azure)"
+      extra_headers:
+        type: text
+        nullable: true
+        description: "Extra request headers as JSON object (e.g. Azure api-key, gateway auth)"
+      max_tokens:
+        type: integer
+        default: 1024
+        description: "Max output tokens per call"
       is_active:
         type: boolean
         default: false
