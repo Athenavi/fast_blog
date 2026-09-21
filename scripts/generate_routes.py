@@ -323,9 +323,8 @@ class RouteGenerator:
                     defs_target = model_def.get('defs_target', f"{model_name.lower()}_defs.py")
                     custom_methods = self._load_custom_methods_from_target(model_name, def_list, defs_target)
 
-                # 收集索引
-                indexes = model_def.get('indexes', [])
-                unique_constraints = [ix for ix in indexes if ix.get('unique')]
+                # 收集索引（unique 项只生成 UniqueConstraint，见 _split_indexes 的说明）
+                indexes, unique_constraints = self._split_indexes(model_def)
 
                 # 收集所有字段类型信息
                 has_datetime_default = False
@@ -460,6 +459,20 @@ class RouteGenerator:
                 imports.add("from src.auth import jwt_required_dependency as jwt_required")
 
         return sorted(list(imports))
+
+    @staticmethod
+    def _split_indexes(model_def: Dict) -> tuple:
+        """把 yaml 的 indexes 段拆成 ``(普通索引, 唯一约束)``
+
+        ⚠️ ``unique: true`` 的项**只生成 UniqueConstraint**：两边都生成会让同一个索引被渲染两遍
+        （同名 ``UniqueConstraint`` 与 ``Index(name, unique=True)``），PostgreSQL 建表直接报
+        ``DuplicateTableError``（批次 20 用 ``create_all`` 时实测到）。``table_has_indexes``
+        也要按"过滤后的普通索引"判断，否则会 import 用不到的 ``Index``。
+        """
+        all_indexes = model_def.get('indexes', []) or []
+        unique_constraints = [ix for ix in all_indexes if ix.get('unique')]
+        plain_indexes = [ix for ix in all_indexes if not ix.get('unique')]
+        return plain_indexes, unique_constraints
 
     def _model_name_to_filename(self, model_name: str) -> str:
         """将模型名转换为文件名（驼峰转下划线）"""
@@ -638,8 +651,12 @@ class RouteGenerator:
                         pass
 
             # 常规属性
-            if prop_def.get('nullable'):
-                field_info['nullable'] = True
+            # nullable 是**三态**：只有 yaml 显式声明时才写进 field_info ——
+            # 这样模板能区分"没写"（保持 SQLAlchemy 默认）与"显式写了 false"（生成 nullable=False）。
+            # 历史缺陷：这里原来只处理真值（`if prop_def.get('nullable')`），于是 `nullable: false`
+            # 生成出来的列仍是可空的。
+            if 'nullable' in prop_def:
+                field_info['nullable'] = bool(prop_def['nullable'])
             if prop_def.get('maxLength'):
                 field_info['max_length'] = prop_def['maxLength']
             if 'default' in prop_def:

@@ -1,9 +1,9 @@
 [RELEASE]
-version = 0.7.26.0906
-build_time = 2026-09-06T12:00:00Z
+version = 0.8.26.0921
+build_time = 2026-09-21T15:00:00Z
 
 [DATABASE]
-migration = dba7d5c907ac
+migration = 8b7ecb6d053c
 status = up_to_date
 
 [AUTHOR]

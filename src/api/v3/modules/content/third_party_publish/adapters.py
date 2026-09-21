@@ -167,3 +167,20 @@ def adapter_platforms() -> list[dict[str, str]]:
         }
         for platform, adapter in sorted(ADAPTERS.items())
     ]
+
+
+def load_builtin_adapters() -> None:
+    """导入内置适配器包（每个平台一个模块，**导入即注册**）
+
+    单独放函数里并容错：某个平台模块写坏了不该让整个 API 起不来 ——
+    但要留下**警告**（否则就成了"静默少了一批平台"，与"如实"相悖）。
+    """
+    try:
+        from src.api.v3.modules.content.third_party_publish import builtin  # noqa: F401
+    except Exception as exc:  # noqa: BLE001 - 平台模块的导入错误不拖垮应用，但必须出声
+        import logging
+
+        logging.getLogger("third_party_publish").warning("内置平台适配器加载失败：%s", exc)
+
+
+load_builtin_adapters()

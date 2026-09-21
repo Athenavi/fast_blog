@@ -4,7 +4,7 @@ SQLAlchemy 模型定义 - UserGroupMember
 生成时间：2026-09-18 15:22:48
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, BigInteger, DateTime, ForeignKey, Index, UniqueConstraint
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
@@ -17,7 +17,7 @@ class UserGroupMember(Base):
         UniqueConstraint('user_id', 'group_id', name='idx_user_group_members_unique'),
         Index('idx_user_group_members_user', 'user_id'),
         Index('idx_user_group_members_group', 'group_id'),
-        Index('idx_user_group_members_unique', 'user_id', 'group_id', unique=True),
+        # 不要加同名 Index(..., unique=True)：UniqueConstraint 已创建同名唯一索引（批次 21 实测会冲突）
     )
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')

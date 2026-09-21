@@ -15,7 +15,8 @@ class AdminMenu(Base):
 
     __table_args__ = (
         UniqueConstraint('code', name='idx_admin_menus_code'),
-        Index('idx_admin_menus_code', 'code', unique=True),
+        # ⚠️ 不要再加同名的 Index(..., unique=True)：UniqueConstraint 已创建同名唯一索引，
+        # 两者并存会让建表直接报 DuplicateTableError（批次 21 重置迁移基线时实测）。
         Index('idx_admin_menus_parent', 'parent_id'),
         Index('idx_admin_menus_active', 'is_active'),
         Index('idx_admin_menus_sort', 'sort_order'),

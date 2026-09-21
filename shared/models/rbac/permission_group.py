@@ -4,7 +4,7 @@ SQLAlchemy 模型定义 - PermissionGroup
 生成时间：2026-09-18 15:22:48
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 # 提前导入关联表所在模块，确保 secondary 字符串（user_group_members / role_groups）可被解析
@@ -19,7 +19,7 @@ class PermissionGroup(Base):
 
     __table_args__ = (
         UniqueConstraint('code', name='idx_permission_groups_code'),
-        Index('idx_permission_groups_code', 'code', unique=True),
+        # 不要加同名 Index(..., unique=True)：UniqueConstraint 已创建同名唯一索引（同上）
         Index('idx_permission_groups_parent', 'parent_id'),
         Index('idx_permission_groups_active', 'is_active'),
         Index('idx_permission_groups_sort', 'sort_order'),

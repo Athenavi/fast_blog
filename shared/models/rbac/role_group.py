@@ -4,7 +4,7 @@ SQLAlchemy 模型定义 - RoleGroup
 生成时间：2026-09-18 15:22:48
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import Column, BigInteger, DateTime, ForeignKey, Index, UniqueConstraint
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
@@ -17,7 +17,7 @@ class RoleGroup(Base):
         UniqueConstraint('role_id', 'group_id', name='idx_role_groups_unique'),
         Index('idx_role_groups_role', 'role_id'),
         Index('idx_role_groups_group', 'group_id'),
-        Index('idx_role_groups_unique', 'role_id', 'group_id', unique=True),
+        # 不要加同名 Index(..., unique=True)：UniqueConstraint 已创建同名唯一索引（批次 21 实测会冲突）
     )
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')

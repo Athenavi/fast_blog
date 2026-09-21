@@ -17,7 +17,7 @@ class RoleAdminMenu(Base):
         UniqueConstraint('role_id', 'admin_menu_id', name='idx_role_admin_menus_unique'),
         Index('idx_role_admin_menus_role', 'role_id'),
         Index('idx_role_admin_menus_menu', 'admin_menu_id'),
-        Index('idx_role_admin_menus_unique', 'role_id', 'admin_menu_id', unique=True),
+        # 不要加同名 Index(..., unique=True)：UniqueConstraint 已创建同名唯一索引（批次 21 实测会冲突）
     )
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')

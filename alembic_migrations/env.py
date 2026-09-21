@@ -33,10 +33,26 @@ if not env_loaded:
     for p in env_candidates:
         _alembic_logger.warning("  - %s", p)
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import TypeDecorator, engine_from_config, pool
 
 from alembic import context
+
+
+def _render_item(type_, obj, autogen_context):
+    """把自定义类型渲染成它的底层 SQLAlchemy 类型。
+
+    `EncryptedField` 这类 TypeDecorator 默认会被 autogenerate 渲染成
+    ``shared.utils.crypto.EncryptedField()``，于是生成的迁移**依赖应用代码**：类一旦改名或
+    挪位置，历史迁移立刻 `NameError`（批次 21 重建迁移基线时实测到）。这里统一渲染成底层
+    类型（`EncryptedField.impl = Text` → ``sa.Text()``），迁移文件因此自洽 —— 库里的列类型
+    本来也就是底层类型。
+    """
+    if type_ == "type" and isinstance(obj, TypeDecorator):
+        impl = obj.load_dialect_impl(autogen_context.dialect)
+        name = type(impl).__name__
+        length = getattr(impl, "length", None)
+        return f"sa.{name}(length={length})" if length else f"sa.{name}()"
+    return False
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -193,6 +209,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_item=_render_item,
     )
 
     with context.begin_transaction():
@@ -219,6 +236,7 @@ def run_migrations_online() -> None:
             compare_type=True,  # 比较列类型
             render_as_batch=True,  # 支持批量操作（SQLite需要）
             include_schemas=True,  # 包含所有schema
+            render_item=_render_item,  # 自定义类型渲染成底层类型（见函数说明）
         )
 
         with context.begin_transaction():
