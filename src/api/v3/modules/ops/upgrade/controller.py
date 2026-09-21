@@ -23,6 +23,7 @@ check 为只读语义但按既有契约走 POST + EXECUTE。
 """
 
 from fastapi import APIRouter, Query
+from fastapi.responses import FileResponse
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
@@ -98,6 +99,39 @@ async def execute(
     data = await upgrade_service.execute(db, payload, wait=wait)
     msg = "升级完成" if data.get("ok") else ("升级已开始" if data.get("started") else "升级失败")
     return resp.success(data, msg=msg)
+
+
+@router.get("/versions", response_model=ResponseModel, summary="版本明细（release/db/后端/前端）")
+async def versions(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.UPGRADE_VIEW),
+) -> dict:
+    """原 ``update_server`` 的 ``/api/v1/version/full``：发布信息 + 数据库迁移 + 前后端版本。"""
+    return resp.success(await upgrade_service.versions())
+
+
+@router.get("/packages", response_model=ResponseModel, summary="本地更新包清单")
+async def packages(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.UPGRADE_VIEW),
+) -> dict:
+    """``releases/update_*.zip`` 列表（含体积、构建时间、是否带 .sha256）。"""
+    return resp.success(await upgrade_service.packages())
+
+
+@router.get("/packages/{filename}/download", summary="下载本地更新包")
+async def download_package(
+    filename: str,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.UPGRADE_VIEW),
+):
+    """下载 ``releases/`` 下的更新包；文件名以外的任何路径成分都会被拒绝。"""
+    path = upgrade_service.package_file(filename)
+    return FileResponse(
+        path,
+        media_type="application/zip",
+        filename=path.name,
+    )
 
 
 @router.get("/backups", response_model=ResponseModel, summary="升级备份列表")

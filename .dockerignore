@@ -91,9 +91,6 @@ advanced
 # Generated apps (not imported, legacy Django code)
 apps/generated
 
-# Update server/updater (not imported by backend)
-update_server
-updater
 
 # Runtime generated data (not needed in image)
 static_generated

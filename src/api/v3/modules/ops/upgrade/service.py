@@ -1,13 +1,12 @@
-"""upgrade 模块业务逻辑：在线升级管理（状态 / 检查 / 干跑预检）
+"""upgrade 模块业务逻辑：在线升级管理（状态 / 检查 / 干跑预检 / **真实执行**）
 
 能力基座：``shared/utils/version_manager``（当前版本 + 项目根）、
 ``shared/utils/auto_update_checker``（远端/本地检查 + 版本比较）、
-``shared/utils/update_history``（升级历史）。
-真实替换执行器 ``updater/updater.py`` 本期不由 API 触发（取舍见包 docstring）。
+``shared/utils/update_history``（升级历史）、
+``executor.py``（真实替换执行器，2026-09-21 由仓库根 ``updater/`` 整合而来）。
 """
 
 import asyncio
-import os
 import re
 from datetime import datetime, timedelta
 from zipfile import ZipFile
@@ -16,6 +15,7 @@ from shared.utils.auto_update_checker import auto_update_checker
 from shared.utils.update_history import update_history_manager
 from shared.utils.version_manager import version_manager
 from src.api.v3.core.exceptions import BadRequestError
+from src.api.v3.modules.ops.upgrade import packages as upgrade_packages
 from src.api.v3.modules.ops.upgrade.executor import upgrade_executor
 from src.api.v3.modules.ops.upgrade.schema import (
     UpgradeApplyOut,
@@ -24,9 +24,11 @@ from src.api.v3.modules.ops.upgrade.schema import (
     UpgradeCheckOut,
     UpgradeExecuteOut,
     UpgradeHistoryItem,
+    UpgradePackagesOut,
     UpgradePlanOut,
     UpgradeSettingsOut,
     UpgradeStatusOut,
+    UpgradeVersionsOut,
 )
 from src.api.v3.modules.system.setting.service import setting_service
 
@@ -45,16 +47,16 @@ _LAST_RESULT: dict | None = None
 #: 后台升级任务引用（防止被 GC 回收）
 _TASKS: set = set()
 
-#: 版本号白名单 —— 与 ``updater.download_update_package`` 的校验同口径
+#: 版本号白名单 —— 与 ``executor.verify_package`` 的校验同口径
 _VERSION_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
-#: 更新包最小体积 —— 与 ``updater.verify_package_integrity`` 同口径（<1KB 视为无效）
+#: 更新包最小体积 —— 与 ``executor`` 的 MIN_PACKAGE_BYTES 同口径（<1KB 视为无效）
 _MIN_PACKAGE_BYTES = 1024
 
 #: 项目根目录：version_manager 的 version.txt 固定在 ``<项目根>/version.txt``
 PROJECT_ROOT = version_manager.version_file.parent
 
-#: 本地更新包目录 —— 与 ``updater``（base_dir/releases）及 ``auto_update_checker`` 同一处
+#: 本地更新包目录 —— 与 ``auto_update_checker`` / ``executor`` 同一处
 RELEASES_DIR = PROJECT_ROOT / "releases"
 
 
@@ -153,10 +155,10 @@ class UpgradeService:
     async def precheck_apply(self, target_version: str) -> dict:
         """升级干跑预检（POST /apply）：只体检、不替换。
 
-        检查项与 ``updater`` 的执行前条件同口径：版本号白名单、与当前版本的
-        关系、本地更新包 ``releases/update_{v}.zip`` 是否就绪、ZIP 完整性。
-        全部通过（ready=True）后由人工择时执行
-        ``python -m updater.updater --target-version <v> --app-path <项目根>``。
+        检查项与 ``executor`` 的执行前条件同口径：版本号白名单、与当前版本的关系、
+        本地更新包 ``releases/update_{v}.zip`` 是否就绪、ZIP 完整性。
+        全部通过（``ready=True``）后即可用 ``POST /execute``（``confirm=true``）真实执行；
+        预检不通过的请求会被执行入口直接拒绝。
         """
         target = (target_version or "").strip()
         if not target:
@@ -165,7 +167,7 @@ class UpgradeService:
         current = version_manager.get_version()
         checks: list[UpgradeCheckItem] = []
 
-        # 1) 版本号格式（updater 下载前会做同样的白名单校验）
+        # 1) 版本号格式（executor 执行前会做同样的白名单校验）
         format_ok = bool(_VERSION_RE.match(target))
         checks.append(
             UpgradeCheckItem(
@@ -207,22 +209,24 @@ class UpgradeService:
             checks.append(
                 UpgradeCheckItem(name="package_integrity", passed=False, detail="版本号格式非法，跳过完整性校验"))
         else:
-            # 3) 本地更新包：updater 优先取 releases/update_{v}.zip，缺包时执行阶段才会尝试远端下载
+            # 3) 本地更新包：执行器只认 releases/update_{v}.zip（远端下载由部署侧负责）
             if package.exists():
                 checks.append(
                     UpgradeCheckItem(name="package_available", passed=True, detail=f"本地更新包就绪：{package}")
                 )
             else:
-                server = os.getenv("UPDATE_SERVER_URL", "http://localhost:8001")
                 checks.append(
                     UpgradeCheckItem(
                         name="package_available",
                         passed=False,
-                        detail=f"releases/update_{target}.zip 不存在；真实替换时将尝试从更新服务器下载（{server}）",
+                        detail=(
+                            f"releases/update_{target}.zip 不存在；"
+                            "请先把更新包放到 releases/ 目录（原 8001 更新服务已并入本模块）"
+                        ),
                     )
                 )
 
-            # 4) 包完整性：与 updater.verify_package_integrity 同口径（>=1KB 且 ZIP testzip 通过）
+            # 4) 包完整性：与 executor.verify_package 同口径（>=1KB 且 ZIP testzip 通过）
             if not package.exists():
                 checks.append(UpgradeCheckItem(name="package_integrity", passed=False, detail="无本地包可校验"))
             else:
@@ -246,6 +250,22 @@ class UpgradeService:
     async def path_policy(self) -> dict:
         """路径策略：会动哪些代码路径 / 绝不触碰哪些数据路径（给管理端看清风险）"""
         return upgrade_executor.path_policy()
+
+    # ------------------------------------------------------------ 版本与本地包（原文 update_server）
+    async def versions(self) -> dict:
+        """版本明细：release / database / author + backend / frontend"""
+        data = await asyncio.to_thread(upgrade_packages.version_summary)
+        return UpgradeVersionsOut.model_validate(data).model_dump(mode="json")
+
+    async def packages(self) -> dict:
+        """本地更新包清单（``releases/update_*.zip`` + 同名元数据）"""
+        data = await asyncio.to_thread(upgrade_packages.list_packages)
+        return UpgradePackagesOut.model_validate(data).model_dump(mode="json")
+
+    @staticmethod
+    def package_file(filename: str):
+        """解析待下载的包路径（只允许 ``releases/update_*.zip``，防路径穿越）"""
+        return upgrade_packages.resolve_package(filename)
 
     async def plan(self, target_version: str) -> dict:
         """执行预演：列出将被替换 / 被跳过的文件（只读，不落盘、不改任何文件）"""

@@ -157,3 +157,35 @@ class UpgradeSettingsOut(SchemaBase):
 
     restart_command: Optional[str] = None
     configured: bool = False
+
+
+class UpgradePackageItem(SchemaBase):
+    """本地更新包（``releases/update_*.zip``）"""
+
+    filename: str
+    version: str
+    size: int = 0
+    modified_at: Optional[str] = None
+    build_time: Optional[str] = None
+    #: 是否存在同名 ``.sha256``（有则执行时会做摘要校验）
+    sha256_file: bool = False
+    metadata: dict = Field(default_factory=dict)
+
+
+class UpgradePackagesOut(SchemaBase):
+    """GET /packages 响应体"""
+
+    items: list[UpgradePackageItem] = Field(default_factory=list)
+    total: int = 0
+    releases_dir: str = ""
+
+
+class UpgradeVersionsOut(SchemaBase):
+    """GET /versions 响应体（原 update_server 的版本明细）"""
+
+    current_version: str = ""
+    release: dict = Field(default_factory=dict)
+    database: dict = Field(default_factory=dict)
+    author: dict = Field(default_factory=dict)
+    backend: dict = Field(default_factory=dict)
+    frontend: dict = Field(default_factory=dict)

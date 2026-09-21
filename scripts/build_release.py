@@ -137,7 +137,7 @@ class ReleaseBuilder:
         files = []
         backend_dirs = [
             "src", "apps", "django_blog", "shared", "config",
-            "process_supervisor", "updater", "update_server",
+            "process_supervisor",
             "scripts", "docs", "static"
         ]
         for d in backend_dirs:
@@ -430,7 +430,7 @@ class UpdatePackageBuilder:
     def collect_update_files(self, changed_files: List[str]) -> List[Path]:
         include_dirs = [
             "src", "apps", "django_blog", "shared", "config",
-            "process_supervisor", "updater", "update_server",
+            "process_supervisor",
             "scripts", "frontend"  # 前端源码目录（Nuxt）
         ]
         include_root = ["main.py", "requirements.txt", "version.txt", ".env_example", "README.md"]
@@ -461,7 +461,7 @@ class UpdatePackageBuilder:
             update_files = self.collect_update_files(changed) if changed else []
         else:
             # 全量模式
-            update_files = [p for d in ["src", "apps", "updater", "update_server"]
+            update_files = [p for d in ["src", "apps"]
                             for p in (self.project_root / d).rglob("*") if p.is_file()]
 
         temp_dir = self.build_temp / f"update_{self.version}"

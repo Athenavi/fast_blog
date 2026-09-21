@@ -1,46 +1,51 @@
-"""ops.upgrade 模块（T5-11 批次 5）：在线升级管理。
+"""ops.upgrade 模块：在线升级管理 + **真实升级执行**（2026-09-21 批次 18 整合）
 
 模块定位
 ========
-管理面板侧的升级运维入口：查看当前版本与升级历史、检查有没有新版本、
-对指定目标版本做**升级前干跑预检**。无独立数据库表（无 crud/model），
-版本读自 ``version.txt``，历史读自 ``logs/update_history.json``。
+管理面板侧的升级运维入口：看版本与历史、检查有没有新版本、预演会替换哪些文件，
+并且**真实执行升级**（替换代码 → alembic 迁移 → 清缓存 → 可选重启；失败自动回滚）。
+无独立数据库表，版本读 ``version.txt``，历史读 ``logs/update_history.json``，
+备份在 ``backups/update_backups/<old_ver>_<ts>/``。
 
 能力基座
 ========
-- ``shared/utils/version_manager.py`` —— 当前版本（``release.version``）与项目根目录
+- ``shared/utils/version_manager.py`` —— 当前版本与项目根（**文件格式已统一为 INI**）
 - ``shared/utils/auto_update_checker.py`` —— 远端（GitHub Releases）检查、本地
   ``releases/update_*.zip`` 扫描、版本号比较
-- ``shared/utils/update_history.py`` —— 升级历史（updater 每次收尾都会写入）
-- ``updater/updater.py`` —— 真实替换执行器（FastBlogUpdater：下载 → 校验 → 备份 →
-  停服 → 替换 → 失败回滚），本期**不**由 API 在线触发（见下）
+- ``shared/utils/update_history.py`` —— 升级历史（每次执行/回滚收尾都会写入）
+- ``executor.py`` —— **真实替换执行器**（原仓库根 ``updater/updater.py`` 的能力，
+  2026-09-21 整合进 src；原目录已删除）
 
 端点
 ====
 
 ::
 
-    GET    /api/v3/ops/upgrade/status   升级状态（当前版本 / app_path / 最近 10 条历史）
-    POST   /api/v3/ops/upgrade/check    检查更新（远端优先，远端不可达回退本地 releases）
-    POST   /api/v3/ops/upgrade/apply    升级干跑预检（不执行真实替换）
+    GET    /api/v3/ops/upgrade/status    升级状态（版本 / 进行中 / 最近结果 / 历史）
+    POST   /api/v3/ops/upgrade/check     检查更新（远端优先，回退本地 releases）
+    POST   /api/v3/ops/upgrade/apply     升级干跑预检（只体检、不替换，保留兼容）
+    GET    /api/v3/ops/upgrade/paths     路径策略（会替换哪些代码、绝不动哪些数据）
+    POST   /api/v3/ops/upgrade/plan      执行预演（列出将替换/跳过的文件，只读）
+    POST   /api/v3/ops/upgrade/execute   真实升级（需 confirm=true）
+    GET    /api/v3/ops/upgrade/backups   升级备份列表
+    POST   /api/v3/ops/upgrade/rollback  按备份回滚代码（需 confirm=true）
+    GET/PUT /api/v3/ops/upgrade/settings 升级设置（重启命令）
 
-权限码：``module_ops:upgrade:view``（status）、``module_ops:upgrade:execute``
-（check / apply）。check 虽为只读语义，但按契约走 POST + EXECUTE 权限。
+权限码：``module_ops:upgrade:view``（status / paths / backups / settings 读）、
+``module_ops:upgrade:execute``（check / apply / plan / execute / rollback / settings 写）。
 
-apply 取舍：本期只做干跑预检（方案二）
-=====================================
-不提供「后台线程 / 子进程触发 updater」的在线执行路径，理由：
+与旧实现（``updater/updater.py``）的三点关键差异
+==============================================
+旧实现被刻意排除在 API 之外，理由是"会停掉正在服务本请求的进程 + 整套流程没有重启逻辑 +
+整目录替换"。整合时逐条解决，而不是照搬：
 
-1. ``FastBlogUpdater.update()`` 内部会调用 ``stop_main_application()``——按命令行
-   含 ``main.py`` 终止进程，**正是正在服务本请求的后端自身**，且全套流程没有任何
-   自动重启逻辑；从 API 触发等于让服务自杀且无法自愈。
-2. 下载（远端 60s 超时）与整目录替换远超「不阻塞请求线程数秒以上」的红线。
-3. 真实替换涉及停服窗口，属于人工择时操作（或二期交由独立的升级编排器，
-   例如复用 ``update_server`` 的子进程模式 + 进程守护重启）。
-
-因此 ``POST /apply`` 语义为**干跑预检**：校验目标版本号、与当前版本的关系、
-本地更新包是否就绪及 ZIP 完整性（与 updater 的白名单 / 1KB 下限 / ``testzip``
-同口径），返回 ``{dry_run, ready, checks}``；全部通过后由人工按
-``python -m updater.updater --target-version <v> --app-path <项目根>``
-择时执行真实替换。请求体 ``{target_version}`` 来自 ``/check`` 的 ``latest_version``。
+1. **不自杀进程**：执行器不终止后端进程；替换完成后由配置的 ``restart_command``
+   （system_settings 的 ``upgrade.restart_command``，如 ``docker compose restart backend``）
+   真实执行，未配置则如实返回"需人工重启生效"。
+2. **不阻塞事件循环**：所有文件 IO / 子进程都在 ``asyncio.to_thread`` 里跑，
+   且默认**后台任务**执行，``GET /status`` 查看 ``in_progress`` 与最近结果。
+3. **替换范围白名单 + 保护清单**：只覆盖代码路径（``src/ shared/ cli/ ...``），
+   ``media/ uploads/ storage/ logs/ backups/ releases/ .env ...`` 永不触碰；
+   替换前逐文件备份并写 ``manifest.json``，回滚按清单精确还原（新增文件会被删除）。
+   旧实现用 ``shutil.move/rmtree(项目根)`` 做"原子替换"，会连数据一起动掉 —— 这条路径不存在了。
 """
