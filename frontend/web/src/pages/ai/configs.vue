@@ -11,7 +11,7 @@ import {computed, onMounted, reactive, ref} from 'vue'
 
 import {aiApi, type AiConfigItem, type AiConfigTestResult, type AiProviderItem,} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -28,23 +28,26 @@ interface AiConfigQueryForm extends PageQuery {
   is_active?: boolean
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-} = useTable<AiConfigItem, AiConfigQueryForm>({
+const configState = useAdminList<AiConfigItem, AiConfigQueryForm>({
+
   fetcher: (params) => aiApi.listConfigs(params),
   defaultQuery: {provider: '', is_active: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const list = configState.rows
+const loading = configState.loading
+const total = configState.total
+const page = configState.page
+const pageSize = configState.pageSize
+const query = configState.query
+const search = configState.search
+const reset = configState.reset
+const load = configState.reload
+const onPageChange = configState.onPageChange
+const onSizeChange = configState.onSizeChange
+const configFailed = configState.failed
 
 // ---- 新建 / 编辑 ----
 const formVisible = ref(false)
@@ -238,7 +241,15 @@ async function onDelete(row: AiConfigItem) {
       <!-- 表格 -->
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="configFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="configFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="configFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.ai.userId')" prop="user_id" width="90"/>

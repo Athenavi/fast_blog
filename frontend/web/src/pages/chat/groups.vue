@@ -5,13 +5,13 @@
  * 对齐 v3 `/chat/group`：群组 CRUD + 成员管理（加人 / 改角色 / 静音 / 移出）。
  * member_count 由后端在成员增删时同步；群主不可移出（409）。
  */
-import {Plus} from '@element-plus/icons-vue'
+import {Plus, Refresh} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
 import {chatApi, type ChatGroupItem, type ChatMemberItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -26,23 +26,26 @@ interface ChatGroupQueryForm extends PageQuery {
   is_active?: boolean
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-} = useTable<ChatGroupItem, ChatGroupQueryForm>({
+const groupState = useAdminList<ChatGroupItem, ChatGroupQueryForm>({
+
   fetcher: (params) => chatApi.listGroups(params),
   defaultQuery: {is_active: undefined},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const list = groupState.rows
+const loading = groupState.loading
+const total = groupState.total
+const page = groupState.page
+const pageSize = groupState.pageSize
+const query = groupState.query
+const search = groupState.search
+const reset = groupState.reset
+const load = groupState.reload
+const onPageChange = groupState.onPageChange
+const onSizeChange = groupState.onSizeChange
+const groupFailed = groupState.failed
 
 // ---- 新建 / 编辑 ----
 const formVisible = ref(false)
@@ -118,20 +121,23 @@ async function onDelete(row: ChatGroupItem) {
 // ---- 成员管理 ----
 const memberVisible = ref(false)
 const memberGroup = ref<ChatGroupItem | null>(null)
-const {
-  list: members,
-  loading: memberLoading,
-  total: memberTotal,
-  page: memberPage,
-  pageSize: memberPageSize,
-  load: memberLoad,
-  onPageChange: onMemberPageChange,
-  onSizeChange: onMemberSizeChange,
-} = useTable<ChatMemberItem, PageQuery>({
+const memberState = useAdminList<ChatMemberItem, PageQuery>({
+
   fetcher: (params) => chatApi.listMembers(memberGroup.value?.id ?? 0, params),
   immediate: false,
   pageSize: 50,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const members = memberState.rows
+const memberLoading = memberState.loading
+const memberTotal = memberState.total
+const memberPage = memberState.page
+const memberPageSize = memberState.pageSize
+const memberLoad = memberState.reload
+const onMemberPageChange = memberState.onPageChange
+const onMemberSizeChange = memberState.onSizeChange
+const memberFailed = memberState.failed
 
 const addForm = reactive<{ user_id: number | undefined; role: string }>({user_id: undefined, role: 'member'})
 const adding = ref(false)
@@ -214,7 +220,15 @@ async function toggleMute(row: ChatMemberItem) {
       <!-- 表格 -->
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="groupFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="groupFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="groupFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.common.name')" min-width="150" prop="name" show-overflow-tooltip/>

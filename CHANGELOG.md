@@ -128,10 +128,20 @@
     - `payment` 的主列表空态升级为失败态 + 重试
     - `revenue` / `report` 此前**没有骨架屏与空态**，现按同一模式补上「骨架 / 失败态+重试 / 空态」三态
 - **第 3 小批完成**（9 页）：7 页迁移 + 2 页非列表（`analytics/search`、`analytics/seo`）保持原结构
-- 剩余待迁移（均为大页面，解构形式不一）：`content/page-builder`（无前缀解构）、
-  `content/collaboration`（重命名解构，多列表）、`content/third-party-publish`（直接持有
-  `useTable` 返回值，模板走 `x.list.value`）、`extension/block-patterns`、`extension/plugin`、
-  `extension/theme`、`extension/widget`
+
+### B 第 4 小批（gamification + ai + chat）
+
+- `ai/configs`、`ai/workflows`、`chat/groups`（群组 + 成员两个列表）、
+  `gamification/certifications`（待审 + 已通过两个列表）迁移到 `useAdminList`：
+    - 前三页是无前缀解构，`certifications` 是重命名解构 + `immediate: false`（切标签页时按需加载），
+      迁移脚本保留全部 options，并从 `loading: xxxLoading` 反推前缀
+    - 前三页的空态升级为失败态 + 重试；`chat/groups` 顺带补上缺失的 `Refresh` 图标导入
+    - `certifications` 两个表格此前**没有骨架屏与空态**，现补全三态；同时修掉
+      `v-loading="loading || pendingLoading"` 的混用（统计卡的 loading 不该参与表格的加载态）
+- **至此 B 的 4 个小批全部处理完毕**（system+ops / content+extension / marketing+analytics+commerce /
+  gamification+ai+chat）
+- 遗留（能力对齐，非结构迁移）：`content/third-party-publish`、`content/collaboration`、
+  `extension/plugin`、`extension/theme`、`extension/widget` 仍缺失败态
 - **样式块内的硬编码色收口**（补 A 包的遗漏）：上一轮只替换了 Tailwind 类名，**没有覆盖 `<style>` 块**。
   实测 8 个文件存在不随主题变化的固定色值，共 **25 处**——`#f5f7fa` / `#fafcff`（浅底）、`#909399` /
   `#6b7280` / `#9ca3af` / `#606266`（灰字）、`#409eff`（主色）、`#ebeef5`（边框）等，在暗色模式下会露出

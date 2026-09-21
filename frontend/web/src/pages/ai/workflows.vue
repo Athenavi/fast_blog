@@ -12,7 +12,7 @@ import {onMounted, reactive, ref} from 'vue'
 
 import {aiApi, type AiConfigItem, type AiTaskTypeItem, type AiWorkflowItem} from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -29,23 +29,26 @@ interface AiWorkflowQueryForm extends PageQuery {
   status?: string
 }
 
-const {
-  list,
-  loading,
-  total,
-  page,
-  pageSize,
-  query,
-  search,
-  reset,
-  load,
-  onPageChange,
-  onSizeChange,
-} = useTable<AiWorkflowItem, AiWorkflowQueryForm>({
+const workflowState = useAdminList<AiWorkflowItem, AiWorkflowQueryForm>({
+
   fetcher: (params) => aiApi.listWorkflows(params),
   defaultQuery: {task_type: '', status: ''},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const list = workflowState.rows
+const loading = workflowState.loading
+const total = workflowState.total
+const page = workflowState.page
+const pageSize = workflowState.pageSize
+const query = workflowState.query
+const search = workflowState.search
+const reset = workflowState.reset
+const load = workflowState.reload
+const onPageChange = workflowState.onPageChange
+const onSizeChange = workflowState.onSizeChange
+const workflowFailed = workflowState.failed
 
 // ---- 任务类型 / 可用配置（发起任务用）----
 const taskTypes = ref<AiTaskTypeItem[]>([])
@@ -228,7 +231,15 @@ async function onDelete(row: AiWorkflowItem): Promise<void> {
       <!-- 表格 -->
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
 
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="workflowFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="workflowFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="workflowFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" border stripe>
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.ai.userId')" prop="user_id" width="90"/>

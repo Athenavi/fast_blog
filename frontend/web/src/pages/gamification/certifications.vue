@@ -18,7 +18,7 @@ import {onMounted, reactive, ref} from 'vue'
 import {certificationApi, type CertificationItem, type CertificationStats, type ExpertQuery} from '@/api'
 import type {PageQuery} from '@/api/types'
 import {formatDateTime} from '@/utils/format'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 definePageMeta({
   layout: 'admin',
@@ -34,35 +34,41 @@ const stats = ref<CertificationStats | null>(null)
 const loading = ref(false)
 
 /** 两张表都手动触发加载（切 tab 时只拉当前那张） */
-const {
-  list: pendingList,
-  loading: pendingLoading,
-  total: pendingTotal,
-  page: pendingPage,
-  pageSize: pendingPageSize,
-  load: loadPending,
-  onPageChange: onPendingPageChange,
-  onSizeChange: onPendingSizeChange,
-} = useTable<CertificationItem, PageQuery>({
+const pendingState = useAdminList<CertificationItem, PageQuery>({
+
   syncUrl: true,
   fetcher: (params) => certificationApi.pending(params),
   immediate: false,
 })
 
-const {
-  list: approvedList,
-  loading: approvedLoading,
-  total: approvedTotal,
-  page: approvedPage,
-  pageSize: approvedPageSize,
-  load: loadApproved,
-  onPageChange: onApprovedPageChange,
-  onSizeChange: onApprovedSizeChange,
-} = useTable<CertificationItem, ExpertQuery>({
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const pendingList = pendingState.rows
+const pendingLoading = pendingState.loading
+const pendingTotal = pendingState.total
+const pendingPage = pendingState.page
+const pendingPageSize = pendingState.pageSize
+const loadPending = pendingState.reload
+const onPendingPageChange = pendingState.onPageChange
+const onPendingSizeChange = pendingState.onSizeChange
+const pendingFailed = pendingState.failed
+
+const approvedState = useAdminList<CertificationItem, ExpertQuery>({
+
   syncUrl: true,
   fetcher: (params) => certificationApi.experts(params),
   immediate: false,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const approvedList = approvedState.rows
+const approvedLoading = approvedState.loading
+const approvedTotal = approvedState.total
+const approvedPage = approvedState.page
+const approvedPageSize = approvedState.pageSize
+const loadApproved = approvedState.reload
+const onApprovedPageChange = approvedState.onPageChange
+const onApprovedSizeChange = approvedState.onSizeChange
+const approvedFailed = approvedState.failed
 
 const reviewDialog = ref(false)
 const reviewTarget = ref<CertificationItem | null>(null)
@@ -196,7 +202,19 @@ onMounted(load)
     <el-card class="mt-4" shadow="never">
       <el-tabs v-model="tab" @tab-change="switchTab">
         <el-tab-pane :label="$t('admin.gamification.certifications.tabPending')" name="pending">
-          <el-table v-loading="loading || pendingLoading" :data="pendingList" border stripe>
+          <AdminTableSkeleton v-if="pendingLoading && !pendingList.length" :rows="5"/>
+
+          <AdminEmpty
+            v-else-if="!pendingLoading && !pendingList.length"
+            :title="pendingFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="pendingFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="pendingFailed" :icon="Refresh" @click="loadPending()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+
+          <el-table v-else v-loading="pendingLoading" :data="pendingList" border stripe>
             <el-table-column :label="$t('admin.gamification.certifications.applicant')" min-width="120">
               <template #default="{ row }">{{ row.username || `#${row.user_id}` }}</template>
             </el-table-column>
@@ -257,7 +275,19 @@ onMounted(load)
         </el-tab-pane>
 
         <el-tab-pane :label="$t('admin.gamification.certifications.tabApproved')" name="approved">
-          <el-table v-loading="loading || approvedLoading" :data="approvedList" border stripe>
+          <AdminTableSkeleton v-if="approvedLoading && !approvedList.length" :rows="5"/>
+
+          <AdminEmpty
+            v-else-if="!approvedLoading && !approvedList.length"
+            :title="approvedFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="approvedFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="approvedFailed" :icon="Refresh" @click="loadApproved()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
+
+          <el-table v-else v-loading="approvedLoading" :data="approvedList" border stripe>
             <el-table-column :label="$t('admin.gamification.certifications.expert')" min-width="140">
               <template #default="{ row }">{{ row.username || `#${row.user_id}` }}</template>
             </el-table-column>
