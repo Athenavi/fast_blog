@@ -28,7 +28,7 @@ import {
   type PublishTaskQuery,
   thirdPartyPublishApi,
 } from '@/api'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 import {formatDateTime} from '@/utils/format'
 
 definePageMeta({
@@ -57,7 +57,7 @@ async function loadPlatforms(): Promise<void> {
 void loadPlatforms()
 
 // ---------------------------------------------------------------- 渠道
-const channelTable = useTable<PublishChannelItem, PublishChannelQuery>({
+const channelTable = useAdminList<PublishChannelItem, PublishChannelQuery>({
   fetcher: (params) => thirdPartyPublishApi.listChannels(params),
   defaultQuery: {keyword: '', platform: '', is_active: undefined},
   syncUrl: true,
@@ -155,7 +155,7 @@ async function submitChannel(): Promise<void> {
     }
     ElMessage.success(t('admin.common.save'))
     channelFormVisible.value = false
-    await channelTable.load()
+    await channelTable.reload()
   } finally {
     savingChannel.value = false
   }
@@ -183,11 +183,11 @@ async function removeChannel(row: PublishChannelItem): Promise<void> {
   )
   await thirdPartyPublishApi.removeChannel(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await channelTable.load()
+  await channelTable.reload()
 }
 
 // ---------------------------------------------------------------- 发布任务
-const taskTable = useTable<PublishTaskItem, PublishTaskQuery>({
+const taskTable = useAdminList<PublishTaskItem, PublishTaskQuery>({
   fetcher: (params) => thirdPartyPublishApi.listTasks(params),
   defaultQuery: {status: ''},
   syncUrl: true,
@@ -242,7 +242,7 @@ async function submitTask(): Promise<void> {
       )
     }
     taskFormVisible.value = false
-    await taskTable.load()
+    await taskTable.reload()
   } finally {
     creatingTask.value = false
   }
@@ -259,7 +259,7 @@ async function retryTask(row: PublishTaskItem): Promise<void> {
         detail.last_error || t('admin.content.thirdPartyPublish.task.retryFailed'),
       )
     }
-    await taskTable.load()
+    await taskTable.reload()
   } finally {
     retryingId.value = null
   }
@@ -273,7 +273,7 @@ async function removeTask(row: PublishTaskItem): Promise<void> {
   )
   await thirdPartyPublishApi.removeTask(row.id)
   ElMessage.success(t('admin.common.delete'))
-  await taskTable.load()
+  await taskTable.reload()
 }
 
 // ---- 任务详情 / 日志 ----
@@ -372,14 +372,19 @@ function statusTagType(status: string): 'success' | 'danger' | 'warning' | 'info
           </span>
         </div>
 
-        <AdminTableSkeleton v-if="channelTable.loading.value && !channelTable.list.value.length" :rows="5"/>
+        <AdminTableSkeleton v-if="channelTable.loading.value && !channelTable.rows.value.length" :rows="5"/>
         <AdminEmpty
-          v-else-if="!channelTable.loading.value && !channelTable.list.value.length"
+          v-else-if="!channelTable.loading.value && !channelTable.rows.value.length"
           :desc="$t('admin.content.thirdPartyPublish.emptyDesc')"
-          :title="$t('admin.content.thirdPartyPublish.emptyTitle')"
-        />
+          :title="channelTable.failed.value ? $t('admin.common.loadFailed') : $t('admin.content.thirdPartyPublish.emptyTitle')"
+          :variant="channelTable.failed.value ? 'error' : 'default'"
+        >
+          <el-button v-if="channelTable.failed.value" :icon="Refresh" @click="channelTable.reload()">
+            {{ $t('admin.common.retry') }}
+          </el-button>
+        </AdminEmpty>
 
-        <el-table v-else v-loading="channelTable.loading.value" :data="channelTable.list.value" border stripe>
+        <el-table v-else v-loading="channelTable.loading.value" :data="channelTable.rows.value" border stripe>
           <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
           <el-table-column :label="$t('admin.content.thirdPartyPublish.channel.platform')" min-width="170">
             <template #default="{ row }">
@@ -503,7 +508,7 @@ function statusTagType(status: string): 'success' | 'danger' | 'warning' | 'info
           </span>
         </div>
 
-        <el-table v-loading="taskTable.loading.value" :data="taskTable.list.value" border stripe>
+        <el-table v-loading="taskTable.loading.value" :data="taskTable.rows.value" border stripe>
           <el-table-column :label="$t('admin.content.thirdPartyPublish.task.article')" min-width="200">
             <template #default="{ row }">
               <span>{{ (row as PublishTaskItem).article_title || `#${(row as PublishTaskItem).article_id}` }}</span>
@@ -660,7 +665,7 @@ function statusTagType(status: string): 'success' | 'danger' | 'warning' | 'info
             style="width: 100%"
           >
             <el-option
-              v-for="item in channelTable.list.value"
+              v-for="item in channelTable.rows.value"
               :key="item.id"
               :label="`${item.name}（${item.platform}）`"
               :value="item.id"

@@ -32,6 +32,8 @@ interface RuleRow {
 }
 
 const loading = ref(false)
+/** 列表加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const saving = ref(false)
 const stats = ref<PointsStats | null>(null)
 const exchangeRules = ref<ExchangeRule[]>([])
@@ -64,6 +66,8 @@ async function load(): Promise<void> {
         sort_order: rule.sort_order ?? 0,
       },
     }))
+  } catch {
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -193,7 +197,15 @@ onMounted(load)
       </template>
 
       <AdminTableSkeleton v-if="loading && !rows.length" :rows="5"/>
-      <AdminEmpty v-else-if="!loading && !rows.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !rows.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="rows" border stripe>
         <el-table-column :label="$t('admin.gamification.points.action')" min-width="160" prop="rule.action"
                          show-overflow-tooltip/>

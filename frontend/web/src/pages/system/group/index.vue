@@ -38,6 +38,8 @@ interface PickerRole {
 
 // ---------------------------------------------------------------- 列表
 const loading = ref(false)
+/** 加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const groups = ref<GroupItem[]>([])
 const keyword = ref('')
 const activeFilter = ref<boolean | undefined>(undefined)
@@ -69,6 +71,9 @@ async function loadGroups(): Promise<void> {
   loading.value = true
   try {
     groups.value = await groupApi.tree(activeFilter.value)
+  } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -320,14 +325,23 @@ onMounted(loadGroups)
         <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: totalGroups}) }}</span>
       </div>
 
-      <el-table
-        v-loading="loading"
-        :data="treeData"
+      <AdminTableSkeleton v-if="loading && !treeData.length" :rows="5"/>
+
+      <AdminEmpty
+        v-else-if="!loading && !treeData.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="loadGroups()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
+
+      <el-table v-else v-loading="loading" :data="treeData"
         :tree-props="{children: 'children'}"
         border
         default-expand-all
-        row-key="id"
-      >
+                row-key="id">
         <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.common.name')" min-width="180" prop="name" show-overflow-tooltip>
           <template #default="{ row }">

@@ -20,6 +20,7 @@ import {
   Headset,
   List,
   Picture,
+  Refresh,
   Search,
   Upload,
   VideoCamera,
@@ -480,10 +481,16 @@ onMounted(loadFolders)
 
         <AdminEmpty
           v-else-if="!list.loading.value && !list.rows.value.length"
-          :desc="list.hasFilters.value ? $t('admin.content.media.emptyFiltered') : $t('admin.content.media.emptyDesc')"
-          :title="list.hasFilters.value ? $t('admin.content.media.emptyFiltered') : $t('admin.content.media.emptyTitle')"
+          :desc="list.failed.value ? '' : (list.hasFilters.value ? $t('admin.content.media.emptyFiltered') : $t('admin.content.media.emptyDesc'))"
+          :title="list.failed.value
+            ? $t('admin.common.loadFailed')
+            : (list.hasFilters.value ? $t('admin.content.media.emptyFiltered') : $t('admin.content.media.emptyTitle'))"
+          :variant="list.failed.value ? 'error' : 'default'"
         >
-          <el-button v-auth="'module_content:media:upload'" :icon="Upload" type="primary" @click="pickFiles">
+          <el-button v-if="list.failed.value" :icon="Refresh" @click="list.reload()">
+            {{ $t('admin.common.retry') }}
+          </el-button>
+          <el-button v-else v-auth="'module_content:media:upload'" :icon="Upload" type="primary" @click="pickFiles">
             {{ $t('admin.content.media.upload') }}
           </el-button>
         </AdminEmpty>

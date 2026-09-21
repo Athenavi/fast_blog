@@ -12,6 +12,7 @@ import {
   type OnlineStats,
   type ServerInfo,
 } from '@/api'
+import {Refresh} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {formatDateTime, formatFileSize} from '@/utils/format'
 
@@ -34,6 +35,8 @@ definePageMeta({
 const PAGE_SIZE = 10
 
 const loading = ref(false)
+/** 加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const server = ref<ServerInfo | null>(null)
 const online = ref<OnlineStats | null>(null)
 const cache = ref<CacheStats | null>(null)
@@ -61,6 +64,9 @@ async function load(): Promise<void> {
     install.value = installStatus
     sessions.value = sessionPage?.items ?? []
     sessionsTotal.value = sessionPage?.total ?? 0
+  } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -220,6 +226,18 @@ onMounted(load)
 
       <EmptyState v-if="!sessions.length && !loading" :description="$t('admin.system.hub.noActiveSessions')"
                   :title="$t('admin.system.hub.noOnlineUsers')"/>
+
+      <AdminTableSkeleton v-if="loading && !sessions.length" :rows="5"/>
+
+      <AdminEmpty
+        v-else-if="!loading && !sessions.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
 
       <el-table v-else v-loading="loading" :data="sessions" border size="small">
         <el-table-column :label="$t('user.title')" width="90">

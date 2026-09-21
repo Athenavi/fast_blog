@@ -20,6 +20,8 @@ definePageMeta({
 })
 
 const loading = ref(false)
+/** 加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const groups = ref<CapabilityGroup[]>([])
 const cacheStats = ref<Record<string, unknown> | null>(null)
 const keyword = ref('')
@@ -33,6 +35,8 @@ async function load(): Promise<void> {
     ])
     groups.value = grouped
     cacheStats.value = stats
+  } catch {
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -115,7 +119,15 @@ onMounted(load)
         </el-collapse-item>
       </el-collapse>
 
-      <AdminEmpty v-if="!loading && !filteredGroups.length" :title="$t('admin.system.permission.empty')"/>
+      <AdminEmpty
+        v-if="!loading && !filteredGroups.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.system.permission.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
     </el-card>
   </div>
 </template>

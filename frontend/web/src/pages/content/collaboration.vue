@@ -19,7 +19,7 @@ import {
   type WorkspaceItem,
 } from '@/api'
 import type {PageQuery} from '@/api/types'
-import {useTable} from '@/hooks/useTable'
+import {useAdminList} from '@/composables/useAdminList'
 
 /** 团队评论类型（与内容评论的 `CommentItem` 区分：前者挂在任意内容对象上，带 mentions / is_resolved） */
 type CommentItem = TeamCommentItem
@@ -32,6 +32,8 @@ definePageMeta({
 })
 
 const {t} = useI18n()
+/** 列表加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const activeTab = ref('workspace')
 
 const MEMBER_ROLES = ['viewer', 'editor', 'admin', 'owner'] as const
@@ -192,25 +194,28 @@ async function onRemoveMember(row: MemberItem) {
 }
 
 // ---------------------------------------------------------------- 任务
-const {
-  list: taskList,
-  loading: taskLoading,
-  total: taskTotal,
-  page: taskPage,
-  pageSize: taskPageSize,
-  query: taskQuery,
-  search: taskSearch,
-  reset: taskReset,
-  load: taskLoad,
-  onPageChange: onTaskPageChange,
-  onSizeChange: onTaskSizeChange,
-} = useTable<TaskItem, PageQuery & { status?: string }>({
+const taskState = useAdminList<TaskItem, PageQuery & { status?: string }>({
+
   fetcher: (params) =>
     collaborationApi.listTasks(currentWorkspaceId.value ?? 0, params),
   defaultQuery: {status: ''},
   syncUrl: true,
   immediate: false,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const taskList = taskState.rows
+const taskLoading = taskState.loading
+const taskTotal = taskState.total
+const taskPage = taskState.page
+const taskPageSize = taskState.pageSize
+const taskQuery = taskState.query
+const taskSearch = taskState.search
+const taskReset = taskState.reset
+const taskLoad = taskState.reload
+const onTaskPageChange = taskState.onPageChange
+const onTaskSizeChange = taskState.onSizeChange
+const taskFailed = taskState.failed
 
 const taskFormVisible = ref(false)
 const taskSaving = ref(false)
@@ -346,23 +351,26 @@ async function onPageComments(next: number) {
 }
 
 // ---------------------------------------------------------------- 邀请
-const {
-  list: inviteList,
-  loading: inviteLoading,
-  total: inviteTotal,
-  page: invitePage,
-  pageSize: invitePageSize,
-  query: inviteQuery,
-  search: inviteSearch,
-  reset: inviteReset,
-  load: inviteLoad,
-  onPageChange: onInvitePageChange,
-  onSizeChange: onInviteSizeChange,
-} = useTable<InviteItem, PageQuery & { target_type?: string }>({
+const inviteState = useAdminList<InviteItem, PageQuery & { target_type?: string }>({
+
   fetcher: (params) => collaborationApi.listInvites(params),
   defaultQuery: {keyword: '', target_type: ''},
   syncUrl: true,
 })
+
+// 模板沿用原有变量名：映射为同名 ref / 函数
+const inviteList = inviteState.rows
+const inviteLoading = inviteState.loading
+const inviteTotal = inviteState.total
+const invitePage = inviteState.page
+const invitePageSize = inviteState.pageSize
+const inviteQuery = inviteState.query
+const inviteSearch = inviteState.search
+const inviteReset = inviteState.reset
+const inviteLoad = inviteState.reload
+const onInvitePageChange = inviteState.onPageChange
+const onInviteSizeChange = inviteState.onSizeChange
+const inviteFailed = inviteState.failed
 
 const inviteFormVisible = ref(false)
 const inviteSaving = ref(false)
@@ -472,8 +480,13 @@ function onTabChange(name: string | number) {
           <AdminEmpty
             v-else-if="!workspaceLoading && !workspaces.length"
             :desc="$t('admin.content.collaboration.emptyDesc')"
-            :title="$t('admin.content.collaboration.emptyTitle')"
-          />
+            :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.content.collaboration.emptyTitle')"
+            :variant="loadFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="loadFailed" :icon="Refresh" @click="loadWorkspaces()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
 
           <el-table v-else v-loading="workspaceLoading" :data="workspaces" border stripe>
             <el-table-column :label="$t('admin.common.name')" min-width="160" prop="name"

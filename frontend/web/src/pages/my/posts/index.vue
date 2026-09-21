@@ -19,6 +19,8 @@ const STATUS_OPTIONS = [
 ]
 
 const loading = ref(false)
+/** 加载失败 */
+const failed = ref(false)
 const list = ref<MobileArticleItem[]>([])
 const total = ref(0)
 const page = ref(1)
@@ -28,6 +30,7 @@ const message = ref('')
 
 async function loadList(): Promise<void> {
   loading.value = true
+  failed.value = false
   try {
     const data = await mobileApi.myArticles({
       page: page.value,
@@ -36,6 +39,10 @@ async function loadList(): Promise<void> {
     })
     list.value = data.items
     total.value = data.total
+  } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无内容」
+    failed.value = true
+    list.value = []
   } finally {
     loading.value = false
   }
@@ -101,6 +108,13 @@ onMounted(loadList)
     <div v-if="loading" class="mt-6 space-y-3">
       <Skeleton v-for="i in 4" :key="i" class="h-16 w-full"/>
     </div>
+
+    <ErrorState
+      v-else-if="failed"
+      :description="$t('common.networkError')"
+      class="mt-6"
+      @retry="loadList()"
+    />
 
     <div v-else-if="list.length" class="mt-6 divide-y divide-line rounded-card border border-line bg-surface">
       <div v-for="item in list" :key="item.id" class="flex flex-wrap items-center gap-3 p-4">

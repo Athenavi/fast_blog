@@ -34,6 +34,8 @@ const CONDITION_LABELS: Record<string, string> = {
 }
 
 const loading = ref(false)
+/** 列表加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const awarding = ref(false)
 const stats = ref<BadgeStats | null>(null)
 const definitions = ref<BadgeDefinition[]>([])
@@ -69,6 +71,8 @@ async function load(): Promise<void> {
     ])
     definitions.value = items ?? []
     stats.value = summary
+  } catch {
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -144,7 +148,15 @@ onMounted(load)
       </template>
 
       <AdminTableSkeleton v-if="loading && !filtered.length" :rows="5"/>
-      <AdminEmpty v-else-if="!loading && !filtered.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !filtered.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="filtered" border stripe>
         <el-table-column :label="$t('admin.gamification.badges.key')" min-width="140" prop="badge_key"
                          show-overflow-tooltip/>

@@ -140,8 +140,41 @@
       `v-loading="loading || pendingLoading"` 的混用（统计卡的 loading 不该参与表格的加载态）
 - **至此 B 的 4 个小批全部处理完毕**（system+ops / content+extension / marketing+analytics+commerce /
   gamification+ai+chat）
-- 遗留（能力对齐，非结构迁移）：`content/third-party-publish`、`content/collaboration`、
-  `extension/plugin`、`extension/theme`、`extension/widget` 仍缺失败态
+- 遗留（能力对齐，非结构迁移）：仍缺失败态的后台页面见下
+- 清理轮（第一批）：`system/menu`（子项列表）与 `extension/widget` 的加载函数此前**只有 `try/finally`**，
+  请求失败时界面静默显示「暂无数据」→ 补上 `catch` 置失败态 + 空态升级为「失败态 + 重试」
+    - 过程中发现 `system/menu` 的 `loadItems` **原本已有 catch**，脚本插入造成两处 `catch`，
+      已合并为单一 `catch`；同时修掉 `AdminEmpty` 上重复的 `:title`（原属性 + 新增三元属性）
+- **结构性迁移彻底完成**：`content/collaboration`（重命名解构，任务/邀请两个列表）与
+  `content/third-party-publish`（直接持有 `useTable` 返回值）迁到 `useAdminList`，
+  **全仓 `useTable` 残留归零**
+- **失败态补齐（一次性推进剩余）**：
+    - 已有空态的页面升级为「失败态 + 重试」：`content/collaboration`、`content/third-party-publish`、
+      `extension/plugin`、`gamification/badges`、`gamification/points`、`system/permission`
+    - 无骨架/空态的页面补三态：`analytics/seo`、`ops/upgrade`、`system/hub`、`system/group`
+    - **统计/展示型表格**（无 `v-loading`、数据来自聚合接口）改用页面顶部失败提示 + 重试按钮：
+      `analytics/search`、`extension/theme`、`system/cache`
+    - 过程中修掉的连带问题：`upgrade` 原本已有 `catch` 导致重复（合并）；`hub` 表格出现重复 `v-else`；
+      `seo` 移除误插的三态块并修复 `v-else` + `v-if` 冲突；`hub` 缺 `Refresh` 图标导入
+    - `content/media` 已回滚（脚本误改了它的网格视图卡片结构）：该页已有 `useAdminList`，
+      仅「模板未引用 `failed`」这一项待补
+- **收尾（最后 3 处 + 最终审计）**：
+    - `content/media`：列表视图空态接入 `list.failed`（错误态 + 重试；网格视图保持原有上传入口）
+    - `system/permission`：补 `loadFailed`（声明 + `load()` 的 `catch`）并接入空态
+    - `my/posts`：前台页面此前**加载失败静默**，现补 `catch` + `ErrorState`（复用统一的错误态组件）
+    - **一处值得记录的教训**：修 `media` 时我用了 PowerShell 的 `Get-Content -Raw` / `Set-Content`
+      处理这个含中文的文件 —— 它按系统 ANSI 读取，把中文注释变成乱码并写回（构建报
+      `UNLOADABLE_DEPENDENCY`）。已 `git checkout` 恢复后改用 node 重做；后续扫描确认
+      **全仓无乱码残留**
+- **最终审计结果（全仓）**：
+    - `useTable` 残留 **0**；中文乱码 **0**
+    - 「有 `el-table` 但无失败态」的后台页面 **0**
+    - Tailwind 硬编码色 **0**、`<style>` 块内非 fallback 硬编码 **0**
+    - `npm run type-check` / `check:i18n` / `build` 全部通过
+- **仍未做**（记入遗留）：`content/media`、`system/permission` 的失败态引用；前台 `my/posts/index.vue`
+  的失败态。说明：扫描出的「46 个页面 `finally` 多于 `catch`」**不是**都是缺陷——其中绝大多数是
+  **提交/删除类**操作的 `try/finally`，其错误由请求拦截器统一提示（项目既有约定），
+  真正需要失败态的是**列表加载**路径，已在本轮覆盖
 - **样式块内的硬编码色收口**（补 A 包的遗漏）：上一轮只替换了 Tailwind 类名，**没有覆盖 `<style>` 块**。
   实测 8 个文件存在不随主题变化的固定色值，共 **25 处**——`#f5f7fa` / `#fafcff`（浅底）、`#909399` /
   `#6b7280` / `#9ca3af` / `#606266`（灰字）、`#409eff`（主色）、`#ebeef5`（边框）等，在暗色模式下会露出

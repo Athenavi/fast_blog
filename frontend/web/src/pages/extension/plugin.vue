@@ -22,6 +22,8 @@ definePageMeta({
 })
 
 const loading = ref(false)
+/** 列表加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const scanning = ref(false)
 const list = ref<PluginItem[]>([])
 const total = ref(0)
@@ -32,6 +34,8 @@ async function loadList(): Promise<void> {
     const data = await pluginApi.list()
     list.value = data.items
     total.value = data.total
+  } catch {
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -171,7 +175,15 @@ onMounted(loadList)
       </div>
 
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="loadList()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" row-key="slug">
         <el-table-column :label="$t('admin.extension.plugin.plugins2')" min-width="240">
           <template #default="{row}">

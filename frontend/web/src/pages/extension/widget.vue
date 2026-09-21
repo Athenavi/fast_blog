@@ -20,6 +20,8 @@ definePageMeta({
 })
 
 const loading = ref(false)
+/** 列表加载失败（用于错误态与重试） */
+const listFailed = ref(false)
 const list = ref<WidgetItem[]>([])
 const total = ref(0)
 const types = ref<Array<Record<string, unknown>>>([])
@@ -41,6 +43,10 @@ async function loadList(): Promise<void> {
     })
     list.value = data.items
     total.value = data.total
+  } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    listFailed.value = true
+    list.value = []
   } finally {
     loading.value = false
   }
@@ -208,7 +214,15 @@ onMounted(async () => {
       </div>
 
       <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-      <AdminEmpty v-else-if="!loading && !list.length" :title="$t('admin.common.empty')"/>
+      <AdminEmpty
+        v-else-if="!loading && !list.length"
+        :title="listFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="listFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="listFailed" :icon="Refresh" @click="loadList()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
       <el-table v-else v-loading="loading" :data="list" row-key="id">
         <el-table-column :label="$t('admin.widget.order')" prop="order_index" width="90">
           <template #default="{row}">

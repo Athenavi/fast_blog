@@ -54,6 +54,8 @@ function selectMenu(id: number): void {
 // ---------------------------------------------------------------- 菜单项
 const items = ref<MenuItemNode[]>([])
 const itemsLoading = ref(false)
+/** 子项加载失败（用于错误态与重试） */
+const itemsFailed = ref(false)
 
 async function loadItems(): Promise<void> {
   if (!activeMenuId.value) {
@@ -65,6 +67,8 @@ async function loadItems(): Promise<void> {
     const detail = await menuApi.detail(activeMenuId.value)
     items.value = detail.items ?? []
   } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    itemsFailed.value = true
     items.value = []
   } finally {
     itemsLoading.value = false
@@ -282,7 +286,15 @@ onMounted(loadMenus)
           </template>
 
           <AdminTableSkeleton v-if="itemsLoading && !items.length" :rows="5"/>
-          <AdminEmpty v-else-if="!itemsLoading && !items.length" :title="$t('admin.common.empty')"/>
+          <AdminEmpty
+            v-else-if="!itemsLoading && !items.length"
+            :title="itemsFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+            :variant="itemsFailed ? 'error' : 'default'"
+          >
+            <el-button v-if="itemsFailed" :icon="Refresh" @click="loadItems()">
+              {{ $t('admin.common.retry') }}
+            </el-button>
+          </AdminEmpty>
           <el-table v-else
             v-loading="itemsLoading"
             :data="items"

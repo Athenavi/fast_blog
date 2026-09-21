@@ -23,6 +23,8 @@ definePageMeta({
 })
 
 const loading = ref(false)
+/** 加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const active = ref<ThemeInfo | null>(null)
 const config = ref<ThemeConfig | null>(null)
 const schema = ref<Record<string, unknown> | null>(null)
@@ -66,6 +68,9 @@ async function loadAll(): Promise<void> {
     schema.value = sc
     contract.value = ct
     publicCss.value = css?.css ?? ''
+  } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -107,6 +112,15 @@ onMounted(loadAll)
 
 <template>
   <div class="page-container">
+
+    <!-- 加载失败提示（此页的表格是统计/展示表，没有常规列表三态） -->
+    <div
+      v-if="loadFailed"
+      class="mb-3 flex items-center gap-3 rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
+    >
+      <span>{{ $t('admin.common.loadFailed') }}</span>
+      <el-button link type="primary" @click="loadAll()">{{ $t('admin.common.retry') }}</el-button>
+    </div>
     <el-row :gutter="16">
       <!-- 当前主题 -->
       <el-col :span="8">

@@ -31,6 +31,8 @@ definePageMeta({
 const {t} = useI18n()
 
 const loading = ref(false)
+/** 加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const checking = ref(false)
 const applying = ref(false)
 
@@ -45,6 +47,8 @@ async function load(): Promise<void> {
   try {
     status.value = await upgradeApi.status()
   } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    loadFailed.value = true
     status.value = null
   } finally {
     loading.value = false
@@ -240,7 +244,19 @@ function sourceLabel(source: string): string {
       <template #header>
         <span>{{ $t('admin.ops.upgrade.history') }}</span>
       </template>
-      <el-table v-loading="loading" :data="status?.history ?? []" border stripe>
+      <AdminTableSkeleton v-if="loading && !(status?.history ?? []).length" :rows="5"/>
+
+      <AdminEmpty
+        v-else-if="!loading && !(status?.history ?? []).length"
+        :title="loadFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="loadFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="loadFailed" :icon="Refresh" @click="load()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
+
+      <el-table v-else v-loading="loading" :data="status?.history ?? []" border stripe>
         <el-table-column :label="$t('admin.ops.upgrade.targetVersion')" min-width="120" prop="target_version"/>
         <el-table-column :label="$t('admin.common.status')" width="110">
           <template #default="{ row }">

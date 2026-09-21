@@ -1,5 +1,7 @@
 <script lang="ts" setup>
 const {t} = useI18n()
+/** 加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 /**
  * SEO 分析
  *
@@ -68,6 +70,9 @@ async function loadReport(): Promise<void> {
   reportLoading.value = true
   try {
     report.value = (await seoApi.report(200)) as unknown as SeoReport
+  } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    loadFailed.value = true
   } finally {
     reportLoading.value = false
   }
@@ -139,6 +144,13 @@ onMounted(async () => {
 
 <template>
   <div class="page-container">
+
+    <!-- 加载失败提示 -->
+    <div v-if="loadFailed"
+         class="mb-3 flex items-center gap-3 rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+      <span>{{ $t('admin.common.loadFailed') }}</span>
+      <el-button link type="primary" @click="loadReport()">{{ $t('admin.common.retry') }}</el-button>
+    </div>
     <el-card shadow="never">
       <el-tabs v-model="activeTab">
         <!-- 综合报告 -->
@@ -214,6 +226,7 @@ onMounted(async () => {
               {{ $t('admin.analytics.seo.bulkSummary', {checked: bulk.checked, score: bulk.average_score.toFixed(1)}) }}
             </span>
           </div>
+
 
           <el-table v-if="bulk" v-loading="bulkLoading" :data="bulk.items" row-key="article_id">
             <el-table-column label="ID" prop="article_id" width="80"/>

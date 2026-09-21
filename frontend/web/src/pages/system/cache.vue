@@ -35,6 +35,8 @@ function levelLabel(key: string): string {
 }
 
 const loading = ref(false)
+/** 加载失败（用于错误态与重试） */
+const loadFailed = ref(false)
 const stats = ref<CacheStats | null>(null)
 
 const multiLevel = computed(() => stats.value?.multi_level ?? {})
@@ -55,6 +57,9 @@ async function load(): Promise<void> {
   loading.value = true
   try {
     stats.value = await cacheApi.stats()
+  } catch {
+    // 失败时置错误态，避免把「请求失败」显示成「暂无数据」
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -136,6 +141,15 @@ onMounted(load)
 
 <template>
   <div class="cache-page">
+
+    <!-- 加载失败提示（此页的表格是统计/展示表，没有常规列表三态） -->
+    <div
+      v-if="loadFailed"
+      class="mb-3 flex items-center gap-3 rounded-control bg-danger-soft px-3 py-2 text-sm text-danger"
+    >
+      <span>{{ $t('admin.common.loadFailed') }}</span>
+      <el-button link type="primary" @click="load()">{{ $t('admin.common.retry') }}</el-button>
+    </div>
     <!-- 顶部操作 -->
     <div class="mb-3 flex flex-wrap items-center gap-3">
       <el-button :loading="loading" @click="load">
