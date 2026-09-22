@@ -182,6 +182,21 @@ export interface MobileArticleQuery extends PageQuery {
   keyword?: string
 }
 
+/** 评论节点（公开视图：不含作者邮箱 / IP / UA） */
+export interface MobileCommentItem {
+  id: number
+  article_id: number
+  parent_id?: number | null
+  user_id?: number | null
+  content: string
+  author_name?: string | null
+  author_url?: string | null
+  likes: number
+  created_at?: string | null
+  /** 回复子节点（后端已按时间正序组装成树） */
+  children: MobileCommentItem[]
+}
+
 export const mobileApi = {
   // ---- 认证 ----
   register: (payload: RegisterPayload) => http.post<MobileTokenData>('/mobile/auth/register', payload),
@@ -266,4 +281,17 @@ export const mobileApi = {
     http.post<{ article_id: number; liked: boolean; likes: number }>(
       `/mobile/article/${id}/like`,
     ),
+
+  // ---- 评论（复用后台同一套 comment_service；公开读不返回 author_email / author_ip / user_agent）----
+  /** 文章评论树（无需登录，后端已按 parent_id 组装并按时间正序） */
+  commentTree: (articleId: number) =>
+    http.get<MobileCommentItem[]>(`/mobile/comment/article/${articleId}`),
+
+  /** 发表评论 / 回复（需登录；author_* 由后端按账号补齐，无需前端传） */
+  createComment: (payload: { article_id: number; content: string; parent_id?: number | null }) =>
+    http.post<MobileCommentItem>('/mobile/comment', payload),
+
+  /** 评论点赞 / 取消点赞（需登录，幂等切换） */
+  likeComment: (id: number) =>
+    http.post<{ liked: boolean; likes?: number }>(`/mobile/comment/${id}/like`),
 }

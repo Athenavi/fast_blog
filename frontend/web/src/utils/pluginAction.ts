@@ -49,6 +49,7 @@ export async function pluginAction<T = unknown>(
     return {
       success: false,
       data: null,
+      // 兜底文案（纯工具层，无 i18n 上下文）
       error: error instanceof Error ? error.message : '请求失败',
     }
   }

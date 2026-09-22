@@ -446,6 +446,7 @@ onMounted(async () => {
           <el-col :span="8">
             <el-form-item :label="$t('admin.ops.backup.cloudProvider')">
               <el-select v-model="cloudForm.provider" clearable style="width: 100%">
+                <!-- 云厂商名属专有名词，保持原样不进 i18n -->
                 <el-option label="AWS S3 / 兼容" value="s3"/>
                 <el-option label="阿里云 OSS" value="oss"/>
               </el-select>
@@ -481,6 +482,7 @@ onMounted(async () => {
                   ? $t('admin.ops.backup.cloudSecretKeepHint')
                   : $t('admin.ops.backup.cloudSecretPlaceholder')"
                 show-password
+                autocomplete="off"
                 type="password"
               />
             </el-form-item>

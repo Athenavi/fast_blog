@@ -37,12 +37,12 @@ export const VITAL_THRESHOLDS: Record<VitalName, { good: number; poor: number }>
   TTFB: {good: 800, poor: 1800},
 }
 
-export const VITAL_LABELS: Record<VitalName, string> = {
-  LCP: '最大内容绘制',
-  INP: '交互到下次绘制',
-  CLS: '累计布局偏移',
-  FCP: '首次内容绘制',
-  TTFB: '首字节时间',
+export const VITAL_LABELS: Record<VitalName, string> = { // 值是 i18n key，由面板用 $t() 翻译
+  LCP: 'admin.perf.lcp',
+  INP: 'admin.perf.inp',
+  CLS: 'admin.perf.cls',
+  FCP: 'admin.perf.fcp',
+  TTFB: 'admin.perf.ttfb',
 }
 
 export const VITAL_ORDER: VitalName[] = ['LCP', 'INP', 'CLS', 'FCP', 'TTFB']

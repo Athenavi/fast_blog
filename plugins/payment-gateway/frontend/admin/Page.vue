@@ -3,6 +3,10 @@ import {onMounted, ref} from 'vue'
 
 import {pluginAction} from '@/utils/pluginAction'
 
+import {normalizeCurrency} from '@/utils/money'
+
+const {t} = useI18n()
+
 /**
  * 支付网关（payment-gateway 插件后台页）
  *
@@ -33,7 +37,7 @@ async function load(): Promise<void> {
   try {
     const response = await pluginAction<Settings>('payment-gateway', 'get_settings')
     settings.value = response.data ?? {}
-    if (!response.success) error.value = response.error || '加载配置失败'
+    if (!response.success) error.value = response.error || t('admin.pluginPages.common.loadConfigFailed')
   } finally {
     loading.value = false
   }
@@ -45,7 +49,7 @@ async function testPayment(): Promise<void> {
     const response = await pluginAction('payment-gateway', 'create_payment', {
       order_id: orderId.value || `test_${Date.now()}`,
       amount: Number.parseInt(amount.value, 10) || 100,
-      subject: '测试支付',
+      subject: t('admin.pluginPages.paymentGateway.testSubject'),
     })
     result.value = response.data
   } finally {
@@ -61,7 +65,7 @@ onMounted(load)
     <div class="mb-3 flex justify-end">
       <el-button :loading="loading" size="small" @click="load">
         <Icon class="mr-1 h-3.5 w-3.5" name="refresh-cw"/>
-        刷新
+        {{ t('admin.common.refresh') }}
       </el-button>
     </div>
 
@@ -75,8 +79,10 @@ onMounted(load)
             <Icon class="h-5 w-5 text-primary" name="credit-card"/>
           </span>
           <div>
-            <p class="text-sm text-fg-muted">当前提供商</p>
-            <p class="text-lg font-semibold text-fg">{{ settings.provider || '未配置' }}</p>
+            <p class="text-sm text-fg-muted">{{ t('admin.pluginPages.paymentGateway.provider') }}</p>
+            <p class="text-lg font-semibold text-fg">{{
+                settings.provider || t('admin.pluginPages.common.notConfigured')
+              }}</p>
           </div>
         </div>
       </div>
@@ -87,8 +93,8 @@ onMounted(load)
             <Icon class="h-5 w-5 text-success" name="dollar-sign"/>
           </span>
           <div>
-            <p class="text-sm text-fg-muted">货币</p>
-            <p class="text-lg font-semibold uppercase text-fg">{{ settings.currency || 'cny' }}</p>
+            <p class="text-sm text-fg-muted">{{ t('admin.pluginPages.paymentGateway.currency') }}</p>
+            <p class="text-lg font-semibold uppercase text-fg">{{ normalizeCurrency(settings.currency) }}</p>
           </div>
         </div>
       </div>
@@ -99,8 +105,9 @@ onMounted(load)
             <Icon class="h-5 w-5 text-primary" name="circle-check"/>
           </span>
           <div>
-            <p class="text-sm text-fg-muted">沙箱模式</p>
-            <p class="text-lg font-semibold text-fg">{{ settings.alipay_sandbox ? '开启' : '关闭' }}</p>
+            <p class="text-sm text-fg-muted">{{ t('admin.pluginPages.paymentGateway.sandbox') }}</p>
+            <p class="text-lg font-semibold text-fg">
+              {{ settings.alipay_sandbox ? t('common.enabled') : t('common.disabled') }}</p>
           </div>
         </div>
       </div>
@@ -108,13 +115,15 @@ onMounted(load)
 
     <!-- 测试支付 -->
     <div class="mb-6 rounded-card border border-line bg-surface p-5">
-      <h3 class="mb-4 text-sm font-semibold text-fg">测试支付</h3>
+      <h3 class="mb-4 text-sm font-semibold text-fg">{{ t('admin.pluginPages.paymentGateway.testTitle') }}</h3>
       <div class="flex flex-wrap gap-3">
-        <el-input v-model="orderId" class="min-w-[200px] flex-1" placeholder="订单号（可选，自动生成）"/>
-        <el-input v-model="amount" class="w-32" placeholder="金额（分）" type="number"/>
+        <el-input v-model="orderId" :placeholder="t('admin.pluginPages.paymentGateway.orderIdPlaceholder')"
+                  class="min-w-[200px] flex-1"/>
+        <el-input v-model="amount" :placeholder="t('admin.pluginPages.paymentGateway.amountPlaceholder')" class="w-32"
+                  type="number"/>
         <el-button :loading="paying" type="primary" @click="testPayment">
           <Icon class="mr-1 h-4 w-4" name="arrow-right"/>
-          发起测试
+          {{ t('admin.pluginPages.paymentGateway.startTest') }}
         </el-button>
       </div>
       <pre
@@ -125,7 +134,7 @@ onMounted(load)
 
     <!-- 凭据 -->
     <div class="rounded-card border border-line bg-surface p-5">
-      <h3 class="mb-3 text-sm font-semibold text-fg">支付配置</h3>
+      <h3 class="mb-3 text-sm font-semibold text-fg">{{ t('admin.pluginPages.paymentGateway.configTitle') }}</h3>
 
       <div v-if="loading" class="space-y-3">
         <Skeleton class="h-5 w-64"/>
@@ -134,14 +143,20 @@ onMounted(load)
 
       <div v-else class="space-y-2 text-sm text-fg-muted">
         <p v-if="settings.alipay_app_id">
-          支付宝 AppID：<code class="text-fg">{{ settings.alipay_app_id }}</code>
+          {{ t('admin.pluginPages.paymentGateway.alipayAppId') }}：<code class="text-fg">{{
+            settings.alipay_app_id
+          }}</code>
         </p>
         <p v-if="settings.wechat_app_id">
-          微信 AppID：<code class="text-fg">{{ settings.wechat_app_id }}</code>
+          {{ t('admin.pluginPages.paymentGateway.wechatAppId') }}：<code class="text-fg">{{
+            settings.wechat_app_id
+          }}</code>
         </p>
-        <p v-if="settings.stripe_secret_key">Stripe：<code class="text-fg">已配置</code></p>
+        <p v-if="settings.stripe_secret_key">Stripe：<code class="text-fg">{{
+            t('admin.pluginPages.common.configured')
+          }}</code></p>
         <p v-if="!settings.alipay_app_id && !settings.wechat_app_id && !settings.stripe_secret_key">
-          暂未配置支付参数，请在插件设置中配置
+          {{ t('admin.pluginPages.paymentGateway.notConfiguredHint') }}
         </p>
       </div>
     </div>

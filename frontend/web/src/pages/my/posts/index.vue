@@ -53,11 +53,30 @@ function onFilterChange(): void {
   loadList()
 }
 
-async function removeOne(item: MobileArticleItem): Promise<void> {
-  if (!window.confirm(t('myPosts.confirmDelete', {title: item.title}))) return
-  await mobileApi.deleteMyArticle(item.id)
-  message.value = t('myPosts.deleted')
-  await loadList()
+/** 删除投稿：走统一确认框（原生 confirm 的按钮文案无法本地化，也不再使用） */
+const confirmOpen = ref(false)
+const confirmText = ref('')
+const deleting = ref(false)
+let pendingDeleteId: number | null = null
+
+function askRemove(item: MobileArticleItem): void {
+  pendingDeleteId = item.id
+  confirmText.value = t('myPosts.confirmDelete', {title: item.title})
+  confirmOpen.value = true
+}
+
+async function confirmRemove(): Promise<void> {
+  if (pendingDeleteId === null) return
+  deleting.value = true
+  try {
+    await mobileApi.deleteMyArticle(pendingDeleteId)
+    message.value = t('myPosts.deleted')
+    confirmOpen.value = false
+    await loadList()
+  } finally {
+    deleting.value = false
+    pendingDeleteId = null
+  }
 }
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize)))
@@ -134,7 +153,7 @@ onMounted(loadList)
           <NuxtLink :to="`/my/posts/edit/${item.id}`">
             <Button size="sm" variant="outline">{{ $t('admin.common.edit') }}</Button>
           </NuxtLink>
-          <Button class="text-danger" size="sm" variant="ghost" @click="removeOne(item)">
+          <Button class="text-danger" size="sm" variant="ghost" @click="askRemove(item)">
             <Icon class="h-4 w-4" name="trash-2"/>
           </Button>
         </div>
@@ -158,5 +177,13 @@ onMounted(loadList)
         {{ $t('myPosts.nextPage') }}
       </Button>
     </nav>
+
+    <ConfirmDialog
+      v-model="confirmOpen"
+      :description="confirmText"
+      :loading="deleting"
+      danger
+      @confirm="confirmRemove"
+    />
   </div>
 </template>

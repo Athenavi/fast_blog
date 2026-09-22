@@ -231,6 +231,7 @@ onMounted(loadEvents)
             v-model="form.secret"
             :placeholder="editingId ? t('admin.ops.webhook.leaveBlankToKeepUnchanged') : t('admin.ops.webhook.usedToVerifyRequestSignatures')"
             show-password
+            autocomplete="off"
             type="password"
           />
         </el-form-item>

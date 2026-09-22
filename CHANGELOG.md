@@ -29,9 +29,30 @@
   [DEPLOYMENT.md](docs/DEPLOYMENT.md) 与 [DEVELOPMENT.md](docs/DEVELOPMENT.md) 两篇（原 `DEPLOYMENT_GUIDE.md`
   的云平台通用内容与 `docs/refactor/HANDOVER.md` 不再单独维护）；子项目 README（前端、移动端、SDK、测试、插件、主题）
   与 `CHANGELOG` / `CONTRIBUTING` / `SECURITY` / Issue 与 PR 模板一并按当前代码事实重写
+- **UI/UX 护栏（路线图 Batch 0）**：
+    - `e2e/visual.spec.ts`：16 个页面（后台 12 + 前台 4）截图对比回归，基线存 `e2e/visual.spec.ts-snapshots/`
+      （要入库）；后台跑已登录视角、前台跑匿名访客视角，头部等动态区域用 mask 排除
+    - `e2e/a11y.spec.ts` + `e2e/a11y-baseline.json`：axe-core（WCAG 2.1/2.2 A+AA）巡检。采用
+      **基线对比**而非"零违规"——现状违规冻结成基线，只拦"新增/加重"的违规，`A11Y_UPDATE_BASELINE=1`
+      可收紧基线
+    - `scripts/check-bundle-budget.mjs`：起 `.output/server`、解析 SSR HTML 的首屏脚本，按 gzip 体积
+      卡预算（首屏 200KB / 全量 1600KB）。实测（2026-09-21 产物）前台首页 189KB、后台仪表盘 158KB、
+      全量 1109KB
+    - `playwright.config.ts` 支持 `E2E_PORT`：5173 被同机其它项目占用时不再"串台"把别人的 dev server
+      当作被测目标（实测症状：整份 spec 因 `waitForHydration` 超时全红）
+    - 新增 devDependency `@axe-core/playwright`；`frontend/web/.gitignore` 补 Playwright 产物目录
+- **编辑器与文章表单归一（路线图 Batch 1.1）**：
+    - 新增 `components/editor/extensions.ts`（扩展集改由参数决定：标题级别 / 表格 / 任务列表 / 图片 /
+      对齐 / 智能排版）与 `components/editor/tools.ts`（工具栏定义，命令与 `isActive` 纯数据化），
+      `RichEditor` 退化为"组装"；对外 API（`v-model` / `placeholder` / `editable`）不变，调用点零改动
+    - 新增 `composables/useArticleForm.ts`：后台编辑页与前台投稿页共用同一份字段/加载/保存逻辑。
+      `admin` 模式为全量字段 + 立即发布，`contributor` 模式仅内容字段 + 仅存草稿（后端 schema 不接受
+      管理字段）；分类选项与提示文案由调用方注入，渲染层仍分别为 Element Plus / Tailwind
 
 ### 修复
 
+- `frontend/web/e2e/login.spec.ts`：空表单校验的断言仍在等旧的提交级提示（`.bg-danger-soft`），
+  而登录页早已改为字段级校验（`.text-danger`）—— 断言改为两者兼容，避免"页面正确、用例却红"
 - `frontend/web`：显式声明 `vite` 依赖并重建 lockfile，修复 `npm ci --legacy-peer-deps` 下 `nuxt prepare`
   报 `Cannot find module 'vite'` 导致的安装失败（顶层 vite 升为 8.3.0，与 `@nuxt/vite-builder` 对齐）
 - CI：`release.yml` 的 Node 版本由 25 调整为 22，与 `ci.yml`、前端 Dockerfile 保持一致

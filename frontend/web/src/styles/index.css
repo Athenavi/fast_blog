@@ -183,6 +183,42 @@ body * {
   font-weight: 600;
 }
 
+/* 目录锚点跳转时给 sticky 顶栏留出高度，否则标题会被顶栏盖住 */
+.prose-content h2,
+.prose-content h3 {
+  scroll-margin-top: 5rem;
+}
+
+/* 代码块复制按钮：由 ArticleDetailView 在客户端注入到 <pre> 内，样式必须是全局的 */
+.prose-content pre {
+  position: relative;
+}
+
+.code-copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.prose-content pre:hover .code-copy,
+.code-copy:focus-visible {
+  opacity: 1;
+}
+
+.code-copy:hover {
+  color: var(--color-fg);
+  border-color: var(--color-line-strong);
+}
+
 .prose-content p {
   margin: 0 0 1.15rem;
 }
@@ -264,4 +300,158 @@ body * {
 .prose-content th {
   background: var(--color-surface-soft);
   font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- 提示块（callout）
+ * 前台正文与编辑器内共用同一套规则（编辑器内容在 .ProseMirror 下）。
+ * 四类语义色全部走令牌，深浅色与自选配色自动跟随。
+ */
+[data-callout] {
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  border-left: 3px solid var(--color-line-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-soft);
+}
+
+[data-callout='info'] {
+  border-left-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+[data-callout='success'] {
+  border-left-color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+[data-callout='warning'] {
+  border-left-color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+[data-callout='danger'] {
+  border-left-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+[data-callout] > p:first-child {
+  margin-top: 0;
+}
+
+[data-callout] > p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------------------------------------------------------------- 代码高亮（highlight.js token）
+ * 不引入 highlight.js 自带主题：用语义令牌写 token 配色，
+ * 深浅色与用户自选主色都能自动跟随（编辑器内与前台正文共用同一套）。
+ */
+.hljs-comment,
+.hljs-quote {
+  font-style: italic;
+  color: var(--color-fg-subtle);
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-doctag,
+.hljs-name {
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.hljs-string,
+.hljs-attr,
+.hljs-template-tag,
+.hljs-addition,
+.hljs-regexp {
+  color: var(--color-success);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--color-warning);
+}
+
+.hljs-built_in,
+.hljs-type,
+.hljs-title,
+.hljs-class .hljs-title,
+.hljs-function .hljs-title,
+.hljs-deletion {
+  color: var(--color-danger);
+}
+
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-attribute {
+  color: var(--color-fg-muted);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- 打印（前台内容页）
+ * 此前没有打印样式：打印文章会把顶部导航、底部导航、页脚、浮动提示一起打在纸上。
+ * 这里只保留正文，并把链接地址摊开（纸质件点不了）。
+ */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* 导航 / 页脚 / 各类浮层：打印时一并去掉 */
+  header.sticky,
+  footer,
+  nav,
+  .fixed,
+  [role='dialog'],
+  [role='alert'] {
+    display: none !important;
+  }
+
+  main,
+  .prose-content,
+  .max-w-read,
+  .max-w-wide,
+  .pb-16 {
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .prose-content {
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .prose-content img {
+    max-width: 100% !important;
+    break-inside: avoid;
+  }
+
+  .prose-content pre,
+  .prose-content blockquote,
+  .prose-content table {
+    break-inside: avoid;
+  }
+
+  /* 纸质件点不了链接，把地址摊开 */
+  .prose-content a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: #555;
+  }
 }

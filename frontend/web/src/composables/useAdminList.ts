@@ -59,7 +59,6 @@ export function useAdminList<T, Q extends PageQuery = PageQuery>(
   const total = ref(0)
   const page = ref(1)
   const pageSize = ref(options.pageSize ?? 20)
-  const selection = ref([]) as Ref<T[]>
   /** 最近一次加载是否失败（页面可据此展示错误态） */
   const failed = ref(false)
 
@@ -97,37 +96,50 @@ export function useAdminList<T, Q extends PageQuery = PageQuery>(
     return params
   }
 
-  function syncToUrl(): void {
+  function syncToUrl(mode: 'push' | 'replace' = 'push'): void {
     if (!router) return
     const next: Record<string, string> = {}
     for (const [key, value] of Object.entries(buildParams())) {
       if (key === 'page' && value === 1) continue
       next[key] = String(value)
     }
-    void router.replace({query: next})
+    // 默认 push：筛选/翻页要能"后退回去"（此前用 replace，按后退会直接离开列表页）
+    if (mode === 'replace') void router.replace({query: next})
+    else void router.push({query: next})
   }
 
+  /**
+   * 请求序号：快速翻页或连续搜索时，先发的慢响应可能后到并覆盖新结果
+   * （表现为列表"闪回旧数据"）。每次 load 取新序号，响应回来时序号过期就丢弃。
+   */
+  let requestSeq = 0
+
   async function load(): Promise<void> {
+    const seq = (requestSeq += 1)
     loading.value = true
     failed.value = false
     try {
       const result = await options.fetcher(buildParams() as Q)
+      if (seq !== requestSeq) return
       rows.value = (result?.items ?? []) as T[]
       total.value = result?.total ?? 0
+      // 换了数据页，当前页的勾选自然失效；但跨页累积的 id 集合要保留
+      selection.value = []
     } catch {
       // 错误提示由 request 拦截器统一处理，这里只保证表格状态干净
+      if (seq !== requestSeq) return
       rows.value = []
       total.value = 0
       failed.value = true
     } finally {
-      loading.value = false
-      clearSelection()
+      if (seq === requestSeq) loading.value = false
     }
   }
 
-  /** 从第一页重新查询（搜索按钮 / 条件变化） */
+  /** 从第一页重新查询（搜索按钮 / 条件变化）；筛选变了，之前的勾选不再适用 */
   function search(): Promise<void> {
     page.value = 1
+    clearSelection()
     syncToUrl()
     return load()
   }
@@ -137,6 +149,7 @@ export function useAdminList<T, Q extends PageQuery = PageQuery>(
     for (const key of Object.keys(query)) delete (query as Record<string, unknown>)[key]
     Object.assign(query as Record<string, unknown>, options.defaultQuery ?? {})
     page.value = 1
+    clearSelection()
     syncToUrl()
     return load()
   }
@@ -154,19 +167,37 @@ export function useAdminList<T, Q extends PageQuery = PageQuery>(
     return load()
   }
 
-  // ---- 行选择
-  const selectedCount = computed(() => selection.value.length)
+  // ---- 行选择（跨页保留）
+  /**
+   * 分两层：
+   *  - `selection`：**当前页**被勾选的行（el-table 的 selection-change 直接给这个）；
+   *  - `selectedIds`：**跨页累积**的 id 集合（批量操作真正作用的对象）。
+   * 此前只有当前页，翻页即丢 —— 50 条数据要分 3 次选、3 次删。
+   */
   const rowKey = options.rowKey ?? 'id'
-  const selectedIds = computed(() =>
-    selection.value.map((row) => (row as Record<string, unknown>)[rowKey] as number),
-  )
+  const selection = ref([]) as Ref<T[]>
+  const selectedIds = ref<number[]>([])
+  const selectedCount = computed(() => selectedIds.value.length)
+  /** 当前页选中数：用于提示"已选 N 项（含其它页）" */
+  const pageSelectionCount = computed(() => selection.value.length)
+
+  function idOf(row: T): number {
+    return (row as Record<string, unknown>)[rowKey] as number
+  }
 
   function onSelectionChange(selected: T[]): void {
     selection.value = selected
+    const pageIds = rows.value.map(idOf)
+    const pageSelected = new Set(selected.map(idOf))
+    // 当前页取消的移出集合，当前页新选的加入，**其它页原样保留**
+    const next = selectedIds.value.filter((id) => !pageIds.includes(id))
+    for (const id of pageIds) if (pageSelected.has(id)) next.push(id)
+    selectedIds.value = next
   }
 
   function clearSelection(): void {
     selection.value = []
+    selectedIds.value = []
   }
 
   /**
@@ -175,6 +206,7 @@ export function useAdminList<T, Q extends PageQuery = PageQuery>(
    */
   async function remove(
     action: () => Promise<unknown>,
+    // 默认文案仅供兜底：store 层没有 i18n 上下文，调用方应传入已翻译的文案
     message = '确定要执行该操作吗？',
     title = '确认操作',
     successText = '操作成功',
@@ -189,6 +221,8 @@ export function useAdminList<T, Q extends PageQuery = PageQuery>(
     try {
       await action()
       ElMessage.success(successText)
+      // 被操作的行多半已不存在，清空跨页勾选避免"删过了还显示已选"
+      clearSelection()
       if (rows.value.length === 1 && page.value > 1) page.value -= 1
       await load()
       return true
@@ -207,6 +241,7 @@ export function useAdminList<T, Q extends PageQuery = PageQuery>(
     selection,
     selectedIds,
     selectedCount,
+    pageSelectionCount,
     onSelectionChange,
     clearSelection,
     hasFilters,

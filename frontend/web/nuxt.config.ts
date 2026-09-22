@@ -25,9 +25,10 @@ export default defineNuxtConfig({
   // （前台已有 /articles、/p/{slug} 等 SEO 路径，带前缀会连带影响 sitemap、PWA 与已收录链接）。
   // 切换语言走 `useI18n().setLocale()`，选择由模块记在 cookie 里。
   i18n: {
+    // `dir` 由 app.vue 写入 `<html dir>`（当前都是 ltr，为将来接 RTL 语言预留）
     locales: [
-      {code: 'zh-CN', language: 'zh-CN', name: '简体中文', file: 'zh-CN.json'},
-      {code: 'en', language: 'en-US', name: 'English', file: 'en.json'},
+      {code: 'zh-CN', language: 'zh-CN', name: '简体中文', file: 'zh-CN.json', dir: 'ltr'},
+      {code: 'en', language: 'en-US', name: 'English', file: 'en.json', dir: 'ltr'},
     ],
     defaultLocale: 'zh-CN',
     strategy: 'no_prefix',
@@ -174,6 +175,10 @@ export default defineNuxtConfig({
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},
+    // 例外：`/articles/id/**` 是后台编辑器的预览入口（按 id 访问，草稿也能看）。
+    // 刚保存就要能看到最新内容，所以不能吃上面那条 60s 的 swr 缓存；
+    // 更具体的路径规则优先于 `/articles/**`。
+    '/articles/id/**': {swr: false},
   },
 
   app: {

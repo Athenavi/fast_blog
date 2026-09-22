@@ -5,6 +5,8 @@ import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {pluginAction} from '@/utils/pluginAction'
 import {useUserStore} from '@/store/modules/user'
 
+const {t} = useI18n()
+
 /**
  * 代码片段（code-snippets 插件后台页）
  *
@@ -83,7 +85,7 @@ async function loadSnippets(): Promise<void> {
     )
     const payload = result.data
     snippets.value = Array.isArray(payload) ? payload : (payload?.data ?? [])
-    if (!result.success) error.value = result.error || '加载失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -111,11 +113,11 @@ async function saveSnippet(): Promise<void> {
       user_id: userId.value,
     })
     if (result.success) {
-      ElMessage.success('片段已创建')
+      ElMessage.success(t('admin.pluginPages.codeSnippets.created'))
       editorOpen.value = false
       await loadSnippets()
     } else {
-      ElMessage.error(result.error || '创建失败')
+      ElMessage.error(result.error || t('admin.pluginPages.common.createFailed'))
     }
   } finally {
     saving.value = false
@@ -123,16 +125,16 @@ async function saveSnippet(): Promise<void> {
 }
 
 async function removeSnippet(snippet: Snippet): Promise<void> {
-  await ElMessageBox.confirm(`确定删除片段「${snippet.title}」吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.pluginPages.common.confirmDeleteNamed', {name: snippet.title}), t('admin.common.notice'), {type: 'warning'})
   const result = await pluginAction('code-snippets', 'delete_snippet', {
     snippet_id: snippet.id,
     user_id: userId.value,
   })
   if (result.success) {
-    ElMessage.success('已删除')
+    ElMessage.success(t('admin.common.deleted'))
     await loadSnippets()
   } else {
-    ElMessage.error(result.error || '删除失败')
+    ElMessage.error(result.error || t('admin.pluginPages.common.deleteFailed'))
   }
 }
 
@@ -144,9 +146,9 @@ async function copyEmbed(snippet: Snippet): Promise<void> {
     window.setTimeout(() => {
       copiedId.value = null
     }, 2000)
-    ElMessage.success('已复制嵌入标记')
+    ElMessage.success(t('admin.pluginPages.codeSnippets.embedCopied'))
   } catch {
-    ElMessage.warning('复制失败，请手动复制')
+    ElMessage.warning(t('admin.pluginPages.common.copyFailed'))
   }
 }
 
@@ -162,10 +164,10 @@ onMounted(loadSnippets)
 <template>
   <div class="p-4">
     <div class="mb-4 flex flex-wrap items-center gap-3">
-      <el-input v-model="searchQuery" class="max-w-md" placeholder="搜索标题或标签…"/>
+      <el-input v-model="searchQuery" :placeholder="t('admin.pluginPages.common.searchPlaceholder')" class="max-w-md"/>
       <el-button class="ml-auto" type="primary" @click="openEditor">
         <Icon class="mr-1 h-4 w-4" name="plus"/>
-        新建片段
+        {{ t('admin.pluginPages.codeSnippets.create') }}
       </el-button>
     </div>
 
@@ -177,8 +179,8 @@ onMounted(loadSnippets)
 
     <EmptyState
       v-else-if="!filtered.length"
-      :description="searchQuery ? '换个关键词试试' : '点右上角「新建片段」开始'"
-      :title="searchQuery ? '没有匹配的片段' : '还没有代码片段'"
+      :description="searchQuery ? t('admin.pluginPages.common.tryAnotherKeyword') : t('admin.pluginPages.codeSnippets.emptyDesc')"
+      :title="searchQuery ? t('admin.pluginPages.common.noMatch') : t('admin.pluginPages.codeSnippets.emptyTitle')"
     />
 
     <div v-else class="space-y-3">
@@ -218,14 +220,14 @@ onMounted(loadSnippets)
             <span>{{ formatDate(snippet.created_at) }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <el-button link title="复制嵌入标记 [snippet:N]" @click="copyEmbed(snippet)">
+            <el-button :title="t('admin.pluginPages.codeSnippets.copyEmbed')" link @click="copyEmbed(snippet)">
               <Icon
                 :class="copiedId === snippet.id ? 'text-success' : 'text-fg-subtle'"
                 :name="copiedId === snippet.id ? 'check' : 'copy'"
                 class="h-4 w-4"
               />
             </el-button>
-            <el-button link title="删除" type="danger" @click="removeSnippet(snippet)">
+            <el-button :title="t('admin.common.delete')" link type="danger" @click="removeSnippet(snippet)">
               <Icon class="h-4 w-4" name="trash-2"/>
             </el-button>
           </div>
@@ -234,49 +236,57 @@ onMounted(loadSnippets)
     </div>
 
     <!-- 新建片段 -->
-    <el-dialog v-model="editorOpen" title="新建代码片段" width="720px">
+    <el-dialog v-model="editorOpen" :title="t('admin.pluginPages.codeSnippets.createTitle')" width="720px">
       <div class="space-y-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-fg">标题</label>
-          <el-input v-model="form.title" placeholder="片段标题"/>
+          <label class="mb-1 block text-sm font-medium text-fg">{{ t('admin.pluginPages.common.fieldTitle') }}</label>
+          <el-input v-model="form.title" :placeholder="t('admin.pluginPages.codeSnippets.titlePlaceholder')"/>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="mb-1 block text-sm font-medium text-fg">语言</label>
+            <label class="mb-1 block text-sm font-medium text-fg">{{
+                t('admin.pluginPages.codeSnippets.language')
+              }}</label>
             <el-select v-model="form.language" class="w-full">
               <el-option v-for="lang in SUPPORTED_LANGUAGES" :key="lang" :label="lang" :value="lang"/>
             </el-select>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-fg">可见性</label>
+            <label class="mb-1 block text-sm font-medium text-fg">{{
+                t('admin.pluginPages.common.fieldVisibility')
+              }}</label>
             <el-select v-model="form.visibility" class="w-full">
-              <el-option label="公开" value="public"/>
-              <el-option label="私有" value="private"/>
-              <el-option label="不列出" value="unlisted"/>
+              <el-option :label="t('admin.content.media.publicLabel')" value="public"/>
+              <el-option :label="t('admin.content.media.privateLabel')" value="private"/>
+              <el-option :label="t('admin.pluginPages.common.unlisted')" value="unlisted"/>
             </el-select>
           </div>
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium text-fg">描述</label>
+          <label class="mb-1 block text-sm font-medium text-fg">{{ t('admin.common.description') }}</label>
           <el-input v-model="form.description"/>
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium text-fg">标签（英文逗号分隔）</label>
-          <el-input v-model="form.tags" placeholder="例如 python, tutorial, beginner"/>
+          <label class="mb-1 block text-sm font-medium text-fg">{{
+              t('admin.pluginPages.codeSnippets.tagsHint')
+            }}</label>
+          <el-input v-model="form.tags" :placeholder="t('admin.pluginPages.codeSnippets.tagsPlaceholder')"/>
         </div>
 
         <div>
-          <label class="mb-1 block text-sm font-medium text-fg">代码</label>
+          <label class="mb-1 block text-sm font-medium text-fg">{{ t('admin.pluginPages.codeSnippets.code') }}</label>
           <el-input v-model="form.code" :rows="12" type="textarea"/>
         </div>
       </div>
 
       <template #footer>
-        <el-button @click="editorOpen = false">取消</el-button>
-        <el-button :disabled="!form.title.trim()" :loading="saving" type="primary" @click="saveSnippet">创建</el-button>
+        <el-button @click="editorOpen = false">{{ t('admin.common.cancel') }}</el-button>
+        <el-button :disabled="!form.title.trim()" :loading="saving" type="primary" @click="saveSnippet">
+          {{ t('admin.common.create') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>

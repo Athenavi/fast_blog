@@ -13,7 +13,7 @@ import ThemeConfigPanel from '@/components/admin/ThemeConfigPanel.vue'
   <div class="p-4">
     <ThemeConfigPanel
       plugin-slug="modern-minimal"
-      theme-description="现代简约风格 - 支持代码高亮和深色模式"
+      :theme-description="t('theme.modernMinimalDescription')"
       theme-name="Modern Minimal"
     />
   </div>

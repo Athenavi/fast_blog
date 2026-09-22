@@ -11,9 +11,10 @@ const {t} = useI18n()
  */
 import {Delete, Edit, Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {reactive, ref} from 'vue'
+import {onMounted, reactive, ref} from 'vue'
 
 import {settingApi, type SettingItem} from '@/api'
+import type {SettingUpsert} from '@/api/modules/setting'
 import type {PageQuery} from '@/api/types'
 import {useAdminList} from '@/composables/useAdminList'
 import {formatDateTime} from '@/utils/format'
@@ -39,8 +40,42 @@ interface SettingQueryForm extends PageQuery {
 const list = useAdminList<SettingItem, SettingQueryForm>({
   fetcher: (params) => settingApi.list(params),
   defaultQuery: {keyword: '', is_public: undefined},
+  // 设置项总数有限（接口也不分页），一次取全，表单模式下才能按分组完整展示
+  pageSize: 200,
   syncUrl: true,
 })
+
+/**
+ * 视图模式
+ *
+ * `form`（默认）：按 key 前缀分组 + 按 setting_type 渲染控件，改常用项不必看键名；
+ * `advanced`：原来的键值表格，用于改冷门 key、调类型、增删配置。
+ */
+const VIEW_STORAGE_KEY = 'fastblog.setting.view'
+const viewMode = ref<'form' | 'advanced'>('form')
+const batchSaving = ref(false)
+
+onMounted(() => {
+  if (!import.meta.client) return
+  const saved = window.localStorage.getItem(VIEW_STORAGE_KEY)
+  if (saved === 'form' || saved === 'advanced') viewMode.value = saved
+})
+
+function persistView(): void {
+  if (import.meta.client) window.localStorage.setItem(VIEW_STORAGE_KEY, viewMode.value)
+}
+
+/** 分组表单保存：只提交改动过的项，走后端已有的批量接口 */
+async function saveBatch(payload: SettingUpsert[]): Promise<void> {
+  batchSaving.value = true
+  try {
+    await settingApi.batchSave(payload)
+    ElMessage.success(t('admin.system.setting.saved'))
+    await list.reload()
+  } finally {
+    batchSaving.value = false
+  }
+}
 
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -118,12 +153,22 @@ async function removeRow(row: SettingItem): Promise<void> {
 <template>
   <AdminPage :desc="$t('admin.system.setting.desc')" :title="$t('admin.system.setting.title')">
     <template #actions>
+      <el-radio-group v-model="viewMode" size="small" @change="persistView">
+        <el-radio-button value="form">{{ $t('admin.system.setting.formMode') }}</el-radio-button>
+        <el-radio-button value="advanced">{{ $t('admin.system.setting.advancedMode') }}</el-radio-button>
+      </el-radio-group>
       <el-button v-auth="'module_system:setting:edit'" :icon="Plus" type="primary" @click="openCreate">
         {{ $t('admin.system.setting.createTitle') }}
       </el-button>
     </template>
 
-    <AdminListShell
+    <!-- 表单模式：按分组 + 类型化控件（默认视图） -->
+    <div v-if="viewMode === 'form'" class="setting-form-mode">
+      <el-alert :closable="false" :title="$t('admin.system.setting.groupedHint')" class="mb-3" show-icon type="info"/>
+      <SettingGroupForm :items="list.rows.value" :saving="batchSaving" @save="saveBatch"/>
+    </div>
+
+    <AdminListShell v-else
       :empty-desc="list.hasFilters.value
         ? $t('admin.system.setting.emptyFiltered')
         : $t('admin.system.setting.emptyDesc')"

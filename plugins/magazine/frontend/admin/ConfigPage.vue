@@ -13,7 +13,7 @@ import ThemeConfigPanel from '@/components/admin/ThemeConfigPanel.vue'
   <div class="p-4">
     <ThemeConfigPanel
       plugin-slug="magazine"
-      theme-description="杂志风格主题 - 网格布局、特色图片展示、多栏目支持"
+      :theme-description="t('theme.magazineDescription')"
       theme-name="Magazine"
     />
   </div>

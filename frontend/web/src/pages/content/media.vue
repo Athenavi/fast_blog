@@ -129,18 +129,47 @@ async function submitFolder(): Promise<void> {
   }
 }
 
-async function removeFolder(): Promise<void> {
-  if (!folderForm.id) return
-  await ElMessageBox.confirm(
-    t('admin.content.media.deleteFolderConfirm', {name: folderForm.name}),
-    t('admin.common.notice'),
-    {type: 'warning'},
-  )
-  await mediaApi.removeFolder(folderForm.id)
+/** 删除指定文件夹：树内联按钮与编辑弹窗共用；返回是否真的删掉了 */
+async function removeFolder(folder: Pick<MediaFolder, 'id' | 'name'>): Promise<boolean> {
+  try {
+    await ElMessageBox.confirm(
+      t('admin.content.media.deleteFolderConfirm', {name: folder.name}),
+      t('admin.common.notice'),
+      {type: 'warning'},
+    )
+  } catch {
+    return false // 用户取消
+  }
+  await mediaApi.removeFolder(folder.id)
   ElMessage.success(t('admin.content.media.folderDeleted'))
-  folderDialogVisible.value = false
-  if (activeFolderId.value === folderForm.id) activeFolderId.value = undefined
+  if (activeFolderId.value === folder.id) activeFolderId.value = undefined
   await Promise.all([loadFolders(), list.reload()])
+  return true
+}
+
+/** 编辑弹窗内的删除：删除成功后关闭弹窗 */
+async function removeFolderFromDialog(): Promise<void> {
+  if (!folderForm.id) return
+  if (await removeFolder({id: folderForm.id, name: folderForm.name})) folderDialogVisible.value = false
+}
+
+/** 删除单个媒体（网格卡片 / 列表行 / 详情侧栏共用）；返回是否真的删掉了 */
+async function removeItem(item: MediaItem): Promise<boolean> {
+  const name = item.original_filename || item.filename || String(item.id)
+  try {
+    await ElMessageBox.confirm(
+      t('admin.content.media.deleteConfirm', {name}),
+      t('admin.common.notice'),
+      {type: 'warning'},
+    )
+  } catch {
+    return false // 用户取消
+  }
+  await mediaApi.remove(item.id)
+  ElMessage.success(t('admin.content.media.deleted'))
+  clearSelection()
+  await Promise.all([list.reload(), loadFolders()])
+  return true
 }
 
 /** 文件夹下拉（详情/移动用）：把树拍平成带缩进的选项 */
@@ -313,17 +342,9 @@ async function submitDetail(): Promise<void> {
 }
 
 async function removeDetail(): Promise<void> {
-  if (!detailItem.value) return
   const item = detailItem.value
-  await ElMessageBox.confirm(
-    t('admin.content.media.deleteConfirm', {name: item.original_filename || item.filename}),
-    t('admin.common.notice'),
-    {type: 'warning'},
-  )
-  await mediaApi.remove(item.id)
-  ElMessage.success(t('admin.content.media.deleted'))
-  detailVisible.value = false
-  await Promise.all([list.reload(), loadFolders()])
+  if (!item) return
+  if (await removeItem(item)) detailVisible.value = false
 }
 
 async function copyLink(url?: string | null): Promise<void> {
@@ -403,10 +424,31 @@ onMounted(loadFolders)
               <span class="media-folder__name">{{ data.name }}</span>
               <span class="media-folder__count">{{ data.media_count ?? 0 }}</span>
               <span class="media-folder__ops">
-                <el-button :icon="FolderAdd" link size="small" @click.stop="openFolderDialog(undefined, data.id)"/>
-                <el-button :icon="Edit" link size="small" @click.stop="openFolderDialog(data as MediaFolder)"/>
-                <el-button :icon="Delete" link size="small"
-                           @click.stop="openFolderDialog(data as MediaFolder), removeFolder()"/>
+                <el-button
+                  :aria-label="$t('admin.content.media.addSubfolder')"
+                  :icon="FolderAdd"
+                  :title="$t('admin.content.media.addSubfolder')"
+                  link
+                  size="small"
+                  @click.stop="openFolderDialog(undefined, data.id)"
+                />
+                <el-button
+                  :aria-label="$t('admin.content.media.editFolder')"
+                  :icon="Edit"
+                  :title="$t('admin.content.media.editFolder')"
+                  link
+                  size="small"
+                  @click.stop="openFolderDialog(data as MediaFolder)"
+                />
+                <el-button
+                  :aria-label="$t('admin.content.media.deleteFolder')"
+                  :icon="Delete"
+                  :title="$t('admin.content.media.deleteFolder')"
+                  link
+                  size="small"
+                  type="danger"
+                  @click.stop="removeFolder(data as MediaFolder)"
+                />
               </span>
             </span>
           </template>
@@ -501,10 +543,16 @@ onMounted(loadFolders)
             <div
               v-for="item in list.rows.value"
               :key="item.id"
+              :aria-label="item.original_filename || item.filename || undefined"
+              :aria-pressed="isSelected(item)"
               :class="{selected: isSelected(item)}"
               class="media-card"
+              role="button"
+              tabindex="0"
               @click="toggleSelect(item)"
               @dblclick="openDetail(item)"
+              @keydown.enter.prevent="toggleSelect(item)"
+              @keydown.space.prevent="toggleSelect(item)"
             >
               <div class="media-card__thumb">
                 <img v-if="isImage(item) && thumbOf(item)" :alt="item.alt_text || ''" :src="thumbOf(item)"
@@ -521,8 +569,23 @@ onMounted(loadFolders)
                 <span class="media-card__size">{{ formatFileSize(item.file_size) }}</span>
               </div>
               <div class="media-card__ops">
-                <el-button :icon="Edit" link size="small" @click.stop="openDetail(item)"/>
-                <el-button :icon="Delete" link size="small" type="danger" @click.stop="openDetail(item)"/>
+                <el-button
+                  :aria-label="$t('admin.content.media.editDetail')"
+                  :icon="Edit"
+                  :title="$t('admin.content.media.editDetail')"
+                  link
+                  size="small"
+                  @click.stop="openDetail(item)"
+                />
+                <el-button
+                  :aria-label="$t('admin.common.delete')"
+                  :icon="Delete"
+                  :title="$t('admin.common.delete')"
+                  link
+                  size="small"
+                  type="danger"
+                  @click.stop="removeItem(item)"
+                />
               </div>
             </div>
           </div>
@@ -587,7 +650,7 @@ onMounted(loadFolders)
                 <el-button :icon="Edit" link type="primary" @click="openDetail(row as MediaItem)">
                   {{ $t('admin.common.edit') }}
                 </el-button>
-                <el-button :icon="Delete" link type="danger" @click="openDetail(row as MediaItem)">
+                <el-button :icon="Delete" link type="danger" @click="removeItem(row as MediaItem)">
                   {{ $t('admin.common.delete') }}
                 </el-button>
               </template>
@@ -725,7 +788,7 @@ onMounted(loadFolders)
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button v-if="folderForm.id" plain type="danger" @click="removeFolder">
+        <el-button v-if="folderForm.id" plain type="danger" @click="removeFolderFromDialog">
           {{ $t('admin.common.delete') }}
         </el-button>
         <el-button @click="folderDialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
@@ -857,6 +920,12 @@ onMounted(loadFolders)
 .media-card.selected {
   border-color: var(--admin-primary);
   box-shadow: 0 0 0 2px color-mix(in oklab, var(--admin-primary) 25%, transparent);
+}
+
+/* 卡片是可选中控件（role="button"），键盘聚焦必须有可见指示 */
+.media-card:focus-visible {
+  outline: 2px solid var(--admin-primary);
+  outline-offset: 2px;
 }
 
 .media-card__thumb {

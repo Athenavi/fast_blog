@@ -4,6 +4,8 @@ import {computed, onMounted, ref, watch} from 'vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * Newsletter 管理（newsletter 插件后台页）
  *
@@ -62,7 +64,7 @@ async function loadList(): Promise<void> {
     })
     list.value = result.data?.data ?? []
     total.value = result.data?.total ?? 0
-    if (!result.success) error.value = result.error || '加载失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -73,15 +75,15 @@ async function refresh(): Promise<void> {
 }
 
 async function unsubscribe(row: Subscriber): Promise<void> {
-  await ElMessageBox.confirm(`确定让「${row.email}」退订吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.pluginPages.newsletter.confirmUnsubscribe', {email: row.email}), t('admin.common.notice'), {type: 'warning'})
   unsubscribingId.value = row.id
   try {
     const result = await pluginAction('newsletter', 'admin_unsubscribe', {subscriber_id: row.id})
     if (result.success) {
-      ElMessage.success('已退订')
+      ElMessage.success(t('admin.pluginPages.newsletter.unsubscribed'))
       await refresh()
     } else {
-      ElMessage.error(result.error || '操作失败')
+      ElMessage.error(result.error || t('common.operationFailed'))
     }
   } finally {
     unsubscribingId.value = null
@@ -104,19 +106,19 @@ onMounted(refresh)
     <div class="mb-3 flex flex-wrap items-center justify-end gap-4 text-sm">
       <span class="flex items-center gap-1 text-fg-muted">
         <Icon class="h-4 w-4" name="user"/>
-        {{ stats.total }} 总计
+        {{ stats.total }} {{ t('admin.pluginPages.newsletter.total') }}
       </span>
       <span class="flex items-center gap-1 text-success">
         <Icon class="h-4 w-4" name="check"/>
-        {{ stats.active }} 活跃
+        {{ stats.active }} {{ t('common.active') }}
       </span>
       <span class="flex items-center gap-1 text-fg-subtle">
         <Icon class="h-4 w-4" name="x"/>
-        {{ stats.unsubscribed }} 退订
+        {{ stats.unsubscribed }} {{ t('admin.pluginPages.newsletter.unsubscribed') }}
       </span>
       <el-button :loading="loading" link type="primary" @click="refresh">
         <Icon class="mr-1 h-3.5 w-3.5" name="refresh-cw"/>
-        刷新
+        {{ t('admin.common.refresh') }}
       </el-button>
     </div>
 
@@ -124,30 +126,30 @@ onMounted(refresh)
 
     <EmptyState
       v-if="!loading && !total"
-      description="首页订阅表单收集到的邮箱会显示在这里"
-      title="暂无订阅者"
+      :description="t('admin.pluginPages.newsletter.emptyDesc')"
+      :title="t('admin.pluginPages.newsletter.emptyTitle')"
     />
 
     <template v-else>
       <el-table v-loading="loading" :data="list" border>
         <el-table-column label="Email" min-width="220" prop="email"/>
-        <el-table-column label="名称" min-width="140">
+        <el-table-column :label="t('admin.common.name')" min-width="140">
           <template #default="{row}">{{ row.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="来源" min-width="120">
+        <el-table-column :label="t('admin.pluginPages.newsletter.source')" min-width="120">
           <template #default="{row}">{{ row.source || '-' }}</template>
         </el-table-column>
-        <el-table-column label="订阅时间" width="140">
+        <el-table-column :label="t('admin.pluginPages.newsletter.subscribedAt')" width="140">
           <template #default="{row}">{{ formatDate(row.subscribed_at) }}</template>
         </el-table-column>
-        <el-table-column align="center" label="状态" width="110">
+        <el-table-column :label="t('admin.common.status')" align="center" width="110">
           <template #default="{row}">
             <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-              {{ row.is_active ? '活跃' : '已退订' }}
+              {{ row.is_active ? t('common.active') : t('admin.pluginPages.newsletter.unsubscribed') }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column align="right" label="操作" width="110">
+        <el-table-column :label="t('admin.common.actions')" align="right" width="110">
           <template #default="{row}">
             <el-button
               v-if="row.is_active"
@@ -155,7 +157,7 @@ onMounted(refresh)
               link
               type="danger"
               @click="unsubscribe(row)"
-            >退订
+            >{{ t('admin.pluginPages.newsletter.unsubscribe') }}
             </el-button>
           </template>
         </el-table-column>

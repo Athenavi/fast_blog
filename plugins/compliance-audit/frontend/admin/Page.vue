@@ -3,6 +3,8 @@ import {computed, onMounted, ref} from 'vue'
 
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * 合规审计（compliance-audit 插件后台页）
  *
@@ -38,7 +40,7 @@ async function loadReport(): Promise<void> {
   try {
     const result = await pluginAction<AuditReport>('compliance-audit', 'check_pci_dss')
     report.value = result.data
-    if (!result.success) error.value = result.error || '审计失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.complianceAudit.auditFailed')
   } finally {
     loading.value = false
   }
@@ -64,9 +66,9 @@ function statusIcon(status: string): string {
 }
 
 function statusLabel(status: string): string {
-  if (status === 'compliant') return '合规'
-  if (status === 'non-compliant') return '不合规'
-  return '未审计'
+  if (status === 'compliant') return t('admin.pluginPages.complianceAudit.compliant')
+  if (status === 'non-compliant') return t('admin.pluginPages.complianceAudit.nonCompliant')
+  return t('admin.pluginPages.complianceAudit.notAudited')
 }
 
 function statusColor(status: string): string {
@@ -95,7 +97,7 @@ onMounted(loadReport)
     <div class="mb-3 flex items-center justify-end">
       <el-button :loading="loading" size="small" @click="loadReport">
         <Icon class="mr-1 h-3.5 w-3.5" name="refresh-cw"/>
-        重新审计
+        {{ t('admin.pluginPages.complianceAudit.reaudit') }}
       </el-button>
     </div>
 
@@ -113,8 +115,14 @@ onMounted(loadReport)
           class="h-8 w-8"
         />
         <div>
-          <p class="text-lg font-semibold text-fg">整体状态：{{ isCompliant ? '合规' : '不合规' }}</p>
-          <p class="text-sm text-fg-muted">审计时间：{{ formatTime(report?.checked_at) }}</p>
+          <p class="text-lg font-semibold text-fg">{{
+              t('admin.pluginPages.complianceAudit.overall')
+            }}：{{
+              isCompliant ? t('admin.pluginPages.complianceAudit.compliant') : t('admin.pluginPages.complianceAudit.nonCompliant')
+            }}</p>
+          <p class="text-sm text-fg-muted">{{
+              t('admin.pluginPages.complianceAudit.checkedAt')
+            }}：{{ formatTime(report?.checked_at) }}</p>
         </div>
       </div>
     </div>
@@ -126,8 +134,8 @@ onMounted(loadReport)
 
     <EmptyState
       v-else-if="!report?.checks?.length"
-      description="点击右上角「重新审计」触发一次检查"
-      title="暂无审计数据"
+      :description="t('admin.pluginPages.complianceAudit.emptyDesc')"
+      :title="t('admin.pluginPages.complianceAudit.emptyTitle')"
     />
 
     <div v-else class="overflow-hidden rounded-card border border-line bg-surface">
@@ -148,11 +156,14 @@ onMounted(loadReport)
 
     <!-- 按用户审计 -->
     <div class="mt-6 rounded-card border border-line bg-surface p-5">
-      <h3 class="mb-3 text-sm font-semibold text-fg">审计特定用户数据</h3>
+      <h3 class="mb-3 text-sm font-semibold text-fg">{{ t('admin.pluginPages.complianceAudit.auditUserTitle') }}</h3>
       <div class="flex gap-3">
-        <el-input v-model="userId" class="max-w-xs" placeholder="输入用户 ID" @keyup.enter="auditUser"/>
+        <el-input v-model="userId" :placeholder="t('admin.pluginPages.complianceAudit.userIdPlaceholder')"
+                  class="max-w-xs" @keyup.enter="auditUser"/>
         <el-button :disabled="!userId" :loading="auditing" type="primary" @click="auditUser">
-          {{ auditing ? '审计中…' : '审计' }}
+          {{
+            auditing ? t('admin.pluginPages.complianceAudit.auditing') : t('admin.pluginPages.complianceAudit.audit')
+          }}
         </el-button>
       </div>
       <pre

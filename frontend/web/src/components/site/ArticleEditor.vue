@@ -4,9 +4,16 @@
  *
  * 说明：请求体**不含** `status` / `is_featured` 等管理字段——后端 schema 也不接受，
  * 投稿一律存为草稿，发布由管理员在后台执行。因此界面上只提示"保存草稿"。
+ *
+ * **Batch 1.1**：字段定义、加载与保存改由 `composables/useArticleForm.ts`（`contributor`
+ * 模式）提供，与后台编辑页 `pages/content/article/[id].vue` 共用同一份逻辑；
+ * 本组件只保留前台特有的渲染（Tailwind + `components/ui/*`）。
  */
 
 import {categoryApi, type CategoryItem, mobileApi} from '@/api'
+import {useArticleForm} from '@/composables/useArticleForm'
+import {useSaveShortcut} from '@/composables/useSaveShortcut'
+import {formatDateTime} from '@/utils/format'
 
 const props = defineProps<{ articleId?: number }>()
 const emit = defineEmits<{ (e: 'saved', id: number): void }>()
@@ -17,26 +24,21 @@ const isEdit = computed(() => props.articleId !== undefined)
 /** 正文字模式：富文本（Tiptap RichEditor）或源码（HTML / Markdown） */
 const contentMode = ref<'rich' | 'source'>('rich')
 
-const loading = ref(false)
-const saving = ref(false)
-const message = ref('')
-const error = ref('')
 const categories = ref<CategoryItem[]>([])
-
-const form = reactive({
-  title: '',
-  slug: '',
-  excerpt: '',
-  cover_image: '',
-  category_id: undefined as number | undefined,
-  tags: [] as string[],
-  content: '',
-  // VIP 可见性（内容属性，批次 16 起作者可自助设置；status 等管理字段仍不接受）
-  is_vip_only: false,
-  required_vip_level: 0,
-})
-
 const tagInput = ref('')
+const message = ref('')
+
+const articleIdRef = computed<number | null>(() => props.articleId ?? null)
+
+const {form, loading, saving, error, load, save, draftAvailable, restoreDraft, discardDraft} = useArticleForm({
+  mode: 'contributor',
+  articleId: articleIdRef,
+  messages: {
+    titleRequired: t('myPosts.titleRequired'),
+    saveFailed: t('myPosts.saveFailed'),
+    loadFailed: t('myPosts.loadFailed'),
+  },
+})
 
 async function loadCategories(): Promise<void> {
   try {
@@ -56,29 +58,6 @@ async function loadCategories(): Promise<void> {
   }
 }
 
-async function loadArticle(): Promise<void> {
-  if (!isEdit.value) return
-  loading.value = true
-  try {
-    const detail = await mobileApi.myArticleDetail(props.articleId as number)
-    Object.assign(form, {
-      title: detail.title ?? '',
-      slug: detail.slug ?? '',
-      excerpt: detail.excerpt ?? '',
-      cover_image: detail.cover_image ?? '',
-      category_id: detail.category_id ?? undefined,
-      tags: [...(detail.tags ?? [])],
-      content: detail.content ?? '',
-      is_vip_only: Boolean(detail.is_vip_only),
-      required_vip_level: detail.required_vip_level ?? 0,
-    })
-  } catch {
-    error.value = t('myPosts.loadFailed')
-  } finally {
-    loading.value = false
-  }
-}
-
 function addTag(): void {
   const value = tagInput.value.trim()
   if (!value) return
@@ -90,7 +69,7 @@ function removeTag(tag: string): void {
   form.tags = form.tags.filter((item) => item !== tag)
 }
 
-/** 用媒体库的文件作为封面 */
+/** 上传封面：走登录即可用的 media 上传端点（与媒体库同一后端能力） */
 async function pickCover(): Promise<void> {
   const input = document.createElement('input')
   input.type = 'file'
@@ -112,45 +91,20 @@ async function pickCover(): Promise<void> {
   input.click()
 }
 
-async function save(): Promise<void> {
-  error.value = ''
+async function submit(): Promise<void> {
   message.value = ''
+  const result = await save()
+  if (!result.ok) return
 
-  const title = form.title.trim()
-  if (!title) {
-    error.value = t('myPosts.titleRequired')
-    return
-  }
-
-  saving.value = true
-  try {
-    const payload = {
-      title,
-      slug: form.slug.trim() || undefined,
-      excerpt: form.excerpt.trim() || undefined,
-      cover_image: form.cover_image.trim() || undefined,
-      category_id: form.category_id ?? null,
-      tags: form.tags,
-      content: form.content,
-      is_vip_only: form.is_vip_only,
-      required_vip_level: Number(form.required_vip_level) || 0,
-    }
-
-    const saved = isEdit.value
-      ? await mobileApi.updateMyArticle(props.articleId as number, payload)
-      : await mobileApi.createDraft(payload)
-
-    message.value = isEdit.value ? t('myPosts.saved') : t('myPosts.draftCreated')
-    emit('saved', saved.id)
-  } catch {
-    error.value = t('myPosts.saveFailed')
-  } finally {
-    saving.value = false
-  }
+  message.value = isEdit.value ? t('myPosts.saved') : t('myPosts.draftCreated')
+  if (result.id !== null) emit('saved', result.id)
 }
 
+/** Ctrl/Cmd + S 与页面底部"保存"同义 */
+useSaveShortcut(() => submit(), {enabled: () => !saving.value && !loading.value})
+
 onMounted(async () => {
-  await Promise.all([loadCategories(), loadArticle()])
+  await Promise.all([loadCategories(), load()])
 })
 </script>
 
@@ -167,12 +121,24 @@ onMounted(async () => {
       </NuxtLink>
     </div>
 
+    <div
+      v-if="draftAvailable"
+      class="mt-6 flex flex-wrap items-center gap-3 rounded-card border border-warning/40 bg-warning-soft px-3.5 py-2.5 text-sm text-fg"
+    >
+      <Icon class="h-4 w-4 shrink-0 text-warning" name="alert-circle"/>
+      <span class="flex-1">{{ $t('common.localDraftFound', {time: formatDateTime(draftAvailable.savedAt)}) }}</span>
+      <Button size="sm" type="button" @click="restoreDraft">{{ $t('common.localDraftRestore') }}</Button>
+      <Button size="sm" type="button" variant="outline" @click="discardDraft">
+        {{ $t('common.localDraftDiscard') }}
+      </Button>
+    </div>
+
     <div v-if="loading" class="mt-6 space-y-3">
       <Skeleton class="h-10 w-full"/>
       <Skeleton class="h-64 w-full"/>
     </div>
 
-    <form v-else class="mt-6 space-y-4" @submit.prevent="save">
+    <form v-else class="mt-6 space-y-4" @submit.prevent="submit">
       <div>
         <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldTitle') }} <span
           class="text-danger">*</span></label>
@@ -190,7 +156,7 @@ onMounted(async () => {
             v-model="form.category_id"
             class="h-9 w-full rounded-control border border-line bg-surface px-3 text-sm text-fg"
           >
-            <option :value="undefined">{{ $t('myPosts.uncategorized') }}</option>
+            <option :value="null">{{ $t('myPosts.uncategorized') }}</option>
             <option v-for="item in categories" :key="item.id" :value="item.id">{{ item.name }}</option>
           </select>
         </div>

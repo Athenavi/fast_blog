@@ -12,3 +12,8 @@ dist/
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# Playwright 运行产物（截图基线 e2e/**-snapshots/ 要入库，这两个不要）
+test-results/
+playwright-report/
+blob-report/

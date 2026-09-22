@@ -10,7 +10,7 @@ const {t} = useI18n()
 import {HOME_PATH} from '@/constants'
 import {useUserStore} from '@/store/modules/user'
 
-definePageMeta({layout: false, title: '登录'})
+definePageMeta({layout: false, title: 'login.loginButton'})
 
 useSeoMeta({title: t('login.seoTitle'), robots: 'noindex'})
 
@@ -57,7 +57,7 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-surface-soft px-4">
+  <div class="flex min-h-dvh items-center justify-center bg-surface-soft px-4">
     <div class="w-full max-w-sm">
       <div class="mb-6 text-center">
         <NuxtLink class="text-xl font-semibold tracking-tight text-fg" to="/">FastBlog</NuxtLink>
@@ -68,13 +68,16 @@ async function onSubmit(): Promise<void> {
         <CardContent class="p-6">
           <form class="space-y-4" @submit.prevent="onSubmit">
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('login.usernameOrEmail') }}</label>
+              <label class="mb-1.5 block text-sm font-medium text-fg"
+                     for="login-identifier">{{ $t('login.usernameOrEmail') }}</label>
               <div class="relative">
                 <Icon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" name="user"/>
                 <Input
                   v-model="form.identifier"
+                  id="login-identifier"
                   :placeholder="$t('login.usernameOrEmailPlaceholder')"
                   class="pl-9"
+                  autocomplete="username"
                   v-bind="fieldProps('identifier')"
                   @input="clearField('identifier')"
                 />
@@ -85,12 +88,16 @@ async function onSubmit(): Promise<void> {
             </div>
 
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('login.password') }}</label>
+              <label class="mb-1.5 block text-sm font-medium text-fg" for="login-password">{{
+                  $t('login.password')
+                }}</label>
               <div class="relative">
                 <Icon class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-fg-subtle" name="lock"/>
                 <Input
                   v-model="form.password"
+                  id="login-password"
                   :placeholder="$t('login.passwordPlaceholder')"
+                  autocomplete="current-password"
                   class="pl-9"
                   type="password"
                   v-bind="fieldProps('password')"

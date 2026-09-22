@@ -1,25 +1,38 @@
 <template>
-  <div v-if="!ready" class="layout-loading">准备中…</div>
+  <div v-if="!ready" class="layout-loading">{{ $t('common.preparing') }}</div>
 
   <el-container v-else class="layout">
-    <el-aside :width="appStore.sidebarCollapsed ? '64px' : '210px'" class="layout__aside">
+    <el-aside v-if="!isNarrow" :width="appStore.sidebarCollapsed ? '64px' : '210px'" class="layout__aside">
       <AppSidebar/>
     </el-aside>
 
     <el-container>
       <el-header class="layout__header" height="56px">
-        <AppHeader/>
+        <AppHeader :narrow="isNarrow"/>
       </el-header>
 
       <el-main class="layout__main">
         <slot/>
       </el-main>
     </el-container>
+
+    <!-- 窄屏：侧边栏改为抽屉，不再挤压内容区（<lg 时表格才有横向空间） -->
+    <el-drawer
+      v-if="isNarrow"
+      v-model="appStore.mobileSidebarOpen"
+      :with-header="false"
+      class="layout__mobile-nav"
+      direction="ltr"
+      size="min(248px, 82vw)"
+    >
+      <AppSidebar :collapsed="false" @navigate="appStore.closeMobileSidebar()"/>
+    </el-drawer>
   </el-container>
 
-  <!-- 性能面板：按需加载，避免进入初始包（layouts 属 app 层，静态 import 会全站生效） -->
+  <!-- 性能面板 / 命令面板：按需加载，避免进入初始包（layouts 属 app 层，静态 import 会全站生效） -->
   <ClientOnly>
     <component :is="PerfDashboard" v-if="ready"/>
+    <component :is="CommandPalette" v-if="ready"/>
   </ClientOnly>
 </template>
 
@@ -35,7 +48,11 @@
  * 后台路由时按需加载。
  *
  * 代价是后台首屏有一个极短的"准备中"瞬间（`ready` 为 false 时不渲染 el-* 结构）。
+ *
+ * 响应式：`<lg`（1024px）时侧边栏换成抽屉（`el-drawer`），内容区独占整宽；
+ * 折叠状态仍由 `appStore.sidebarCollapsed` 记忆在宽屏使用。
  */
+import {useMediaQuery} from '@vueuse/core'
 import type {Component} from 'vue'
 
 // Nuxt 只自动导入 `~/components`（见 nuxt.config.ts 的 components 配置），
@@ -44,13 +61,21 @@ import AppHeader from './components/AppHeader.vue'
 import AppSidebar from './components/AppSidebar.vue'
 
 import {useAppStore} from '@/store/modules/app'
+import {useRecentPages} from '@/composables/useRecentPages'
 
 const appStore = useAppStore()
+const route = useRoute()
+const {remember: rememberPage} = useRecentPages()
 
 const ready = ref(false)
 
+/** 与 Element Plus 的 `lg` 断点一致：窄屏走抽屉导航 */
+const isNarrow = useMediaQuery('(max-width: 1023px)')
+
 /** 性能面板按需加载：layouts 属 app 层，静态 import 会进初始包 */
 const PerfDashboard = defineAsyncComponent(() => import('@/components/admin/PerfDashboard.vue'))
+/** 命令面板同样按需加载（它依赖 Element Plus，绝不能静态 import 进 app 层） */
+const CommandPalette = defineAsyncComponent(() => import('@/components/admin/CommandPalette.vue'))
 
 /** 侧边栏与头部按字符串名引用图标，这里显式注册用到的那些 */
 const ICONS = [
@@ -64,6 +89,7 @@ const ICONS = [
   'ArrowDown',
   'Fold',
   'Expand',
+  'Menu',
   'Lock',
   'User',
   'Search',
@@ -85,6 +111,11 @@ const ICONS = [
   'Moon',
   'Brush',
 ] as const
+
+// 视口回到宽屏时收起抽屉，避免"看不见的浮层"留在状态里
+watch(isNarrow, (narrow) => {
+  if (!narrow) appStore.closeMobileSidebar()
+})
 
 onMounted(async () => {
   const [{default: ElementPlus}, icons, {default: zhCn}] = await Promise.all([
@@ -109,6 +140,15 @@ onMounted(async () => {
 
   ready.value = true
 })
+
+/** 路由变化即收起抽屉（菜单点击已处理，这里兜住面包屑/程序化跳转），并记录"最近访问" */
+watch(
+  () => route.fullPath,
+  () => {
+    appStore.closeMobileSidebar()
+    if (route.path) rememberPage(route.path)
+  },
+)
 </script>
 
 <style scoped>
@@ -149,4 +189,6 @@ onMounted(async () => {
   padding: 0;
   overflow-y: auto;
 }
+
+/* 抽屉内边距的清理见 styles/admin.css（`.layout__mobile-nav` 落在 EP 内部节点上，scoped 匹配不到） */
 </style>

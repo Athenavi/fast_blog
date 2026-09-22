@@ -2,6 +2,8 @@
 /** 文章详情（按 slug） */
 import type {ArticleDetail} from '@/types/content'
 
+const {t} = useI18n()
+
 const route = useRoute()
 const slug = String(route.params.slug)
 
@@ -10,7 +12,7 @@ const {data: article} = await useAsyncData(`article-${slug}`, () =>
 )
 
 if (!article.value) {
-  throw createError({statusCode: 404, statusMessage: '文章不存在或未发布'})
+  throw createError({statusCode: 404, statusMessage: t('article.notFoundOrUnpublished')})
 }
 
 // 浏览量上报：仅客户端、失败静默（统计不应影响阅读）
@@ -24,9 +26,9 @@ onMounted(() => {
 const requestUrl = useRequestURL()
 
 const breadcrumbs = computed(() => [
-  {label: '首页', to: '/'},
-  {label: '文章', to: '/articles'},
-  {label: article.value?.title || '文章'},
+  {label: t('common.home'), to: '/'},
+  {label: t('article.breadcrumbArticles'), to: '/articles'},
+  {label: article.value?.title || t('article.titleFallback')},
 ])
 
 useBreadcrumbJsonLd(breadcrumbs.value, requestUrl.origin)
@@ -45,7 +47,7 @@ useArticleJsonLd(
 )
 
 useSeoMeta({
-  title: () => article.value?.title || '文章',
+  title: () => article.value?.title || t('article.titleFallback'),
   description: () => article.value?.summary || '',
   ogTitle: () => article.value?.title || '',
   ogDescription: () => article.value?.summary || '',

@@ -412,6 +412,7 @@ onMounted(() => {
             v-model="ssoForm.client_secret"
             :placeholder="ssoEditingId ? $t('admin.system.integration.secretKeepHint') : ''"
             show-password
+            autocomplete="off"
             type="password"
           />
         </el-form-item>
@@ -460,6 +461,7 @@ onMounted(() => {
             v-model="ldapForm.bind_password"
             :placeholder="ldapEditingId ? $t('admin.system.integration.passwordKeepHint') : ''"
             show-password
+            autocomplete="off"
             type="password"
           />
         </el-form-item>

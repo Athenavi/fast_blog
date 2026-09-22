@@ -10,7 +10,7 @@ const {t} = useI18n()
 import {mobileApi} from '@/api'
 import {useUserStore} from '@/store/modules/user'
 
-definePageMeta({layout: false, title: '注册'})
+definePageMeta({layout: false, title: 'register.title'})
 
 useSeoMeta({title: t('register.seoTitle'), robots: 'noindex'})
 
@@ -64,7 +64,7 @@ async function onSubmit(): Promise<void> {
 </script>
 
 <template>
-  <div class="flex min-h-screen items-center justify-center bg-surface-soft px-4">
+  <div class="flex min-h-dvh items-center justify-center bg-surface-soft px-4">
     <div class="w-full max-w-sm">
       <div class="mb-6 text-center">
         <NuxtLink class="text-xl font-semibold tracking-tight text-fg" to="/">FastBlog</NuxtLink>
@@ -75,9 +75,12 @@ async function onSubmit(): Promise<void> {
         <CardContent class="p-6">
           <form class="space-y-4" @submit.prevent="onSubmit">
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.username') }}</label>
+              <label class="mb-1.5 block text-sm font-medium text-fg" for="register-username">{{
+                  $t('register.username')
+                }}</label>
               <Input
                 v-model="form.username"
+                id="register-username"
                 :placeholder="$t('register.usernameHint')"
                 v-bind="fieldProps('username')"
                 @input="clearField('username')"
@@ -88,9 +91,12 @@ async function onSubmit(): Promise<void> {
             </div>
 
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.email') }}</label>
+              <label class="mb-1.5 block text-sm font-medium text-fg" for="register-email">{{
+                  $t('register.email')
+                }}</label>
               <Input
                 v-model="form.email"
+                id="register-email"
                 :placeholder="$t('register.emailHint')"
                 type="email"
                 v-bind="fieldProps('email')"
@@ -102,10 +108,14 @@ async function onSubmit(): Promise<void> {
             </div>
 
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.password') }}</label>
+              <label class="mb-1.5 block text-sm font-medium text-fg" for="register-password">{{
+                  $t('register.password')
+                }}</label>
               <Input
                 v-model="form.password"
+                id="register-password"
                 :placeholder="$t('register.passwordHint')"
+                autocomplete="new-password"
                 type="password"
                 v-bind="fieldProps('password')"
                 @input="clearField('password')"
@@ -116,10 +126,13 @@ async function onSubmit(): Promise<void> {
             </div>
 
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('register.confirmPassword') }}</label>
+              <label class="mb-1.5 block text-sm font-medium text-fg"
+                     for="register-confirm">{{ $t('register.confirmPassword') }}</label>
               <Input
                 v-model="form.confirm"
+                id="register-confirm"
                 :placeholder="$t('register.confirmPasswordPlaceholder')"
+                autocomplete="new-password"
                 type="password"
                 v-bind="fieldProps('confirm')"
                 @input="clearField('confirm')"

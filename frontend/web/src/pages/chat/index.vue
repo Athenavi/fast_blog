@@ -56,8 +56,10 @@ const sendError = ref(false)
 const recallError = ref(false)
 
 // ---- 实时连接状态 ----
-type ConnState = 'connecting' | 'connected' | 'disconnected'
+type ConnState = 'connecting' | 'connected' | 'disconnected' | 'reconnecting'
 const connState = ref<ConnState>('disconnected')
+/** 当前重连到第几次（用于提示，连上即归零） */
+const reconnectAttempt = ref(0)
 
 const listBody = ref<HTMLElement | null>(null)
 
@@ -169,13 +171,49 @@ function upsertMessage(item: ChatMessageItem): void {
 }
 
 // ---------------------------------------------------------------- WebSocket
+/**
+ * 实时连接
+ *
+ * 此前只有"断了显示已断开、等用户点重试"：移动网络切换、锁屏唤醒、服务端重启之后
+ * 连接都不会自己回来。这里补齐三个真实信号驱动的恢复：
+ *  1. 断线后按退避重连（1s→2s→4s→8s→10s 封顶），连上即归零；
+ *  2. 网络恢复（`online`）立刻重连，不等退避；
+ *  3. 页面从后台回到前台（`visibilitychange`）时检查一次连接。
+ * 浏览器 WebSocket API **不能发 ping 帧**，所以不做应用层心跳（那会往聊天记录里塞假消息），
+ * 改用上面三个信号 + 服务端自身的 idle 关闭来驱动恢复。
+ */
+const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 10_000]
+
 let socket: WebSocket | null = null
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null
+/** 主动切换群 / 离开页面导致的关闭：不触发重连 */
+let intentionalClose = false
+
+function clearReconnect(): void {
+  if (reconnectTimer !== null) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+}
 
 function closeSocket(): void {
+  clearReconnect()
   if (!socket) return
+  intentionalClose = true
   socket.onopen = socket.onmessage = socket.onclose = socket.onerror = null
   socket.close()
   socket = null
+}
+
+/** 退避重连（仅当用户还停留在同一个群时才继续） */
+function scheduleReconnect(groupId: number): void {
+  clearReconnect()
+  const index = Math.min(reconnectAttempt.value, RECONNECT_DELAYS.length - 1)
+  const delay = RECONNECT_DELAYS[index] ?? 10_000
+  reconnectAttempt.value += 1
+  reconnectTimer = setTimeout(() => {
+    if (activeGroupId.value === groupId) connectSocket(groupId)
+  }, delay)
 }
 
 function handleSocketMessage(raw: string): void {
@@ -204,26 +242,51 @@ function handleSocketMessage(raw: string): void {
 function connectSocket(groupId: number): void {
   if (!import.meta.client) return
   closeSocket()
-  connState.value = 'connecting'
+  intentionalClose = false
+  connState.value = reconnectAttempt.value > 0 ? 'reconnecting' : 'connecting'
   const ws = new WebSocket(chatMessageApi.wsUrl(groupId))
   socket = ws
   ws.onopen = () => {
-    if (socket === ws) connState.value = 'connected'
+    if (socket !== ws) return
+    reconnectAttempt.value = 0
+    connState.value = 'connected'
   }
   ws.onmessage = (event) => handleSocketMessage(String(event.data))
   ws.onclose = () => {
-    if (socket === ws) {
-      connState.value = 'disconnected'
-      socket = null
-    }
+    if (socket !== ws) return
+    socket = null
+    if (intentionalClose) return
+    connState.value = 'disconnected'
+    scheduleReconnect(groupId)
   }
   ws.onerror = () => {
-    /* 出错后 onclose 紧随其后，状态在 onclose 里处理 */
+    /* 出错后 onclose 紧随其后，重连统一在那里处理 */
   }
 }
 
+/** 手动重试：立即重来一次并清零退避 */
 function retryConnection(): void {
-  if (activeGroupId.value !== null) connectSocket(activeGroupId.value)
+  const groupId = activeGroupId.value
+  if (groupId === null) return
+  reconnectAttempt.value = 0
+  connectSocket(groupId)
+}
+
+/** 网络恢复 / 回到前台：连接不可用时立即重连（不等退避） */
+function reviveConnection(): void {
+  const groupId = activeGroupId.value
+  if (groupId === null) return
+  if (socket && socket.readyState === WebSocket.OPEN) return
+  reconnectAttempt.value = 0
+  connectSocket(groupId)
+}
+
+function onOnline(): void {
+  reviveConnection()
+}
+
+function onVisibilityChange(): void {
+  if (document.visibilityState === 'visible') reviveConnection()
 }
 
 // ---------------------------------------------------------------- 交互
@@ -276,7 +339,16 @@ function onDraftKeydown(event: KeyboardEvent): void {
 }
 
 onMounted(loadGroups)
-onBeforeUnmount(closeSocket)
+onMounted(() => {
+  window.addEventListener('online', onOnline)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('online', onOnline)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
+  closeSocket()
+})
 </script>
 
 <template>
@@ -289,7 +361,7 @@ onBeforeUnmount(closeSocket)
       <span
         :class="{
           'text-success': connState === 'connected',
-          'text-warning': connState === 'connecting',
+          'text-warning': connState === 'connecting' || connState === 'reconnecting',
           'text-fg-subtle': connState === 'disconnected',
         }"
         class="text-xs"
@@ -299,12 +371,14 @@ onBeforeUnmount(closeSocket)
             ? $t('chatRoom.connected')
             : connState === 'connecting'
               ? $t('chatRoom.connecting')
-              : $t('chatRoom.disconnected')
+              : connState === 'reconnecting'
+                ? $t('chatRoom.reconnecting', {n: reconnectAttempt})
+                : $t('chatRoom.disconnected')
         }}
       </span>
     </div>
 
-    <div class="mt-6 flex h-[70vh] min-h-[26rem] gap-4">
+    <div class="mt-6 flex h-[70dvh] min-h-[26rem] gap-4">
       <!-- 左侧：群列表 -->
       <section
         class="flex min-h-0 w-full flex-col overflow-hidden rounded-card border border-line bg-surface md:w-72 md:shrink-0"
@@ -364,7 +438,7 @@ onBeforeUnmount(closeSocket)
               {{ activeGroup ? groupLabel(activeGroup) : `#${activeGroupId}` }}
             </p>
             <Button
-              v-if="connState === 'disconnected'"
+              v-if="connState === 'disconnected' || connState === 'reconnecting'"
               class="ml-auto"
               size="sm"
               variant="outline"

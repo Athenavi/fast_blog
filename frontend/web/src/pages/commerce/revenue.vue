@@ -21,6 +21,12 @@ import {
 } from '@/api'
 import type {PageQuery} from '@/api/types'
 import {useAdminList} from '@/composables/useAdminList'
+import {formatMoney} from '@/utils/money'
+
+/** 金额列统一格式化（el-table 的 formatter 钩子）：带币种符号与千分位，避免裸数字 */
+function moneyCell(_row: unknown, _column: unknown, cellValue: unknown): string {
+  return formatMoney(cellValue as number)
+}
 
 definePageMeta({
   layout: 'admin',
@@ -313,10 +319,13 @@ onMounted(() => {
             <el-table-column :label="$t('admin.commerce.revenue.revenueType')" min-width="150"
                              prop="revenue_type"/>
             <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
+                             :formatter="moneyCell"
                              width="110"/>
             <el-table-column :label="$t('admin.commerce.revenue.platformFee')" align="right" prop="platform_fee"
+                             :formatter="moneyCell"
                              width="120"/>
             <el-table-column :label="$t('admin.commerce.revenue.creatorEarnings')" align="right" prop="creator_earnings"
+                             :formatter="moneyCell"
                              width="130"/>
             <el-table-column :label="$t('admin.common.status')" width="110">
               <template #default="{ row }">{{ (row as RevenueRecordItem).status || '-' }}</template>
@@ -371,6 +380,7 @@ onMounted(() => {
           <el-table v-loading="payoutLoading" :data="payoutList" border stripe>
             <el-table-column :label="$t('admin.commerce.revenue.userId')" prop="user_id" width="90"/>
             <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
+                             :formatter="moneyCell"
                              width="110"/>
             <el-table-column :label="$t('admin.commerce.revenue.paymentMethod')" prop="payment_method"
                              width="130"/>
@@ -439,7 +449,7 @@ onMounted(() => {
             <el-table-column :label="$t('admin.commerce.revenue.creatorPercentage')" align="right"
                              prop="creator_percentage" width="140"/>
             <el-table-column :label="$t('admin.commerce.revenue.minPayoutAmount')" align="right"
-                             prop="min_payout_amount" width="140"/>
+                             :formatter="moneyCell" prop="min_payout_amount" width="140"/>
             <el-table-column :label="$t('admin.common.status')" align="center" width="100">
               <template #default="{ row }">
                 <el-tag :type="(row as SharingConfigItem).is_active ? 'success' : 'info'" size="small">
@@ -479,6 +489,7 @@ onMounted(() => {
                              prop="revenue_type"/>
             <el-table-column :label="$t('admin.commerce.revenue.recordCount')" prop="count" width="120"/>
             <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
+                             :formatter="moneyCell"
                              width="140"/>
           </el-table>
 
@@ -487,6 +498,7 @@ onMounted(() => {
             <el-table-column :label="$t('admin.common.status')" min-width="140" prop="status"/>
             <el-table-column :label="$t('admin.commerce.revenue.recordCount')" prop="count" width="120"/>
             <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
+                             :formatter="moneyCell"
                              width="140"/>
           </el-table>
         </el-card>

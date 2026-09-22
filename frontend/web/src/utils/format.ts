@@ -75,3 +75,17 @@ export function splitTags(value?: string | string[] | null): string[] {
     .map((item) => item.trim())
     .filter(Boolean)
 }
+
+/**
+ * 当前时区名（如 `Asia/Shanghai`）
+ *
+ * 用途：后台"定时发布"用的是不带偏移的本地时间字符串（`YYYY-MM-DDTHH:mm:ss`），
+ * 多时区协作时含义不明。界面上把时区标出来，至少让人清楚自己填的是哪个时区的时间。
+ */
+export function localTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}

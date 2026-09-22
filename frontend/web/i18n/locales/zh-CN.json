@@ -60,7 +60,14 @@
     "backToHome": "返回首页",
     "viewAll": "查看全部",
     "and": "和",
-    "language": "语言"
+    "language": "语言",
+    "localDraftFound": "检测到本地暂存的未保存内容（{time}），恢复吗？",
+    "localDraftRestore": "恢复内容",
+    "localDraftDiscard": "丢弃",
+    "requestFailed": "请求失败",
+    "sessionExpired": "登录已过期，请重新登录",
+    "home": "首页",
+    "preparing": "准备中…"
   },
   "nav": {
     "dashboard": "仪表盘",
@@ -401,7 +408,39 @@
     "viewsCount": "{n} 次浏览",
     "liked": "已赞",
     "emptyInCategory": "该分类下暂无文章",
-    "viewAllArticles": "查看全部文章"
+    "viewAllArticles": "查看全部文章",
+    "toc": "目录",
+    "readingSettings": "阅读设置",
+    "fontSize": "字号",
+    "fontSmall": "小",
+    "fontMedium": "中",
+    "fontLarge": "大",
+    "lineWidth": "行宽",
+    "widthNarrow": "窄",
+    "widthWide": "宽",
+    "share": "分享",
+    "copyLink": "复制链接",
+    "linkCopied": "链接已复制",
+    "copyCode": "复制代码",
+    "codeCopied": "代码已复制",
+    "related": "相关文章",
+    "commentCount": "共 {n} 条评论",
+    "commentEmpty": "还没有评论，来说点什么",
+    "commentPlaceholder": "写下你的想法…",
+    "commentSubmit": "发表评论",
+    "commentSubmitting": "发送中…",
+    "commentLoginHint": "登录后参与讨论",
+    "commentFailed": "评论发送失败，请稍后重试",
+    "reply": "回复",
+    "cancelReply": "取消回复",
+    "commentPending": "评论已提交，通过审核后显示",
+    "imageViewer": "图片查看",
+    "prevImage": "上一张",
+    "nextImage": "下一张",
+    "commentsTitle": "评论",
+    "notFoundOrUnpublished": "文章不存在或未发布",
+    "titleFallback": "文章",
+    "breadcrumbArticles": "文章"
   },
   "comment": {
     "title": "评论",
@@ -622,6 +661,26 @@
   },
   "admin": {
     "superuser": "超管",
+    "nav": {
+      "open": "打开导航",
+      "expand": "展开侧边栏",
+      "collapse": "收起侧边栏"
+    },
+    "accountMenu": "账号菜单",
+    "notification": {
+      "title": "通知",
+      "unread": "通知（{n} 条未读）"
+    },
+    "command": {
+      "open": "打开命令面板",
+      "placeholder": "搜索页面或操作…",
+      "empty": "没有找到匹配的页面或操作",
+      "pages": "页面",
+      "actions": "操作",
+      "recent": "最近访问",
+      "keyboardHint": "↑↓ 选择 · Enter 打开 · Esc 关闭",
+      "disabledNoPermission": "（无权限）"
+    },
     "logout": "退出登录",
     "logoutConfirm": "确定要退出登录吗？",
     "notice": "提示",
@@ -658,7 +717,13 @@
       "clearSelection": "清空选择",
       "loadFailed": "加载失败",
       "retry": "重试",
-      "batchDone": "已处理 {n} 项"
+      "batchDone": "已处理 {n} 项",
+      "noPermission": "无操作权限（需要 {code}）",
+      "exportCsv": "导出 CSV",
+      "exportDone": "已开始下载，请查看浏览器下载列表",
+      "deleted": "已删除",
+      "title": "标题",
+      "selectedAcrossPages": "（含其它页）"
     },
     "cache": {
       "refresh": "刷新",
@@ -945,7 +1010,23 @@
         "desc": "站点键值配置。勾选「公开」的项会通过 /system/setting/public 下发给前台（站点名、描述、页脚等）。",
         "emptyTitle": "暂无设置项",
         "emptyDesc": "还没有任何配置项。",
-        "emptyFiltered": "没有符合当前条件的配置项"
+        "emptyFiltered": "没有符合当前条件的配置项",
+        "advancedMode": "高级模式（按 key 编辑）",
+        "groupedHint": "常用项已按分组整理，改动保存后立即生效",
+        "otherGroup": "其它",
+        "group": {
+          "site": "站点信息",
+          "seo": "SEO",
+          "content": "内容",
+          "comment": "评论",
+          "security": "账号与安全",
+          "mail": "邮件",
+          "storage": "存储与媒体",
+          "other": "其它"
+        },
+        "saveGroup": "保存本组",
+        "noChange": "没有改动",
+        "formMode": "表单模式"
       },
       "hub": {
         "install": "环境自检",
@@ -1209,7 +1290,15 @@
       "unknown": "未知",
       "articleHint": "已发布 {published} / 草稿 {draft}",
       "userHint": "启用 {active}",
-      "commentHint": "待审核 {pending}"
+      "commentHint": "待审核 {pending}",
+      "distribution": "内容分布",
+      "todo": "待办",
+      "pendingComments": "待审评论",
+      "pendingCertifications": "待审认证",
+      "pendingWithdrawals": "待处理提现",
+      "quickActions": "快捷操作",
+      "noTodo": "暂无待办，一切正常",
+      "viewAll": "查看全部"
     },
     "content": {
       "article": {
@@ -1274,7 +1363,17 @@
         "languageCode": "语言",
         "unsavedChanges": "有未保存的修改，确定离开吗？",
         "notFound": "文章不存在或已被删除",
-        "savedAt": "已保存于 {time}"
+        "savedAt": "已保存于 {time}",
+        "updatePublished": "更新已发布",
+        "exitPreview": "退出预览",
+        "previewHint": "预览为已保存版本",
+        "openInNewTab": "在新标签打开",
+        "saveBeforePreview": "请先保存，再预览",
+        "pickFromLibrary": "从媒体库选择",
+        "currentStatus": "当前状态",
+        "statusHint": "发布状态由顶部按钮控制",
+        "tags": "标签",
+        "scheduledTimeZoneHint": "按本地时区（{zone}）保存"
       },
       "category": {
         "enterACategoryName": "请填写分类名称",
@@ -1417,7 +1516,15 @@
         "emptyFiltered": "没有符合条件的文件",
         "fileType": "文件类型",
         "downloadCount": "下载次数",
-        "dropHint": "松开即可上传到当前文件夹"
+        "dropHint": "松开即可上传到当前文件夹",
+        "addSubfolder": "新建子文件夹",
+        "editFolder": "重命名文件夹",
+        "deleteFolder": "删除文件夹",
+        "editDetail": "查看/编辑详情",
+        "pickHint": "点击图片即可选用",
+        "externalUrlPlaceholder": "或粘贴图片地址（https://…）",
+        "useThisUrl": "使用该地址",
+        "noUrlToUse": "请先填写图片地址"
       },
       "page": {
         "pageManagement": "页面管理",
@@ -2493,7 +2600,165 @@
       "originalReact": "原实现为 React 组件",
       "locatedAt": "，位于",
       "rewriteHint": "重写为同名 .vue 后，本页会自动加载，无需改动路由。",
-      "otherRoutes": "该插件的其他路由：{routes}"
+      "otherRoutes": "该插件的其他路由：{routes}",
+      "common": {
+        "loadFailed": "加载失败",
+        "loadConfigFailed": "加载配置失败",
+        "createFailed": "创建失败",
+        "deleteFailed": "删除失败",
+        "copyFailed": "复制失败，请手动复制",
+        "searchPlaceholder": "搜索标题或标签…",
+        "tryAnotherKeyword": "换个关键词试试",
+        "noMatch": "没有匹配的结果",
+        "unlisted": "不列出",
+        "notConfigured": "未配置",
+        "configured": "已配置",
+        "time": "时间",
+        "fieldTitle": "标题",
+        "fieldVisibility": "可见性",
+        "confirmDeleteNamed": "确定删除「{name}」吗？"
+      },
+      "codeSnippets": {
+        "created": "片段已创建",
+        "create": "新建片段",
+        "createTitle": "新建代码片段",
+        "embedCopied": "已复制嵌入标记",
+        "copyEmbed": "复制嵌入标记 [snippet:N]",
+        "emptyTitle": "还没有代码片段",
+        "emptyDesc": "点右上角「新建片段」开始",
+        "titlePlaceholder": "片段标题",
+        "language": "语言",
+        "tagsHint": "标签（英文逗号分隔）",
+        "tagsPlaceholder": "例如 python, tutorial, beginner",
+        "code": "代码"
+      },
+      "enterprise": {
+        "tabs": {
+          "overview": "概览",
+          "licenses": "许可证",
+          "tickets": "工单",
+          "scripts": "脚本",
+          "logs": "日志",
+          "alerts": "告警"
+        },
+        "stats": {
+          "totalLicenses": "总许可证",
+          "activeLicenses": "活跃许可证",
+          "openTickets": "待处理工单",
+          "inProgressTickets": "进行中",
+          "totalScripts": "部署脚本",
+          "totalDeployments": "部署次数",
+          "failedDeployments": "失败部署",
+          "unresolvedAlerts": "未解决告警"
+        },
+        "version": "版本",
+        "script": "脚本",
+        "message": "消息",
+        "level": "级别"
+      },
+      "migration": {
+        "tabs": {
+          "tasks": "迁移任务",
+          "logs": "迁移日志"
+        },
+        "taskCreated": "任务已创建",
+        "createTask": "新建任务",
+        "createTitle": "新建迁移任务",
+        "taskName": "任务名称",
+        "namePlaceholder": "例如：WordPress 主站迁移",
+        "sourcePlatform": "源平台",
+        "platform": "平台",
+        "progress": "进度",
+        "task": "任务",
+        "level": "级别",
+        "emptyDesc": "新建任务或迁移完成后的记录会出现在这里"
+      },
+      "approval": {
+        "tabs": {
+          "pending": "待审批",
+          "myRequests": "我的申请",
+          "stats": "统计概览"
+        },
+        "stats": {
+          "pending": "待审批",
+          "approved": "已通过",
+          "rejected": "已拒绝",
+          "total": "总计"
+        },
+        "content": "内容",
+        "notesPlaceholder": "审批意见（可选）",
+        "emptyDesc": "有内容提交审批后会出现在这里",
+        "dialogApproveTitle": "审批通过"
+      },
+      "smsProvider": {
+        "aliyun": "阿里云",
+        "tencent": "腾讯云",
+        "provider": "当前服务商",
+        "signature": "签名",
+        "testTitle": "测试短信发送",
+        "phone": "手机号",
+        "codePlaceholder": "验证码（默认 123456）",
+        "sendTest": "发送测试",
+        "configTitle": "短信配置",
+        "notConfiguredHint": "暂未配置短信参数，请在插件设置中配置",
+        "sendOk": "✓ 发送成功",
+        "sendFailed": "✗ 发送失败：{error}",
+        "unknownError": "未知错误"
+      },
+      "newsletter": {
+        "unsubscribed": "已退订",
+        "unsubscribe": "退订",
+        "total": "总计",
+        "source": "来源",
+        "subscribedAt": "订阅时间",
+        "emptyTitle": "暂无订阅者",
+        "emptyDesc": "首页订阅表单收集到的邮箱会显示在这里",
+        "confirmUnsubscribe": "确定让「{email}」退订吗？"
+      },
+      "paymentGateway": {
+        "testSubject": "测试支付",
+        "provider": "当前提供商",
+        "currency": "货币",
+        "sandbox": "沙箱模式",
+        "testTitle": "测试支付",
+        "orderIdPlaceholder": "订单号（可选，自动生成）",
+        "amountPlaceholder": "金额（分）",
+        "startTest": "发起测试",
+        "configTitle": "支付配置",
+        "alipayAppId": "支付宝 AppID",
+        "wechatAppId": "微信 AppID",
+        "notConfiguredHint": "暂未配置支付参数，请在插件设置中配置"
+      },
+      "complianceAudit": {
+        "auditFailed": "审计失败",
+        "compliant": "合规",
+        "nonCompliant": "不合规",
+        "notAudited": "未审计",
+        "reaudit": "重新审计",
+        "audit": "审计",
+        "auditing": "审计中…",
+        "overall": "整体状态",
+        "checkedAt": "审计时间",
+        "auditUserTitle": "审计特定用户数据",
+        "userIdPlaceholder": "输入用户 ID",
+        "emptyTitle": "暂无审计数据",
+        "emptyDesc": "点击右上角「重新审计」触发一次检查"
+      },
+      "popularArticles": {
+        "show": "显示",
+        "recent": "近",
+        "days": "{n} 天",
+        "views": "{n} 次浏览",
+        "view": "查看",
+        "emptyTitle": "暂无热门文章",
+        "emptyDesc": "文章需要有一定浏览量才会出现在这里"
+      },
+      "articleLikes": {
+        "sortByLikes": "按点赞数排序",
+        "article": "文章",
+        "emptyTitle": "还没有点赞数据",
+        "emptyDesc": "读者开始点赞后，这里会出现排行"
+      }
     },
     "marketing": {
       "ad": {
@@ -2807,6 +3072,13 @@
       "light": "浅色",
       "dark": "深色",
       "system": "跟随系统"
+    },
+    "perf": {
+      "lcp": "最大内容绘制",
+      "inp": "交互到下次绘制",
+      "cls": "累计布局偏移",
+      "fcp": "首次内容绘制",
+      "ttfb": "首字节时间"
     }
   },
   "menu": {
@@ -2883,7 +3155,9 @@
     "title": "分类",
     "emptyDesc": "在后台创建分类后，这里会自动展示。",
     "emptyTitle": "还没有分类",
-    "seoTitle": "分类 - {name}"
+    "seoTitle": "分类 - {name}",
+    "fallback": "分类",
+    "emptyPublished": "该分类下还没有已发布的文章。"
   },
   "home": {
     "tagline": "一个基于 FastAPI 与 Nuxt 的博客",
@@ -3271,7 +3545,22 @@
     "navExperts": "专家",
     "navFeed": "关注",
     "navChat": "聊天",
-    "loadFailed": "内容加载失败，请稍后重试"
+    "loadFailed": "内容加载失败，请稍后重试",
+    "paginationAriaLabel": "分页",
+    "themeModeLight": "浅色",
+    "themeModeDark": "深色",
+    "themeModeSystem": "跟随系统",
+    "accentBlue": "默认蓝",
+    "accentViolet": "紫罗兰",
+    "accentEmerald": "翡翠绿",
+    "accentRose": "玫瑰红",
+    "accentAmber": "琥珀黄",
+    "navSearch": "搜索",
+    "navMore": "更多",
+    "navContent": "内容",
+    "navCommunity": "社区",
+    "closeMenuAriaLabel": "关闭菜单",
+    "moreMenuAriaLabel": "更多入口"
   },
   "about": {
     "title": "关于本站",
@@ -3357,7 +3646,15 @@
     "alignRight": "右对齐",
     "undo": "撤销",
     "redo": "重做",
-    "placeholder": "开始写作…"
+    "placeholder": "开始写作…",
+    "words": "{n} 字",
+    "readingTime": "约 {n} 分钟",
+    "imageAlt": "图片描述（alt）",
+    "imageAltHint": "供读屏与搜索引擎使用，建议填写",
+    "codeLanguage": "代码语言",
+    "shortcuts": "快捷键",
+    "toolbar": "格式工具栏",
+    "callout": "提示块"
   },
   "feed": {
     "title": "关注动态",
@@ -3390,6 +3687,17 @@
     "attachment": "附件",
     "recallFailed": "撤回失败",
     "loadMore": "加载更早的消息",
-    "members": "{n} 名成员"
+    "members": "{n} 名成员",
+    "reconnecting": "连接已断开，正在重连（第 {n} 次）…",
+    "reconnected": "连接已恢复"
+  },
+  "page": {
+    "notFoundOrUnpublished": "页面不存在或未发布",
+    "titleFallback": "页面"
+  },
+  "theme": {
+    "defaultDescription": "简洁、现代、响应式设计",
+    "magazineDescription": "杂志风格主题 - 网格布局、特色图片展示、多栏目支持",
+    "modernMinimalDescription": "现代简约风格 - 支持代码高亮和深色模式"
   }
 }

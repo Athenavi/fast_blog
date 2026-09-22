@@ -116,7 +116,7 @@ async function removeItem(): Promise<void> {
 
 // ── 批量预热 ──────────────────────────────────────────────
 const warmupOpen = ref(false)
-const warmupText = ref('[\n  {"key": "example:key", "value": "示例值", "ttl": 60}\n]')
+const warmupText = ref('[\n  {"key": "example:key", "value": "example", "ttl": 60}\n]')
 
 async function doWarmup(): Promise<void> {
   let parsed: unknown

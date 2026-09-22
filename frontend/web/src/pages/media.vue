@@ -202,21 +202,45 @@ function toggleAll(): void {
   selected.value = allSelected.value ? [] : list.value.map((item) => item.id)
 }
 
-async function removeSelected(): Promise<void> {
+/** 删除确认：单条与批量共用同一个对话框（原生 confirm 的按钮文案无法本地化，不再使用） */
+const confirmOpen = ref(false)
+const confirmText = ref('')
+const deleting = ref(false)
+/** 待确认的删除目标；批量时先快照 id，避免确认期间选择变化导致删错 */
+const pending = ref<{ kind: 'batch'; ids: number[] } | { kind: 'one'; item: MobileMediaItem } | null>(null)
+
+function askRemoveSelected(): void {
   if (!selected.value.length) return
-  if (!window.confirm(t('media.confirmDeleteSelected', {n: selected.value.length}))) return
-  await mobileApi.mediaBatchDelete([...selected.value])
-  message.value = t('media.deleted')
-  selected.value = []
-  await refresh()
+  confirmText.value = t('media.confirmDeleteSelected', {n: selected.value.length})
+  pending.value = {kind: 'batch', ids: [...selected.value]}
+  confirmOpen.value = true
 }
 
-async function removeOne(item: MobileMediaItem): Promise<void> {
+function askRemove(item: MobileMediaItem): void {
   const name = item.original_filename || item.filename || String(item.id)
-  if (!window.confirm(t('media.confirmDelete', {name}))) return
-  await mobileApi.mediaRemove(item.id)
-  message.value = t('media.deleted')
-  await refresh()
+  confirmText.value = t('media.confirmDelete', {name})
+  pending.value = {kind: 'one', item}
+  confirmOpen.value = true
+}
+
+async function confirmRemove(): Promise<void> {
+  const target = pending.value
+  if (!target) return
+  deleting.value = true
+  try {
+    if (target.kind === 'batch') {
+      await mobileApi.mediaBatchDelete(target.ids)
+      selected.value = []
+    } else {
+      await mobileApi.mediaRemove(target.item.id)
+    }
+    message.value = t('media.deleted')
+    confirmOpen.value = false
+    await refresh()
+  } finally {
+    deleting.value = false
+    pending.value = null
+  }
 }
 
 // ---------------------------------------------------------------- 编辑元信息
@@ -392,7 +416,7 @@ onMounted(refresh)
                    @keyup.enter="onSearch"/>
           </div>
           <Button size="sm" variant="outline" @click="onSearch">{{ $t('admin.common.search') }}</Button>
-          <Button v-if="selected.length" size="sm" variant="danger" @click="removeSelected">
+          <Button v-if="selected.length" size="sm" variant="danger" @click="askRemoveSelected">
             <Icon class="h-4 w-4" name="trash-2"/>
             {{ $t('media.deleteSelected', {n: selected.length}) }}
           </Button>
@@ -459,7 +483,7 @@ onMounted(refresh)
                           @click="openEdit(item as MobileMediaItem)">{{ $t('common.edit') }}
                   </button>
                   <button class="ml-auto text-danger hover:underline" type="button"
-                          @click="removeOne(item as MobileMediaItem)">{{ $t('common.delete') }}
+                          @click="askRemove(item as MobileMediaItem)">{{ $t('common.delete') }}
                   </button>
                 </div>
               </div>
@@ -530,6 +554,14 @@ onMounted(refresh)
       :items="previewItems"
       :open="previewOpen"
       @close="previewOpen = false"
+    />
+
+    <ConfirmDialog
+      v-model="confirmOpen"
+      :description="confirmText"
+      :loading="deleting"
+      danger
+      @confirm="confirmRemove"
     />
 
     <!-- 音频专用播放器（黑胶 + 逐字歌词 + 桌面歌词 + 迷你播放器） -->

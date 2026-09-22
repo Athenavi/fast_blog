@@ -172,7 +172,7 @@ onBeforeUnmount(() => {
     <div class="perf-panel__body">
       <ul class="perf-panel__vitals">
         <li v-for="name in VITAL_ORDER" :key="name" class="perf-panel__vital">
-          <span :title="VITAL_LABELS[name]" class="perf-panel__vital-name">{{ name }}</span>
+          <span :title="$t(VITAL_LABELS[name])" class="perf-panel__vital-name">{{ name }}</span>
           <span :style="{color: vitalColor(name)}" class="perf-panel__vital-value">{{ vitalText(name) }}</span>
         </li>
       </ul>

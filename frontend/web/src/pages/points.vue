@@ -306,9 +306,7 @@ onMounted(load)
 
       <!-- 排行榜 -->
       <section v-else-if="activeTab === 'leaderboard'" class="mt-4">
-        <p v-if="!board.length" class="py-8 text-center text-sm text-fg-muted">
-          {{ $t('points.emptyLeaderboard') }}
-        </p>
+        <EmptyState v-if="!board.length" :title="$t('points.emptyLeaderboard')" compact/>
         <ul v-else class="divide-y divide-line rounded-card border border-line bg-surface">
           <li
             v-for="row in board"

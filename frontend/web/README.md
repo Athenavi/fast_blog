@@ -28,17 +28,62 @@ npm run test:e2e       # Playwright（7 个 spec）
 
 脚本一览（`package.json`）：
 
-| 脚本            | 说明                                                                                                                                                      |
-|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `prescan`     | 扫描 `../../plugins/*/frontend/`，生成 `src/.plugin-pages/**` 与 `src/.plugin-registry.ts`（由 `predev` / `prebuild` 自动触发，`type-check` 与 `build:check` 里显式再跑一次） |
-| `dev`         | `nuxt dev --dotenv .env.development`                                                                                                                    |
-| `build`       | `nuxt build --dotenv .env.production`                                                                                                                   |
-| `build:check` | prescan + `nuxt typecheck` + build                                                                                                                      |
-| `generate`    | 静态导出（Capacitor 打包用）                                                                                                                                     |
-| `preview`     | 预览构建产物                                                                                                                                                  |
-| `type-check`  | `nuxt typecheck`                                                                                                                                        |
-| `check:i18n`  | `node scripts/check-i18n.mjs`                                                                                                                           |
-| `test:e2e`    | `playwright test`                                                                                                                                       |
+| 脚本                       | 说明                                                                                                                                                      |
+|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `prescan`                | 扫描 `../../plugins/*/frontend/`，生成 `src/.plugin-pages/**` 与 `src/.plugin-registry.ts`（由 `predev` / `prebuild` 自动触发，`type-check` 与 `build:check` 里显式再跑一次） |
+| `dev`                    | `nuxt dev --dotenv .env.development`                                                                                                                    |
+| `build`                  | `nuxt build --dotenv .env.production`                                                                                                                   |
+| `build:check`            | prescan + `nuxt typecheck` + build                                                                                                                      |
+| `generate`               | 静态导出（Capacitor 打包用）                                                                                                                                     |
+| `preview`                | 预览构建产物                                                                                                                                                  |
+| `type-check`             | `nuxt typecheck`                                                                                                                                        |
+| `check:i18n`             | `node scripts/check-i18n.mjs`                                                                                                                           |
+| `check:bundle`           | 首屏包体预算（起 `.output/server`，解析 SSR HTML 的首屏脚本，按 gzip 卡阈值）                                                                                                 |
+| `test:e2e`               | `playwright test`                                                                                                                                       |
+| `test:e2e:visual`        | 视觉回归（截图对比，基线在 `e2e/visual.spec.ts-snapshots/`）                                                                                                          |
+| `test:e2e:visual:update` | 重新生成视觉基线（只在有意改 UI 时用）                                                                                                                                   |
+| `test:e2e:a11y`          | a11y 巡检（axe，对比 `e2e/a11y-baseline.json`）                                                                                                                |
+
+## UI 护栏（视觉回归 / a11y / 包体预算）
+
+Batch 0 立的三道护栏，用来保护后续 UI/UX 重构 —— 会改动 89 个页面里的绝大部分，没有它就只剩肉眼抽查。
+
+```bash
+# 0) 建议对**构建产物**跑：dev 下按需编译，又慢又抖（实测一次 a11y 巡检 20 分钟起）
+npm run build
+# 另开一个终端起 preview（见下面"preview 跑 e2e"的两条注意）
+PORT=3000 NUXT_PUBLIC_API_BASE_URL=http://localhost:9421 node .output/server/index.mjs
+
+# 1) 视觉回归：16 个页面（后台 12 + 前台 4）
+E2E_NO_WEB_SERVER=1 E2E_BASE_URL=http://localhost:3000 E2E_API_BASE_URL=http://localhost:9421 npm run test:e2e:visual
+# 有意改 UI 后重建基线（下面这条会覆盖 e2e/visual.spec.ts-snapshots/，注意 review 差异）
+E2E_NO_WEB_SERVER=1 E2E_BASE_URL=http://localhost:3000 E2E_API_BASE_URL=http://localhost:9421 \
+  npm run test:e2e:visual:update
+
+# 2) a11y 巡检：只拦"比基线更差"的违规，不要求零违规
+A11Y_UPDATE_BASELINE=1 E2E_NO_WEB_SERVER=1 E2E_BASE_URL=http://localhost:3000 \
+  E2E_API_BASE_URL=http://localhost:9421 npm run test:e2e:a11y   # 生成/收紧基线（a11y-baseline.json **入库**）
+E2E_NO_WEB_SERVER=1 E2E_BASE_URL=http://localhost:3000 E2E_API_BASE_URL=http://localhost:9421 \
+  npm run test:e2e:a11y                                         # 日常与 CI
+
+# 3) 首屏包体预算：首屏 200KB / 全量 1600KB（gzip）
+npm run check:bundle
+```
+
+三条注意（都踩过）：
+
+- **端口别串台**：`playwright.config.ts` 默认 5173（= `VITE_PORT`）。同机并行开发多个前端时该端口常被别的项目占用，
+  而 `reuseExistingServer: true` 会复用**别人的** dev server —— 症状是整份 spec 因 `waitForHydration` 超时全红。
+  换端口：`E2E_PORT=5273 npm run test:e2e`（webServer 会自动带上 `VITE_PORT`）。
+- **preview 跑 e2e** 要三条：① preview 起在 **3000**（后端 CORS 白名单里有 `http://localhost:3000`）；
+  ② 显式给 `NUXT_PUBLIC_API_BASE_URL=http://localhost:9421` —— `.env.production` 里它是空的（生产靠 nginx 同源反代），
+  而 preview 没有 nginx，浏览器侧只能跨域直连后端；③ 再给 `E2E_API_BASE_URL=http://localhost:9421` ——
+  登录 fixture 直接用 `fetch` 调 `/api/v3/system/auth/login`，preview 没有 `/api` 代理，不给就会 404
+  （症状：所有后台用例报"e2e 登录失败"，HTTP 404）。
+- **凭证**：`e2e/fixtures/auth.ts` 先读 `E2E_ADMIN_USER` / `E2E_ADMIN_PASS`，再读本地 `frontend/web/.env.e2e`（已
+  gitignore）。
+  账号需要 `superadmin` 角色（护栏要让后台页面全部可见），例如：
+  `python -m scripts.create_user -u e2e_admin -r superadmin -e e2e@local.test`
 
 ## 环境变量
 

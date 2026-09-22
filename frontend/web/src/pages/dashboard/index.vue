@@ -10,6 +10,35 @@
       </el-col>
     </el-row>
 
+    <!-- 行动：待办 + 快捷操作（放在第一屏，先回答"现在要我做什么"） -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <div class="card-header"><span>{{ $t('admin.dashboard.todo') }}</span></div>
+      </template>
+
+      <p v-if="!hasTodo" class="todo-empty">{{ $t('admin.dashboard.noTodo') }}</p>
+      <ul v-else class="todo-list">
+        <li v-for="entry in todos" :key="entry.key">
+          <NuxtLink :to="entry.to" class="todo-item">
+            <span class="todo-item__label">{{ entry.label }}</span>
+            <el-tag :type="entry.count > 0 ? 'danger' : 'info'" size="small">
+              {{ entry.count }}
+            </el-tag>
+          </NuxtLink>
+        </li>
+      </ul>
+
+      <div v-if="quickActions.length" class="quick-actions">
+        <p class="quick-actions__title">{{ $t('admin.dashboard.quickActions') }}</p>
+        <div class="quick-actions__row">
+          <el-button v-for="action in quickActions" :key="action.key" plain size="small"
+                     @click="router.push(action.to)">
+            {{ action.label }}
+          </el-button>
+        </div>
+      </div>
+    </el-card>
+
     <el-row :gutter="16" class="mt-4">
       <el-col :lg="12" :xs="24">
         <el-card shadow="never">
@@ -42,12 +71,7 @@
       <el-col :lg="12" :xs="24">
         <el-card class="mt-4-mobile" shadow="never">
           <template #header>
-            <div class="card-header">
-              <span>{{ $t('admin.dashboard.recentComments') }}</span>
-              <el-button link type="primary" @click="router.push('/content/comment')">
-                {{ $t('admin.common.all') }}
-              </el-button>
-            </div>
+            <div class="card-header"><span>{{ $t('admin.dashboard.recentComments') }}</span></div>
           </template>
           <el-table v-loading="loading" :data="recentComments" size="small">
             <el-table-column :label="$t('article.author')" prop="author_name" show-overflow-tooltip width="120"/>
@@ -75,6 +99,17 @@
         <el-table-column :label="$t('article.likes')" prop="likes" width="100"/>
       </el-table>
     </el-card>
+
+    <!-- 内容分布：把"总数/已发布/草稿"从数字变成占比，趋势与积压一眼可见 -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <div class="card-header"><span>{{ $t('admin.dashboard.distribution') }}</span></div>
+      </template>
+      <div class="dist-grid">
+        <DonutChart :center-label="$t('admin.dashboard.totalArticles')" :items="articleStatusItems"/>
+        <DonutChart :center-label="$t('admin.dashboard.totalComments')" :items="commentStatusItems"/>
+      </div>
+    </el-card>
   </div>
 </template>
 
@@ -92,6 +127,7 @@ definePageMeta({
 import dayjs from 'dayjs'
 import {computed, onMounted, ref} from 'vue'
 
+import {certificationApi, tippingApi} from '@/api'
 import {
   dashboardApi,
   type DashboardOverview,
@@ -99,8 +135,10 @@ import {
   type RecentComment,
   type TopArticle,
 } from '@/api/modules/dashboard'
+import {useUserStore} from '@/store/modules/user'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const loading = ref(false)
 const overview = ref<DashboardOverview | null>(null)
@@ -134,6 +172,123 @@ const cards = computed(() => {
     {label: t('admin.dashboard.mediaFiles'), value: data?.total_media ?? 0},
   ]
 })
+
+/** 内容分布（环形图）：直接用 overview 里已有的计数，不额外请求接口 */
+const articleStatusItems = computed(() => [
+  {label: t('common.published'), value: overview.value?.published_articles ?? 0},
+  {label: t('common.draft'), value: overview.value?.draft_articles ?? 0},
+])
+
+const commentStatusItems = computed(() => {
+  const total = overview.value?.total_comments ?? 0
+  const pending = overview.value?.pending_comments ?? 0
+  return [
+    {label: t('common.approved'), value: Math.max(total - pending, 0)},
+    {label: t('common.pending'), value: pending},
+  ]
+})
+
+// ---------------------------------------------------------------- 待办
+/**
+ * 待办计数：仪表盘此前是纯数字陈列板，看不出"现在要我做什么"。
+ * 认证 / 提现的统计各有专门接口，且都按权限判断是否请求（没权限就不发请求、也不占位显示）。
+ */
+const canViewCertification = computed(() => userStore.hasPermission('module_gamification:certification:view'))
+const canViewTipping = computed(() => userStore.hasPermission('module_commerce:tipping:view'))
+
+const pendingCertifications = ref(0)
+const pendingWithdrawals = ref(0)
+
+async function loadPending(): Promise<void> {
+  const tasks: Array<Promise<void>> = []
+  if (canViewCertification.value) {
+    tasks.push(
+      certificationApi
+        .stats()
+        .then((stats) => {
+          pendingCertifications.value = stats.pending ?? 0
+        })
+        .catch(() => {
+          pendingCertifications.value = 0
+        }),
+    )
+  }
+  if (canViewTipping.value) {
+    tasks.push(
+      tippingApi
+        .stats()
+        .then((stats) => {
+          pendingWithdrawals.value = stats.withdrawal_pending ?? 0
+        })
+        .catch(() => {
+          pendingWithdrawals.value = 0
+        }),
+    )
+  }
+  await Promise.all(tasks)
+}
+
+interface TodoEntry {
+  key: string
+  label: string
+  count: number
+  to: string
+}
+
+const todos = computed<TodoEntry[]>(() => {
+  const list: TodoEntry[] = [
+    {
+      key: 'comments',
+      label: t('admin.dashboard.pendingComments'),
+      count: overview.value?.pending_comments ?? 0,
+      to: '/content/comment',
+    },
+  ]
+  if (canViewCertification.value) {
+    list.push({
+      key: 'certifications',
+      label: t('admin.dashboard.pendingCertifications'),
+      count: pendingCertifications.value,
+      to: '/gamification/certifications',
+    })
+  }
+  if (canViewTipping.value) {
+    list.push({
+      key: 'withdrawals',
+      label: t('admin.dashboard.pendingWithdrawals'),
+      count: pendingWithdrawals.value,
+      to: '/commerce/tipping',
+    })
+  }
+  return list
+})
+
+const hasTodo = computed(() => todos.value.some((entry) => entry.count > 0))
+
+/** 快捷操作：按权限给出常用入口 */
+const quickActions = computed(() =>
+  [
+    {
+      key: 'newArticle',
+      label: t('admin.content.article.newArticle'),
+      to: '/content/article/new',
+      permission: 'module_content:article:create'
+    },
+    {
+      key: 'media',
+      label: t('admin.content.media.mediaLibrary'),
+      to: '/content/media',
+      permission: 'module_content:media:view'
+    },
+    {key: 'users', label: t('menu.UserList'), to: '/system/user', permission: 'module_system:user:view'},
+    {
+      key: 'setting',
+      label: t('admin.system.setting.title'),
+      to: '/system/setting',
+      permission: 'module_system:setting:view'
+    },
+  ].filter((action) => userStore.hasPermission(action.permission)),
+)
 
 function statusText(status?: number | null): string {
   if (status === 1) return t('common.published')
@@ -171,6 +326,8 @@ async function load(): Promise<void> {
   } finally {
     loading.value = false
   }
+  // 待办计数与主数据互不依赖：即使失败也不该影响仪表盘主体
+  await loadPending()
 }
 
 onMounted(load)
@@ -201,6 +358,63 @@ onMounted(load)
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+/* 待办与快捷操作 */
+.todo-list {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.todo-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--admin-line);
+}
+
+.todo-item:last-child {
+  border-bottom: 0;
+}
+
+.todo-item__label {
+  font-size: 14px;
+  color: var(--admin-fg);
+}
+
+.todo-empty {
+  padding: 10px 2px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--admin-fg-subtle);
+}
+
+.quick-actions {
+  padding-top: 12px;
+  margin-top: 14px;
+  border-top: 1px dashed var(--admin-line);
+}
+
+.quick-actions__title {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
+}
+
+.quick-actions__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* 内容分布：两张环形图并排，窄屏自动堆叠 */
+.dist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--admin-gap-lg);
 }
 
 .mt-4 {

@@ -60,7 +60,7 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
           @click="setTheme(item.value)"
         >
           <Icon :name="MODE_ICON[item.value]" class="h-4 w-4"/>
-          <span>{{ item.label }}</span>
+          <span>{{ $t(`site.${item.labelKey}`) }}</span>
           <Icon v-if="theme === item.value" class="ml-auto h-4 w-4 text-primary" name="check"/>
         </button>
 
@@ -74,10 +74,10 @@ onBeforeUnmount(() => document.removeEventListener('click', close))
           <button
             v-for="item in ACCENTS"
             :key="item.value"
-            :aria-label="item.label"
+            :aria-label="$t(`site.${item.labelKey}`)"
             :class="cn('ring-2', accent === item.value ? 'ring-line-strong' : 'ring-transparent')"
             :style="{backgroundColor: ACCENT_SWATCH[item.value]}"
-            :title="item.label"
+            :title="$t(`site.${item.labelKey}`)"
             class="h-6 w-6 rounded-full ring-offset-2 ring-offset-surface transition-all"
             type="button"
             @click="setAccent(item.value)"

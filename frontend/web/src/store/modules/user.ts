@@ -25,6 +25,7 @@ export const useUserStore = defineStore('user', {
     permissions: (state) => state.userInfo?.permissions ?? [],
     menuCodes: (state) => state.userInfo?.menu_codes ?? [],
     roles: (state) => state.userInfo?.roles ?? [],
+    // 兜底文案：Pinia getter 里拿不到 i18n 上下文；界面若要本地化请用 username 自行翻译
     displayName: (state) => state.userInfo?.username || '未登录',
   },
 

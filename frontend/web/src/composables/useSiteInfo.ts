@@ -10,7 +10,7 @@ import type {SiteSettings} from '@/types/content'
 
 const DEFAULTS: Required<Pick<SiteSettings, 'site_name' | 'site_description'>> = {
   site_name: 'FastBlog',
-  site_description: '一个基于 FastAPI 与 Nuxt 的博客',
+  site_description: '',
 }
 
 export async function useSiteInfo() {

@@ -3,6 +3,8 @@ import {onMounted, ref} from 'vue'
 
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * 文章点赞排行（article-likes 插件后台页）
  *
@@ -26,7 +28,7 @@ async function load(): Promise<void> {
   try {
     const result = await pluginAction<{ data?: RankItem[] }>('article-likes', 'popular', {limit: 20})
     items.value = result.data?.data ?? []
-    if (!result.success) error.value = result.error || '加载失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -47,7 +49,7 @@ onMounted(load)
   <div class="p-4">
     <div class="mb-3 flex items-center gap-2 text-sm text-fg-muted">
       <Icon class="h-4 w-4 text-danger" name="heart"/>
-      按点赞数排序
+      {{ t('admin.pluginPages.articleLikes.sortByLikes') }}
     </div>
 
     <div v-if="loading" class="space-y-3">
@@ -58,8 +60,8 @@ onMounted(load)
 
     <EmptyState
       v-else-if="!items.length"
-      description="读者开始点赞后，这里会出现排行"
-      title="还没有点赞数据"
+      :description="t('admin.pluginPages.articleLikes.emptyDesc')"
+      :title="t('admin.pluginPages.articleLikes.emptyTitle')"
     />
 
     <div v-else class="overflow-hidden rounded-card border border-line bg-surface">
@@ -77,7 +79,7 @@ onMounted(load)
           <NuxtLink
             :to="`/articles/id/${item.article_id}`"
             class="flex-1 text-sm text-fg hover:text-primary"
-          >文章 #{{ item.article_id }}
+          >{{ t('admin.pluginPages.articleLikes.article') }} #{{ item.article_id }}
           </NuxtLink>
 
           <span class="flex items-center gap-1.5 text-sm font-medium text-danger">

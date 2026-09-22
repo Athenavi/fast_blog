@@ -24,6 +24,10 @@ export interface AdminMenuItem {
   children?: AdminMenuItem[]
 }
 
+/**
+ * `order` 必须**全局唯一**：侧边栏按它排序（见 `store/modules/permission.ts`），
+ * 相同值只会退化成"依赖数组声明顺序"，很容易在后续新增分组时出现错位。
+ */
 export const ADMIN_MENUS: AdminMenuItem[] = [
   {
     name: 'Dashboard',
@@ -140,14 +144,14 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     title: '群聊管理',
     icon: 'ChatDotRound',
     permission: 'module_chat:group:view',
-    order: 7,
+    order: 8,
   },
   {
     name: 'AI',
     path: '/ai',
     title: 'AI 能力',
     icon: 'MagicStick',
-    order: 8,
+    order: 9,
     children: [
       {name: 'AIConfigs', path: '/ai/configs', title: 'AI 配置', permission: 'module_ai:config:view'},
       {name: 'AIWorkflows', path: '/ai/workflows', title: 'AI 工作流', permission: 'module_ai:workflow:view'},
@@ -205,7 +209,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     path: '/ops',
     title: '运维',
     icon: 'Tools',
-    order: 6,
+    order: 7,
     children: [
       {name: 'NotificationList', path: '/ops/notification', title: '通知'},
       {name: 'BackupList', path: '/ops/backup', title: '备份', permission: 'module_ops:backup:view'},
@@ -229,7 +233,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     path: '/commerce',
     title: '商务',
     icon: 'Money',
-    order: 9,
+    order: 10,
     children: [
       {name: 'Payments', path: '/commerce/payment', title: '支付管理', permission: 'module_commerce:payment:view'},
       {name: 'Revenue', path: '/commerce/revenue', title: '收益分成', permission: 'module_commerce:revenue:view'},
@@ -246,7 +250,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     path: '/gamification',
     title: '用户成长',
     icon: 'Coin',
-    order: 10,
+    order: 11,
     children: [
       {
         name: 'PointsManage',
@@ -277,3 +281,34 @@ export const ADMIN_MENU_PERMISSIONS: string[] = ADMIN_MENUS.flatMap(function col
   const self = item.permission ? [item.permission] : []
   return [...self, ...(item.children ?? []).flatMap(collect)]
 })
+
+/**
+ * 菜单显示名：优先取 `menu.<name>` 翻译，缺失时回退到本文件里的中文 title（渐进式 i18n）。
+ *
+ * 侧边栏与命令面板共用同一份实现——同一个菜单在任何入口都必须叫同一个名字。
+ */
+export function menuLabel(
+  item: AdminMenuItem,
+  translate: (key: string) => string,
+  hasTranslation: (key: string) => boolean,
+): string {
+  const key = `menu.${item.name}`
+  return hasTranslation(key) ? translate(key) : item.title || item.name
+}
+
+/** 把菜单树拍平成"可跳转的叶子项"（父级只是分组，本身没有页面） */
+export function flattenMenuTargets(
+  items: AdminMenuItem[],
+  parentTitle = '',
+  parentIcon = '',
+): Array<{ item: AdminMenuItem; parentTitle: string; parentIcon: string }> {
+  return items.flatMap((item) => {
+    const own: Array<{ item: AdminMenuItem; parentTitle: string; parentIcon: string }> = item.children?.length
+      ? []
+      : [{item, parentTitle, parentIcon: parentIcon || item.icon || ''}]
+    const children = item.children?.length
+      ? flattenMenuTargets(item.children, item.title, item.icon ?? '')
+      : []
+    return [...own, ...children]
+  })
+}

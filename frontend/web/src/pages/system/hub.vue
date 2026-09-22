@@ -97,11 +97,11 @@ function formatUptime(seconds?: number): string {
   return [days ? `${days}d` : '', hours ? `${hours}h` : '', `${minutes}m`].filter(Boolean).join(' ')
 }
 
-/** 进度条颜色随占用率变化 */
+/** 进度条颜色随占用率变化（引用语义令牌，深浅色与自选配色自动跟随） */
 function barColor(percent: number): string {
-  if (percent >= 90) return '#ef4444'
-  if (percent >= 75) return '#f59e0b'
-  return '#10b981'
+  if (percent >= 90) return 'var(--admin-danger)'
+  if (percent >= 75) return 'var(--admin-warning)'
+  return 'var(--admin-success)'
 }
 
 onMounted(load)
@@ -197,7 +197,13 @@ onMounted(load)
           </el-table-column>
           <el-table-column :label="$t('admin.system.hub.usage')" width="160">
             <template #default="{row}">
-              <div class="gauge__track">
+              <div
+                :aria-valuenow="Math.round(row.percent)"
+                aria-valuemax="100"
+                aria-valuemin="0"
+                class="gauge__track"
+                role="progressbar"
+              >
                 <div :style="{width: `${row.percent}%`, backgroundColor: barColor(row.percent)}" class="gauge__fill"/>
               </div>
             </template>

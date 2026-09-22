@@ -56,10 +56,11 @@ function gradeTag(grade?: string | null): 'success' | 'warning' | 'danger' | 'in
   return 'info'
 }
 
+/** SEO 分数配色（语义令牌：深浅色与自选主色都会跟随，不再写死十六进制） */
 function scoreColor(score: number): string {
-  if (score >= 80) return '#16a34a'
-  if (score >= 60) return '#d97706'
-  return '#dc2626'
+  if (score >= 80) return 'var(--admin-success)'
+  if (score >= 60) return 'var(--admin-warning)'
+  return 'var(--admin-danger)'
 }
 
 // ---------------------------------------------------------------- 综合报告

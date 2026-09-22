@@ -25,7 +25,9 @@ test.describe('登录流程', () => {
   test('空凭据提交应显示验证错误', async ({page}) => {
     await page.locator('button[type="submit"]').first().click()
     await expect(page).toHaveURL(/\/login/)
-    await expect(page.locator('.bg-danger-soft').first()).toBeVisible()
+    // 登录页把错误拆成了两级：字段级（`useFormErrors`，类名 `text-danger`）与提交级
+    // （凭据错误/2FA，类名 `bg-danger-soft`）。空表单走字段级校验，因此这里两者都接受。
+    await expect(page.locator('.text-danger, .bg-danger-soft').first()).toBeVisible()
   })
 
   test('错误密码登录应失败', async ({page}) => {

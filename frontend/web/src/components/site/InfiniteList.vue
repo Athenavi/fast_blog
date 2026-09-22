@@ -42,7 +42,7 @@ const props = withDefaults(
     isLoading: false,
     distance: 300,
     columns: 1,
-    emptyTitle: '暂无内容',
+    emptyTitle: '',
     emptyDescription: '',
     minColumnWidth: '',
   },
@@ -88,7 +88,8 @@ onMounted(() => {
       </template>
     </div>
 
-    <EmptyState v-else-if="!props.isLoading" :description="props.emptyDescription" :title="props.emptyTitle"/>
+    <EmptyState v-else-if="!props.isLoading" :description="props.emptyDescription"
+                :title="props.emptyTitle || $t('site.emptyContent')"/>
 
     <!-- 哨兵：进入视口即触发加载 -->
     <div ref="sentinel" aria-hidden="true" class="h-px w-full"/>

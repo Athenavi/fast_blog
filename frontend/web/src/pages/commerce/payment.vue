@@ -9,6 +9,7 @@
  */
 import {Delete, EditPen, Plus, Promotion, Refresh, Search} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
+import {DEFAULT_CURRENCY, formatMoney} from '@/utils/money'
 import {computed, reactive, ref} from 'vue'
 
 import {
@@ -196,7 +197,7 @@ const txForm = reactive({
   amount: undefined as number | undefined,
   gateway: undefined as number | undefined,
   order_id: '',
-  currency: 'USD',
+  currency: DEFAULT_CURRENCY,
   status: 'pending',
   transaction_id: '',
   payment_method: '',
@@ -215,7 +216,7 @@ function openTxCreate() {
     amount: undefined,
     gateway: undefined,
     order_id: '',
-    currency: 'USD',
+    currency: DEFAULT_CURRENCY,
     status: 'pending',
     transaction_id: '',
     payment_method: '',
@@ -230,7 +231,7 @@ function openTxEdit(row: PaymentTransactionItem) {
     amount: row.amount ?? undefined,
     gateway: row.gateway ?? undefined,
     order_id: row.order_id || '',
-    currency: row.currency || 'USD',
+    currency: row.currency || DEFAULT_CURRENCY,
     status: row.status || 'pending',
     transaction_id: row.transaction_id || '',
     payment_method: row.payment_method || '',
@@ -250,7 +251,7 @@ async function submitTx() {
       amount: txForm.amount,
       gateway: txForm.gateway ?? null,
       order_id: txForm.order_id.trim() || null,
-      currency: txForm.currency || 'USD',
+      currency: txForm.currency || DEFAULT_CURRENCY,
       status: txForm.status,
       transaction_id: txForm.transaction_id.trim() || null,
       payment_method: txForm.payment_method.trim() || null,
@@ -654,10 +655,9 @@ async function submitInitiate() {
             <el-table-column :label="$t('admin.commerce.payment.orderId')" min-width="150"
                              prop="order_id" show-overflow-tooltip/>
             <el-table-column :label="$t('admin.commerce.payment.userId')" prop="user" width="90"/>
-            <el-table-column :label="$t('admin.commerce.payment.amount')" align="right" width="110">
+            <el-table-column :label="$t('admin.commerce.payment.amount')" align="right" width="150">
               <template #default="{ row }">
-                {{ (row as PaymentTransactionItem).amount ?? '-' }}
-                <span class="tx-currency">{{ (row as PaymentTransactionItem).currency }}</span>
+                {{ formatMoney((row as PaymentTransactionItem).amount, (row as PaymentTransactionItem).currency) }}
               </template>
             </el-table-column>
             <el-table-column :label="$t('admin.commerce.payment.txStatus')" align="center" width="110">

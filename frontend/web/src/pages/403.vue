@@ -10,7 +10,7 @@ definePageMeta({layout: false, title: 'error.forbiddenTitle', robots: 'noindex'}
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col items-center justify-center gap-3 px-4 text-center">
+  <div class="flex min-h-dvh flex-col items-center justify-center gap-3 px-4 text-center">
     <p class="text-5xl font-bold tracking-tight text-fg">403</p>
     <p class="max-w-read text-fg-muted">{{ $t('error.forbiddenDesc') }}</p>
     <div class="mt-3 flex gap-3">

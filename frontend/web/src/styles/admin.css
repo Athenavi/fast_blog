@@ -17,23 +17,28 @@
 html {
   color-scheme: light;
 
-  /* 语义色 */
-  --admin-canvas: oklch(97.4% 0.003 250);
-  --admin-surface: oklch(100% 0 0);
-  --admin-surface-soft: oklch(98.2% 0.004 250);
-  --admin-surface-hover: oklch(96.4% 0.004 250);
-  --admin-fg: oklch(23% 0.02 260);
-  --admin-fg-muted: oklch(50% 0.015 260);
-  --admin-fg-subtle: oklch(68% 0.012 260);
-  --admin-line: oklch(92.5% 0.006 260);
-  --admin-line-strong: oklch(86% 0.01 260);
-  --admin-primary: oklch(52% 0.18 258);
-  --admin-primary-hover: oklch(46% 0.18 258);
-  --admin-primary-soft: oklch(96% 0.03 258);
-  --admin-success: oklch(56% 0.14 155);
-  --admin-warning: oklch(68% 0.15 75);
-  --admin-danger: oklch(58% 0.2 25);
-  --admin-info: oklch(58% 0.02 260);
+  /* ---- 语义色 ----
+   * 统一到前台同一套令牌（`styles/index.css` 的 `@theme`）：除下面**显式标注的有意差异**外，
+   * 一律别名到 `--color-*`。此前两套色值各自维护，已经出现漂移
+   * （canvas 97.4% vs 99%、fg-muted 50% 与深色 74% vs 72% 等）。
+   * 别名化之后，自选主色（`data-accent`）也不再需要在后台重复声明一遍。
+   */
+  --admin-canvas: oklch(97.4% 0.003 250); /* 有意差异：比前台更灰，让白色卡片浮起来 */
+  --admin-surface: var(--color-surface);
+  --admin-surface-soft: var(--color-surface-soft);
+  --admin-surface-hover: oklch(96.4% 0.004 250); /* 后台专属：前台没有 hover 底色令牌 */
+  --admin-fg: var(--color-fg);
+  --admin-fg-muted: var(--color-fg-muted);
+  --admin-fg-subtle: var(--color-fg-subtle);
+  --admin-line: var(--color-line);
+  --admin-line-strong: var(--color-line-strong);
+  --admin-primary: var(--color-primary);
+  --admin-primary-hover: var(--color-primary-hover);
+  --admin-primary-soft: var(--color-primary-soft);
+  --admin-success: var(--color-success);
+  --admin-warning: var(--color-warning);
+  --admin-danger: var(--color-danger);
+  --admin-info: oklch(58% 0.02 260); /* 后台专属：Element Plus 的 info 语义色 */
 
   /* 侧边栏（后台是深色导航，与内容区形成层次） */
   --admin-sidebar-bg: oklch(24% 0.02 260);
@@ -109,16 +114,9 @@ html.dark,
 html[data-theme='dark'] {
   color-scheme: dark;
 
-  --admin-canvas: oklch(19% 0.015 260);
-  --admin-surface: oklch(23% 0.015 260);
-  --admin-surface-soft: oklch(26.5% 0.015 260);
+  /* 深色下同样跟随前台的深色令牌，只覆盖后台专属与有意差异的项 */
+  --admin-canvas: var(--color-canvas);
   --admin-surface-hover: oklch(29% 0.015 260);
-  --admin-fg: oklch(94% 0.008 250);
-  --admin-fg-muted: oklch(74% 0.015 255);
-  --admin-fg-subtle: oklch(60% 0.015 255);
-  --admin-line: oklch(31% 0.015 260);
-  --admin-line-strong: oklch(40% 0.02 260);
-  --admin-primary-soft: oklch(30% 0.05 258);
 
   --admin-sidebar-bg: oklch(17% 0.015 260);
   --admin-sidebar-fg: oklch(76% 0.012 260);
@@ -150,56 +148,21 @@ html[data-theme='dark'] {
   --el-color-info-light-9: color-mix(in oklab, var(--admin-info) 12%, black);
 }
 
-/* ---------------------------------------------------------------- 自选配色 */
-html[data-accent='violet'] {
-  --admin-primary: oklch(52% 0.2 300);
-  --admin-primary-hover: oklch(46% 0.2 300);
-  --admin-primary-soft: oklch(96% 0.03 300);
-}
+/* ---------------------------------------------------------------- 自选配色
+ * 不再需要在后台重复声明一遍：`--admin-primary*` 已别名到 `--color-primary*`，
+ * 配色覆盖本身定义在前台令牌层（`styles/index.css` 的 `[data-accent=…]`，含深色下的 primary-soft），
+ * 后台因此自动跟随用户选的主色，也不必再为 4 种配色各写一遍深色分支。
+ */
 
-html[data-accent='emerald'] {
-  --admin-primary: oklch(55% 0.14 165);
-  --admin-primary-hover: oklch(49% 0.14 165);
-  --admin-primary-soft: oklch(96% 0.04 165);
-}
-
-html[data-accent='rose'] {
-  --admin-primary: oklch(58% 0.18 15);
-  --admin-primary-hover: oklch(52% 0.18 15);
-  --admin-primary-soft: oklch(96% 0.03 15);
-}
-
-html[data-accent='amber'] {
-  --admin-primary: oklch(64% 0.15 72);
-  --admin-primary-hover: oklch(57% 0.15 72);
-  --admin-primary-soft: oklch(97% 0.04 80);
-}
-
-html.dark[data-accent='violet'],
-html[data-theme='dark'][data-accent='violet'] {
-  --admin-primary-soft: oklch(30% 0.05 300);
-}
-
-html.dark[data-accent='emerald'],
-html[data-theme='dark'][data-accent='emerald'] {
-  --admin-primary-soft: oklch(30% 0.05 165);
-}
-
-html.dark[data-accent='rose'],
-html[data-theme='dark'][data-accent='rose'] {
-  --admin-primary-soft: oklch(30% 0.05 15);
-}
-
-html.dark[data-accent='amber'],
-html[data-theme='dark'][data-accent='amber'] {
-  --admin-primary-soft: oklch(32% 0.05 80);
-}
-
-/* ---------------------------------------------------------------- EP 观感收敛 */
+/* ---------------------------------------------------------------- EP 观感收敛
+ * 注意：**不要**在这里给 `.el-card` 设 `box-shadow`（尤其带 `!important`）——
+ * 那会让页面上的 `<el-card shadow="never">` / `shadow="hover"` 全部失效
+ * （此前正是如此：仪表盘统计卡的 hover 反馈被静默吃掉）。
+ * 卡片外观交给页面自身的 `shadow` 属性；需要统一描边风格的用 `.admin-card`。
+ */
 .el-card {
   border-color: var(--admin-line);
   border-radius: var(--admin-radius-lg);
-  box-shadow: var(--admin-shadow-card) !important;
 }
 
 .el-card__header {
@@ -232,6 +195,35 @@ html[data-theme='dark'][data-accent='amber'] {
 .el-drawer {
   --el-dialog-border-radius: var(--admin-radius-lg);
   border-radius: var(--admin-radius-lg);
+}
+
+/**
+ * 视口约束：页面里普遍把抽屉/弹窗写死为 460~720px（如 `:size="600"`），
+ * 在平板/手机上会溢出屏幕。EP 用的是内联 `width`，`max-width` 能稳定压住它，
+ * 因此在这里统一收口，新页面无需再逐处响应式化。
+ */
+.el-drawer {
+  max-width: 100vw;
+}
+
+.el-dialog {
+  max-width: calc(100vw - 2 * var(--admin-gap));
+}
+
+/* 窄屏导航抽屉：完整菜单铺满整个抽屉，去掉默认内边距 */
+.layout__mobile-nav .el-drawer__body {
+  height: 100%;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* 命令面板：不要标题栏，搜索框自己占据顶部（见 components/admin/CommandPalette.vue） */
+.cmdk .el-dialog__header {
+  display: none;
+}
+
+.cmdk .el-dialog__body {
+  padding: 0;
 }
 
 .el-dialog__header,
@@ -342,6 +334,13 @@ html[data-theme='dark'][data-accent='amber'] {
 .admin-toolbar__total {
   font-size: var(--admin-font-sm);
   color: var(--admin-fg-subtle);
+}
+
+/* 权限不足的控件：保留在布局里、显示禁用视觉并说明原因（见 plugins/directives.client.ts） */
+.admin-auth-disabled,
+.admin-auth-disabled:hover,
+.admin-auth-disabled * {
+  cursor: not-allowed;
 }
 
 .admin-filter .el-form-item {
@@ -497,4 +496,63 @@ html[data-theme='dark'][data-accent='amber'] {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: var(--admin-gap);
+}
+
+/* ---------------------------------------------------------------- 打印
+ * 后台页面此前没有打印样式：打印会把侧边栏、顶栏、工具栏、分页、按钮全部打进纸里。
+ * 这里统一收口：只保留主内容区，去掉阴影与交互控件。
+ */
+@media print {
+  :root,
+  html {
+    background: #fff !important;
+  }
+
+  .layout__aside,
+  .layout__header,
+  .admin-toolbar,
+  .admin-pagination,
+  .admin-selection-bar,
+  .admin-list__filters,
+  .admin-page__actions,
+  .el-pagination,
+  .el-button,
+  .editor-bar__spacer,
+  .draft-alert {
+    display: none !important;
+  }
+
+  .layout,
+  .layout__main,
+  .admin-page,
+  .admin-card,
+  .el-card {
+    display: block !important;
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    margin: 0 0 12px !important;
+    overflow: visible !important;
+    background: #fff !important;
+    border-color: #999 !important;
+    box-shadow: none !important;
+  }
+
+  .admin-split,
+  .admin-grid,
+  .media-layout {
+    display: block !important;
+  }
+
+  /* 表格：露出所有列，允许跨页断行 */
+  .el-table,
+  .el-table__inner-wrapper {
+    overflow: visible !important;
+  }
+
+  .el-table th,
+  .el-table td {
+    color: #000 !important;
+    background: #fff !important;
+  }
 }

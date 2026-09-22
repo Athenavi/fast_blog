@@ -8,20 +8,25 @@ import type {IconName} from '@/lib/icons'
  * 对应 astro 版 `components/MobileBottomNav.tsx`（React 岛）。
  *
  * **入口是与用户确认后重设的**：原版 5 个入口里，`/messages`（站内信，v3 无接口）
- * 与 `/admin/editor`（Nuxt 侧不存在）都不可用，所以改为 3 个实际存在的：
- * 首页 / 关于 / 我的。
+ * 与 `/admin/editor`（Nuxt 侧不存在）都不可用。
+ *
+ * 这一版把拇指区留给**最常用的四个动作**：首页 / 文章 / 搜索 / 我的 ——
+ * 此前是"首页 / 关于 / 我的"，把最贵的位置给了「关于」，而"浏览文章""搜索"反而没有入口。
  *
  * 与原实现的两点差异：
  *  1. 原版用 JS 判断 `window.innerWidth < 768` 决定是否渲染 —— 首屏会闪一下；
  *     这里改用 CSS `md:hidden`，SSR 直接不输出，更稳。
  *  2. 原版写死灰阶色（`text-fg-muted` / `text-blue-600`），这里用语义令牌，
  *     跟随主题与用户自选配色。
+ *
+ * 文案用 `computed`：此前是 setup 期求值的常量数组，切换语言后不会更新。
  */
-const navItems: Array<{ name: string; href: string; icon: IconName }> = [
+const navItems = computed<Array<{ name: string; href: string; icon: IconName }>>(() => [
   {name: t('site.navHome'), href: '/', icon: 'house'},
-  {name: t('site.navAbout'), href: '/about', icon: 'info'},
+  {name: t('site.navArticles'), href: '/articles', icon: 'file-text'},
+  {name: t('site.navSearch'), href: '/search', icon: 'search'},
   {name: t('site.navProfile'), href: '/profile', icon: 'user'},
-]
+])
 
 const route = useRoute()
 

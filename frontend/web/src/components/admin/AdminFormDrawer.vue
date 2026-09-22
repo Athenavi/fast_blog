@@ -1,7 +1,11 @@
 <script lang="ts" setup>
+import {nextTick, ref} from 'vue'
+
 /**
  * 抽屉表单壳：内容型实体的编辑统一走右侧抽屉（比弹窗更适合长表单，
  * 且不打断列表浏览）。保存中按钮自动 loading，footer 可插入额外操作。
+ *
+ * 新增：打开后自动聚焦第一个可输入字段（`focusFirstField`）。
  *
  * 用法：
  *   <AdminFormDrawer v-model="visible" :title="…" :loading="saving" @confirm="submit">
@@ -27,6 +31,22 @@ const emit = defineEmits<{
   (event: 'confirm'): void
 }>()
 
+const contentRef = ref<HTMLElement | null>(null)
+
+/**
+ * 打开后把焦点交给第一个可输入字段。
+ *
+ * 此前抽屉打开后焦点仍留在触发按钮上，用户必须再点一次输入框才能开始敲键盘。
+ * 这里包一层自己的容器再去查询（而不是 `.el-drawer__body`），避免依赖 Element Plus 的内部结构。
+ */
+async function focusFirstField(): Promise<void> {
+  await nextTick()
+  const target = contentRef.value?.querySelector<HTMLElement>(
+    'input:not([type="hidden"]):not([disabled]), textarea:not([disabled]), select:not([disabled])',
+  )
+  target?.focus()
+}
+
 async function handleClose(): Promise<void> {
   if (props.beforeClose) {
     const allowed = await props.beforeClose()
@@ -44,8 +64,11 @@ async function handleClose(): Promise<void> {
     :title="title"
     append-to-body
     destroy-on-close
+    @opened="focusFirstField"
   >
-    <slot/>
+    <div ref="contentRef">
+      <slot/>
+    </div>
 
     <template #footer>
       <div class="admin-drawer__footer">

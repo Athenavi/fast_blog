@@ -30,6 +30,9 @@
         <el-button v-auth="'module_system:user:create'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.system.user.createTitle') }}
         </el-button>
+        <el-button :loading="exporting" @click="exportCsv">
+          {{ $t('admin.common.exportCsv') }}
+        </el-button>
         <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
       </div>
 
@@ -122,6 +125,7 @@
             v-model="form.password"
             :placeholder="isEdit ? t('admin.system.user.passwordEditHint') : t('admin.system.user.passwordHint')"
             show-password
+            autocomplete="new-password"
             type="password"
           />
         </el-form-item>
@@ -191,6 +195,7 @@ import {computed, onMounted, reactive, ref} from 'vue'
 
 import {roleApi, type RoleItem, userApi, type UserItem, type UserQuery} from '@/api'
 import {useAdminList} from '@/composables/useAdminList'
+import {useCsvExport} from '@/composables/useCsvExport'
 import {formatDateTime} from '@/utils/format'
 
 /** 查询表单（在 PageQuery 基础上补齐页面字段，避免 v-model 绑到 unknown） */
@@ -219,6 +224,52 @@ const load = userState.reload
 const onPageChange = userState.onPageChange
 const onSizeChange = userState.onSizeChange
 const remove = userState.remove
+
+/** 导出当前筛选条件下的全部用户（后端暂无导出端点，前端按 200/页 拉全量拼 CSV） */
+const {exporting, exportCsv: runExport} = useCsvExport<UserItem>({
+  filename: 'users',
+  columns: [
+    {key: 'id', label: 'ID'},
+    {key: 'username', label: t('admin.system.user.username')},
+    {key: 'email', label: t('admin.system.user.email')},
+    {
+      key: 'is_active',
+      label: t('admin.system.user.status'),
+      format: (row) => (row.is_active ? t('admin.system.user.active') : t('admin.system.user.inactive')),
+    },
+    {
+      key: 'is_superuser',
+      label: t('admin.system.user.identity'),
+      format: (row) =>
+        row.is_superuser
+          ? t('admin.system.user.superuser')
+          : row.is_staff
+            ? t('admin.system.user.staffTag')
+            : t('admin.system.user.normal'),
+    },
+    {key: 'vip_level', label: 'VIP', format: (row) => `Lv${row.vip_level ?? 0}`},
+    {
+      key: 'last_login_at',
+      label: t('admin.system.user.lastLogin'),
+      format: (row) => formatDateTime(row.last_login_at),
+    },
+  ],
+  rows: async () => {
+    const chunkSize = 200
+    const first = await userApi.list({...query, page: 1, page_size: chunkSize} as UserQueryForm)
+    const all: UserItem[] = [...first.items]
+    const pages = Math.ceil((first.total ?? all.length) / chunkSize)
+    for (let p = 2; p <= pages; p += 1) {
+      const chunk = await userApi.list({...query, page: p, page_size: chunkSize} as UserQueryForm)
+      all.push(...chunk.items)
+    }
+    return all
+  },
+})
+
+async function exportCsv(): Promise<void> {
+  if (await runExport()) ElMessage.success(t('admin.common.exportDone'))
+}
 
 /** 角色下拉数据（用于新建时分配与角色对话框） */
 const roleOptions = ref<RoleItem[]>([])

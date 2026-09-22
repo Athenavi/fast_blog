@@ -14,8 +14,24 @@ const resolvedTheme = computed(() => {
   return value === 'light' || value === 'dark' ? value : 'light'
 })
 
+/**
+ * 文档语言与书写方向必须跟随实际语言：
+ * 否则切到 English 后 `<html lang>` 仍是 `zh-CN`，读屏软件会用中文语音朗读英文内容
+ * （WCAG 3.1.1），搜索引擎的语言判断也会错。`dir` 为将来接入 RTL 语言预留。
+ */
+const {locale, locales} = useI18n()
+
+const currentDir = computed<'ltr' | 'rtl'>(() => {
+  const found = (locales.value as Array<{ code: string; dir?: string }>).find(
+    (item) => item.code === locale.value,
+  )
+  return found?.dir === 'rtl' ? 'rtl' : 'ltr'
+})
+
 useHead({
   htmlAttrs: {
+    lang: computed(() => String(locale.value)),
+    dir: currentDir,
     'data-theme': resolvedTheme.value,
     'data-accent': accent.value,
   },

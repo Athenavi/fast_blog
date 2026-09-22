@@ -60,7 +60,14 @@
     "backToHome": "Back to Home",
     "viewAll": "View All",
     "and": "and",
-    "language": "Language"
+    "language": "Language",
+    "localDraftFound": "Found unsaved content stored locally ({time}). Restore it?",
+    "localDraftRestore": "Restore",
+    "localDraftDiscard": "Discard",
+    "requestFailed": "Request failed",
+    "sessionExpired": "Your session expired, please sign in again",
+    "home": "Home",
+    "preparing": "Preparing…"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -401,7 +408,39 @@
     "viewsCount": "{n} views",
     "liked": "Liked",
     "emptyInCategory": "No articles in this category yet",
-    "viewAllArticles": "View all articles"
+    "viewAllArticles": "View all articles",
+    "toc": "Table of contents",
+    "readingSettings": "Reading settings",
+    "fontSize": "Font size",
+    "fontSmall": "Small",
+    "fontMedium": "Medium",
+    "fontLarge": "Large",
+    "lineWidth": "Line width",
+    "widthNarrow": "Narrow",
+    "widthWide": "Wide",
+    "share": "Share",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
+    "copyCode": "Copy code",
+    "codeCopied": "Code copied",
+    "related": "Related articles",
+    "commentCount": "{n} comments",
+    "commentEmpty": "No comments yet — be the first",
+    "commentPlaceholder": "Share your thoughts…",
+    "commentSubmit": "Post comment",
+    "commentSubmitting": "Posting…",
+    "commentLoginHint": "Sign in to join the discussion",
+    "commentFailed": "Could not post your comment, please retry",
+    "reply": "Reply",
+    "cancelReply": "Cancel",
+    "commentPending": "Comment submitted — it will appear after review",
+    "imageViewer": "Image viewer",
+    "prevImage": "Previous",
+    "nextImage": "Next",
+    "commentsTitle": "Comments",
+    "notFoundOrUnpublished": "Article not found or not published",
+    "titleFallback": "Article",
+    "breadcrumbArticles": "Articles"
   },
   "comment": {
     "title": "Comment",
@@ -622,6 +661,26 @@
   },
   "admin": {
     "superuser": "Superuser",
+    "nav": {
+      "open": "Open navigation",
+      "expand": "Expand sidebar",
+      "collapse": "Collapse sidebar"
+    },
+    "accountMenu": "Account menu",
+    "notification": {
+      "title": "Notifications",
+      "unread": "Notifications ({n} unread)"
+    },
+    "command": {
+      "open": "Open command palette",
+      "placeholder": "Search pages or actions…",
+      "empty": "No matching page or action",
+      "pages": "Pages",
+      "actions": "Actions",
+      "recent": "Recent",
+      "keyboardHint": "↑↓ navigate · Enter open · Esc close",
+      "disabledNoPermission": "(no permission)"
+    },
     "logout": "Sign out",
     "logoutConfirm": "Sign out now?",
     "notice": "Notice",
@@ -658,7 +717,13 @@
       "clearSelection": "Clear selection",
       "loadFailed": "Failed to load",
       "retry": "Retry",
-      "batchDone": "{n} item(s) processed"
+      "batchDone": "{n} item(s) processed",
+      "noPermission": "No permission (requires {code})",
+      "exportCsv": "Export CSV",
+      "exportDone": "Download started — check your browser downloads",
+      "deleted": "Deleted",
+      "title": "Title",
+      "selectedAcrossPages": "(includes other pages)"
     },
     "cache": {
       "refresh": "Refresh",
@@ -945,7 +1010,23 @@
         "desc": "Site key/value configuration. Items marked \"public\" are exposed to the front end via /system/setting/public (site name, description, footer…).",
         "emptyTitle": "No settings",
         "emptyDesc": "No configuration item yet.",
-        "emptyFiltered": "No settings match the current filters"
+        "emptyFiltered": "No settings match the current filters",
+        "advancedMode": "Advanced (edit by key)",
+        "groupedHint": "Common settings are grouped; changes apply immediately",
+        "otherGroup": "Other",
+        "group": {
+          "site": "Site",
+          "seo": "SEO",
+          "content": "Content",
+          "comment": "Comments",
+          "security": "Account & security",
+          "mail": "Email",
+          "storage": "Storage & media",
+          "other": "Other"
+        },
+        "saveGroup": "Save group",
+        "noChange": "No changes",
+        "formMode": "Form mode"
       },
       "hub": {
         "install": "Environment Check",
@@ -1209,7 +1290,15 @@
       "unknown": "Unknown",
       "articleHint": "Published {published} / Drafts {draft}",
       "userHint": "Active {active}",
-      "commentHint": "Pending {pending}"
+      "commentHint": "Pending {pending}",
+      "distribution": "Content distribution",
+      "todo": "To-do",
+      "pendingComments": "Pending comments",
+      "pendingCertifications": "Pending certifications",
+      "pendingWithdrawals": "Pending withdrawals",
+      "quickActions": "Quick actions",
+      "noTodo": "Nothing pending — all clear",
+      "viewAll": "View all"
     },
     "content": {
       "article": {
@@ -1274,7 +1363,17 @@
         "languageCode": "Language",
         "unsavedChanges": "You have unsaved changes. Leave anyway?",
         "notFound": "This article no longer exists",
-        "savedAt": "Saved at {time}"
+        "savedAt": "Saved at {time}",
+        "updatePublished": "Update published article",
+        "exitPreview": "Exit preview",
+        "previewHint": "Preview shows the saved version",
+        "openInNewTab": "Open in new tab",
+        "saveBeforePreview": "Save the article first to preview",
+        "pickFromLibrary": "Pick from library",
+        "currentStatus": "Current status",
+        "statusHint": "Change publish state from the toolbar",
+        "tags": "Tags",
+        "scheduledTimeZoneHint": "Saved in your local time zone ({zone})"
       },
       "category": {
         "enterACategoryName": "Enter a category name",
@@ -1417,7 +1516,15 @@
         "emptyFiltered": "No files match the current filters",
         "fileType": "File type",
         "downloadCount": "Downloads",
-        "dropHint": "Drop to upload into the current folder"
+        "dropHint": "Drop to upload into the current folder",
+        "addSubfolder": "Add subfolder",
+        "editFolder": "Rename folder",
+        "deleteFolder": "Delete folder",
+        "editDetail": "View details",
+        "pickHint": "Click an image to use it",
+        "externalUrlPlaceholder": "Or paste an image URL (https://…)",
+        "useThisUrl": "Use this URL",
+        "noUrlToUse": "Enter an image URL first"
       },
       "page": {
         "pageManagement": "Page management",
@@ -2493,7 +2600,165 @@
       "originalReact": "The original implementation is the React component",
       "locatedAt": ", located at ",
       "rewriteHint": "Rewrite it as a same-name .vue file and this page will load it automatically; no route changes needed.",
-      "otherRoutes": "Other routes of this plugin: {routes}"
+      "otherRoutes": "Other routes of this plugin: {routes}",
+      "common": {
+        "loadFailed": "Failed to load",
+        "loadConfigFailed": "Failed to load configuration",
+        "createFailed": "Failed to create",
+        "deleteFailed": "Failed to delete",
+        "copyFailed": "Copy failed — please copy manually",
+        "searchPlaceholder": "Search title or tags…",
+        "tryAnotherKeyword": "Try another keyword",
+        "noMatch": "No matching results",
+        "unlisted": "Unlisted",
+        "notConfigured": "Not configured",
+        "configured": "Configured",
+        "time": "Time",
+        "fieldTitle": "Title",
+        "fieldVisibility": "Visibility",
+        "confirmDeleteNamed": "Delete “{name}”?"
+      },
+      "codeSnippets": {
+        "created": "Snippet created",
+        "create": "New snippet",
+        "createTitle": "New code snippet",
+        "embedCopied": "Embed tag copied",
+        "copyEmbed": "Copy embed tag [snippet:N]",
+        "emptyTitle": "No snippets yet",
+        "emptyDesc": "Click “New snippet” to get started",
+        "titlePlaceholder": "Snippet title",
+        "language": "Language",
+        "tagsHint": "Tags (comma separated)",
+        "tagsPlaceholder": "e.g. python, tutorial, beginner",
+        "code": "Code"
+      },
+      "enterprise": {
+        "tabs": {
+          "overview": "Overview",
+          "licenses": "Licenses",
+          "tickets": "Tickets",
+          "scripts": "Scripts",
+          "logs": "Logs",
+          "alerts": "Alerts"
+        },
+        "stats": {
+          "totalLicenses": "Total licenses",
+          "activeLicenses": "Active licenses",
+          "openTickets": "Open tickets",
+          "inProgressTickets": "In progress",
+          "totalScripts": "Deploy scripts",
+          "totalDeployments": "Deployments",
+          "failedDeployments": "Failed deployments",
+          "unresolvedAlerts": "Unresolved alerts"
+        },
+        "version": "Version",
+        "script": "Script",
+        "message": "Message",
+        "level": "Level"
+      },
+      "migration": {
+        "tabs": {
+          "tasks": "Migration tasks",
+          "logs": "Migration logs"
+        },
+        "taskCreated": "Task created",
+        "createTask": "New task",
+        "createTitle": "New migration task",
+        "taskName": "Task name",
+        "namePlaceholder": "e.g. WordPress main site migration",
+        "sourcePlatform": "Source platform",
+        "platform": "Platform",
+        "progress": "Progress",
+        "task": "Task",
+        "level": "Level",
+        "emptyDesc": "New tasks and finished migrations will show up here"
+      },
+      "approval": {
+        "tabs": {
+          "pending": "Pending",
+          "myRequests": "My requests",
+          "stats": "Overview"
+        },
+        "stats": {
+          "pending": "Pending",
+          "approved": "Approved",
+          "rejected": "Rejected",
+          "total": "Total"
+        },
+        "content": "Content",
+        "notesPlaceholder": "Review note (optional)",
+        "emptyDesc": "Content submitted for review will show up here",
+        "dialogApproveTitle": "Approve"
+      },
+      "smsProvider": {
+        "aliyun": "Aliyun",
+        "tencent": "Tencent Cloud",
+        "provider": "Current provider",
+        "signature": "Signature",
+        "testTitle": "Send test SMS",
+        "phone": "Phone number",
+        "codePlaceholder": "Verification code (default 123456)",
+        "sendTest": "Send test",
+        "configTitle": "SMS configuration",
+        "notConfiguredHint": "No SMS credentials yet — configure them in plugin settings",
+        "sendOk": "✓ Sent",
+        "sendFailed": "✗ Failed: {error}",
+        "unknownError": "Unknown error"
+      },
+      "newsletter": {
+        "unsubscribed": "Unsubscribed",
+        "unsubscribe": "Unsubscribe",
+        "total": "Total",
+        "source": "Source",
+        "subscribedAt": "Subscribed at",
+        "emptyTitle": "No subscribers yet",
+        "emptyDesc": "Emails from the homepage subscribe form will show up here",
+        "confirmUnsubscribe": "Unsubscribe “{email}”?"
+      },
+      "paymentGateway": {
+        "testSubject": "Test payment",
+        "provider": "Current provider",
+        "currency": "Currency",
+        "sandbox": "Sandbox mode",
+        "testTitle": "Test payment",
+        "orderIdPlaceholder": "Order ID (optional, auto-generated)",
+        "amountPlaceholder": "Amount (in cents)",
+        "startTest": "Start test",
+        "configTitle": "Payment configuration",
+        "alipayAppId": "Alipay AppID",
+        "wechatAppId": "WeChat AppID",
+        "notConfiguredHint": "No payment credentials yet — configure them in plugin settings"
+      },
+      "complianceAudit": {
+        "auditFailed": "Audit failed",
+        "compliant": "Compliant",
+        "nonCompliant": "Non-compliant",
+        "notAudited": "Not audited",
+        "reaudit": "Re-audit",
+        "audit": "Audit",
+        "auditing": "Auditing…",
+        "overall": "Overall status",
+        "checkedAt": "Audited at",
+        "auditUserTitle": "Audit a specific user's data",
+        "userIdPlaceholder": "Enter user ID",
+        "emptyTitle": "No audit data yet",
+        "emptyDesc": "Click “Re-audit” to run a check"
+      },
+      "popularArticles": {
+        "show": "Show",
+        "recent": "Last",
+        "days": "{n} days",
+        "views": "{n} views",
+        "view": "View",
+        "emptyTitle": "No popular articles yet",
+        "emptyDesc": "Articles appear here once they gain some views"
+      },
+      "articleLikes": {
+        "sortByLikes": "Sort by likes",
+        "article": "Article",
+        "emptyTitle": "No likes yet",
+        "emptyDesc": "Once readers start liking, a ranking will appear here"
+      }
     },
     "marketing": {
       "ad": {
@@ -2807,6 +3072,13 @@
       "light": "Light",
       "dark": "Dark",
       "system": "System"
+    },
+    "perf": {
+      "lcp": "Largest Contentful Paint",
+      "inp": "Interaction to Next Paint",
+      "cls": "Cumulative Layout Shift",
+      "fcp": "First Contentful Paint",
+      "ttfb": "Time to First Byte"
     }
   },
   "menu": {
@@ -2883,7 +3155,9 @@
     "title": "Categories",
     "emptyDesc": "Categories created in the dashboard will appear here automatically.",
     "emptyTitle": "No categories yet",
-    "seoTitle": "Categories - {name}"
+    "seoTitle": "Categories - {name}",
+    "fallback": "Category",
+    "emptyPublished": "No published articles in this category yet."
   },
   "home": {
     "tagline": "A blog built with FastAPI and Nuxt",
@@ -3271,7 +3545,22 @@
     "navExperts": "Experts",
     "navFeed": "Following",
     "navChat": "Chat",
-    "loadFailed": "Failed to load content, please try again"
+    "loadFailed": "Failed to load content, please try again",
+    "paginationAriaLabel": "Pagination",
+    "themeModeLight": "Light",
+    "themeModeDark": "Dark",
+    "themeModeSystem": "System",
+    "accentBlue": "Blue",
+    "accentViolet": "Violet",
+    "accentEmerald": "Emerald",
+    "accentRose": "Rose",
+    "accentAmber": "Amber",
+    "navSearch": "Search",
+    "navMore": "More",
+    "navContent": "Content",
+    "navCommunity": "Community",
+    "closeMenuAriaLabel": "Close menu",
+    "moreMenuAriaLabel": "More links"
   },
   "about": {
     "title": "About this site",
@@ -3357,7 +3646,15 @@
     "alignRight": "Align right",
     "undo": "Undo",
     "redo": "Redo",
-    "placeholder": "Start writing…"
+    "placeholder": "Start writing…",
+    "words": "{n} words",
+    "readingTime": "~{n} min read",
+    "imageAlt": "Image description (alt)",
+    "imageAltHint": "Used by screen readers and search engines",
+    "codeLanguage": "Code language",
+    "shortcuts": "Shortcuts",
+    "toolbar": "Formatting toolbar",
+    "callout": "Callout"
   },
   "feed": {
     "title": "Following feed",
@@ -3390,6 +3687,17 @@
     "attachment": "Attachment",
     "recallFailed": "Failed to recall",
     "loadMore": "Load earlier messages",
-    "members": "{n} members"
+    "members": "{n} members",
+    "reconnecting": "Disconnected, reconnecting (attempt {n})…",
+    "reconnected": "Connection restored"
+  },
+  "page": {
+    "notFoundOrUnpublished": "Page not found or not published",
+    "titleFallback": "Page"
+  },
+  "theme": {
+    "defaultDescription": "Clean, modern, responsive design",
+    "magazineDescription": "Magazine-style theme with grid layout, featured images and multi-column support",
+    "modernMinimalDescription": "Modern minimal style with code highlighting and dark mode"
   }
 }

@@ -40,14 +40,25 @@ export const ADMIN_CREDENTIALS = {
   password: process.env.E2E_ADMIN_PASS || 'admin123',
 }
 
+/**
+ * 登录接口的基址（可选）。
+ *
+ * - `npm run dev`（5173/5273…）下 `/api` 由 nitro devProxy 转发到后端，用页面基址即可；
+ * - **构建产物 / preview**（`node .output/server/index.mjs`）**没有代理**，浏览器侧与 Node 侧
+ *   都拿不到 `/api` —— 此时必须显式指定，例如 `E2E_API_BASE_URL=http://localhost:9421`，
+ *   否则登录会以 HTTP 404 失败（症状：所有后台用例报"e2e 登录失败"）。
+ */
+const API_BASE_URL = process.env.E2E_API_BASE_URL || ''
+
 const TOKEN_KEY = 'fastblog.token'
 
 // 每 worker 只登录一次（后端防爆破按 IP 计数，能省则省）
 let tokenPromise: Promise<string> | null = null
 
-async function fetchToken(baseURL: string): Promise<string> {
+async function fetchToken(pageBaseUrl: string): Promise<string> {
   const {username, password} = ADMIN_CREDENTIALS
-  const resp = await fetch(`${baseURL}/api/v3/system/auth/login`, {
+  const apiBase = API_BASE_URL || pageBaseUrl
+  const resp = await fetch(`${apiBase}/api/v3/system/auth/login`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({username, password}),
@@ -56,8 +67,9 @@ async function fetchToken(baseURL: string): Promise<string> {
   const token = body?.data?.access_token
   if (!token) {
     throw new Error(
-      `e2e 登录失败（${username}，HTTP ${resp.status}）：需要后端运行在 :9421 且凭证有效。` +
-      '可用环境变量 E2E_ADMIN_USER / E2E_ADMIN_PASS 或 frontend/web/.env.e2e 覆盖默认凭证。',
+      `e2e 登录失败（${username}，HTTP ${resp.status}，${apiBase}）：需要后端运行在 :9421 且凭证有效。` +
+      '可用环境变量 E2E_ADMIN_USER / E2E_ADMIN_PASS 或 frontend/web/.env.e2e 覆盖凭证；' +
+      '对构建产物跑测试时还要给 E2E_API_BASE_URL（preview 没有 /api 代理）。',
     )
   }
   return token as string
@@ -70,8 +82,39 @@ async function loginViaAPI(page: Page, baseURL: string): Promise<void> {
   await page.evaluate(([key, value]) => localStorage.setItem(key, value), [TOKEN_KEY, token])
 }
 
-/** 自定义 test fixture，注入已认证的 page */
+/**
+ * 把页面里的 `/api/**` 请求改写到真实后端（仅当给了 `E2E_API_BASE_URL` 时启用）。
+ *
+ * 为什么需要：浏览器侧的 axios 用**同源**相对路径（`api/request.ts` 的 `/api/v3` 前缀），
+ * `NUXT_PUBLIC_API_BASE_URL` 只影响 SSR 阶段。dev 下 `/api` 由 nitro devProxy 转发，
+ * 所以不需要；但**构建产物 / preview 没有代理** —— 不装这层，页面所有接口都 404
+ * （症状：`/dashboard` 被踢回 `/login`、列表页永远空）。
+ *
+ * 用 Playwright 的 `route.fetch` 转发而不是让浏览器跨域：响应回填到同源请求上，
+ * 顺带避免 CORS 与 cookie/凭据差异。
+ */
+async function installApiProxy(page: Page): Promise<void> {
+  if (!API_BASE_URL) return
+
+  await page.route('**/api/**', async (route) => {
+    const request = route.request()
+    const {pathname, search} = new URL(request.url())
+    try {
+      const response = await route.fetch({url: `${API_BASE_URL}${pathname}${search}`})
+      await route.fulfill({response})
+    } catch {
+      // 后端不可达时直接失败，让用例红（而不是静默返回空数据）
+      await route.abort()
+    }
+  })
+}
+
+/** 自定义 test fixture：注入已认证的 page + 对全部页面启用 API 代理 */
 export const test = base.extend<{ authenticatedPage: Page }>({
+  page: async ({page}, use) => {
+    await installApiProxy(page)
+    await use(page)
+  },
   authenticatedPage: async ({page, baseURL}, use) => {
     await loginViaAPI(page, baseURL!)
     await use(page)

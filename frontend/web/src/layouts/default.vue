@@ -6,7 +6,7 @@ await initThemeSlots()
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-canvas pb-16 md:pb-0">
+  <div class="flex min-h-dvh flex-col bg-canvas pb-16 md:pb-0">
     <SiteHeader :site-name="site.site_name"/>
     <main class="flex-1">
       <slot/>

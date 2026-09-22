@@ -396,9 +396,7 @@ onMounted(load)
 
         <!-- 我发出的 -->
         <template v-else-if="activeTab === 'mine'">
-          <p v-if="!sent.length" class="py-10 text-center text-sm text-fg-muted">
-            {{ $t('tipping.emptyMine') }}
-          </p>
+          <EmptyState v-if="!sent.length" :title="$t('tipping.emptyMine')" compact/>
           <ul v-else class="divide-y divide-line rounded-card border border-line bg-surface">
             <li v-for="item in sent" :key="item.id" class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
               <div class="min-w-0">
@@ -435,9 +433,7 @@ onMounted(load)
 
         <!-- 提现记录 -->
         <template v-else-if="activeTab === 'withdrawals'">
-          <p v-if="!withdrawals.length" class="py-10 text-center text-sm text-fg-muted">
-            {{ $t('tipping.emptyWithdrawals') }}
-          </p>
+          <EmptyState v-if="!withdrawals.length" :title="$t('tipping.emptyWithdrawals')" compact/>
           <ul v-else class="divide-y divide-line rounded-card border border-line bg-surface">
             <li v-for="item in withdrawals" :key="item.id" class="px-4 py-3">
               <div class="flex flex-wrap items-center justify-between gap-2">
@@ -474,9 +470,7 @@ onMounted(load)
 
         <!-- 排行 -->
         <template v-else>
-          <p v-if="!ranking.length" class="py-10 text-center text-sm text-fg-muted">
-            {{ $t('tipping.emptyRanking') }}
-          </p>
+          <EmptyState v-if="!ranking.length" :title="$t('tipping.emptyRanking')" compact/>
           <ol v-else class="divide-y divide-line rounded-card border border-line bg-surface">
             <li v-for="row in ranking" :key="row.author_id" class="flex items-center gap-3 px-4 py-3">
               <span class="w-6 shrink-0 text-sm font-semibold text-fg-subtle">{{ row.rank }}</span>

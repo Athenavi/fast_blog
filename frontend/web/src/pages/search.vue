@@ -27,8 +27,25 @@ const {data: pageData, pending, error, refresh: refreshList} = await useAsyncDat
 const articles = computed(() => pageData.value?.items ?? [])
 const input = ref(keyword.value)
 
+/** 输入即搜（350ms 防抖）：搜索页此前必须点按钮或回车，多一次操作 */
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(input, (value) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    const next = value.trim()
+    if (next === keyword.value) return
+    router.push(next ? {query: {q: next}} : {query: {}})
+  }, 350)
+})
+
+onBeforeUnmount(() => {
+  if (searchTimer) clearTimeout(searchTimer)
+})
+
 function submit() {
   const q = input.value.trim()
+  if (searchTimer) clearTimeout(searchTimer)
   router.push(q ? {query: {q}} : {query: {}})
 }
 
@@ -51,7 +68,12 @@ useSeoMeta({
     <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('admin.common.search') }}</h1>
 
     <form class="mt-5 flex max-w-xl gap-2" @submit.prevent="submit">
-      <Input v-model="input" :placeholder="$t('search.placeholder')"/>
+      <Input
+        v-model="input"
+        :placeholder="$t('search.placeholder')"
+        enterkeyhint="search"
+        type="search"
+      />
       <Button class="shrink-0" type="submit">
         <Icon class="h-4 w-4" name="search"/>
         {{ $t('common.search') }}

@@ -42,7 +42,7 @@ export function useAudioMetadata(mediaId: Ref<number | null>) {
       }
     } catch {
       // 元数据取不到不影响播放（与 astro 版行为一致）
-      error.value = '音频元数据不可用'
+      error.value = 'audio-unavailable'
       coverImage.value = null
       lyrics.value = []
     } finally {

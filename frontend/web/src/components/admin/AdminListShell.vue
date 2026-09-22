@@ -22,6 +22,7 @@
  *   </AdminListShell>
  */
 import {Refresh, Search} from '@element-plus/icons-vue'
+import {useMediaQuery} from '@vueuse/core'
 
 withDefaults(
   defineProps<{
@@ -60,9 +61,20 @@ defineEmits<{
   (event: 'size-change', size: number): void
   (event: 'selection-change', rows: T[]): void
   (event: 'clear-selection'): void
+  /** 列排序（列声明 `sortable="custom"`，实际排序由后端承接） */
+  (event: 'sort-change', payload: { prop: string; order: string | null }): void
 }>()
 
 const {t} = useI18n()
+
+/**
+ * 窄屏分页：默认 layout 里的 `jumper`（跳页输入框）与 `sizes`（每页条数）在小屏会撑破一行，
+ * 总数在工具条里已经显示过（`共 N 条`），因此窄屏只保留翻页按钮本身。
+ */
+const isNarrow = useMediaQuery('(max-width: 767px)')
+const paginationLayout = computed(() =>
+  isNarrow.value ? 'prev, pager, next' : 'total, sizes, prev, pager, next, jumper',
+)
 </script>
 
 <template>
@@ -89,6 +101,7 @@ const {t} = useI18n()
     <AdminSelectionBar
       v-if="selectable"
       :count="selectionCount"
+      :page-count="rows.length"
       @clear="$emit('clear-selection')"
     >
       <slot name="bulk"/>
@@ -116,20 +129,24 @@ const {t} = useI18n()
         border
         stripe
         @selection-change="$emit('selection-change', $event as T[])"
+        @sort-change="$emit('sort-change', $event as {prop: string; order: string | null})"
       >
-        <el-table-column v-if="selectable" :reserve-selection="false" type="selection" width="46"/>
+        <!-- reserve-selection + row-key：翻页回来时回显已勾选的行（跨页批量前提） -->
+        <el-table-column v-if="selectable" :reserve-selection="true" type="selection" width="46"/>
         <slot/>
       </el-table>
 
       <el-pagination
         v-if="paginate && total > 0"
         :current-page="page"
+        :layout="paginationLayout"
         :page-size="pageSize"
         :page-sizes="pageSizes"
+        :pager-count="isNarrow ? 5 : 7"
+        :small="isNarrow"
         :total="total"
         background
         class="admin-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
         @current-change="$emit('page-change', $event)"
         @size-change="$emit('size-change', $event)"
       />

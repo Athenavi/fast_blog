@@ -9,16 +9,24 @@
  */
 import {Close} from '@element-plus/icons-vue'
 
-defineProps<{ count: number }>()
+const props = withDefaults(defineProps<{ count: number; pageCount?: number }>(), {pageCount: 0})
 defineEmits<{ (event: 'clear'): void }>()
 
 const {t} = useI18n()
+
+/** 选择跨了多页（当前页选中数 < 总选中数）：提示批量操作会作用于全部选中项 */
+const spansPages = computed(() => props.pageCount > 0 && props.count > props.pageCount)
 </script>
 
 <template>
   <transition name="admin-sel-fade">
     <div v-if="count > 0" class="admin-selection-bar">
-      <span class="admin-selection-bar__count">{{ t('admin.common.selectedItems', {n: count}) }}</span>
+      <span class="admin-selection-bar__count">
+        {{ t('admin.common.selectedItems', {n: count}) }}
+        <span v-if="spansPages" class="admin-selection-bar__hint">
+          {{ t('admin.common.selectedAcrossPages') }}
+        </span>
+      </span>
       <span class="admin-selection-bar__spacer"/>
       <slot/>
       <el-button :icon="Close" link @click="$emit('clear')">
@@ -29,6 +37,11 @@ const {t} = useI18n()
 </template>
 
 <style scoped>
+.admin-selection-bar__hint {
+  font-weight: 400;
+  color: var(--admin-fg-muted);
+}
+
 .admin-sel-fade-enter-active,
 .admin-sel-fade-leave-active {
   transition: opacity 0.15s ease;

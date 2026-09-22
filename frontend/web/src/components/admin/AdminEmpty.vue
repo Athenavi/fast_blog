@@ -17,7 +17,7 @@ withDefaults(
 </script>
 
 <template>
-  <div class="admin-empty">
+  <div :role="variant === 'error' ? 'alert' : 'status'" class="admin-empty">
     <svg v-if="variant === 'default'" aria-hidden="true" class="admin-empty__art" viewBox="0 0 64 64">
       <rect fill="none" height="30" rx="4" stroke="currentColor" stroke-width="2" width="44" x="10" y="18"/>
       <path d="M10 28h44" stroke="currentColor" stroke-width="2"/>

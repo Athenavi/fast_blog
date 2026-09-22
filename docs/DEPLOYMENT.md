@@ -216,6 +216,22 @@ python -m scripts.create_user -u ops -r admin --password-env MY_PW          # �
 `scripts/create_user.py` 会同时写入 `users` 与 `user_role_assignments`（`superadmin` 角色自动置 `is_superuser=True`）；
 另一条路径是 Typer CLI 的 `python -m cli user create-user`（只区分超级用户/普通用户，不绑定角色）。
 
+**已存在但"几乎每个后台页面都 403"的用户**：页面级权限由 `frontend/web/src/middleware/auth.ts` 用
+`/system/auth/me` 下发的 `permissions` 做严格比对，而该集合的唯一来源是
+`user_role_assignments → roles → role_capabilities → capabilities`；用户**没有任何角色绑定**时集合为空，
+除未声明 `meta.permission` 的页面外全部跳 `/403`。用下面这条幂等脚本补齐：
+
+```bash
+python -m scripts.seed_user_permissions              # 默认 = id 最小的用户 + superadmin 角色（写库）
+python -m scripts.seed_user_permissions --dry-run    # 只打印计划
+python -m scripts.seed_user_permissions -u admin     # 指定用户（--role/--data-scope 可覆盖）
+```
+
+它会：补齐 `capabilities` 缺码 → 把全部权限码与全部激活菜单授权给目标角色 → 把该角色 `data_scope`
+提升为 3（全部数据，NULL 时业务层按"仅本人"处理）→ 绑定用户 ↔ 角色 → 失效该用户权限缓存 →
+复核"前端每个页面声明的权限码是否都已被授予"。生效前提：前端需**重新登录**（`localStorage` 里的
+`userInfo` 缓存了旧权限集）；后端未接 Redis 时需重启服务或等 300s 内存缓存 TTL。
+
 **安装向导**：后端在启动时检查安装状态（
 `shared/services/install/install_manager.installation_wizard_service.is_installed()`，`src/app.py::check_installation`
 ），未安装时会提示访问 `http://localhost:4321/install`，并提供 `GET /api/v3/system/install/status` 自检端点。前端侧目前只有 `

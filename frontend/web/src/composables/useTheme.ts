@@ -15,18 +15,18 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type AccentName = 'blue' | 'violet' | 'emerald' | 'rose' | 'amber'
 
-export const THEME_MODES: Array<{ label: string; value: ThemeMode }> = [
-  {label: '浅色', value: 'light'},
-  {label: '深色', value: 'dark'},
-  {label: '跟随系统', value: 'system'},
+export const THEME_MODES: Array<{ labelKey: string; value: ThemeMode }> = [
+  {labelKey: 'themeModeLight', value: 'light'},
+  {labelKey: 'themeModeDark', value: 'dark'},
+  {labelKey: 'themeModeSystem', value: 'system'},
 ]
 
-export const ACCENTS: Array<{ label: string; value: AccentName }> = [
-  {label: '默认蓝', value: 'blue'},
-  {label: '紫罗兰', value: 'violet'},
-  {label: '翡翠绿', value: 'emerald'},
-  {label: '玫瑰红', value: 'rose'},
-  {label: '琥珀黄', value: 'amber'},
+export const ACCENTS: Array<{ labelKey: string; value: AccentName }> = [
+  {labelKey: 'accentBlue', value: 'blue'},
+  {labelKey: 'accentViolet', value: 'violet'},
+  {labelKey: 'accentEmerald', value: 'emerald'},
+  {labelKey: 'accentRose', value: 'rose'},
+  {labelKey: 'accentAmber', value: 'amber'},
 ]
 
 export function useTheme() {

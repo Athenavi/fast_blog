@@ -4,6 +4,8 @@ import {onMounted, reactive, ref, watch} from 'vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * 迁移管理（migration 插件后台页）
  *
@@ -33,8 +35,8 @@ interface ListResult<T> {
 type TabKey = 'tasks' | 'logs'
 
 const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
-  {key: 'tasks', label: '迁移任务', icon: 'refresh-cw'},
-  {key: 'logs', label: '迁移日志', icon: 'clipboard-list'},
+  {key: 'tasks', label: t('admin.pluginPages.migration.tabs.tasks'), icon: 'refresh-cw'},
+  {key: 'logs', label: t('admin.pluginPages.migration.tabs.logs'), icon: 'clipboard-list'},
 ]
 
 const PLATFORMS = [
@@ -70,7 +72,7 @@ async function loadCurrent(): Promise<void> {
     if (tab.value === 'tasks') tasks.value = (result.data?.items ?? []) as MigrationTask[]
     else logs.value = (result.data?.items ?? []) as MigrationLog[]
     total.value = result.data?.total ?? 0
-    if (!result.success) error.value = result.error || '加载失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -96,11 +98,11 @@ async function createTask(): Promise<void> {
       source_platform: form.source_platform,
     })
     if (result.success) {
-      ElMessage.success('任务已创建')
+      ElMessage.success(t('admin.pluginPages.migration.taskCreated'))
       dialogOpen.value = false
       await loadCurrent()
     } else {
-      ElMessage.error(result.error || '创建失败')
+      ElMessage.error(result.error || t('admin.pluginPages.common.createFailed'))
     }
   } finally {
     creating.value = false
@@ -108,13 +110,13 @@ async function createTask(): Promise<void> {
 }
 
 async function removeTask(task: MigrationTask): Promise<void> {
-  await ElMessageBox.confirm(`确定删除迁移任务「${task.name || task.id}」吗？`, '提示', {type: 'warning'})
+  await ElMessageBox.confirm(t('admin.pluginPages.common.confirmDeleteNamed', {name: task.name || task.id}), t('admin.common.notice'), {type: 'warning'})
   const result = await pluginAction('migration', 'delete_task', {id: task.id})
   if (result.success) {
-    ElMessage.success('已删除')
+    ElMessage.success(t('admin.common.deleted'))
     await loadCurrent()
   } else {
-    ElMessage.error(result.error || '删除失败')
+    ElMessage.error(result.error || t('admin.pluginPages.common.deleteFailed'))
   }
 }
 
@@ -153,7 +155,9 @@ onMounted(loadCurrent)
         {{ item.label }}
       </button>
 
-      <el-button v-if="tab === 'tasks'" class="ml-auto" type="primary" @click="openCreate">新建任务</el-button>
+      <el-button v-if="tab === 'tasks'" class="ml-auto" type="primary" @click="openCreate">
+        {{ t('admin.pluginPages.migration.createTask') }}
+      </el-button>
     </div>
 
     <p v-if="error" class="mb-3 rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
@@ -164,23 +168,23 @@ onMounted(loadCurrent)
 
     <EmptyState
       v-else-if="tab === 'tasks' ? !tasks.length : !logs.length"
-      description="新建任务或迁移完成后的记录会出现在这里"
-      title="暂无数据"
+      :description="t('admin.pluginPages.migration.emptyDesc')"
+      :title="t('admin.common.empty')"
     />
 
     <div v-else class="overflow-hidden rounded-card border border-line bg-surface">
       <table class="w-full text-sm">
         <thead class="bg-surface-soft text-xs uppercase text-fg-muted">
         <tr v-if="tab === 'tasks'">
-          <th class="px-5 py-3 text-left font-semibold">名称</th>
-          <th class="px-5 py-3 text-left font-semibold">平台</th>
-          <th class="px-5 py-3 text-left font-semibold">进度</th>
-          <th class="px-5 py-3 text-right font-semibold">操作</th>
+          <th class="px-5 py-3 text-left font-semibold">{{ t('admin.common.name') }}</th>
+          <th class="px-5 py-3 text-left font-semibold">{{ t('admin.pluginPages.migration.platform') }}</th>
+          <th class="px-5 py-3 text-left font-semibold">{{ t('admin.pluginPages.migration.progress') }}</th>
+          <th class="px-5 py-3 text-right font-semibold">{{ t('admin.common.actions') }}</th>
         </tr>
         <tr v-else>
-          <th class="px-5 py-3 text-left font-semibold">任务</th>
-          <th class="px-5 py-3 text-left font-semibold">级别</th>
-          <th class="px-5 py-3 text-right font-semibold">时间</th>
+          <th class="px-5 py-3 text-left font-semibold">{{ t('admin.pluginPages.migration.task') }}</th>
+          <th class="px-5 py-3 text-left font-semibold">{{ t('admin.pluginPages.migration.level') }}</th>
+          <th class="px-5 py-3 text-right font-semibold">{{ t('admin.pluginPages.common.time') }}</th>
         </tr>
         </thead>
 
@@ -233,22 +237,26 @@ onMounted(loadCurrent)
     />
 
     <!-- 新建任务 -->
-    <el-dialog v-model="dialogOpen" title="新建迁移任务" width="480px">
+    <el-dialog v-model="dialogOpen" :title="t('admin.pluginPages.migration.createTitle')" width="480px">
       <div class="space-y-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-fg">任务名称</label>
-          <el-input v-model="form.name" placeholder="例如：WordPress 主站迁移"/>
+          <label class="mb-1 block text-sm font-medium text-fg">{{ t('admin.pluginPages.migration.taskName') }}</label>
+          <el-input v-model="form.name" :placeholder="t('admin.pluginPages.migration.namePlaceholder')"/>
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-fg">源平台</label>
+          <label class="mb-1 block text-sm font-medium text-fg">{{
+              t('admin.pluginPages.migration.sourcePlatform')
+            }}</label>
           <el-select v-model="form.source_platform" class="w-full">
             <el-option v-for="item in PLATFORMS" :key="item.value" :label="item.label" :value="item.value"/>
           </el-select>
         </div>
       </div>
       <template #footer>
-        <el-button @click="dialogOpen = false">取消</el-button>
-        <el-button :disabled="!form.name" :loading="creating" type="primary" @click="createTask">创建</el-button>
+        <el-button @click="dialogOpen = false">{{ t('admin.common.cancel') }}</el-button>
+        <el-button :disabled="!form.name" :loading="creating" type="primary" @click="createTask">
+          {{ t('admin.common.create') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>

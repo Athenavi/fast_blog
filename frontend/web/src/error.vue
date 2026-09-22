@@ -36,7 +36,7 @@ function goHome(): void {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col items-center justify-center px-4 py-16 text-center">
+  <div class="flex min-h-dvh flex-col items-center justify-center px-4 py-16 text-center">
     <p class="text-6xl font-bold tracking-tight text-fg">{{ title }}</p>
     <p class="mt-4 text-lg font-medium text-fg">{{ headline }}</p>
     <p class="mt-2 max-w-read text-sm leading-relaxed text-fg-muted">{{ subtitle }}</p>

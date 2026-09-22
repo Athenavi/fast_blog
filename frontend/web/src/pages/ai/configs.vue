@@ -343,6 +343,7 @@ async function onDelete(row: AiConfigItem) {
             v-model="form.api_key"
             :placeholder="editingId ? $t('admin.ai.apiKeyKeepHint') : 'sk-...'"
             show-password
+            autocomplete="off"
             type="password"
           />
           <div class="form-hint">{{ $t('admin.ai.apiKeyEncryptHint') }}</div>

@@ -3,6 +3,8 @@ import {computed, onMounted, ref} from 'vue'
 
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * 短信服务（sms-provider 插件后台页）
  *
@@ -30,13 +32,13 @@ const sendResult = ref<{ success?: boolean; error?: string } | null>(null)
 const providerLabel = computed(() => {
   switch (settings.value.provider) {
     case 'aliyun':
-      return '阿里云'
+      return t('admin.pluginPages.smsProvider.aliyun')
     case 'tencent':
-      return '腾讯云'
+      return t('admin.pluginPages.smsProvider.tencent')
     case 'twilio':
       return 'Twilio'
     default:
-      return '未配置'
+      return t('admin.pluginPages.common.notConfigured')
   }
 })
 
@@ -50,7 +52,7 @@ async function load(): Promise<void> {
   try {
     const response = await pluginAction<Settings>('sms-provider', 'get_settings')
     settings.value = response.data ?? {}
-    if (!response.success) error.value = response.error || '加载配置失败'
+    if (!response.success) error.value = response.error || t('admin.pluginPages.common.loadConfigFailed')
   } finally {
     loading.value = false
   }
@@ -79,7 +81,7 @@ onMounted(load)
     <div class="mb-3 flex justify-end">
       <el-button :loading="loading" size="small" @click="load">
         <Icon class="mr-1 h-3.5 w-3.5" name="refresh-cw"/>
-        刷新
+        {{ t('admin.common.refresh') }}
       </el-button>
     </div>
 
@@ -93,7 +95,7 @@ onMounted(load)
             <Icon class="h-5 w-5 text-primary" name="message-square"/>
           </span>
           <div>
-            <p class="text-sm text-fg-muted">当前服务商</p>
+            <p class="text-sm text-fg-muted">{{ t('admin.pluginPages.smsProvider.provider') }}</p>
             <p class="text-lg font-semibold text-fg">{{ providerLabel }}</p>
           </div>
         </div>
@@ -105,7 +107,7 @@ onMounted(load)
             <Icon class="h-5 w-5 text-success" name="smartphone"/>
           </span>
           <div>
-            <p class="text-sm text-fg-muted">签名</p>
+            <p class="text-sm text-fg-muted">{{ t('admin.pluginPages.smsProvider.signature') }}</p>
             <p class="text-lg font-semibold text-fg">{{ signName }}</p>
           </div>
         </div>
@@ -121,8 +123,10 @@ onMounted(load)
             />
           </span>
           <div>
-            <p class="text-sm text-fg-muted">状态</p>
-            <p class="text-lg font-semibold text-fg">{{ settings.provider ? '已配置' : '未配置' }}</p>
+            <p class="text-sm text-fg-muted">{{ t('admin.common.status') }}</p>
+            <p class="text-lg font-semibold text-fg">{{
+                settings.provider ? t('admin.pluginPages.common.configured') : t('admin.pluginPages.common.notConfigured')
+              }}</p>
           </div>
         </div>
       </div>
@@ -130,13 +134,13 @@ onMounted(load)
 
     <!-- 测试发送 -->
     <div class="mb-6 rounded-card border border-line bg-surface p-5">
-      <h3 class="mb-4 text-sm font-semibold text-fg">测试短信发送</h3>
+      <h3 class="mb-4 text-sm font-semibold text-fg">{{ t('admin.pluginPages.smsProvider.testTitle') }}</h3>
       <div class="flex flex-wrap gap-3">
-        <el-input v-model="phone" class="min-w-[200px] flex-1" placeholder="手机号"/>
-        <el-input v-model="code" class="w-40" placeholder="验证码（默认 123456）"/>
+        <el-input v-model="phone" :placeholder="t('admin.pluginPages.smsProvider.phone')" class="min-w-[200px] flex-1"/>
+        <el-input v-model="code" :placeholder="t('admin.pluginPages.smsProvider.codePlaceholder')" class="w-40"/>
         <el-button :disabled="!phone" :loading="sending" type="primary" @click="sendTest">
           <Icon class="mr-1 h-4 w-4" name="send"/>
-          发送测试
+          {{ t('admin.pluginPages.smsProvider.sendTest') }}
         </el-button>
       </div>
 
@@ -145,13 +149,15 @@ onMounted(load)
         :class="sendResult.success ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger'"
         class="mt-3 rounded-control p-3 text-xs"
       >
-        {{ sendResult.success ? '✓ 发送成功' : `✗ 发送失败：${sendResult.error || '未知错误'}` }}
+        {{
+          sendResult.success ? t('admin.pluginPages.smsProvider.sendOk') : t('admin.pluginPages.smsProvider.sendFailed', {error: sendResult.error || t('admin.pluginPages.smsProvider.unknownError')})
+        }}
       </p>
     </div>
 
     <!-- 配置信息 -->
     <div class="rounded-card border border-line bg-surface p-5">
-      <h3 class="mb-3 text-sm font-semibold text-fg">短信配置</h3>
+      <h3 class="mb-3 text-sm font-semibold text-fg">{{ t('admin.pluginPages.smsProvider.configTitle') }}</h3>
 
       <div v-if="loading" class="space-y-3">
         <Skeleton class="h-5 w-52"/>
@@ -159,11 +165,15 @@ onMounted(load)
       </div>
 
       <div v-else class="space-y-2 text-sm text-fg-muted">
-        <p v-if="settings.aliyun_access_key_id">阿里云：<code class="text-fg">已配置</code></p>
-        <p v-if="settings.tencent_secret_id">腾讯云：<code class="text-fg">已配置</code></p>
-        <p v-if="settings.twilio_account_sid">Twilio：<code class="text-fg">已配置</code></p>
+        <p v-if="settings.aliyun_access_key_id">{{ t('admin.pluginPages.smsProvider.aliyun') }}：<code
+          class="text-fg">{{ t('admin.pluginPages.common.configured') }}</code></p>
+        <p v-if="settings.tencent_secret_id">{{ t('admin.pluginPages.smsProvider.tencent') }}：<code
+          class="text-fg">{{ t('admin.pluginPages.common.configured') }}</code></p>
+        <p v-if="settings.twilio_account_sid">Twilio：<code class="text-fg">{{
+            t('admin.pluginPages.common.configured')
+          }}</code></p>
         <p v-if="!settings.aliyun_access_key_id && !settings.tencent_secret_id && !settings.twilio_account_sid">
-          暂未配置短信参数，请在插件设置中配置
+          {{ t('admin.pluginPages.smsProvider.notConfiguredHint') }}
         </p>
       </div>
     </div>

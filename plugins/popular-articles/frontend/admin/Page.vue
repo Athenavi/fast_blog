@@ -3,6 +3,8 @@ import {onMounted, ref, watch} from 'vue'
 
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * 阅读排行（popular-articles 插件后台页）
  *
@@ -36,7 +38,7 @@ async function load(): Promise<void> {
       days: days.value,
     })
     items.value = Array.isArray(result.data) ? result.data : []
-    if (!result.success) error.value = result.error || '加载失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -63,20 +65,21 @@ function articleLink(item: PopularArticle): string {
     <!-- 筛选 -->
     <div class="mb-3 flex flex-wrap items-center gap-4 text-sm text-fg-muted">
       <label class="flex items-center gap-1.5">
-        <span>显示</span>
+        <span>{{ t('admin.pluginPages.popularArticles.show') }}</span>
         <el-select v-model="maxItems" class="w-24" size="small">
           <el-option v-for="n in MAX_OPTIONS" :key="n" :label="String(n)" :value="n"/>
         </el-select>
       </label>
       <label class="flex items-center gap-1.5">
-        <span>近</span>
+        <span>{{ t('admin.pluginPages.popularArticles.recent') }}</span>
         <el-select v-model="days" class="w-24" size="small">
-          <el-option v-for="n in DAY_OPTIONS" :key="n" :label="`${n} 天`" :value="n"/>
+          <el-option v-for="n in DAY_OPTIONS" :key="n" :label="t('admin.pluginPages.popularArticles.days', {n})"
+                     :value="n"/>
         </el-select>
       </label>
       <el-button :loading="loading" link type="primary" @click="load">
         <Icon class="mr-1 h-3.5 w-3.5" name="refresh-cw"/>
-        刷新
+        {{ t('admin.common.refresh') }}
       </el-button>
     </div>
 
@@ -88,8 +91,8 @@ function articleLink(item: PopularArticle): string {
 
     <EmptyState
       v-else-if="!items.length"
-      description="文章需要有一定浏览量才会出现在这里"
-      title="暂无热门文章"
+      :description="t('admin.pluginPages.popularArticles.emptyDesc')"
+      :title="t('admin.pluginPages.popularArticles.emptyTitle')"
     />
 
     <div v-else class="overflow-hidden rounded-card border border-line bg-surface">
@@ -106,14 +109,16 @@ function articleLink(item: PopularArticle): string {
 
           <div class="min-w-0 flex-1">
             <p class="truncate text-sm font-medium text-fg">{{ item.title || `#${item.id}` }}</p>
-            <p class="text-xs text-fg-subtle">{{ item.views ?? 0 }} 次浏览</p>
+            <p class="text-xs text-fg-subtle">{{
+                t('admin.pluginPages.popularArticles.views', {n: item.views ?? 0})
+              }}</p>
           </div>
 
           <NuxtLink
             :to="articleLink(item)"
             class="whitespace-nowrap rounded-control px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary-soft"
             target="_blank"
-          >查看
+          >{{ t('admin.pluginPages.popularArticles.view') }}
           </NuxtLink>
         </div>
       </div>

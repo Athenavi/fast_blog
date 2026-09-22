@@ -20,7 +20,9 @@ const emit = defineEmits<{ (e: 'retry'): void }>()
 
 <template>
   <div
-    class="flex flex-col items-center justify-center gap-1.5 rounded-card border border-dashed border-danger/40 py-16 text-center">
+    class="flex flex-col items-center justify-center gap-1.5 rounded-card border border-dashed border-danger/40 py-16 text-center"
+    role="alert"
+  >
     <Icon class="h-8 w-8 text-danger" name="alert-circle"/>
     <p class="mt-2 text-sm font-medium text-fg">{{ props.title || t('site.loadFailed') }}</p>
     <p v-if="props.description" class="text-sm text-fg-subtle">{{ props.description }}</p>

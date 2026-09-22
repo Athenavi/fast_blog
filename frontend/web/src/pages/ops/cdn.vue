@@ -221,6 +221,7 @@ async function runPreheat(): Promise<void> {
           <el-select v-model="form.provider" style="width: 100%">
             <el-option label="Cloudflare" value="cloudflare"/>
             <el-option label="AWS CloudFront" value="aws_cloudfront"/>
+            <!-- 云厂商名属专有名词，保持原样不进 i18n -->
             <el-option label="阿里云 CDN" value="aliyun_cdn"/>
             <el-option label="腾讯云 CDN" value="tencent_cdn"/>
             <el-option label="Custom" value="custom"/>
@@ -256,6 +257,7 @@ async function runPreheat(): Promise<void> {
             v-model="form.api_token"
             :placeholder="hasApiToken ? $t('admin.ops.cdn.tokenKeepHint') : $t('admin.ops.cdn.tokenPlaceholder')"
             show-password
+            autocomplete="off"
             type="password"
           />
           <div class="form-hint">{{ $t('admin.ops.cdn.tokenHint') }}</div>

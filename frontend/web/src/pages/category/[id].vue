@@ -2,6 +2,7 @@
 /** 分类文章列表：复用 ArticleListSection */
 import type {ArticleItem, CategoryItem} from '@/types/content'
 
+const {t} = useI18n()
 const route = useRoute()
 const router = useRouter()
 const site = await useSiteInfo()
@@ -32,14 +33,14 @@ function changePage(next: number) {
 }
 
 useSeoMeta({
-  title: () => `${category.value?.name || '分类'} - ${site.value.site_name || 'FastBlog'}`,
+  title: () => `${category.value?.name || t('category.fallback')} - ${site.value.site_name || 'FastBlog'}`,
   description: () => category.value?.description || '',
 })
 </script>
 
 <template>
   <div class="mx-auto max-w-5xl px-4 py-10">
-    <h1 class="text-2xl font-bold tracking-tight text-fg">{{ category?.name || '分类' }}</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-fg">{{ category?.name || t('category.fallback') }}</h1>
     <p v-if="category?.description" class="mt-2 text-fg-muted">{{ category.description }}</p>
 
     <ArticleListSection
@@ -52,7 +53,7 @@ useSeoMeta({
       :page="page"
       :pages="pageData?.pages ?? 0"
       class="mt-8"
-      empty-description="该分类下还没有已发布的文章。"
+      :empty-description="t('category.emptyPublished')"
       @change="changePage"
     />
   </div>

@@ -280,6 +280,7 @@ export type {
   MobileArticleItem,
   MobileArticlePayload,
   MobileArticleQuery,
+  MobileCommentItem,
   MobileLoginPayload,
   MobileMediaFolder,
   MobileMediaItem,

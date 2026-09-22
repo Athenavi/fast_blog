@@ -171,14 +171,17 @@ useSeoMeta({title: t('user.center'), robots: 'noindex'})
         </CardHeader>
         <CardContent class="space-y-4">
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.avatarUrl') }}</label>
-            <Input v-model="form.profile_picture" :placeholder="$t('user.avatarUrlPlaceholder')"/>
+            <label class="mb-1.5 block text-sm font-medium text-fg" for="profile-avatar">{{
+                $t('user.avatarUrl')
+              }}</label>
+            <Input id="profile-avatar" v-model="form.profile_picture" :placeholder="$t('user.avatarUrlPlaceholder')"/>
           </div>
 
           <div>
-            <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.bio') }}</label>
+            <label class="mb-1.5 block text-sm font-medium text-fg" for="profile-bio">{{ $t('user.bio') }}</label>
             <textarea
               v-model="form.bio"
+              id="profile-bio"
               class="w-full rounded-control border border-line px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               maxlength="500"
               :placeholder="$t('user.bioPlaceholder')"
@@ -188,14 +191,20 @@ useSeoMeta({title: t('user.center'), robots: 'noindex'})
 
           <div class="grid gap-4 sm:grid-cols-2">
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.locale') }}</label>
-              <Input v-model="form.locale" :placeholder="$t('user.localePlaceholder')"/>
+              <label class="mb-1.5 block text-sm font-medium text-fg" for="profile-locale">{{
+                  $t('user.locale')
+                }}</label>
+              <Input id="profile-locale" v-model="form.locale" :placeholder="$t('user.localePlaceholder')"/>
             </div>
             <div>
-              <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('user.newPassword') }}</label>
+              <label class="mb-1.5 block text-sm font-medium text-fg" for="profile-password">{{
+                  $t('user.newPassword')
+                }}</label>
               <Input
                 v-model="form.password"
+                id="profile-password"
                 :placeholder="$t('user.newPasswordPlaceholder')"
+                autocomplete="new-password"
                 type="password"
                 v-bind="fieldProps('password')"
                 @input="clearField('password')"

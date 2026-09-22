@@ -3,6 +3,8 @@ import {computed, onMounted, ref, watch} from 'vue'
 
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * 企业管理（enterprise 插件后台页）
  *
@@ -44,12 +46,17 @@ interface Overview {
 type TabKey = 'overview' | 'licenses' | 'tickets' | 'scripts' | 'logs' | 'alerts'
 
 const TABS: Array<{ key: TabKey; label: string; icon: string; action?: string }> = [
-  {key: 'overview', label: '概览', icon: 'trending-up'},
-  {key: 'licenses', label: '许可证', icon: 'shield', action: 'list_licenses'},
-  {key: 'tickets', label: '工单', icon: 'clipboard-list', action: 'list_tickets'},
-  {key: 'scripts', label: '脚本', icon: 'code-2', action: 'list_scripts'},
-  {key: 'logs', label: '日志', icon: 'file-text', action: 'list_logs'},
-  {key: 'alerts', label: '告警', icon: 'shield-alert', action: 'list_alerts'},
+  {key: 'overview', label: t('admin.pluginPages.enterprise.tabs.overview'), icon: 'trending-up'},
+  {key: 'licenses', label: t('admin.pluginPages.enterprise.tabs.licenses'), icon: 'shield', action: 'list_licenses'},
+  {
+    key: 'tickets',
+    label: t('admin.pluginPages.enterprise.tabs.tickets'),
+    icon: 'clipboard-list',
+    action: 'list_tickets'
+  },
+  {key: 'scripts', label: t('admin.pluginPages.enterprise.tabs.scripts'), icon: 'code-2', action: 'list_scripts'},
+  {key: 'logs', label: t('admin.pluginPages.enterprise.tabs.logs'), icon: 'file-text', action: 'list_logs'},
+  {key: 'alerts', label: t('admin.pluginPages.enterprise.tabs.alerts'), icon: 'shield-alert', action: 'list_alerts'},
 ]
 
 const PER_PAGE = 20
@@ -64,14 +71,14 @@ const items = ref<EnterpriseItem[]>([])
 const total = ref(0)
 
 const overviewCards = computed(() => [
-  {label: '总许可证', value: overview.value.total_licenses},
-  {label: '活跃许可证', value: overview.value.active_licenses},
-  {label: '待处理工单', value: overview.value.open_tickets},
-  {label: '进行中', value: overview.value.in_progress_tickets},
-  {label: '部署脚本', value: overview.value.total_scripts},
-  {label: '部署次数', value: overview.value.total_deployments},
-  {label: '失败部署', value: overview.value.failed_deployments},
-  {label: '未解决告警', value: overview.value.unresolved_alerts},
+  {label: t('admin.pluginPages.enterprise.stats.totalLicenses'), value: overview.value.total_licenses},
+  {label: t('admin.pluginPages.enterprise.stats.activeLicenses'), value: overview.value.active_licenses},
+  {label: t('admin.pluginPages.enterprise.stats.openTickets'), value: overview.value.open_tickets},
+  {label: t('admin.pluginPages.enterprise.stats.inProgressTickets'), value: overview.value.in_progress_tickets},
+  {label: t('admin.pluginPages.enterprise.stats.totalScripts'), value: overview.value.total_scripts},
+  {label: t('admin.pluginPages.enterprise.stats.totalDeployments'), value: overview.value.total_deployments},
+  {label: t('admin.pluginPages.enterprise.stats.failedDeployments'), value: overview.value.failed_deployments},
+  {label: t('admin.pluginPages.enterprise.stats.unresolvedAlerts'), value: overview.value.unresolved_alerts},
 ])
 
 async function loadCurrent(): Promise<void> {
@@ -93,7 +100,7 @@ async function loadCurrent(): Promise<void> {
     })
     items.value = result.data?.items ?? []
     total.value = result.data?.total ?? 0
-    if (!result.success) error.value = result.error || '加载失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -152,7 +159,7 @@ onMounted(loadCurrent)
         <Skeleton v-for="i in 5" :key="i" class="h-14 w-full"/>
       </div>
 
-      <EmptyState v-else-if="!items.length" title="暂无数据"/>
+      <EmptyState v-else-if="!items.length" :title="t('admin.common.empty')"/>
 
       <div v-else class="overflow-hidden rounded-card border border-line bg-surface">
         <table class="w-full text-sm">
@@ -160,23 +167,23 @@ onMounted(loadCurrent)
           <tr>
             <template v-if="tab === 'licenses'">
               <th class="px-5 py-3 text-left font-semibold">Key</th>
-              <th class="px-5 py-3 text-right font-semibold">状态</th>
+              <th class="px-5 py-3 text-right font-semibold">{{ t('admin.common.status') }}</th>
             </template>
             <template v-else-if="tab === 'tickets'">
-              <th class="px-5 py-3 text-left font-semibold">标题</th>
-              <th class="px-5 py-3 text-left font-semibold">状态</th>
+              <th class="px-5 py-3 text-left font-semibold">{{ t('admin.common.title') }}</th>
+              <th class="px-5 py-3 text-left font-semibold">{{ t('admin.common.status') }}</th>
             </template>
             <template v-else-if="tab === 'scripts'">
-              <th class="px-5 py-3 text-left font-semibold">名称</th>
-              <th class="px-5 py-3 text-right font-semibold">版本</th>
+              <th class="px-5 py-3 text-left font-semibold">{{ t('admin.common.name') }}</th>
+              <th class="px-5 py-3 text-right font-semibold">{{ t('admin.pluginPages.enterprise.version') }}</th>
             </template>
             <template v-else-if="tab === 'logs'">
-              <th class="px-5 py-3 text-left font-semibold">脚本</th>
-              <th class="px-5 py-3 text-left font-semibold">状态</th>
+              <th class="px-5 py-3 text-left font-semibold">{{ t('admin.pluginPages.enterprise.script') }}</th>
+              <th class="px-5 py-3 text-left font-semibold">{{ t('admin.common.status') }}</th>
             </template>
             <template v-else>
-              <th class="px-5 py-3 text-left font-semibold">消息</th>
-              <th class="px-5 py-3 text-left font-semibold">级别</th>
+              <th class="px-5 py-3 text-left font-semibold">{{ t('admin.pluginPages.enterprise.message') }}</th>
+              <th class="px-5 py-3 text-left font-semibold">{{ t('admin.pluginPages.enterprise.level') }}</th>
             </template>
           </tr>
           </thead>
@@ -190,7 +197,7 @@ onMounted(loadCurrent)
               <td class="px-5 py-4 text-right">
                   <span :class="tagClass(item.is_active ? 'success' : 'muted')"
                         class="rounded-pill px-2 py-0.5 text-xs">
-                    {{ item.is_active ? '活跃' : '停用' }}
+                    {{ item.is_active ? t('common.active') : t('common.disabled') }}
                   </span>
               </td>
             </template>

@@ -100,9 +100,16 @@ async function startDownload(): Promise<void> {
   }
 }
 
+/** 清空缓存做两步确认：原生 confirm 的按钮文案无法本地化，也与本站浮层风格不符 */
+const confirmClear = ref(false)
+
 async function clearCache(): Promise<void> {
   if (!supported.value) return
-  if (!window.confirm(t('media.confirmClearOffline'))) return
+  if (!confirmClear.value) {
+    confirmClear.value = true
+    return
+  }
+  confirmClear.value = false
   try {
     await caches.delete(CACHE_NAME)
     cachedUrls.value = []
@@ -199,7 +206,14 @@ watch(
       </CardContent>
 
       <CardFooter class="justify-between gap-2">
-        <Button :disabled="busy || !cachedUrls.length" class="text-danger" variant="ghost" @click="clearCache">
+        <div v-if="confirmClear" class="flex items-center gap-2">
+          <span class="text-xs text-danger">{{ $t('media.confirmClearOffline') }}</span>
+          <Button class="text-danger" size="sm" variant="ghost" @click="clearCache">
+            {{ $t('common.confirm') }}
+          </Button>
+          <Button size="sm" variant="ghost" @click="confirmClear = false">{{ $t('admin.common.cancel') }}</Button>
+        </div>
+        <Button v-else :disabled="busy || !cachedUrls.length" class="text-danger" variant="ghost" @click="clearCache">
           <Icon class="h-4 w-4" name="trash-2"/>
           {{ $t('media.clearCache') }}
         </Button>

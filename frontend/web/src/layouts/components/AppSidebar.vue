@@ -11,6 +11,7 @@
       :collapse-transition="false"
       unique-opened
       router
+      @select="emit('navigate')"
     >
       <template v-for="menu in permissionStore.menus" :key="menu.path">
         <el-sub-menu v-if="menu.children?.length" :index="menu.path">
@@ -41,8 +42,19 @@ import {computed} from 'vue'
 
 import type {AdminMenuItem} from '@/utils/menus'
 
+import {menuLabel} from '@/utils/menus'
 import {useAppStore} from '@/store/modules/app'
 import {usePermissionStore} from '@/store/modules/permission'
+
+/**
+ * 后台导航菜单
+ *
+ * `collapsed` 不传时跟随 `appStore.sidebarCollapsed`（宽屏常驻侧边栏）；
+ * 窄屏把菜单放进抽屉时必须显式传 `false`，否则抽屉会沿用"已折叠"状态只剩图标。
+ */
+const props = defineProps<{ collapsed?: boolean }>()
+
+const emit = defineEmits<{ (event: 'navigate'): void }>()
 
 const appStore = useAppStore()
 const permissionStore = usePermissionStore()
@@ -50,12 +62,11 @@ const route = useRoute()
 
 const {t, te} = useI18n()
 
-const collapsed = computed(() => appStore.sidebarCollapsed)
+const collapsed = computed(() => props.collapsed ?? appStore.sidebarCollapsed)
 
-/** 菜单文案：优先取 `menu.<name>` 翻译；缺失时回退到 menus.ts 里的中文 title（便于渐进式 i18n） */
+/** 菜单文案：与命令面板共用同一份实现（`menu.<name>` → title 回退） */
 function label(item: AdminMenuItem): string {
-  const key = `menu.${item.name}`
-  return te(key) ? t(key) : item.title || item.name
+  return menuLabel(item, (key) => t(key), (key) => te(key))
 }
 
 /** 高亮当前路径：优先精确匹配，其次匹配父级 */

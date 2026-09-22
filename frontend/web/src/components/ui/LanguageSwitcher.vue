@@ -64,4 +64,11 @@ async function change(event: Event): Promise<void> {
   border: none;
   outline: none;
 }
+
+/* 去掉默认轮廓必须给等价的焦点指示，否则键盘用户看不到焦点在哪 */
+.lang-switcher__select:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
 </style>

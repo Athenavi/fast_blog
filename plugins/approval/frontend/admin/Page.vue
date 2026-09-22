@@ -4,6 +4,8 @@ import {computed, onMounted, reactive, ref, watch} from 'vue'
 import {ElMessage} from '@/utils/feedback'
 import {pluginAction} from '@/utils/pluginAction'
 
+const {t} = useI18n()
+
 /**
  * 内容审批（approval 插件后台页）
  *
@@ -34,9 +36,9 @@ interface Stats {
 type TabKey = 'pending' | 'my-requests' | 'history'
 
 const TABS: Array<{ key: TabKey; label: string; icon: string }> = [
-  {key: 'pending', label: '待审批', icon: 'clock'},
-  {key: 'my-requests', label: '我的申请', icon: 'circle-check'},
-  {key: 'history', label: '统计概览', icon: 'clipboard-list'},
+  {key: 'pending', label: t('admin.pluginPages.approval.tabs.pending'), icon: 'clock'},
+  {key: 'my-requests', label: t('admin.pluginPages.approval.tabs.myRequests'), icon: 'circle-check'},
+  {key: 'history', label: t('admin.pluginPages.approval.tabs.stats'), icon: 'clipboard-list'},
 ]
 
 const PER_PAGE = 15
@@ -59,10 +61,10 @@ const notes = ref('')
 const submitting = ref(false)
 
 const statCards = computed(() => [
-  {label: '待审批', value: stats.value.total_pending ?? '—'},
-  {label: '已通过', value: stats.value.total_approved ?? '—'},
-  {label: '已拒绝', value: stats.value.total_rejected ?? '—'},
-  {label: '总计', value: stats.value.total ?? '—'},
+  {label: t('admin.pluginPages.approval.stats.pending'), value: stats.value.total_pending ?? '—'},
+  {label: t('admin.pluginPages.approval.stats.approved'), value: stats.value.total_approved ?? '—'},
+  {label: t('admin.pluginPages.approval.stats.rejected'), value: stats.value.total_rejected ?? '—'},
+  {label: t('admin.pluginPages.approval.stats.total'), value: stats.value.total ?? '—'},
 ])
 
 async function loadCurrent(): Promise<void> {
@@ -79,7 +81,7 @@ async function loadCurrent(): Promise<void> {
     const result = await pluginAction<ListResult>('approval', action, {page: page.value, per_page: PER_PAGE})
     items.value = result.data?.items ?? []
     total.value = result.data?.total ?? 0
-    if (!result.success) error.value = result.error || '加载失败'
+    if (!result.success) error.value = result.error || t('admin.pluginPages.common.loadFailed')
   } finally {
     loading.value = false
   }
@@ -105,11 +107,11 @@ async function submitAction(): Promise<void> {
       notes: notes.value,
     })
     if (result.success) {
-      ElMessage.success(dialog.action === 'approve' ? '已通过' : '已拒绝')
+      ElMessage.success(dialog.action === 'approve' ? t('common.approved') : t('common.rejected'))
       dialog.open = false
       await loadCurrent()
     } else {
-      ElMessage.error(result.error || '操作失败')
+      ElMessage.error(result.error || t('common.operationFailed'))
     }
   } finally {
     submitting.value = false
@@ -117,9 +119,9 @@ async function submitAction(): Promise<void> {
 }
 
 function statusLabel(status?: string | null): string {
-  if (status === 'approved') return '已通过'
-  if (status === 'rejected') return '已拒绝'
-  return '待审批'
+  if (status === 'approved') return t('common.approved')
+  if (status === 'rejected') return t('common.rejected')
+  return t('common.pending')
 }
 
 function statusTagType(status?: string | null): 'success' | 'danger' | 'warning' {
@@ -175,27 +177,28 @@ onMounted(loadCurrent)
         <Skeleton v-for="i in 5" :key="i" class="h-16 w-full"/>
       </div>
 
-      <EmptyState v-else-if="!items.length" description="有内容提交审批后会出现在这里" title="暂无数据"/>
+      <EmptyState v-else-if="!items.length" :description="t('admin.pluginPages.approval.emptyDesc')"
+                  :title="t('admin.common.empty')"/>
 
       <el-table v-else :data="items" border>
-        <el-table-column label="内容" min-width="260">
+        <el-table-column :label="t('admin.pluginPages.approval.content')" min-width="260">
           <template #default="{row}">
             <p class="text-sm font-medium text-fg">{{ row.content_title || `#${row.content_id}` }}</p>
             <p class="text-xs text-fg-subtle">{{ row.content_type }} · {{ formatDate(row.created_at) }}</p>
           </template>
         </el-table-column>
 
-        <el-table-column label="状态" width="120">
+        <el-table-column :label="t('admin.common.status')" width="120">
           <template #default="{row}">
             <el-tag :type="statusTagType(row.status)" size="small">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column align="right" label="操作" width="180">
+        <el-table-column :label="t('admin.common.actions')" align="right" width="180">
           <template #default="{row}">
             <template v-if="tab === 'pending' && row.status === 'pending'">
-              <el-button link type="success" @click="openDialog(row, 'approve')">通过</el-button>
-              <el-button link type="danger" @click="openDialog(row, 'reject')">拒绝</el-button>
+              <el-button link type="success" @click="openDialog(row, 'approve')">{{ t('common.approved') }}</el-button>
+              <el-button link type="danger" @click="openDialog(row, 'reject')">{{ t('common.rejected') }}</el-button>
             </template>
           </template>
         </el-table-column>
@@ -212,13 +215,16 @@ onMounted(loadCurrent)
     </template>
 
     <!-- 审批弹窗 -->
-    <el-dialog v-model="dialog.open" :title="dialog.action === 'approve' ? '审批通过' : '拒绝'" width="440px">
-      <el-input v-model="notes" :rows="3" placeholder="审批意见（可选）" type="textarea"/>
+    <el-dialog v-model="dialog.open"
+               :title="dialog.action === 'approve' ? t('admin.pluginPages.approval.dialogApproveTitle') : t('common.rejected')"
+               width="440px">
+      <el-input v-model="notes" :placeholder="t('admin.pluginPages.approval.notesPlaceholder')" :rows="3"
+                type="textarea"/>
       <template #footer>
-        <el-button @click="dialog.open = false">取消</el-button>
+        <el-button @click="dialog.open = false">{{ t('admin.common.cancel') }}</el-button>
         <el-button :loading="submitting" :type="dialog.action === 'approve' ? 'success' : 'danger'"
                    @click="submitAction">
-          确认
+          {{ t('common.confirm') }}
         </el-button>
       </template>
     </el-dialog>

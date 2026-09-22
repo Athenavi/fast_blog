@@ -4,7 +4,7 @@
  *
  * 对应原 astro 的 `my/posts/create.astro`，编辑逻辑复用 `ArticleEditor`。
  */
-definePageMeta({layout: 'default', middleware: 'auth', title: '写文章'})
+definePageMeta({layout: 'default', middleware: 'auth', title: 'myPosts.createTitle'})
 
 const router = useRouter()
 

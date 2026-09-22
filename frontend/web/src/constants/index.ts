@@ -1,6 +1,6 @@
 /** 全局常量 */
 
-export const APP_TITLE = import.meta.env.VITE_APP_TITLE || 'FastBlog 管理后台'
+export const APP_TITLE = import.meta.env.VITE_APP_TITLE || 'FastBlog Admin'
 export const API_BASE_URL = '/api/v3'
 
 /** 与后端 code 对齐的响应码 */

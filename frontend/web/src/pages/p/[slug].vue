@@ -7,6 +7,7 @@
  */
 import type {PageItem} from '@/types/content'
 
+const {t} = useI18n()
 const route = useRoute()
 const slug = String(route.params.slug)
 
@@ -15,11 +16,11 @@ const {data: page} = await useAsyncData(`page-${slug}`, () =>
 )
 
 if (!page.value) {
-  throw createError({statusCode: 404, statusMessage: '页面不存在或未发布'})
+  throw createError({statusCode: 404, statusMessage: t('page.notFoundOrUnpublished')})
 }
 
 useSeoMeta({
-  title: () => page.value?.title || '页面',
+  title: () => page.value?.title || t('page.titleFallback'),
   description: () => page.value?.summary || '',
 })
 </script>
@@ -32,6 +33,6 @@ useSeoMeta({
     <p v-if="page?.summary" class="mt-3 text-fg-muted">{{ page.summary }}</p>
 
     <!-- eslint-disable-next-line vue/no-v-html -- 内容由后台编辑器维护 -->
-    <div class="prose-content mt-8" v-html="page?.content || '<p>（暂无内容）</p>'"/>
+    <div class="prose-content mt-8" v-html="page?.content || `<p>${t('site.noContent')}</p>`"/>
   </article>
 </template>

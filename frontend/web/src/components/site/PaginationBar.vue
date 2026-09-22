@@ -16,7 +16,8 @@ const items = computed(() => {
 </script>
 
 <template>
-  <nav v-if="props.pages > 1" class="flex items-center justify-center gap-1 py-8">
+  <nav v-if="props.pages > 1" :aria-label="$t('site.paginationAriaLabel')"
+       class="flex items-center justify-center gap-1 py-8">
     <Button :disabled="props.page <= 1" size="sm" variant="outline" @click="emit('change', props.page - 1)">
       {{ $t('site.prevPage') }}
     </Button>
@@ -24,6 +25,7 @@ const items = computed(() => {
       <span v-if="item === '...'" class="px-2 text-sm text-fg-subtle">…</span>
       <Button
         v-else
+        :aria-current="item === props.page ? 'page' : undefined"
         :variant="item === props.page ? 'default' : 'ghost'"
         size="sm"
         @click="emit('change', item as number)"

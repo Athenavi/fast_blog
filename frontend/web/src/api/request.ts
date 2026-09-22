@@ -16,21 +16,76 @@ import axios, {
 } from 'axios'
 
 import {API_BASE_URL, CODE_SUCCESS, STORAGE_REFRESH_TOKEN, STORAGE_TOKEN} from '@/constants'
+import {pushToast} from '@/composables/useToast'
 import {storage} from '@/utils/storage'
 
 import type {ApiResponse, PageQuery, PageResult} from './types'
 
-/** 动态引入 Element Plus 的消息提示：避免 element-plus 进入前台共享 chunk */
+/**
+ * 统一的提示出口（分两条通道，避免两套 UI 互相污染）
+ *
+ *  - **后台**（`layout: 'admin'` 的页面）：用 Element Plus 的 `ElMessage`，与页面同风格，
+ *    且 EP 本来就已经在后台加载过（`layouts/admin.vue` 动态注册），不会多付代价；
+ *  - **前台**：用站点自研 toast（`pushToast`）——前台不该为了弹一句错误去加载 1MB 的 EP，
+ *    视觉风格也应当与前台一致。
+ *
+ * 判断顺序：先看路由 meta.layout（最准确），拿不到 Nuxt 上下文时回退到路径前缀。
+ */
+const ADMIN_PATH_PREFIXES = [
+  '/dashboard',
+  '/content',
+  '/system',
+  '/analytics',
+  '/extension',
+  '/marketing',
+  '/ops',
+  '/commerce',
+  '/gamification',
+  '/chat/groups',
+  '/ai',
+]
+
+function isAdminContext(): boolean {
+  if (!import.meta.client) return false
+  try {
+    const layout = useRouter().currentRoute.value.meta.layout
+    if (layout === 'admin') return true
+  } catch {
+    /* 无 Nuxt 上下文（极少数时机）：退回路径判断 */
+  }
+  const path = window.location.pathname
+  return ADMIN_PATH_PREFIXES.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))
+}
+
+/**
+ * 文案走 i18n；拿不到 i18n 上下文时回退**中文兜底**（本文件是 i18n 链路的最底层，
+ * 不能再向上依赖，所以这里的字面量是有意保留的）。
+ */
+function translate(key: string, fallback: string): string {
+  try {
+    const composer = useNuxtApp().$i18n as unknown as { t?: (key: string) => string } | undefined
+    const value = composer?.t?.(key)
+    return value && value !== key ? value : fallback
+  } catch {
+    return fallback
+  }
+}
+
 async function notify(
   kind: 'error' | 'warning' | 'success' | 'info',
   message: string,
 ): Promise<void> {
-  try {
-    const {ElMessage} = await import('element-plus')
-    ElMessage({type: kind, message})
-  } catch {
-    /* 提示失败不应影响主流程 */
+  if (!import.meta.client) return
+  if (isAdminContext()) {
+    try {
+      const {ElMessage} = await import('element-plus')
+      ElMessage({type: kind, message})
+      return
+    } catch {
+      /* EP 不可用时回退到站点 toast */
+    }
   }
+  pushToast(message, kind)
 }
 
 
@@ -103,7 +158,7 @@ instance.interceptors.response.use(
   async (error) => {
     const status = error?.response?.status as number | undefined
     if (status !== 401) {
-      const msg = error?.response?.data?.msg || error?.message || '网络请求失败'
+      const msg = error?.response?.data?.msg || error?.message || translate('common.networkError', '网络请求失败')
       void notify('error', String(msg))
       return Promise.reject(error)
     }
@@ -133,7 +188,7 @@ instance.interceptors.response.use(
 
     if (!token) {
       clearTokens()
-      void notify('error', '登录已过期，请重新登录')
+      void notify('error', translate('common.sessionExpired', '登录已过期，请重新登录'))
       onUnauthorized()
       return Promise.reject(error)
     }
@@ -149,10 +204,11 @@ function unwrap<T>(response: AxiosResponse<ApiResponse<T>>, silent = false): T {
   if (body?.code === CODE_SUCCESS) {
     return body.data
   }
+  const message = body?.msg || translate('common.requestFailed', '请求失败')
   if (!silent) {
-    void notify('error', body?.msg || '请求失败')
+    void notify('error', message)
   }
-  return Promise.reject(new Error(body?.msg || '请求失败')) as unknown as T
+  return Promise.reject(new Error(message)) as unknown as T
 }
 
 export const http = {
@@ -167,8 +223,9 @@ export const http = {
     const resp = await instance.get<ApiResponse<T[]>>(url, {params})
     const body = resp.data
     if (body?.code !== CODE_SUCCESS) {
-      void notify('error', body?.msg || '请求失败')
-      throw new Error(body?.msg || '请求失败')
+      const message = body?.msg || translate('common.requestFailed', '请求失败')
+      void notify('error', message)
+      throw new Error(message)
     }
     return {
       items: body.data ?? [],

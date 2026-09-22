@@ -15,6 +15,7 @@ import {ref} from 'vue'
 import {articleApi, type ArticleItem, type ArticleQuery} from '@/api'
 import {useAdminList} from '@/composables/useAdminList'
 import {useCategoryOptions} from '@/composables/useCategoryOptions'
+import {useCsvExport} from '@/composables/useCsvExport'
 import {ElMessage} from '@/utils/feedback'
 import {articleStatusKey, articleStatusTag, formatDateTime} from '@/utils/format'
 
@@ -62,6 +63,18 @@ function onSortChange(value: string): void {
   void list.search()
 }
 
+/** 表格列排序（列上 `sortable="custom"`）：与上方"排序"下拉共用同一组查询参数 */
+function onTableSortChange(payload: { prop: string; order: string | null }): void {
+  if (!payload.order || !payload.prop) {
+    sortValue.value = 'updated_at:desc'
+    onSortChange(sortValue.value)
+    return
+  }
+  const order = payload.order === 'ascending' ? 'asc' : 'desc'
+  sortValue.value = `${payload.prop}:${order}`
+  onSortChange(sortValue.value)
+}
+
 // ---------------------------------------------------------------- 导航与行操作
 function openCreate(): void {
   void router.push('/content/article/new')
@@ -90,6 +103,45 @@ async function removeRow(row: ArticleItem): Promise<void> {
     t('admin.common.notice'),
     t('admin.content.article.deleted'),
   )
+}
+
+// ---------------------------------------------------------------- 导出
+/**
+ * 导出当前筛选条件下的**全部结果**（不是当前页那 20 行）：
+ * 按 200/页 分批拉取，前端拼 CSV，避免后端为此新增导出端点。
+ */
+const {exporting, exportCsv: runExport} = useCsvExport<ArticleItem>({
+  filename: 'articles',
+  columns: [
+    {key: 'id', label: 'ID'},
+    {key: 'title', label: t('admin.content.article.articleTitle')},
+    {key: 'slug', label: t('admin.content.article.alias')},
+    {key: 'status', label: t('admin.common.status'), format: (row) => t(articleStatusKey(row.status))},
+    {
+      key: 'category_id',
+      label: t('admin.content.article.category'),
+      format: (row) => categoryName(row.category_id),
+    },
+    {key: 'views', label: t('admin.content.article.views')},
+    {key: 'likes', label: t('admin.content.article.likes')},
+    {key: 'updated_at', label: t('admin.common.updatedAt'), format: (row) => formatDateTime(row.updated_at)},
+  ],
+  rows: async () => {
+    const chunkSize = 200
+    const first = await articleApi.list({...list.query, page: 1, page_size: chunkSize} as ArticleQuery)
+    const all: ArticleItem[] = [...first.items]
+    const pages = Math.ceil((first.total ?? all.length) / chunkSize)
+    for (let page = 2; page <= pages; page += 1) {
+      const chunk = await articleApi.list({...list.query, page, page_size: chunkSize} as ArticleQuery)
+      all.push(...chunk.items)
+    }
+    return all
+  },
+})
+
+async function exportCsv(): Promise<void> {
+  const ok = await runExport()
+  if (ok) ElMessage.success(t('admin.common.exportDone'))
 }
 
 // ---------------------------------------------------------------- 批量操作
@@ -124,6 +176,9 @@ async function bulkDelete(): Promise<void> {
 <template>
   <AdminPage :desc="$t('admin.content.article.desc')" :title="$t('admin.content.article.management')">
     <template #actions>
+      <el-button :loading="exporting" @click="exportCsv">
+        {{ $t('admin.common.exportCsv') }}
+      </el-button>
       <el-button v-auth="'module_content:article:create'" :icon="Plus" type="primary" @click="openCreate">
         {{ $t('admin.content.article.newArticle') }}
       </el-button>
@@ -142,6 +197,7 @@ async function bulkDelete(): Promise<void> {
       @refresh="list.reload"
       @reset="list.reset"
       @search="list.search"
+      @sort-change="onTableSortChange"
       @clear-selection="list.clearSelection"
       @page-change="list.onPageChange"
       @selection-change="list.onSelectionChange"

@@ -27,6 +27,17 @@ for (const line of (() => {
   if (m && !(m[1] in process.env)) process.env[m[1]] = m[2]
 }
 
+/**
+ * 被测端口：
+ *   - 默认 5173（= `.env.development` 的 `VITE_PORT`），可用 `E2E_PORT` 覆盖；
+ *   - **不要假设 5173 一定是本项目的**：同一台机器上并行开发多个前端时，该端口常被
+ *     别的项目占用，而 `reuseExistingServer: true` 会把**别人的** dev server 当成被测目标
+ *     （实测症状：页面里没有 `#__nuxt`、`waitForHydration` 超时，整份 spec 一起红）。
+ *     换端口：`E2E_PORT=5273 npx playwright test`（webServer 会自动带上 VITE_PORT）。
+ */
+const E2E_PORT = Number(process.env.E2E_PORT || process.env.VITE_PORT || 5173)
+const BASE_URL = process.env.E2E_BASE_URL || `http://localhost:${E2E_PORT}`
+
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -34,7 +45,7 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   reporter: [['list']],
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
+    baseURL: BASE_URL,
     trace: 'retain-on-failure',
   },
   projects: [{name: 'chromium', use: {...devices['Desktop Chrome']}}],
@@ -42,8 +53,9 @@ export default defineConfig({
     ? undefined
     : {
       command: 'npm run dev',
-      url: process.env.E2E_BASE_URL || 'http://localhost:5173',
+      url: BASE_URL,
       reuseExistingServer: true,
       timeout: 180_000,
+      env: {VITE_PORT: String(E2E_PORT)},
     },
 })

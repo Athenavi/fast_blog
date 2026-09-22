@@ -14,7 +14,7 @@ import ThemeConfigPanel from '@/components/admin/ThemeConfigPanel.vue'
   <div class="p-4">
     <ThemeConfigPanel
       plugin-slug="fastblog-default"
-      theme-description="简洁、现代、响应式设计"
+      :theme-description="t('theme.defaultDescription')"
       theme-name="FastBlog Default"
     />
   </div>
