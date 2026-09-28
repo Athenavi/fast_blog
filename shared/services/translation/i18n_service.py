@@ -5,9 +5,7 @@
 import os
 import json
 
-from typing import Dict, Any, Optional, List
-from datetime import datetime
-from pathlib import Path
+from typing import Dict, Any, List
 
 from shared.logging import default_logger as logger
 
@@ -307,6 +305,80 @@ class TranslationService:
             }
 
         return stats
+
+    # ------------------------------------------------------------------ 合并自
+    # 历史上有三份 i18n 实现（本文件、translation.py 的 TranslationService、
+    # translation_manager/i18n_service.py 的 I18nService），接口各有出入。这里把它们的
+    # 独有能力合并到唯一的 TranslationService 上，其余两份已删除。
+    def translate(self, key: str, language: str = None, default: str = None) -> str:
+        """``get_translation`` 的别名（历史上 I18nService 使用这个名字）"""
+        return self.get_translation(key, language, default)
+
+    def get_all_translations(self, language: str = None) -> Dict[str, str]:
+        """取某语言的完整翻译字典（缺省取默认语言）"""
+        lang = language or self.default_language
+        return dict(self.translation_cache.get(lang, {}))
+
+    @staticmethod
+    def _flatten_keys(data: Dict, parent_key: str = '', sep: str = '.') -> List[str]:
+        """把嵌套字典展平成 ``a.b.c`` 形式的键列表"""
+        keys: List[str] = []
+        for key, value in (data or {}).items():
+            new_key = f"{parent_key}{sep}{key}" if parent_key else key
+            if isinstance(value, dict):
+                keys.extend(TranslationService._flatten_keys(value, new_key, sep=sep))
+            else:
+                keys.append(new_key)
+        return keys
+
+    def get_translation_progress(self, source_language: str = None) -> Dict[str, float]:
+        """各语言相对源语言的完成度（百分比）（来自原 translation.py）"""
+        source = source_language or self.default_language
+        source_keys = set(self._flatten_keys(self.translation_cache.get(source, {})))
+        if not source_keys:
+            return {}
+
+        progress: Dict[str, float] = {}
+        for code in self.supported_languages:
+            if code == source:
+                progress[code] = 100.0
+                continue
+            translated = set(self._flatten_keys(self.translation_cache.get(code, {})))
+            hit = sum(1 for key in source_keys if key in translated)
+            progress[code] = round(hit / len(source_keys) * 100, 2)
+        return progress
+
+    def batch_add_translations(self, language: str, translations: Dict[str, str]) -> int:
+        """批量写入并只落盘一次，返回写入条数（来自原 I18nService）"""
+        bucket = self.translation_cache.setdefault(language, {})
+        bucket.update(translations)
+        self._save_translations(language)
+        return len(translations)
+
+    def get_language_stats(self, language: str) -> Dict[str, Any]:
+        """单个语言的统计（键数 / 完成度 / 缺失）"""
+        stats = self.get_translation_stats().get(language)
+        if stats is None:
+            return {'language': language, 'total_keys': 0, 'completion_rate': 0.0, 'missing_keys': 0}
+        return {'language': language, **stats}
+
+    def get_rtl_languages(self) -> List[str]:
+        """所有从右向左书写的语言代码"""
+        return [
+            code for code, info in self.supported_languages.items()
+            if info.get('direction') == 'rtl'
+        ]
+
+    def is_rtl(self, language: str) -> bool:
+        """该语言是否 RTL（前端据此设置 ``dir="rtl"``）"""
+        return language in self.get_rtl_languages()
+
+    def generate_translation_template(self, language: str = None) -> Dict[str, str]:
+        """以默认语言的键生成目标语言的空模板，便于交给译者填写"""
+        target = language or self.default_language
+        source = self.translation_cache.get(self.default_language, {})
+        existing = self.translation_cache.get(target, {})
+        return {key: existing.get(key, '') for key in source}
 
 
 # 全局实例
