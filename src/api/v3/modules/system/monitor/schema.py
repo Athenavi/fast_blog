@@ -2,7 +2,7 @@
 
 import json
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from pydantic import Field, field_validator
 
@@ -165,6 +165,49 @@ class AlertOut(SchemaBase):
     @classmethod
     def _parse_notified(cls, value: object) -> object:
         return _parse_int_list(value)
+
+
+class AlertChannelCreate(SchemaBase):
+    """告警推送渠道（notification_integrations 真表）"""
+
+    platform: str = Field(
+        min_length=1, max_length=50, description="telegram / discord / slack / webhook / email"
+    )
+    webhook_url: Optional[str] = Field(default=None, max_length=500)
+    bot_token: Optional[str] = Field(
+        default=None, max_length=255, description="Bot Token（落库前 AES-256-GCM 加密，永不回传）"
+    )
+    channel_id: Optional[str] = Field(
+        default=None, max_length=100, description="频道 / chat id；email 渠道填收件人邮箱"
+    )
+    enable_new_article_notification: bool = False
+    enable_comment_notification: bool = False
+    enable_system_alert: bool = True
+    notification_template: Optional[str] = Field(
+        default=None, description="通知模板，如「【{severity}】{title}\\n{message}」"
+    )
+    is_active: bool = True
+    site_id: Optional[int] = None
+
+
+class AlertChannelUpdate(SchemaBase):
+    platform: Optional[str] = Field(default=None, min_length=1, max_length=50)
+    webhook_url: Optional[str] = Field(default=None, max_length=500)
+    bot_token: Optional[str] = Field(
+        default=None, max_length=255, description="留空表示保持原值（与其它模块的密钥约定一致）"
+    )
+    channel_id: Optional[str] = Field(default=None, max_length=100)
+    enable_new_article_notification: Optional[bool] = None
+    enable_comment_notification: Optional[bool] = None
+    enable_system_alert: Optional[bool] = None
+    notification_template: Optional[str] = None
+    is_active: Optional[bool] = None
+
+
+class AlertDispatchRequest(SchemaBase):
+    """推送告警：``force=True`` 时忽略 enable_system_alert（手工补发用）"""
+
+    force: bool = False
 
 
 class MetricCreate(SchemaBase):

@@ -37,6 +37,53 @@ TASK_TEMPLATES: dict[str, dict[str, str]] = {
         "system": "你是专业译者，只输出译文本身。",
         "template": "把以下内容翻译成{target_lang}（若原文已是该语言，则译为中文）：\n\n{input}",
     },
+    "seo_generate": {
+        "label": "SEO 元信息生成",
+        "system": "你是 SEO 工程师，**只输出 JSON 对象**，不要任何解释或代码块标记。",
+        "template": (
+            "为以下文章生成 SEO 元信息，输出形如 "
+            '{{"seo_title": "不超过 60 字", "seo_description": "不超过 160 字", '
+            '"seo_keywords": ["关键词1", "关键词2"], "og_title": "社交分享标题", '
+            '"og_description": "社交分享描述"}} 的 JSON 对象。\n\n{input}'
+        ),
+    },
+    "polish": {
+        "label": "润色",
+        "system": "你是中文写作助手：保持作者原意与事实不变，只提升语言质量。",
+        "template": "润色以下文字，让它更通顺准确；只输出润色后的正文：\n\n{input}",
+    },
+    "outline": {
+        "label": "大纲生成",
+        "system": "你是内容策划，输出结构清晰、可直接照着写的中文大纲。",
+        "template": "为以下主题或内容生成文章大纲，用多级列表输出（一级标题 + 每节 2-3 个要点）：\n\n{input}",
+    },
+    "grammar_check": {
+        "label": "语法 / 错别字检查",
+        "system": "你是中文校对，**只输出 JSON 数组**，不要解释或代码块标记。",
+        "template": (
+            "检查以下文字的病句、错别字、标点问题，输出形如 "
+            '[{{"type": "错别字", "original": "原文片段", "suggestion": "建议"}}] 的 JSON 数组；'
+            "没有问题时输出 []。\n\n{input}"
+        ),
+    },
+    "smart_continue": {
+        "label": "智能续写",
+        "system": "你是中文写作助手，续写要与前文语气、视角、节奏一致。",
+        "template": "续写以下内容（约 200 字），只输出续写部分，不要重复前文：\n\n{input}",
+    },
+    "style_transform": {
+        "label": "风格转换",
+        "system": "你是中文编辑，只输出改写后的正文。",
+        "template": "把以下内容改写成{target_lang}风格（如「正式」「轻松」「学术」「口语」），只输出改写结果：\n\n{input}",
+    },
+    "generate_titles": {
+        "label": "标题生成",
+        "system": "你是中文编辑，**只输出 JSON 数组**，不要解释或代码块标记。",
+        "template": (
+            "为以下内容生成 5 个不超过 30 字的中文标题，输出形如 "
+            '["标题一", "标题二"] 的 JSON 数组。\n\n{input}'
+        ),
+    },
     "custom": {
         "label": "自定义提示词",
         "system": "",

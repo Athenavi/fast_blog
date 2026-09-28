@@ -9100,3 +9100,71 @@ models:
     module: third_party_publish
     orm: true
     table: publish_logs
+
+  # ============ 任务 8：多格式迁移的 redirect map（旧链接 → 新链接）============
+  SeoRedirect:
+    description: SEO 跳转规则（迁移生成的 301 与手工维护共用；取代 v2 的 redirects.json 文件存储）
+    fields:
+      from_path:
+        type: string
+        required: true
+        maxLength: 500
+        description: 源路径（站点相对路径，如 /old-post；导入时按源站 URL 归一）
+      to_path:
+        type: string
+        required: true
+        maxLength: 500
+        description: 目标路径或绝对 URL
+      status_code:
+        type: integer
+        default: 301
+        description: HTTP 状态码（301 永久 / 302 临时 / 307 / 308）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      hits:
+        type: bigint
+        default: 0
+        description: 命中次数（由解析端点真实累加）
+      source:
+        type: string
+        maxLength: 50
+        default: manual
+        description: 来源（manual 手工维护 / migration 导入生成）
+      source_reference:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 来源说明（迁移任务名 / 源文件名）
+      notes:
+        type: text
+        nullable: true
+        description: 备注
+      created_by:
+        type: bigint
+        nullable: true
+        description: 创建者用户 ID
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    indexes:
+      - name: idx_seo_redirects_from_path
+        columns:
+          - from_path
+        unique: true
+        comment: 源路径唯一（同一路径只保留一条规则，重复导入走更新）
+      - name: idx_seo_redirects_active
+        columns:
+          - is_active
+        comment: 启用状态索引
+    comment: SEO 跳转规则（wordpress/markdown/ghost 等导入时按源站 URL 自动生成，也可手工维护）
+    module: seo
+    orm: true
+    table: seo_redirects

@@ -44,6 +44,7 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
+from src.api.v3.modules.system.monitor.alert_channel_service import alert_channel_service
 from src.api.v3.modules.system.monitor.monitoring_service import (
     monitoring_alert_service,
     monitoring_metric_service,
@@ -52,7 +53,10 @@ from src.api.v3.modules.system.monitor.monitoring_service import (
 from src.api.v3.modules.system.monitor.performance_report import performance_report_service
 from src.api.v3.modules.system.monitor.query_optimizer import query_optimizer_service
 from src.api.v3.modules.system.monitor.schema import (
+    AlertChannelCreate,
+    AlertChannelUpdate,
     AlertCreate,
+    AlertDispatchRequest,
     AlertUpdate,
     MetricCreate,
     QueryExplainRequest,
@@ -484,3 +488,100 @@ async def performance_report(
 ) -> dict:
     """聚合真实数据源：RUM（前端上报）、慢查询（引擎采集）、服务器采样、告警 / 指标 / SLA 真表"""
     return resp.success(await performance_report_service.report(db, hours=hours, top=top))
+
+
+# ─────────────────────────── 告警推送渠道（任务 9） ───────────────────────────
+@router.get("/alert-channel", response_model=ResponseModel, summary="告警推送渠道列表")
+async def list_alert_channels(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_VIEW),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    platform: Optional[str] = Query(default=None, description="telegram/discord/slack/webhook/email"),
+    is_active: Optional[bool] = Query(default=None),
+) -> dict:
+    items, total = await alert_channel_service.list_channels(
+        db, page=page, page_size=page_size, platform=platform, is_active=is_active
+    )
+    return resp.success_page(items, total, page, page_size)
+
+
+@router.post("/alert-channel", response_model=ResponseModel, summary="新建告警推送渠道")
+async def create_alert_channel(
+    payload: AlertChannelCreate,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_MANAGE),
+) -> dict:
+    """``bot_token`` 落库前 AES-256-GCM 加密；读接口只回 ``has_token``"""
+    return resp.success(
+        await alert_channel_service.create_channel(db, payload.model_dump(exclude_unset=True)),
+        msg="已创建",
+    )
+
+
+@router.put("/alert-channel/{channel_id}", response_model=ResponseModel, summary="更新告警推送渠道")
+async def update_alert_channel(
+    channel_id: int,
+    payload: AlertChannelUpdate,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_MANAGE),
+) -> dict:
+    return resp.success(
+        await alert_channel_service.update_channel(
+            db, channel_id, payload.model_dump(exclude_unset=True)
+        ),
+        msg="已保存",
+    )
+
+
+@router.delete("/alert-channel/{channel_id}", response_model=ResponseModel, summary="删除告警推送渠道")
+async def delete_alert_channel(
+    channel_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_MANAGE),
+) -> dict:
+    await alert_channel_service.delete_channel(db, channel_id)
+    return resp.success(None, msg="已删除")
+
+
+@router.post(
+    "/alert-channel/{channel_id}/test",
+    response_model=ResponseModel,
+    summary="测试推送渠道（真实发送）",
+)
+async def test_alert_channel(
+    channel_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_MANAGE),
+) -> dict:
+    """真实发一条测试消息，返回 HTTP 状态码与响应摘要（失败也如实返回，不吞异常）"""
+    result = await alert_channel_service.test_channel(db, channel_id)
+    return resp.success(result, msg="已发送" if result["sent"] else "发送失败（详见 detail）")
+
+
+@router.post("/alert/{alert_id}/dispatch", response_model=ResponseModel, summary="推送告警到渠道")
+async def dispatch_alert(
+    alert_id: int,
+    payload: AlertDispatchRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_MANAGE),
+) -> dict:
+    """推送到所有 ``enable_system_alert`` 的启用渠道；``force=true`` 忽略该开关（手工补发）"""
+    result = await alert_channel_service.dispatch_alert(db, alert_id, force=payload.force)
+    return resp.success(result, msg=f"成功 {result['sent']} / 失败 {result['failed']}")
+
+
+@router.get("/alert/{alert_id}/deliveries", response_model=ResponseModel, summary="告警推送历史")
+async def alert_deliveries(
+    alert_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_VIEW),
+) -> dict:
+    return resp.success(await alert_channel_service.deliveries(db, alert_id))

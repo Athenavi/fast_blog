@@ -231,9 +231,18 @@ def _safe_int(value: str) -> Optional[int]:
 class WXRImporter:
     """把 WXR 灌进本地库；逐条产出日志，进度由 ``ImportStats`` 计算"""
 
-    def __init__(self, default_author_id: Optional[int] = None) -> None:
+    def __init__(
+        self,
+        default_author_id: Optional[int] = None,
+        *,
+        on_article_imported: Optional[
+            Callable[[AsyncSession, WXRItem, Article], Awaitable[None]]
+        ] = None,
+    ) -> None:
         #: WXR 里的作者在本站匹配不到时使用的作者（一般是任务创建者）
         self.default_author_id = default_author_id
+        #: 单篇导入成功后的钩子（可用它按源站链接生成 301 跳转等派生数据）
+        self.on_article_imported = on_article_imported
 
     async def run(
         self,
@@ -465,6 +474,10 @@ class WXRImporter:
             row = category_rows.get(str(category_id))
             if row is not None:
                 row.articles_count = int(row.articles_count or 0) + 1
+
+        if self.on_article_imported is not None:
+            await self.on_article_imported(db, item, article)
+
         await db.commit()
 
         item_ref.level = LOG_LEVEL_INFO

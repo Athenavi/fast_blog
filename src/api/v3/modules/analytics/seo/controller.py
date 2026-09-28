@@ -20,9 +20,11 @@ from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
+from src.api.v3.modules.analytics.seo.assistant_schema import SEOGenerateRequest, SEOSaveRequest
+from src.api.v3.modules.analytics.seo.assistant_service import seo_assistant_service
+from src.api.v3.modules.analytics.seo.feed import router as _feed_router
 from src.api.v3.modules.analytics.seo.schema import BulkCheckRequest, SEOAnalyzeRequest
 from src.api.v3.modules.analytics.seo.service import seo_service
-from src.api.v3.modules.analytics.seo.feed import router as _feed_router
 # 注意：别名必须以 "_" 开头——discover 会把 controller 模块里所有顶层 APIRouter
 # 都当作待挂载路由，重复挂载会让 sitemap 多出一份无 /seo 前缀的路径。
 from src.api.v3.modules.analytics.seo.sitemap import router as _sitemap_router
@@ -119,3 +121,52 @@ async def internal_link_suggestions(
     _perm=AuthControl(codes.SEO_VIEW),
 ) -> dict:
     return resp.success(await seo_service.internal_link_suggestions(db, article_id))
+
+
+# ───────────────────── 任务 10：SEO 生成 / 保存（写 article_seo 真表） ─────────────────────
+@router.get("/articles/{article_id}/seo", response_model=ResponseModel, summary="读取文章 SEO 元信息")
+async def get_article_seo(
+    article_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SEO_VIEW),
+) -> dict:
+    return resp.success(await seo_assistant_service.get_seo(db, article_id))
+
+
+@router.put("/articles/{article_id}/seo", response_model=ResponseModel, summary="保存文章 SEO 元信息")
+async def save_article_seo(
+    article_id: int,
+    payload: SEOSaveRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SEO_EDIT),
+) -> dict:
+    """写入 ``article_seo``（此前 v3 只有读路径，没有写入）"""
+    return resp.success(
+        await seo_assistant_service.save_seo(db, article_id, payload.model_dump(exclude_unset=True)),
+        msg="已保存",
+    )
+
+
+@router.post(
+    "/articles/{article_id}/seo/generate",
+    response_model=ResponseModel,
+    summary="用 AI 生成 SEO 元信息（真实调用）",
+)
+async def generate_article_seo(
+    article_id: int,
+    payload: SEOGenerateRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SEO_EDIT),
+) -> dict:
+    """真实调用 LLM（任务类型 ``seo_generate``）；``apply=true`` 时直接写入 ``article_seo``"""
+    result = await seo_assistant_service.generate_for_article(
+        db,
+        article_id,
+        config_id=payload.config_id,
+        apply=payload.apply,
+        max_tokens=payload.max_tokens,
+    )
+    return resp.success(result, msg=f"已生成（模型 {result['model']}）")

@@ -20,14 +20,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.migration import MigrationTask
 from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.modules.content.redirect.service import redirect_service
 from src.api.v3.modules.ops.migration.crud import migration_log_crud, migration_task_crud
+from src.api.v3.modules.ops.migration.importers import IMPORTER_KINDS, build_import_job
 from src.api.v3.modules.ops.migration.schema import MigrationTaskCreate, MigrationTaskOut, MigrationTaskUpdate
-from src.api.v3.modules.ops.migration.wxr_importer import WXRImporter, parse_wxr
 
 logger = get_logger("migration")
 
 #: 已实现的来源平台导入器（其余平台**如实拒绝启动**，不假装导入）
-SUPPORTED_IMPORTERS = {"wordpress"}
+SUPPORTED_IMPORTERS = {"wordpress"} | set(IMPORTER_KINDS)
 
 #: WXR 文件大小上限（避免超大 XML 拖垮进程；也顺带压制 XML 炸弹类风险）
 MAX_WXR_BYTES = 64 * 1024 * 1024
@@ -128,15 +129,23 @@ class MigrationService:
 
         raw_path = str(self._config(row).get("file_path") or "").strip()
         if not raw_path:
-            raise BadRequestError("任务配置缺少 file_path（服务端 WXR 文件路径）")
+            raise BadRequestError("任务配置缺少 file_path（服务端的源文件路径）")
         path = Path(raw_path)
-        if not path.is_file():
-            raise BadRequestError(f"WXR 文件不存在：{path}")
-        size = path.stat().st_size
+        if not path.exists():
+            raise BadRequestError(f"源文件不存在：{path}")
+        # markdown（Jekyll/Hexo/Hugo）允许传**目录**（递归收集 *.md），其余格式必须是单个文件
+        if path.is_dir():
+            if IMPORTER_KINDS.get(platform) != "markdown":
+                raise BadRequestError(
+                    f"来源「{row.source_platform}」只支持单个文件，不支持目录：{path}"
+                )
+            size = sum(item.stat().st_size for item in path.rglob("*") if item.is_file())
+        else:
+            size = path.stat().st_size
         if size <= 0:
-            raise BadRequestError(f"WXR 文件为空：{path}")
+            raise BadRequestError(f"源文件为空：{path}")
         if size > MAX_WXR_BYTES:
-            raise BadRequestError(f"WXR 文件过大（{size} 字节，上限 {MAX_WXR_BYTES}）")
+            raise BadRequestError(f"源文件过大（{size} 字节，上限 {MAX_WXR_BYTES}）")
 
         now = datetime.now()
         row = await migration_task_crud.update(
@@ -197,10 +206,28 @@ class MigrationService:
         """
         from src.utils.database.unified_manager import db_manager
 
+        default_author_id: Optional[int] = None
         try:
-            feed = parse_wxr(path.read_bytes())
+            async with db_manager.get_session_no_auto_commit() as db:
+                task = await migration_task_crud.get(db, task_id)
+                if task is None:
+                    return
+                default_author_id = int(task.created_by) if task.created_by else None
+                platform = (task.source_platform or "").strip().lower()
+                config = self._config(task)
+            # wordpress 走 WXR 通道，markdown / ghost / json / csv 走 importers.ArticleImporter
+            # 两者都会在单篇导入成功后回调：按源站链接生成 301 跳转（旧地址 → 新文章）
+            feed, importer = build_import_job(
+                platform,
+                path,
+                config,
+                default_author_id,
+                on_article_imported=lambda session, item, article: redirect_service.record_from_import(
+                    session, item, article, config
+                ),
+            )
         except Exception as exc:  # noqa: BLE001 - 解析失败同样要落库
-            await self._finalize_failed(task_id, f"WXR 解析失败：{exc}")
+            await self._finalize_failed(task_id, f"源文件解析失败：{exc}")
             _RUNNING.pop(task_id, None)
             return
 
@@ -209,8 +236,6 @@ class MigrationService:
                 task = await migration_task_crud.get(db, task_id)
                 if task is None:
                     return
-                # WXR 里作者匹配不到时，用任务创建者兜底（并在日志里说明）
-                importer = WXRImporter(default_author_id=task.created_by)
 
                 async def on_progress(stats, new_logs) -> None:
                     for entry in new_logs:
@@ -256,6 +281,8 @@ class MigrationService:
                         "updated_at": finished,
                     },
                 )
+                # 显式提交：最后的日志与任务状态不依赖导入器内部是否 commit
+                await db.commit()
         except Exception as exc:  # noqa: BLE001 - 兜底：未预期异常也要落库而不是静默
             logger.exception("迁移任务执行异常: task_id=%s", task_id)
             await self._finalize_failed(task_id, str(exc))
@@ -292,6 +319,7 @@ class MigrationService:
                         "created_at": now,
                     },
                 )
+                await db.commit()
         except Exception:  # noqa: BLE001 - 收尾失败只记日志
             logger.exception("迁移任务收尾失败: task_id=%s", task_id)
 

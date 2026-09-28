@@ -50,6 +50,23 @@ class SiteUpdate(SchemaBase):
     is_default: Optional[bool] = None
 
 
+class SiteDomainsUpdate(SchemaBase):
+    """站点域名配置（``additional_domains`` 存 JSON 数组，与既有约定一致）"""
+
+    domain: Optional[str] = Field(default=None, max_length=255, description="主域名")
+    additional_domains: Optional[list[str]] = Field(
+        default=None, max_length=50, description="附加域名（按 Host 解析时一并匹配）"
+    )
+
+
+class SiteMemberCreate(SchemaBase):
+    """站点成员加入 / 更新"""
+
+    user_id: int = Field(ge=1)
+    role: str = Field(default="member", max_length=50, description="站点内角色：owner / admin / member")
+    is_active: bool = True
+
+
 class SiteOut(SchemaBase):
     id: int
     name: Optional[str] = None
