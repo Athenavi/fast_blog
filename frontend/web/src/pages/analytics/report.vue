@@ -7,7 +7,7 @@
  * 标量对象走 `el-descriptions`、对象数组走动态列 `el-table`。
  * 导出与历史下载是**文件下载**（服务端 `Content-Disposition`）。
  */
-import {Delete, Download, EditPen, Plus, Refresh, Search, VideoPlay} from '@element-plus/icons-vue'
+import {Delete, Download, EditPen, Plus, Search, VideoPlay} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
@@ -395,8 +395,21 @@ onMounted(() => {
 
       <!-- 定时报表 -->
       <el-tab-pane :label="$t('admin.analytics.report.scheduled')" name="scheduled">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="scheduledQuery" @submit.prevent="scheduledSearch()">
+        <AdminListShell
+          :failed="scheduledFailed"
+          :loading="scheduledLoading"
+          :page="scheduledPage"
+          :page-size="scheduledPageSize"
+          :rows="scheduledList"
+          :selectable="false"
+          :total="scheduledTotal"
+          @page-change="onScheduledPageChange"
+          @refresh="scheduledLoad"
+          @reset="scheduledReset"
+          @search="scheduledSearch"
+          @size-change="onScheduledSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.analytics.report.keyword')">
               <el-input v-model="scheduledQuery.keyword" clearable style="width: 180px"
                         @keyup.enter="scheduledSearch()"/>
@@ -407,92 +420,77 @@ onMounted(() => {
                 <el-option v-for="item in REPORT_TYPES" :key="item" :label="item" :value="item"/>
               </el-select>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="scheduledSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="scheduledReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button v-auth="'module_analytics:report:create'" :icon="Plus" type="primary"
                        @click="openScheduledCreate">
               {{ $t('admin.analytics.report.createScheduled') }}
             </el-button>
-            <span class="table-toolbar__total">
-              {{ $t('admin.common.totalItems', {n: scheduledTotal}) }}
-            </span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="scheduledLoading && !scheduledList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!scheduledLoading && !scheduledList.length"
-            :title="scheduledFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="scheduledFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="scheduledFailed" :icon="Refresh" @click="scheduledLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-
-          <el-table v-else v-loading="scheduledLoading" :data="scheduledList" border stripe>
-            <el-table-column :label="$t('admin.common.name')" min-width="170" prop="name"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.analytics.report.reportType')" min-width="140"
-                             prop="report_type"/>
-            <el-table-column :label="$t('admin.analytics.report.frequency')" prop="frequency"
-                             width="110"/>
-            <el-table-column :label="$t('admin.analytics.report.days')" prop="days" width="90"/>
-            <el-table-column :label="$t('admin.analytics.report.nextRunAt')" min-width="170"
-                             prop="next_run_at"/>
-            <el-table-column :label="$t('admin.common.status')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as ScheduledReportItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as ScheduledReportItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="260">
-              <template #default="{ row }">
-                <el-button v-auth="'module_analytics:report:edit'" :icon="VideoPlay" link type="success"
-                           @click="onRunScheduled(row as ScheduledReportItem)">
-                  {{ $t('admin.analytics.report.runNow') }}
-                </el-button>
-                <el-button v-auth="'module_analytics:report:edit'" link type="primary"
-                           @click="onToggleScheduled(row as ScheduledReportItem)">
-                  {{
-                    (row as ScheduledReportItem).is_active
-                      ? $t('admin.analytics.report.disable')
-                      : $t('admin.analytics.report.enable')
-                  }}
-                </el-button>
-                <el-button v-auth="'module_analytics:report:edit'" :icon="EditPen" link type="primary"
-                           @click="openScheduledEdit(row as ScheduledReportItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_analytics:report:delete'" :icon="Delete" link type="danger"
-                           @click="onDeleteScheduled(row as ScheduledReportItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="scheduledPage" :page-size="scheduledPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="scheduledTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onScheduledPageChange" @size-change="onScheduledSizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.common.name')" min-width="170" prop="name"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.analytics.report.reportType')" min-width="140"
+                           prop="report_type"/>
+          <el-table-column :label="$t('admin.analytics.report.frequency')" prop="frequency"
+                           width="110"/>
+          <el-table-column :label="$t('admin.analytics.report.days')" prop="days" width="90"/>
+          <el-table-column :label="$t('admin.analytics.report.nextRunAt')" min-width="170"
+                           prop="next_run_at"/>
+          <el-table-column :label="$t('admin.common.status')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as ScheduledReportItem).is_active ? 'success' : 'info'" size="small">
+                {{
+                  (row as ScheduledReportItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="260">
+            <template #default="{ row }">
+              <el-button v-auth="'module_analytics:report:edit'" :icon="VideoPlay" link type="success"
+                         @click="onRunScheduled(row as ScheduledReportItem)">
+                {{ $t('admin.analytics.report.runNow') }}
+              </el-button>
+              <el-button v-auth="'module_analytics:report:edit'" link type="primary"
+                         @click="onToggleScheduled(row as ScheduledReportItem)">
+                {{
+                  (row as ScheduledReportItem).is_active
+                    ? $t('admin.analytics.report.disable')
+                    : $t('admin.analytics.report.enable')
+                }}
+              </el-button>
+              <el-button v-auth="'module_analytics:report:edit'" :icon="EditPen" link type="primary"
+                         @click="openScheduledEdit(row as ScheduledReportItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_analytics:report:delete'" :icon="Delete" link type="danger"
+                         @click="onDeleteScheduled(row as ScheduledReportItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 报表历史 -->
       <el-tab-pane :label="$t('admin.analytics.report.history')" name="history">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="historyQuery" @submit.prevent="historySearch()">
+        <AdminListShell
+          :failed="historyFailed"
+          :loading="historyLoading"
+          :page="historyPage"
+          :page-size="historyPageSize"
+          :rows="historyList"
+          :selectable="false"
+          :total="historyTotal"
+          @page-change="onHistoryPageChange"
+          @refresh="historyLoad"
+          @reset="historyReset"
+          @search="historySearch"
+          @size-change="onHistorySizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.analytics.report.keyword')">
               <el-input v-model="historyQuery.keyword" clearable style="width: 180px"
                         @keyup.enter="historySearch()"/>
@@ -501,41 +499,24 @@ onMounted(() => {
               <el-input v-model="historyQuery.report_type" clearable style="width: 170px"
                         @keyup.enter="historySearch()"/>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="historySearch()">
-                {{ $t('admin.common.search') }}
+          </template>
+
+          <el-table-column :label="$t('admin.analytics.report.reportName')" min-width="200"
+                           prop="report_name" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.analytics.report.reportType')" min-width="140"
+                           prop="report_type"/>
+          <el-table-column :label="$t('admin.analytics.report.format')" prop="format" width="90"/>
+          <el-table-column :label="$t('admin.analytics.report.generatedAt')" min-width="180"
+                           prop="generated_at"/>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="120">
+            <template #default="{ row }">
+              <el-button :icon="Download" link type="primary"
+                         @click="downloadHistory(row as ReportHistoryItem)">
+                {{ $t('admin.analytics.report.download') }}
               </el-button>
-              <el-button :icon="Refresh" @click="historyReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
-
-          <div class="table-toolbar">
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: historyTotal}) }}</span>
-          </div>
-
-          <el-table v-loading="historyLoading" :data="historyList" border stripe>
-            <el-table-column :label="$t('admin.analytics.report.reportName')" min-width="200"
-                             prop="report_name" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.analytics.report.reportType')" min-width="140"
-                             prop="report_type"/>
-            <el-table-column :label="$t('admin.analytics.report.format')" prop="format" width="90"/>
-            <el-table-column :label="$t('admin.analytics.report.generatedAt')" min-width="180"
-                             prop="generated_at"/>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="120">
-              <template #default="{ row }">
-                <el-button :icon="Download" link type="primary"
-                           @click="downloadHistory(row as ReportHistoryItem)">
-                  {{ $t('admin.analytics.report.download') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="historyPage" :page-size="historyPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="historyTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onHistoryPageChange" @size-change="onHistorySizeChange"/>
-        </el-card>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 模板 -->

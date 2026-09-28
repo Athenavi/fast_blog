@@ -4,7 +4,7 @@
  *
  * 对齐 v3 `/marketing/ad`：广告投放统计 + 广告列表 + 广告位管理（双标签）。
  */
-import {Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
@@ -260,129 +260,124 @@ async function deletePlacement(row: AdPlacementItem) {
       </el-card>
     </div>
 
-    <el-card shadow="never">
-      <el-tabs v-model="activeTab">
-        <!-- 广告 -->
-        <el-tab-pane :label="$t('admin.marketing.ad.tabAds')" name="ads">
-          <el-form :inline="true" :model="adQuery" @submit.prevent="adSearch()">
-            <el-form-item :label="$t('admin.system.sensitiveWord.keyword')">
-              <el-input v-model="adQuery.keyword" clearable style="width: 180px" @keyup.enter="adSearch()"/>
-            </el-form-item>
-            <el-form-item :label="$t('admin.marketing.ad.placement')">
-              <el-select v-model="adQuery.placement_id" clearable style="width: 160px">
-                <el-option v-for="p in placementList" :key="p.id" :label="p.name" :value="p.id"/>
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="adSearch()">{{ $t('admin.common.search') }}</el-button>
-              <el-button :icon="Refresh" @click="adReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+    <el-tabs v-model="activeTab">
+      <!-- 广告 -->
+      <el-tab-pane :label="$t('admin.marketing.ad.tabAds')" name="ads">
+      <AdminListShell
+        :failed="adFailed"
+        :loading="adLoading"
+        :page="adPage"
+        :page-size="adPageSize"
+        :page-sizes="[10, 20, 50]"
+        :rows="adList"
+        :selectable="false"
+        :total="adTotal"
+        @page-change="onAdPageChange"
+        @refresh="adLoad"
+        @reset="adReset"
+        @search="adSearch"
+        @size-change="onAdPageSizeChange"
+      >
+        <template #filters>
+          <el-form-item :label="$t('admin.system.sensitiveWord.keyword')">
+            <el-input v-model="adQuery.keyword" clearable style="width: 180px" @keyup.enter="adSearch()"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.marketing.ad.placement')">
+            <el-select v-model="adQuery.placement_id" clearable style="width: 160px">
+              <el-option v-for="p in placementList" :key="p.id" :label="p.name" :value="p.id"/>
+            </el-select>
+          </el-form-item>
+        </template>
 
-          <div class="table-toolbar">
-            <el-button v-auth="'module_marketing:ad:create'" :icon="Plus" type="primary" @click="openAdCreate">
-              {{ $t('admin.marketing.ad.createAd') }}
+        <template #actions>
+          <el-button v-auth="'module_marketing:ad:create'" :icon="Plus" type="primary" @click="openAdCreate">
+            {{ $t('admin.marketing.ad.createAd') }}
+          </el-button>
+        </template>
+
+        <el-table-column :label="$t('admin.common.name')" min-width="160" prop="title" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.marketing.ad.adType')" prop="ad_type" width="90"/>
+        <el-table-column :label="$t('admin.marketing.ad.placement')" width="120">
+          <template #default="{ row }">{{ placementName((row as AdItem).placement_id) }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.marketing.ad.statClicks')" prop="click_count" width="90"/>
+        <el-table-column :label="$t('admin.marketing.ad.statImpressions')" prop="impression_count" width="90"/>
+        <el-table-column :label="$t('admin.marketing.ad.priority')" prop="priority" width="80"/>
+        <el-table-column :label="$t('admin.common.status')" width="90">
+          <template #default="{ row }">
+            <el-tag :type="(row as AdItem).is_active ? 'success' : 'info'" size="small">
+              {{
+                (row as AdItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
+              }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+          <template #default="{ row }">
+            <el-button v-auth="'module_marketing:ad:edit'" link type="primary" @click="openAdEdit(row as AdItem)">
+              {{ $t('admin.common.edit') }}
             </el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: adTotal}) }}</span>
-          </div>
-
-          <AdminTableSkeleton v-if="adLoading && !adList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!adLoading && !adList.length"
-            :title="adFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="adFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="adFailed" :icon="Refresh" @click="adLoad()">
-              {{ $t('admin.common.retry') }}
+            <el-button v-auth="'module_marketing:ad:delete'" link type="danger" @click="deleteAd(row as AdItem)">
+              {{ $t('admin.common.delete') }}
             </el-button>
-          </AdminEmpty>
-          <el-table v-else v-loading="adLoading" :data="adList" border stripe>
-            <el-table-column :label="$t('admin.common.name')" min-width="160" prop="title" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.marketing.ad.adType')" prop="ad_type" width="90"/>
-            <el-table-column :label="$t('admin.marketing.ad.placement')" width="120">
-              <template #default="{ row }">{{ placementName((row as AdItem).placement_id) }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.marketing.ad.statClicks')" prop="click_count" width="90"/>
-            <el-table-column :label="$t('admin.marketing.ad.statImpressions')" prop="impression_count" width="90"/>
-            <el-table-column :label="$t('admin.marketing.ad.priority')" prop="priority" width="80"/>
-            <el-table-column :label="$t('admin.common.status')" width="90">
-              <template #default="{ row }">
-                <el-tag :type="(row as AdItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as AdItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_marketing:ad:edit'" link type="primary" @click="openAdEdit(row as AdItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_marketing:ad:delete'" link type="danger" @click="deleteAd(row as AdItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+          </template>
+        </el-table-column>
+      </AdminListShell>
+      </el-tab-pane>
 
-          <el-pagination
-            :current-page="adPage" :page-size="adPageSize" :page-sizes="[10, 20, 50]" :total="adTotal"
-            background class="table-pagination" layout="total, sizes, prev, pager, next"
-            @current-change="onAdPageChange" @size-change="onAdPageSizeChange"
-          />
-        </el-tab-pane>
+      <!-- 广告位 -->
+      <el-tab-pane :label="$t('admin.marketing.ad.tabPlacements')" name="placements">
+      <AdminListShell
+        :failed="placementFailed"
+        :loading="placementLoading"
+        :page="placementPage"
+        :page-size="placementPageSize"
+        :rows="placementList"
+        :selectable="false"
+        :total="placementTotal"
+        @page-change="onPlacementPageChange"
+        @refresh="placementLoad"
+        @reset="placementReset"
+        @search="placementSearch"
+      >
+        <template #actions>
+          <el-button v-auth="'module_marketing:ad:create'" :icon="Plus" type="primary" @click="openPlacementCreate">
+            {{ $t('admin.marketing.ad.createPlacement') }}
+          </el-button>
+        </template>
 
-        <!-- 广告位 -->
-        <el-tab-pane :label="$t('admin.marketing.ad.tabPlacements')" name="placements">
-          <div class="table-toolbar">
-            <el-button v-auth="'module_marketing:ad:create'" :icon="Plus" type="primary" @click="openPlacementCreate">
-              {{ $t('admin.marketing.ad.createPlacement') }}
+        <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name"/>
+        <el-table-column :label="$t('admin.marketing.ad.placementCode')" prop="code" width="140"/>
+        <el-table-column :label="$t('admin.marketing.ad.placementPosition')" prop="position" width="120"/>
+        <el-table-column :label="$t('admin.marketing.ad.placementSize')" width="110">
+          <template #default="{ row }">{{ (row as AdPlacementItem).width || '-' }} ×
+            {{ (row as AdPlacementItem).height || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.common.status')" width="90">
+          <template #default="{ row }">
+            <el-tag :type="(row as AdPlacementItem).is_active ? 'success' : 'info'" size="small">
+              {{
+                (row as AdPlacementItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
+              }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.common.actions')" width="150">
+          <template #default="{ row }">
+            <el-button v-auth="'module_marketing:ad:edit'" link type="primary"
+                       @click="openPlacementEdit(row as AdPlacementItem)">
+              {{ $t('admin.common.edit') }}
             </el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: placementTotal}) }}</span>
-          </div>
-
-          <el-table v-loading="placementLoading" :data="placementList" border stripe>
-            <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name"/>
-            <el-table-column :label="$t('admin.marketing.ad.placementCode')" prop="code" width="140"/>
-            <el-table-column :label="$t('admin.marketing.ad.placementPosition')" prop="position" width="120"/>
-            <el-table-column :label="$t('admin.marketing.ad.placementSize')" width="110">
-              <template #default="{ row }">{{ (row as AdPlacementItem).width || '-' }} ×
-                {{ (row as AdPlacementItem).height || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.status')" width="90">
-              <template #default="{ row }">
-                <el-tag :type="(row as AdPlacementItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as AdPlacementItem).is_active ? $t('admin.system.sensitiveWord.active') : $t('admin.system.sensitiveWord.inactive')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_marketing:ad:edit'" link type="primary"
-                           @click="openPlacementEdit(row as AdPlacementItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_marketing:ad:delete'" link type="danger"
-                           @click="deletePlacement(row as AdPlacementItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination
-            :current-page="placementPage" :page-size="placementPageSize" :total="placementTotal"
-            background class="table-pagination" layout="total, prev, pager, next"
-            @current-change="onPlacementPageChange"
-          />
-        </el-tab-pane>
-      </el-tabs>
-    </el-card>
+            <el-button v-auth="'module_marketing:ad:delete'" link type="danger"
+                       @click="deletePlacement(row as AdPlacementItem)">
+              {{ $t('admin.common.delete') }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </AdminListShell>
+      </el-tab-pane>
+    </el-tabs>
 
     <!-- 广告表单 -->
     <el-drawer v-model="adFormVisible" :title="adFormTitle" destroy-on-close size="480px">
