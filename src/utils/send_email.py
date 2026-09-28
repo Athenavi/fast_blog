@@ -1,3 +1,12 @@
+"""邮件工具（历史模块）
+
+待办：
+  - 发信实现与 ``shared/services/notifications/email_service.py`` 的 ``EmailService`` 重复
+    （配置来源不同：本模块读 ``app_config.MAIL_*``，EmailService 读 ``SMTP_*`` 环境变量）。
+    统一配置口径后本模块应只保留 ``request_email_change`` 的流程逻辑。
+  - ``request_email_change``（邮箱变更申请 + 确认链接）目前还没有对应的 v3 端点，待接线。
+"""
+import asyncio
 import smtplib
 import uuid
 from email.mime.multipart import MIMEMultipart
@@ -55,29 +64,25 @@ async def api_mail(user_id, body_content, site_name='系统通知', recipient: O
     # 如果没有指定收件人，使用配置中的邮箱
     recipient_email = recipient if recipient else app_config.MAIL_USERNAME
 
-    # 创建邮件
-    msg = MIMEMultipart()
-    msg['From'] = config['MAIL_FROM']
-    msg['To'] = recipient_email
-    msg['Subject'] = subject
+    def _send_blocking() -> None:
+        """smtplib 是阻塞 IO：放进线程池执行，避免卡住事件循环"""
+        msg = MIMEMultipart()
+        msg['From'] = config['MAIL_FROM']
+        msg['To'] = recipient_email
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
-    # 添加邮件正文
-    msg.attach(MIMEText(body, 'plain', 'utf-8'))
-
-    # 发送邮件
-    try:
-        # 创建SMTP连接
         server = smtplib.SMTP(config['MAIL_SERVER'], config['MAIL_PORT'])
+        try:
+            if config['MAIL_STARTTLS']:
+                server.starttls()
+            server.login(config['MAIL_USERNAME'], config['MAIL_PASSWORD'])
+            server.sendmail(config['MAIL_FROM'], recipient_email, msg.as_string())
+        finally:
+            server.quit()
 
-        if config['MAIL_STARTTLS']:
-            server.starttls()
-
-        # 登录并发送邮件
-        server.login(config['MAIL_USERNAME'], config['MAIL_PASSWORD'])
-        text = msg.as_string()
-        server.sendmail(config['MAIL_FROM'], recipient_email, text)
-        server.quit()
-
+    try:
+        await asyncio.to_thread(_send_blocking)
         logger.info(f"邮件派送人: {user_id if user_id != 0 else '系统'}")
         return True
     except Exception as e:

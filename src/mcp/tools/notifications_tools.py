@@ -64,11 +64,15 @@ async def send_test_email(arguments: dict) -> dict:
 
     try:
         from shared.services.notifications.email_service import email_service
-        await email_service.send_email(
-            recipients=[to_email],
+        # send_email 是同步方法（smtplib），这里用其异步包装避免阻塞事件循环
+        sent = await email_service.send_email_async(
+            to_email=to_email,
             subject="FastBlog 测试邮件",
-            body="这是一封来自 FastBlog MCP 的测试邮件。",
+            html_content="<p>这是一封来自 FastBlog MCP 的测试邮件。</p>",
+            text_content="这是一封来自 FastBlog MCP 的测试邮件。",
         )
+        if not sent:
+            return {"success": False, "error": "发送失败：SMTP 未配置或连接失败（见服务端日志）"}
         return {"success": True, "message": f"测试邮件已发送至 {to_email}"}
     except Exception as e:
         return {"success": False, "error": f"发送失败: {e}"}
