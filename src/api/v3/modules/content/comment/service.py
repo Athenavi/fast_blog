@@ -14,11 +14,22 @@ from shared.models.comment.comment import Comment
 from shared.models.comment.comment_vote import CommentVote
 from src.api.v3.core.exceptions import NotFoundError
 from src.api.v3.core.logger import get_logger
-from src.api.v3.core.permission.scope import ensure_object_in_scope
+from src.api.v3.core.permission import codes as C
+from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
 from src.api.v3.modules.content.comment.crud import comment_crud
 from src.api.v3.modules.content.comment.schema import CommentCreate
 
 logger = get_logger("comment")
+
+
+async def _assert_comment_write(
+    db: AsyncSession, comment: Comment, *, scope_user: Any, others_code: str
+) -> None:
+    """管理端写路径校验：数据范围 + 他人数据权限（``scope_user`` 为空 = 内部调用，跳过）"""
+    if scope_user is not None:
+        await ensure_write_in_scope(
+            db, Comment, comment, user=scope_user, others_code=others_code
+        )
 
 
 def to_admin_out(comment: Comment) -> dict:
@@ -164,8 +175,31 @@ class CommentService:
         )
         return to_public_out(comment)
 
-    async def batch_set_approved(self, db: AsyncSession, ids: Sequence[int], approved: bool) -> int:
+    async def _assert_batch_writable(
+        self,
+        db: AsyncSession,
+        ids: Sequence[int],
+        *,
+        scope_user: Any,
+        others_code: str,
+    ) -> None:
+        """批量写操作的前置校验：逐个核对归属 / 数据范围 / 他人数据权限"""
+        if scope_user is None:
+            return
+        for comment_id in ids:
+            comment = await comment_crud.get(db, comment_id)
+            if comment is not None:
+                await _assert_comment_write(
+                    db, comment, scope_user=scope_user, others_code=others_code
+                )
+
+    async def batch_set_approved(
+        self, db: AsyncSession, ids: Sequence[int], approved: bool, *, scope_user: Any = None
+    ) -> int:
         """批量通过 / 拒绝：逐条复用 set_approved，忽略不存在的 id"""
+        await self._assert_batch_writable(
+            db, ids, scope_user=scope_user, others_code=C.COMMENT_APPROVE_OTHERS
+        )
         count = 0
         for comment_id in ids:
             try:
@@ -176,12 +210,21 @@ class CommentService:
         return count
 
     async def reply_comment(
-        self, db: AsyncSession, comment_id: int, content: str, *, user: Any = None
+        self,
+        db: AsyncSession,
+        comment_id: int,
+        content: str,
+        *,
+        user: Any = None,
+        scope_user: Any = None,
     ) -> dict:
         """管理端回复：以当前登录用户为作者，作为该评论的子评论写入（后端对登录用户直接放行审核）"""
         parent = await comment_crud.get(db, comment_id)
         if parent is None:
             raise NotFoundError("评论不存在")
+        await _assert_comment_write(
+            db, parent, scope_user=scope_user, others_code=C.COMMENT_EDIT_OTHERS
+        )
 
         payload = CommentCreate(
             article_id=parent.article_id,
@@ -190,29 +233,44 @@ class CommentService:
         )
         return await self.create_comment(db, payload, user=user, ip=None, user_agent="admin-console")
 
-    async def set_approved(self, db: AsyncSession, comment_id: int, approved: bool) -> dict:
+    async def set_approved(
+        self, db: AsyncSession, comment_id: int, approved: bool, *, scope_user: Any = None
+    ) -> dict:
         comment = await comment_crud.get(db, comment_id)
         if comment is None:
             raise NotFoundError("评论不存在")
+        await _assert_comment_write(
+            db, comment, scope_user=scope_user, others_code=C.COMMENT_APPROVE_OTHERS
+        )
         comment = await comment_crud.update(
             db, comment, {"is_approved": approved, "updated_at": datetime.now()}
         )
         return to_admin_out(comment)
 
-    async def update_comment(self, db: AsyncSession, comment_id: int, content: str) -> dict:
+    async def update_comment(
+        self, db: AsyncSession, comment_id: int, content: str, *, scope_user: Any = None
+    ) -> dict:
         comment = await comment_crud.get(db, comment_id)
         if comment is None:
             raise NotFoundError("评论不存在")
+        await _assert_comment_write(
+            db, comment, scope_user=scope_user, others_code=C.COMMENT_EDIT_OTHERS
+        )
         comment = await comment_crud.update(
             db, comment, {"content": content, "updated_at": datetime.now()}
         )
         return to_admin_out(comment)
 
-    async def delete_comment(self, db: AsyncSession, comment_id: int) -> None:
+    async def delete_comment(
+        self, db: AsyncSession, comment_id: int, *, scope_user: Any = None
+    ) -> None:
         """删除评论，并级联删除其全部回复（``parent_id`` 无外键级联）"""
         comment = await comment_crud.get(db, comment_id)
         if comment is None:
             raise NotFoundError("评论不存在")
+        await _assert_comment_write(
+            db, comment, scope_user=scope_user, others_code=C.COMMENT_DELETE_OTHERS
+        )
         await self._delete_descendants(db, comment_id)
         await comment_crud.remove(db, comment)
 
@@ -231,7 +289,12 @@ class CommentService:
             await db.commit()
         return deleted
 
-    async def batch_delete(self, db: AsyncSession, ids: Sequence[int]) -> int:
+    async def batch_delete(
+        self, db: AsyncSession, ids: Sequence[int], *, scope_user: Any = None
+    ) -> int:
+        await self._assert_batch_writable(
+            db, ids, scope_user=scope_user, others_code=C.COMMENT_DELETE_OTHERS
+        )
         count = 0
         for comment_id in ids:
             try:

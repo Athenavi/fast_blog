@@ -47,10 +47,16 @@ COMMENT_VIEW = "module_content:comment:view"
 COMMENT_APPROVE = "module_content:comment:approve"
 COMMENT_EDIT = "module_content:comment:edit"
 COMMENT_DELETE = "module_content:comment:delete"
+# 他人数据的写权限（与 data_scope 取 AND：既要范围允许，也要持有该码）
+COMMENT_APPROVE_OTHERS = "module_content:comment:approve_others"
+COMMENT_EDIT_OTHERS = "module_content:comment:edit_others"
+COMMENT_DELETE_OTHERS = "module_content:comment:delete_others"
 
 MEDIA_VIEW = "module_content:media:view"
 MEDIA_UPLOAD = "module_content:media:upload"
 MEDIA_DELETE = "module_content:media:delete"
+MEDIA_EDIT_OTHERS = "module_content:media:edit_others"
+MEDIA_DELETE_OTHERS = "module_content:media:delete_others"
 
 CPT_VIEW = "module_content:custom_post_type:view"
 
@@ -66,6 +72,8 @@ PAGE_CREATE = "module_content:page:create"
 PAGE_EDIT = "module_content:page:edit"
 PAGE_DELETE = "module_content:page:delete"
 PAGE_PUBLISH = "module_content:page:publish"
+PAGE_EDIT_OTHERS = "module_content:page:edit_others"
+PAGE_DELETE_OTHERS = "module_content:page:delete_others"
 
 # ============================================================ system 域
 USER_VIEW = "module_system:user:view"
@@ -360,9 +368,14 @@ CODE_LABELS: dict[str, str] = {
     COMMENT_APPROVE: "审核评论",
     COMMENT_EDIT: "编辑评论",
     COMMENT_DELETE: "删除评论",
+    COMMENT_APPROVE_OTHERS: "审核他人评论",
+    COMMENT_EDIT_OTHERS: "编辑他人评论",
+    COMMENT_DELETE_OTHERS: "删除他人评论",
     MEDIA_VIEW: "查看媒体",
     MEDIA_UPLOAD: "上传文件",
     MEDIA_DELETE: "删除文件",
+    MEDIA_EDIT_OTHERS: "编辑他人文件",
+    MEDIA_DELETE_OTHERS: "删除他人文件",
     CPT_VIEW: "查看内容类型",
     CPT_CREATE: "创建内容类型",
     CPT_EDIT: "编辑内容类型",
@@ -385,6 +398,8 @@ CODE_LABELS: dict[str, str] = {
     PAGE_EDIT: "编辑页面",
     PAGE_DELETE: "删除页面",
     PAGE_PUBLISH: "发布页面",
+    PAGE_EDIT_OTHERS: "编辑他人页面",
+    PAGE_DELETE_OTHERS: "删除他人页面",
     # ---- system ----
     USER_VIEW: "查看用户",
     USER_CREATE: "创建用户",

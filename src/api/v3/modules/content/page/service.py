@@ -11,7 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.page.pages import Pages
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
-from src.api.v3.core.permission.scope import ensure_object_in_scope
+from src.api.v3.core.permission import codes as C
+from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
 from src.api.v3.modules.content.page.crud import page_crud
 from src.api.v3.modules.content.page.schema import (
     STATUS_DRAFT,
@@ -21,6 +22,16 @@ from src.api.v3.modules.content.page.schema import (
 )
 
 logger = get_logger("page")
+
+
+async def _assert_page_write(
+    db: AsyncSession, page: Pages, *, scope_user: Any, others_code: str
+) -> None:
+    """管理端写路径校验：数据范围 + 他人数据权限（``scope_user`` 为空 = 内部调用，跳过）"""
+    if scope_user is not None:
+        await ensure_write_in_scope(
+            db, Pages, page, user=scope_user, others_code=others_code
+        )
 
 
 def _out(page: Pages, *, with_content: bool = False) -> dict:
@@ -109,10 +120,15 @@ class PageService:
         page = await page_crud.create(db, data)
         return _out(page, with_content=True)
 
-    async def update_page(self, db: AsyncSession, page_id: int, payload: PageUpdate) -> dict:
+    async def update_page(
+        self, db: AsyncSession, page_id: int, payload: PageUpdate, *, scope_user: Any = None
+    ) -> dict:
         page = await page_crud.get(db, page_id)
         if page is None:
             raise NotFoundError("页面不存在")
+        await _assert_page_write(
+            db, page, scope_user=scope_user, others_code=C.PAGE_EDIT_OTHERS
+        )
 
         fields_set = payload.model_fields_set
         self._validate_status(payload.status if "status" in fields_set else None)
@@ -129,13 +145,36 @@ class PageService:
         page = await page_crud.update(db, page, data)
         return _out(page, with_content=True)
 
-    async def delete_page(self, db: AsyncSession, page_id: int) -> None:
+    async def delete_page(
+        self, db: AsyncSession, page_id: int, *, scope_user: Any = None
+    ) -> None:
         page = await page_crud.get(db, page_id)
         if page is None:
             raise NotFoundError("页面不存在")
+        await _assert_page_write(
+            db, page, scope_user=scope_user, others_code=C.PAGE_DELETE_OTHERS
+        )
         await page_crud.remove(db, page)
 
-    async def batch_delete(self, db: AsyncSession, ids: List[int]) -> int:
+    async def _assert_batch_writable(
+        self, db: AsyncSession, ids: List[int], *, scope_user: Any, others_code: str
+    ) -> None:
+        """批量写操作的前置校验：逐个核对归属 / 数据范围 / 他人数据权限"""
+        if scope_user is None:
+            return
+        for page_id in ids:
+            page = await page_crud.get(db, page_id)
+            if page is not None:
+                await _assert_page_write(
+                    db, page, scope_user=scope_user, others_code=others_code
+                )
+
+    async def batch_delete(
+        self, db: AsyncSession, ids: List[int], *, scope_user: Any = None
+    ) -> int:
+        await self._assert_batch_writable(
+            db, ids, scope_user=scope_user, others_code=C.PAGE_DELETE_OTHERS
+        )
         count = 0
         for page_id in ids:
             try:
@@ -145,10 +184,15 @@ class PageService:
                 continue
         return count
 
-    async def set_published(self, db: AsyncSession, page_id: int, publish: bool) -> dict:
+    async def set_published(
+        self, db: AsyncSession, page_id: int, publish: bool, *, scope_user: Any = None
+    ) -> dict:
         page = await page_crud.get(db, page_id)
         if page is None:
             raise NotFoundError("页面不存在")
+        await _assert_page_write(
+            db, page, scope_user=scope_user, others_code=C.PAGE_EDIT_OTHERS
+        )
 
         if publish:
             data = {

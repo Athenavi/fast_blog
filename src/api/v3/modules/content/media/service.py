@@ -16,7 +16,8 @@ from shared.models.media.media_folder import MediaFolder
 from src.api.v3.common.tags import normalize_tags
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, ForbiddenError, NotFoundError
 from src.api.v3.core.logger import get_logger
-from src.api.v3.core.permission.scope import ensure_object_in_scope
+from src.api.v3.core.permission import codes as C
+from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
 from src.api.v3.modules.content.media.crud import media_crud, media_folder_crud
 from src.api.v3.modules.content.media.schema import (
     MediaBatchUpdateRequest,
@@ -28,6 +29,17 @@ from src.api.v3.modules.content.media.schema import (
 logger = get_logger("media")
 
 DEFAULT_UPLOAD_LIMIT = 10 * 1024 * 1024
+
+
+async def _assert_media_write(
+    db: AsyncSession, media: Media, *, scope_user: Any, others_code: str
+) -> None:
+    """管理端写路径校验：数据范围 + 他人数据权限（``scope_user`` 为空 = 内部调用，跳过）"""
+    if scope_user is not None:
+        await ensure_write_in_scope(
+            db, Media, media, user=scope_user, others_code=others_code
+        )
+
 
 # 媒体文件对外 URL 契约：写入 media.file_url，出现在文章配图/封面里。
 # 必须挂在 /api/v3 之下（前端页面路由占用 /media，裸 /media/** 前缀会与之冲突）。
@@ -234,7 +246,26 @@ class MediaService:
             logger.exception("媒体上传 webhook 触发失败")
 
     # ------------------------------------------------------------------ 更新 / 删除
-    async def batch_update(self, db: AsyncSession, payload: MediaBatchUpdateRequest) -> int:
+    async def _assert_batch_writable(
+        self, db: AsyncSession, ids: Sequence[int], *, scope_user: Any, others_code: str
+    ) -> None:
+        """批量写操作的前置校验：逐个核对归属 / 数据范围 / 他人数据权限"""
+        if scope_user is None:
+            return
+        for media_id in ids:
+            media = await media_crud.get(db, media_id)
+            if media is not None:
+                await _assert_media_write(
+                    db, media, scope_user=scope_user, others_code=others_code
+                )
+
+    async def batch_update(
+        self,
+        db: AsyncSession,
+        payload: MediaBatchUpdateRequest,
+        *,
+        scope_user: Any = None,
+    ) -> int:
         """批量更新可见性 / 所属文件夹：逐条复用 update_media，忽略不存在的 id"""
         fields: dict[str, Any] = {}
         if payload.is_public is not None:
@@ -245,6 +276,9 @@ class MediaService:
         if not fields:
             return 0
 
+        await self._assert_batch_writable(
+            db, payload.ids, scope_user=scope_user, others_code=C.MEDIA_EDIT_OTHERS
+        )
         count = 0
         for media_id in payload.ids:
             try:
@@ -254,10 +288,15 @@ class MediaService:
                 continue
         return count
 
-    async def update_media(self, db: AsyncSession, media_id: int, payload: MediaUpdate) -> dict:
+    async def update_media(
+        self, db: AsyncSession, media_id: int, payload: MediaUpdate, *, scope_user: Any = None
+    ) -> dict:
         media = await media_crud.get(db, media_id)
         if media is None:
             raise NotFoundError("媒体不存在")
+        await _assert_media_write(
+            db, media, scope_user=scope_user, others_code=C.MEDIA_EDIT_OTHERS
+        )
 
         data = payload.model_dump(exclude_unset=True)
         if "tags" in data and data["tags"] is not None:
@@ -270,7 +309,9 @@ class MediaService:
         media = await media_crud.update(db, media, data)
         return to_out(media)
 
-    async def delete_media(self, db: AsyncSession, media_id: int) -> None:
+    async def delete_media(
+        self, db: AsyncSession, media_id: int, *, scope_user: Any = None
+    ) -> None:
         """删除媒体记录
 
         说明：只删数据库记录；磁盘/对象存储上的文件由存储清理任务处理（二期），
@@ -279,9 +320,17 @@ class MediaService:
         media = await media_crud.get(db, media_id)
         if media is None:
             raise NotFoundError("媒体不存在")
+        await _assert_media_write(
+            db, media, scope_user=scope_user, others_code=C.MEDIA_DELETE_OTHERS
+        )
         await media_crud.remove(db, media)
 
-    async def batch_delete(self, db: AsyncSession, ids: Sequence[int]) -> int:
+    async def batch_delete(
+        self, db: AsyncSession, ids: Sequence[int], *, scope_user: Any = None
+    ) -> int:
+        await self._assert_batch_writable(
+            db, ids, scope_user=scope_user, others_code=C.MEDIA_DELETE_OTHERS
+        )
         count = 0
         for media_id in ids:
             try:

@@ -45,21 +45,137 @@ _data_scoped_models: dict[Any, str] = {}
 
 
 def register_data_scoped_models() -> dict[Any, str]:
-    """填充并返回登记表（延迟导入模型，避免与 ``shared.models`` 形成导入环）"""
+    """填充并返回登记表（延迟导入模型，避免与 ``shared.models`` 形成导入环）
+
+    登记范围 = **有归属人字段的业务数据**（归属按创建人/作者推导，见模块 docstring 的 G3 裁决）。
+    刻意**不登记**三类：
+
+      - 审计日志（``audit_logs`` / ``permission_audit_logs``）—— 审计必须全量可查
+      - RBAC 内部表（``permission_groups`` / ``user_group_members`` / ``user_role_assignments``）
+        —— 它们是权限与范围解析自身的输入，过滤会自锁
+      - 无归属字段的表（无法推导归属）
+
+    登记只表示"该模型**允许**被数据范围过滤"；只有管理端查询主动传 ``scope_user`` 时才生效。
+    """
     global _data_scoped_models
     if _data_scoped_models:
         return _data_scoped_models
 
+    from shared.models.ai.ai_config import AIConfig
+    from shared.models.ai.ai_workflow import AIWorkflow
+    from shared.models.ad.ad_click import AdClick
+    from shared.models.ad.ad_impression import AdImpression
+    from shared.models.analytics.page_view import PageView
+    from shared.models.analytics.user_activity import UserActivity
     from shared.models.article.article import Article
+    from shared.models.article.article_annotation import ArticleAnnotation
+    from shared.models.article.article_like import ArticleLike
+    from shared.models.article.article_revision import ArticleRevision
+    from shared.models.article.article_revision_note import ArticleRevisionNote
+    from shared.models.certification.certification_document import CertificationDocument
+    from shared.models.certification.certification_review import CertificationReview
+    from shared.models.certification.expert_certification import ExpertCertification
+    from shared.models.chat.chat_group_member import ChatGroupMember
+    from shared.models.chat.chat_message import ChatMessage
+    from shared.models.collaboration.invitation import CollaborationInvite
+    from shared.models.collaboration.workspace import Workspace
+    from shared.models.collaboration.workspace_member import WorkspaceMember
     from shared.models.comment.comment import Comment
+    from shared.models.comment.comment_subscription import CommentSubscription
+    from shared.models.comment.comment_vote import CommentVote
+    from shared.models.comment.team_comment import TeamComment
+    from shared.models.content.custom_field import CustomField
+    from shared.models.content.custom_post_content import CustomPostContent
+    from shared.models.ecommerce.cart import Cart
+    from shared.models.ecommerce.order import Order
+    from shared.models.enterprise.deployment_log import DeploymentLog
+    from shared.models.enterprise.support_ticket import SupportTicket
+    from shared.models.enterprise.support_ticket_reply import SupportTicketReply
+    from shared.models.form.form_submission import FormSubmission
+    from shared.models.media.download_task import DownloadTask
     from shared.models.media.media import Media
+    from shared.models.media.media_folder import MediaFolder
+    from shared.models.media.upload_task import UploadTask
+    from shared.models.multisite.site_user import SiteUser
+    from shared.models.notification.email_subscription import EmailSubscription
     from shared.models.page.pages import Pages
+    from shared.models.payment.payment_transaction import PaymentTransaction
+    from shared.models.revenue.payout_request import PayoutRequest
+    from shared.models.revenue.revenue_record import RevenueRecord
+    from shared.models.revenue.user_revenue_stats import UserRevenueStats
+    from shared.models.search.search_history import SearchHistory
+    from shared.models.security.gdpr_consent import GDPRConsent
+    from shared.models.system.admin_settings import AdminSettings
+    from shared.models.tipping.tip import Tip
+    from shared.models.tipping.tip_withdrawal import TipWithdrawal
+    from shared.models.user.o_auth_account import OAuthAccount
+    from shared.models.user.user_session import UserSession
+    from shared.models.vip.vip_payment_order import VipPaymentOrder
+    from shared.models.vip.vip_subscription import VIPSubscription
+    from shared.models.widget.block_pattern import BlockPattern
 
     _data_scoped_models = {
+        # ---- 内容 ----
         Article: "user",
-        Comment: "user_id",
-        Media: "user",
         Pages: "author_id",
+        Media: "user",
+        MediaFolder: "user",
+        Comment: "user_id",
+        CommentVote: "user",
+        CommentSubscription: "user_id",
+        ArticleRevision: "author_id",
+        ArticleRevisionNote: "user_id",
+        ArticleAnnotation: "user",
+        ArticleLike: "user",
+        CustomPostContent: "author_id",
+        CustomField: "user",
+        TeamComment: "author_id",
+        BlockPattern: "user_id",
+        # ---- 协作 ----
+        Workspace: "owner_id",
+        WorkspaceMember: "user_id",
+        CollaborationInvite: "creator_id",
+        # ---- 商务 / 收益 / 打赏 ----
+        Cart: "user_id",
+        Order: "user_id",
+        PaymentTransaction: "user",
+        RevenueRecord: "user_id",
+        UserRevenueStats: "user_id",
+        PayoutRequest: "user_id",
+        VipPaymentOrder: "user_id",
+        VIPSubscription: "user",
+        Tip: "user_id",
+        TipWithdrawal: "user_id",
+        # ---- 认证（手写模型：``Column`` 风格，不在生成器产物里）----
+        ExpertCertification: "user_id",
+        CertificationDocument: "user_id",
+        CertificationReview: "reviewer_id",
+        # ---- 表单 / 客服 / 部署 ----
+        FormSubmission: "user_id",
+        SupportTicket: "user_id",
+        SupportTicketReply: "user_id",
+        DeploymentLog: "user_id",
+        # ---- 媒体任务 ----
+        UploadTask: "user_id",
+        DownloadTask: "user_id",
+        # ---- 聊天 / AI / 站点设置 ----
+        ChatMessage: "user",
+        ChatGroupMember: "user",
+        AIConfig: "user_id",
+        AIWorkflow: "user_id",
+        AdminSettings: "user",
+        # ---- 账号 / 会话 / 合规 / 订阅 ----
+        OAuthAccount: "user_id",
+        UserSession: "user_id",
+        SiteUser: "user_id",
+        GDPRConsent: "user_id",
+        EmailSubscription: "user",
+        # ---- 行为与统计埋点 ----
+        PageView: "user",
+        UserActivity: "user",
+        SearchHistory: "user",
+        AdClick: "user_id",
+        AdImpression: "user_id",
     }
     return _data_scoped_models
 
@@ -290,6 +406,61 @@ async def ensure_object_in_scope(db: AsyncSession, model: Any, obj: Any, *, user
     raise ForbiddenError("无权访问该数据")
 
 
+async def ensure_write_in_scope(
+    db: AsyncSession,
+    model: Any,
+    obj: Any,
+    *,
+    user: Any,
+    others_code: str,
+) -> None:
+    """**写路径**的数据范围 + 他人数据权限校验（``data_scope`` 与 others 码取 **AND**）
+
+    判定顺序：
+
+      1. 未登记模型 / 超管 → 放行
+      2. 记录归属自己 → 放行（"仅本人"档位天然覆盖自己的数据，无需 others 码）
+      3. 归属他人 → 必须**同时在数据范围内**（复用 ``ensure_object_in_scope``）
+         且**持有 ``others_code``**；任一不满足即 403
+
+    语义分工：``others_code`` 决定"能否碰他人数据"，``data_scope`` 决定"能碰到哪些人的数据"。
+    因此内置角色需要**两者同时具备**才能管理他人内容（见 ``scripts/seed_rbac.py``）。
+
+    fail-closed：权限码加载失败、未提供 others 码，一律拒绝。
+    """
+    from src.api.v3.core.exceptions import ForbiddenError
+    from src.api.v3.core.permission.constants import WILDCARD_CODES
+    from src.api.v3.core.permission.loader import load_codes
+
+    owner_name = owner_field_of(model)
+    if owner_name is None or obj is None:
+        return
+    if getattr(user, "is_superuser", False):
+        return
+
+    owner_id = getattr(obj, owner_name, None)
+    own = owner_id is not None and int(owner_id) == int(getattr(user, "id", 0))
+    if own:
+        return
+
+    if not others_code:
+        raise ForbiddenError("该模型未定义他人数据的写权限码")
+
+    # 1) 数据范围必须允许（ensure_object_in_scope 内部同样 fail-closed）
+    await ensure_object_in_scope(db, model, obj, user=user)
+
+    # 2) 且必须持有"操作他人数据"的权限码
+    try:
+        owned = await load_codes(db, user.id)
+    except Exception:  # noqa: BLE001 - fail-closed
+        logger.exception("他人数据权限码加载失败 user=%s", getattr(user, "id", None))
+        raise ForbiddenError("权限校验失败") from None
+
+    if others_code in owned or WILDCARD_CODES.intersection(owned):
+        return
+    raise ForbiddenError(f"无权操作他人数据：需要 {others_code}")
+
+
 async def invalidate_scope_cache(user_id: Optional[int] = None) -> None:
     """失效数据范围缓存（组/成员/角色变更后必须调用）
 
@@ -317,6 +488,7 @@ async def invalidate_scope_cache(user_id: Optional[int] = None) -> None:
 __all__ = [
     "apply_data_scope",
     "ensure_object_in_scope",
+    "ensure_write_in_scope",
     "invalidate_scope_cache",
     "owner_field_of",
     "register_data_scoped_models",

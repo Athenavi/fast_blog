@@ -34,7 +34,7 @@ class TokenPayload(SchemaBase):
 
 
 class CurrentUserOut(SchemaBase):
-    """当前登录用户信息（含角色与权限码，供前端生成菜单与按钮权限）"""
+    """当前登录用户信息（含角色、权限码与菜单授权，供前端生成菜单与按钮权限）"""
 
     id: int
     username: str
@@ -47,6 +47,10 @@ class CurrentUserOut(SchemaBase):
     profile_picture: Optional[str] = None
     roles: List[str] = Field(default_factory=list, description="角色 slug 列表")
     permissions: List[str] = Field(default_factory=list, description="权限码（resource:action）")
+    menu_codes: List[str] = Field(
+        default_factory=list,
+        description="已授权的后台菜单标识（与前端 menus.ts 的 name 一一对应，含补齐的祖先目录）",
+    )
 
 
 class LoginStatusOut(SchemaBase):

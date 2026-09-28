@@ -175,7 +175,7 @@ async def batch_delete_articles(
     _current: CurrentUser,
     _perm=AuthControl(codes.ARTICLE_DELETE),
 ) -> dict:
-    affected = await article_service.batch_delete(db, payload.ids)
+    affected = await article_service.batch_delete(db, payload.ids, scope_user=_current)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 篇")
 
 
@@ -186,7 +186,9 @@ async def batch_publish_articles(
     _current: CurrentUser,
     _perm=AuthControl(codes.ARTICLE_PUBLISH),
 ) -> dict:
-    affected = await article_service.batch_set_published(db, payload.ids, payload.publish)
+    affected = await article_service.batch_set_published(
+        db, payload.ids, payload.publish, scope_user=_current
+    )
     action = "发布" if payload.publish else "撤回"
     return resp.success({"affected": affected}, msg=f"已{action} {affected} 篇")
 
@@ -199,7 +201,7 @@ async def reorder_articles(
     _perm=AuthControl(codes.ARTICLE_EDIT),
 ) -> dict:
     pairs = [(int(item["id"]), int(item.get("sort_order", 0))) for item in items if "id" in item]
-    affected = await article_service.reorder(db, pairs)
+    affected = await article_service.reorder(db, pairs, scope_user=_current)
     return resp.success({"affected": affected}, msg="排序已更新")
 
 
@@ -239,7 +241,10 @@ async def update_article(
     _current: CurrentUser,
     _perm=AuthControl(codes.ARTICLE_EDIT),
 ) -> dict:
-    return resp.success(await article_service.update_article(db, article_id, payload), msg="更新成功")
+    return resp.success(
+        await article_service.update_article(db, article_id, payload, scope_user=_current),
+        msg="更新成功",
+    )
 
 
 @router.delete("/{article_id}", response_model=ResponseModel, summary="删除文章（软删）")
@@ -249,7 +254,7 @@ async def delete_article(
     _current: CurrentUser,
     _perm=AuthControl(codes.ARTICLE_DELETE),
 ) -> dict:
-    await article_service.delete_article(db, article_id)
+    await article_service.delete_article(db, article_id, scope_user=_current)
     return resp.success(None, msg="已删除")
 
 
@@ -261,5 +266,5 @@ async def publish_article(
     _current: CurrentUser,
     _perm=AuthControl(codes.ARTICLE_PUBLISH),
 ) -> dict:
-    data = await article_service.set_published(db, article_id, payload.publish)
+    data = await article_service.set_published(db, article_id, payload.publish, scope_user=_current)
     return resp.success(data, msg="已发布" if payload.publish else "已转草稿")

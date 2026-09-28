@@ -17,6 +17,11 @@ from sqlalchemy import select
 from shared.models.rbac import Capability, Role, RoleCapability
 from src.api.v3.core.permission import codes as C
 from src.api.v3.core.permission.codes import CODE_LABELS
+from src.api.v3.core.permission.constants import (
+    DATA_SCOPE_ALL,
+    DATA_SCOPE_GROUP_AND_CHILD,
+    DATA_SCOPE_SELF,
+)
 from src.utils.database.main import get_async_session_context
 
 
@@ -55,26 +60,34 @@ def _cap_codes(*codes: str) -> list[str]:
 # ============================================================
 # 角色定义
 # ============================================================
+#: ``data_scope``（数据范围档位）与能力清单**取 AND**：
+#:   others 码 = 能否操作他人数据；data_scope = 能操作到哪些人的数据
+#:   —— 3 全部 / 2 本组及以下 / 1 仅本人（见 core/permission/constants.py）
 ROLE_DEFS = [
     {
         "slug": "superadmin",
         "name": "超级管理员",
         "description": "拥有系统所有权限",
+        "data_scope": DATA_SCOPE_ALL,
         "capability_codes": list(CODE_LABELS),
     },
     {
         "slug": "admin",
         "name": "管理员",
         "description": "管理类权限，不含敏感系统设置（不可编辑系统设置、不可恢复/删除备份）",
+        "data_scope": DATA_SCOPE_ALL,
         "capability_codes": _cap_codes(
-            # 内容：全套
+            # 内容：全套（含他人数据）
             C.ARTICLE_VIEW, C.ARTICLE_CREATE, C.ARTICLE_EDIT, C.ARTICLE_DELETE,
             C.ARTICLE_PUBLISH, C.ARTICLE_EDIT_OTHERS, C.ARTICLE_DELETE_OTHERS,
             C.CATEGORY_VIEW, C.CATEGORY_CREATE, C.CATEGORY_EDIT, C.CATEGORY_DELETE,
             C.TAG_VIEW, C.TAG_EDIT,
             C.PAGE_VIEW, C.PAGE_CREATE, C.PAGE_EDIT, C.PAGE_DELETE, C.PAGE_PUBLISH,
+            C.PAGE_EDIT_OTHERS, C.PAGE_DELETE_OTHERS,
             C.COMMENT_VIEW, C.COMMENT_APPROVE, C.COMMENT_EDIT, C.COMMENT_DELETE,
-            C.MEDIA_VIEW, C.MEDIA_UPLOAD, C.MEDIA_DELETE,
+            C.COMMENT_APPROVE_OTHERS, C.COMMENT_EDIT_OTHERS, C.COMMENT_DELETE_OTHERS,
+            C.MEDIA_VIEW, C.MEDIA_UPLOAD, C.MEDIA_DELETE, C.MEDIA_EDIT_OTHERS,
+            C.MEDIA_DELETE_OTHERS,
             # 系统：管理类
             C.USER_VIEW, C.USER_CREATE, C.USER_EDIT, C.USER_DELETE, C.USER_MANAGE_ROLES,
             C.ROLE_VIEW, C.ROLE_EDIT,
@@ -103,15 +116,19 @@ ROLE_DEFS = [
     {
         "slug": "editor",
         "name": "编辑者",
-        "description": "内容管理权限",
+        "description": "内容管理权限（数据范围：本组及以下）",
+        "data_scope": DATA_SCOPE_GROUP_AND_CHILD,
         "capability_codes": _cap_codes(
             C.ARTICLE_VIEW, C.ARTICLE_CREATE, C.ARTICLE_EDIT, C.ARTICLE_DELETE,
-            C.ARTICLE_PUBLISH,
+            C.ARTICLE_PUBLISH, C.ARTICLE_EDIT_OTHERS, C.ARTICLE_DELETE_OTHERS,
             C.CATEGORY_VIEW, C.CATEGORY_CREATE, C.CATEGORY_EDIT,
             C.TAG_VIEW, C.TAG_EDIT,
             C.PAGE_VIEW, C.PAGE_CREATE, C.PAGE_EDIT, C.PAGE_DELETE, C.PAGE_PUBLISH,
+            C.PAGE_EDIT_OTHERS, C.PAGE_DELETE_OTHERS,
             C.COMMENT_VIEW, C.COMMENT_APPROVE, C.COMMENT_EDIT, C.COMMENT_DELETE,
-            C.MEDIA_VIEW, C.MEDIA_UPLOAD, C.MEDIA_DELETE,
+            C.COMMENT_APPROVE_OTHERS, C.COMMENT_EDIT_OTHERS, C.COMMENT_DELETE_OTHERS,
+            C.MEDIA_VIEW, C.MEDIA_UPLOAD, C.MEDIA_DELETE, C.MEDIA_EDIT_OTHERS,
+            C.MEDIA_DELETE_OTHERS,
             C.NAVMENU_VIEW,
             C.DASHBOARD_VIEW,
         ),
@@ -120,6 +137,7 @@ ROLE_DEFS = [
         "slug": "user",
         "name": "普通用户",
         "description": "基础浏览和互动权限",
+        "data_scope": DATA_SCOPE_SELF,
         "capability_codes": _cap_codes(
             C.ARTICLE_VIEW,
             C.CATEGORY_VIEW,
@@ -179,16 +197,19 @@ async def seed_roles(db, capability_map: dict):
 
     for rdef in ROLE_DEFS:
         slug = rdef["slug"]
+        data_scope = rdef.get("data_scope")
         if slug in existing_roles:
             role = existing_roles[slug]
             role.name = rdef["name"]
             role.description = rdef["description"]
+            role.data_scope = data_scope
             role.updated_at = now
         else:
             role = Role(
                 slug=slug,
                 name=rdef["name"],
                 description=rdef["description"],
+                data_scope=data_scope,
                 is_system=True,
                 is_active=True,
                 created_at=now,

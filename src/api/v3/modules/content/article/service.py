@@ -16,7 +16,8 @@ from shared.models.article.article_seo import ArticleSEO
 from src.api.v3.common.tags import normalize_tags
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
-from src.api.v3.core.permission.scope import ensure_object_in_scope
+from src.api.v3.core.permission import codes as C
+from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
 from src.api.v3.modules.content.article.crud import article_crud
 from src.api.v3.modules.content.article.schema import (
     STATUS_DELETED,
@@ -29,6 +30,16 @@ from src.api.v3.modules.content.article.schema import (
 logger = get_logger("article")
 
 DEFAULT_LANGUAGE = "zh-CN"
+
+
+async def _assert_article_write(
+    db: AsyncSession, article: Article, *, scope_user: Any, others_code: str
+) -> None:
+    """管理端写路径校验：数据范围 + 他人数据权限（``scope_user`` 为空 = 内部调用，跳过）"""
+    if scope_user is not None:
+        await ensure_write_in_scope(
+            db, Article, article, user=scope_user, others_code=others_code
+        )
 
 
 def to_out(article: Article) -> dict:
@@ -213,11 +224,19 @@ class ArticleService:
         return await self.get_article(db, article.id)
 
     async def update_article(
-        self, db: AsyncSession, article_id: int, payload: ArticleUpdate
+        self,
+        db: AsyncSession,
+        article_id: int,
+        payload: ArticleUpdate,
+        *,
+        scope_user: Any = None,
     ) -> dict:
         article = await article_crud.get(db, article_id)
         if article is None:
             raise NotFoundError("文章不存在")
+        await _assert_article_write(
+            db, article, scope_user=scope_user, others_code=C.ARTICLE_EDIT_OTHERS
+        )
 
         fields_set = payload.model_fields_set
         self._validate_status(payload.status if "status" in fields_set else None)
@@ -243,17 +262,45 @@ class ArticleService:
         await self._invalidate(article_id)
         return await self.get_article(db, article_id)
 
-    async def delete_article(self, db: AsyncSession, article_id: int) -> None:
+    async def delete_article(
+        self, db: AsyncSession, article_id: int, *, scope_user: Any = None
+    ) -> None:
         """软删除：``status = -1`` + ``deleted_at``（与 v2 语义一致）"""
         article = await article_crud.get(db, article_id)
         if article is None:
             raise NotFoundError("文章不存在")
+        await _assert_article_write(
+            db, article, scope_user=scope_user, others_code=C.ARTICLE_DELETE_OTHERS
+        )
         await article_crud.update(
             db, article, {"status": STATUS_DELETED, "deleted_at": datetime.now()}
         )
         await self._invalidate(article_id)
 
-    async def batch_delete(self, db: AsyncSession, ids: Sequence[int]) -> int:
+    async def _assert_batch_writable(
+        self,
+        db: AsyncSession,
+        ids: Sequence[int],
+        *,
+        scope_user: Any,
+        others_code: str,
+    ) -> None:
+        """批量写操作的前置校验：逐个核对归属 / 数据范围 / 他人数据权限"""
+        if scope_user is None:
+            return
+        for article_id in ids:
+            article = await article_crud.get(db, article_id)
+            if article is not None:
+                await _assert_article_write(
+                    db, article, scope_user=scope_user, others_code=others_code
+                )
+
+    async def batch_delete(
+        self, db: AsyncSession, ids: Sequence[int], *, scope_user: Any = None
+    ) -> int:
+        await self._assert_batch_writable(
+            db, ids, scope_user=scope_user, others_code=C.ARTICLE_DELETE_OTHERS
+        )
         count = 0
         for article_id in ids:
             try:
@@ -263,8 +310,13 @@ class ArticleService:
                 continue
         return count
 
-    async def batch_set_published(self, db: AsyncSession, ids: Sequence[int], publish: bool) -> int:
+    async def batch_set_published(
+        self, db: AsyncSession, ids: Sequence[int], publish: bool, *, scope_user: Any = None
+    ) -> int:
         """批量发布 / 撤回：逐条复用 set_published，忽略不存在的 id"""
+        await self._assert_batch_writable(
+            db, ids, scope_user=scope_user, others_code=C.ARTICLE_EDIT_OTHERS
+        )
         count = 0
         for article_id in ids:
             try:
@@ -274,11 +326,16 @@ class ArticleService:
                 continue
         return count
 
-    async def set_published(self, db: AsyncSession, article_id: int, publish: bool) -> dict:
+    async def set_published(
+        self, db: AsyncSession, article_id: int, publish: bool, *, scope_user: Any = None
+    ) -> dict:
         """发布 / 撤回（撤回清空 published_at，发布则补齐）"""
         article = await article_crud.get(db, article_id)
         if article is None:
             raise NotFoundError("文章不存在")
+        await _assert_article_write(
+            db, article, scope_user=scope_user, others_code=C.ARTICLE_EDIT_OTHERS
+        )
 
         if publish:
             data: Dict[str, Any] = {
@@ -293,8 +350,16 @@ class ArticleService:
         await self._invalidate(article_id)
         return to_out(article)
 
-    async def reorder(self, db: AsyncSession, items: Sequence[Tuple[int, int]]) -> int:
+    async def reorder(
+        self, db: AsyncSession, items: Sequence[Tuple[int, int]], *, scope_user: Any = None
+    ) -> int:
         """批量重排（id, sort_order）"""
+        await self._assert_batch_writable(
+            db,
+            [article_id for article_id, _ in items],
+            scope_user=scope_user,
+            others_code=C.ARTICLE_EDIT_OTHERS,
+        )
         count = 0
         for article_id, sort_order in items:
             article = await article_crud.get(db, article_id)

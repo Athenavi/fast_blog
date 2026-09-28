@@ -19,14 +19,22 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   // 首次进入或刷新后：拉取用户信息并构建侧边栏菜单
-  if (!userStore.userInfo) {
+  // 注意：`userInfo` 是从 localStorage 恢复的（且 `login()` 里已 fetch 过一次），
+  // 所以只用 `!userInfo` 判断会让 `refresh` 后永远跳过下面两步 —— 侧边栏因此变空。
+  // 这里额外把"缓存记录里缺 `menu_codes` 字段"（旧版本缓存的用户信息）视为需要刷新。
+  if (!userStore.userInfo || userStore.userInfo.menu_codes === undefined) {
     try {
       await userStore.fetchUserInfo()
     } catch {
       await userStore.logout()
       return navigateTo({path: '/login', query: {redirect: to.fullPath}})
     }
-    usePermissionStore().build(userStore.permissions, userStore.menuCodes, userStore.isSuperuser)
+  }
+
+  // permission store 不持久化，刷新后必须重建；同一次 SPA 会话内不重复构建
+  const permissionStore = usePermissionStore()
+  if (!permissionStore.built) {
+    permissionStore.build(userStore.permissions, userStore.menuCodes, userStore.isSuperuser)
   }
 
   // 页面级权限：meta.permission 存在但用户不具备 → 403

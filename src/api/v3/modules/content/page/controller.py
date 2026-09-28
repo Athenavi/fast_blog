@@ -106,7 +106,7 @@ async def batch_delete_pages(
     _current: CurrentUser,
     _perm=AuthControl(codes.PAGE_DELETE),
 ) -> dict:
-    affected = await page_service.batch_delete(db, payload.ids)
+    affected = await page_service.batch_delete(db, payload.ids, scope_user=_current)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 个页面")
 
 
@@ -141,7 +141,9 @@ async def update_page(
     _current: CurrentUser,
     _perm=AuthControl(codes.PAGE_EDIT),
 ) -> dict:
-    return resp.success(await page_service.update_page(db, page_id, payload), msg="更新成功")
+    return resp.success(
+        await page_service.update_page(db, page_id, payload, scope_user=_current), msg="更新成功"
+    )
 
 
 @router.delete("/{page_id}", response_model=ResponseModel, summary="删除页面")
@@ -151,7 +153,7 @@ async def delete_page(
     _current: CurrentUser,
     _perm=AuthControl(codes.PAGE_DELETE),
 ) -> dict:
-    await page_service.delete_page(db, page_id)
+    await page_service.delete_page(db, page_id, scope_user=_current)
     return resp.success(None, msg="已删除")
 
 
@@ -163,5 +165,5 @@ async def publish_page(
     _current: CurrentUser,
     _perm=AuthControl(codes.PAGE_PUBLISH),
 ) -> dict:
-    data = await page_service.set_published(db, page_id, payload.publish)
+    data = await page_service.set_published(db, page_id, payload.publish, scope_user=_current)
     return resp.success(data, msg="已发布" if payload.publish else "已转草稿")

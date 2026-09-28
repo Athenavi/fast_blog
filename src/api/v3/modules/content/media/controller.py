@@ -65,7 +65,7 @@ async def batch_delete_media(
     _current: CurrentUser,
     _perm=AuthControl(codes.MEDIA_DELETE),
 ) -> dict:
-    affected = await media_service.batch_delete(db, payload.ids)
+    affected = await media_service.batch_delete(db, payload.ids, scope_user=_current)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 项")
 
 
@@ -76,7 +76,7 @@ async def batch_update_media(
     _current: CurrentUser,
     _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
-    affected = await media_service.batch_update(db, payload)
+    affected = await media_service.batch_update(db, payload, scope_user=_current)
     return resp.success({"affected": affected}, msg=f"已更新 {affected} 项")
 
 
@@ -204,7 +204,10 @@ async def update_media(
     _current: CurrentUser,
     _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
-    return resp.success(await media_service.update_media(db, media_id, payload), msg="更新成功")
+    return resp.success(
+        await media_service.update_media(db, media_id, payload, scope_user=_current),
+        msg="更新成功",
+    )
 
 
 @router.delete("/{media_id}", response_model=ResponseModel, summary="删除媒体")
@@ -214,7 +217,7 @@ async def delete_media(
     _current: CurrentUser,
     _perm=AuthControl(codes.MEDIA_DELETE),
 ) -> dict:
-    await media_service.delete_media(db, media_id)
+    await media_service.delete_media(db, media_id, scope_user=_current)
     return resp.success(None, msg="已删除")
 
 

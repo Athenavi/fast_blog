@@ -96,7 +96,7 @@ async def batch_delete_comments(
     _current: CurrentUser,
     _perm=AuthControl(codes.COMMENT_DELETE),
 ) -> dict:
-    affected = await comment_service.batch_delete(db, payload.ids)
+    affected = await comment_service.batch_delete(db, payload.ids, scope_user=_current)
     return resp.success({"affected": affected}, msg=f"已删除 {affected} 条")
 
 
@@ -107,7 +107,9 @@ async def batch_decide_comments(
     _current: CurrentUser,
     _perm=AuthControl(codes.COMMENT_APPROVE),
 ) -> dict:
-    affected = await comment_service.batch_set_approved(db, payload.ids, payload.approve)
+    affected = await comment_service.batch_set_approved(
+        db, payload.ids, payload.approve, scope_user=_current
+    )
     action = "通过" if payload.approve else "拒绝"
     return resp.success({"affected": affected}, msg=f"已{action} {affected} 条")
 
@@ -163,7 +165,10 @@ async def update_comment(
     _current: CurrentUser,
     _perm=AuthControl(codes.COMMENT_EDIT),
 ) -> dict:
-    return resp.success(await comment_service.update_comment(db, comment_id, payload.content), msg="更新成功")
+    return resp.success(
+        await comment_service.update_comment(db, comment_id, payload.content, scope_user=_current),
+        msg="更新成功",
+    )
 
 
 @router.delete("/{comment_id}", response_model=ResponseModel, summary="删除评论")
@@ -173,7 +178,7 @@ async def delete_comment(
     _current: CurrentUser,
     _perm=AuthControl(codes.COMMENT_DELETE),
 ) -> dict:
-    await comment_service.delete_comment(db, comment_id)
+    await comment_service.delete_comment(db, comment_id, scope_user=_current)
     return resp.success(None, msg="已删除")
 
 
@@ -195,7 +200,9 @@ async def reply_comment(
     current: CurrentUser,
     _perm=AuthControl(codes.COMMENT_EDIT),
 ) -> dict:
-    data = await comment_service.reply_comment(db, comment_id, payload.content, user=current)
+    data = await comment_service.reply_comment(
+        db, comment_id, payload.content, user=current, scope_user=current
+    )
     return resp.success(data, msg="回复已发布")
 
 
@@ -206,7 +213,9 @@ async def approve_comment(
     _current: CurrentUser,
     _perm=AuthControl(codes.COMMENT_APPROVE),
 ) -> dict:
-    return resp.success(await comment_service.set_approved(db, comment_id, True), msg="已通过")
+    return resp.success(
+        await comment_service.set_approved(db, comment_id, True, scope_user=_current), msg="已通过"
+    )
 
 
 @router.post("/{comment_id}/reject", response_model=ResponseModel, summary="拒绝审核")
@@ -216,4 +225,6 @@ async def reject_comment(
     _current: CurrentUser,
     _perm=AuthControl(codes.COMMENT_APPROVE),
 ) -> dict:
-    return resp.success(await comment_service.set_approved(db, comment_id, False), msg="已拒绝")
+    return resp.success(
+        await comment_service.set_approved(db, comment_id, False, scope_user=_current), msg="已拒绝"
+    )
