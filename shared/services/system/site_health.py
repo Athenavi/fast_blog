@@ -1,6 +1,9 @@
 """
 站点健康检查服务
-类似WordPress的Site Health功能
+类似 WordPress 的 Site Health：系统 / 数据库 / 存储 / 安全 / 性能五组检查 + 总体评分。
+
+改造说明：数据库检查原先定义了探测协程却**从未调用**，永远返回「正常」（相当于占位实现）。
+现在真实执行 ``SELECT 1``，并把 ``run_full_check`` 改成 async。
 """
 import os
 import platform
@@ -8,28 +11,32 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Any, List
+from typing import Any, Dict, List, Optional
 
-from sqlalchemy import select
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class SiteHealthService:
     """站点健康检查服务"""
-    
+
     def __init__(self):
         # 项目根目录 = site_health.py 向上 4 层: shared/services/system/site_health.py → project root
         self.base_dir = Path(__file__).resolve().parent.parent.parent.parent
-    
-    def run_full_check(self) -> Dict[str, Any]:
+
+    async def run_full_check(self, db: Optional[AsyncSession] = None) -> Dict[str, Any]:
         """
         运行完整的健康检查
-        
+
+        Args:
+            db: 可选的数据库会话（复用调用方的连接，避免健康检查自己再开一条）
+
         Returns:
             包含所有检查项的结果
         """
         checks = {
             'system': self.check_system_info(),
-            'database': self.check_database(),
+            'database': await self.check_database(db),
             'storage': self.check_storage(),
             'security': self.check_security(),
             'performance': self.check_performance(),
@@ -58,14 +65,14 @@ class SiteHealthService:
         """检查系统信息"""
         results = []
         
-        # Python版本
+        # Python 版本（项目要求 3.11+，见 pyproject requires-python）
         python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
         results.append({
             'name': 'Python版本',
             'value': python_version,
-            'status': 'pass' if sys.version_info >= (3, 8) else 'warning',
-            'score': 1.0 if sys.version_info >= (3, 8) else 0.5,
-            'recommendation': '建议使用Python 3.8或更高版本' if sys.version_info < (3, 8) else None,
+            'status': 'pass' if sys.version_info >= (3, 11) else 'warning',
+            'score': 1.0 if sys.version_info >= (3, 11) else 0.5,
+            'recommendation': '建议使用 Python 3.11 或更高版本' if sys.version_info < (3, 11) else None,
         })
         
         # 操作系统
@@ -98,8 +105,8 @@ class SiteHealthService:
         
         return results
     
-    def check_database(self) -> List[Dict[str, Any]]:
-        """检查数据库状态"""
+    async def check_database(self, db: Optional[AsyncSession] = None) -> List[Dict[str, Any]]:
+        """检查数据库状态（真实执行一次 ``SELECT 1``）"""
         results = []
 
         # 数据库引擎（仅支持 PostgreSQL）
@@ -109,23 +116,15 @@ class SiteHealthService:
             'status': 'pass',
             'score': 1.0,
         })
-        
-        # 数据库连接测试
+
         try:
-            import asyncio
-            from src.utils.database.main import get_async_session, get_async_session_context
-            
-            async def test_connection():
-                async with get_async_session_context() as session:
-                    await session.execute(select(1))
-            
-            # 这里简化处理,实际应该异步执行
-            results.append({
-                'name': '数据库连接',
-                'value': '正常',
-                'status': 'pass',
-                'score': 1.0,
-            })
+            if db is not None:
+                await db.execute(text('SELECT 1'))
+            else:
+                from src.utils.database.unified_manager import db_manager
+
+                async with db_manager.get_session() as session:
+                    await session.execute(text('SELECT 1'))
         except Exception as e:
             results.append({
                 'name': '数据库连接',
@@ -135,7 +134,14 @@ class SiteHealthService:
                 'error': str(e),
                 'recommendation': '检查数据库配置和连接',
             })
-        
+        else:
+            results.append({
+                'name': '数据库连接',
+                'value': '正常',
+                'status': 'pass',
+                'score': 1.0,
+            })
+
         return results
     
     def check_storage(self) -> List[Dict[str, Any]]:
@@ -183,15 +189,27 @@ class SiteHealthService:
             'recommendation': '生产环境必须关闭DEBUG模式' if debug_mode else None,
         })
         
-        # SECRET_KEY
+        # SECRET_KEY：未设置 / 仍是占位值 / 过短 都算不安全
         secret_key = os.getenv('SECRET_KEY', '')
-        is_default = 'django-insecure' in secret_key or not secret_key
+        if not secret_key:
+            try:
+                from shared.config.settings import app_config
+
+                secret_key = getattr(app_config, 'secret_key', '') or ''
+            except Exception:  # noqa: BLE001 - 配置读取失败时按未设置处理
+                secret_key = ''
+        weak = (
+            not secret_key
+            or secret_key.startswith('test-secret-key')
+            or 'insecure' in secret_key.lower()
+            or len(secret_key) < 32
+        )
         results.append({
             'name': 'SECRET_KEY',
-            'value': '默认(不安全)' if is_default else '已配置',
-            'status': 'fail' if is_default else 'pass',
-            'score': 0.0 if is_default else 1.0,
-            'recommendation': '请设置安全的SECRET_KEY' if is_default else None,
+            'value': '未设置或过弱' if weak else '已配置',
+            'status': 'fail' if weak else 'pass',
+            'score': 0.0 if weak else 1.0,
+            'recommendation': '请设置至少 32 位随机 SECRET_KEY（见 .env.example）' if weak else None,
         })
         
         # CORS配置
@@ -210,14 +228,16 @@ class SiteHealthService:
         """检查性能配置"""
         results = []
         
-        # 缓存配置
-        cache_enabled = os.getenv('CACHE_ENABLED', 'False').lower() in ('true', '1', 'yes')
+        # 缓存配置：本项目用 Redis 作为共享缓存（未配置时只有进程内缓存）
+        redis_url = os.getenv('REDIS_URL', '') or os.getenv('REDIS_HOST', '')
+        cache_type = os.getenv('CACHE_TYPE', '')
+        cache_enabled = bool(redis_url) or cache_type.lower() not in ('', 'none', 'simple', 'null')
         results.append({
             'name': '缓存系统',
-            'value': '已启用' if cache_enabled else '未启用',
+            'value': 'Redis 已配置' if cache_enabled else '仅进程内缓存',
             'status': 'warning' if not cache_enabled else 'pass',
             'score': 0.5 if not cache_enabled else 1.0,
-            'recommendation': '建议启用缓存以提升性能' if not cache_enabled else None,
+            'recommendation': '多 worker 部署建议配置 REDIS_URL 以共享缓存' if not cache_enabled else None,
         })
         
         # 上传限制
@@ -232,17 +252,18 @@ class SiteHealthService:
         
         return results
     
-    def generate_report(self, format: str = 'json') -> str:
+    async def generate_report(self, format: str = 'json', db: Optional[AsyncSession] = None) -> str:
         """
         生成健康检查报告
-        
+
         Args:
             format: 报告格式 (json/text)
-            
+            db: 可选的数据库会话
+
         Returns:
             报告内容
         """
-        health_data = self.run_full_check()
+        health_data = await self.run_full_check(db)
         
         if format == 'json':
             import json
