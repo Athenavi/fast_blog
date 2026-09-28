@@ -7,7 +7,7 @@
  * 页面顶部用 el-alert 明示，避免「看起来能执行」的误导。
  * `parameters` 是后端 JSON 字符串列，这里用 JSON 文本编辑。
  */
-import {Delete, EditPen, Plus, Refresh, Search, View} from '@element-plus/icons-vue'
+import {Delete, EditPen, Plus, View} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
@@ -230,8 +230,21 @@ const scriptLabel = (id?: number | null) =>
           show-icon
           type="info"
         />
-        <el-card shadow="never">
-          <el-form :inline="true" :model="scriptQuery" @submit.prevent="scriptSearch()">
+        <AdminListShell
+          :failed="scriptFailed"
+          :loading="scriptLoading"
+          :page="scriptPage"
+          :page-size="scriptPageSize"
+          :rows="scriptList"
+          :selectable="false"
+          :total="scriptTotal"
+          @page-change="onScriptPageChange"
+          @refresh="scriptLoad"
+          @reset="scriptReset"
+          @search="scriptSearch"
+          @size-change="onScriptSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.common.search')">
               <el-input
                 v-model="scriptQuery.keyword"
@@ -250,15 +263,9 @@ const scriptLabel = (id?: number | null) =>
                 @keyup.enter="scriptSearch()"
               />
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="scriptSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="scriptReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button
               v-auth="'module_ops:deployment:edit'"
               :icon="Plus"
@@ -267,88 +274,75 @@ const scriptLabel = (id?: number | null) =>
             >
               {{ $t('admin.ops.deployment.createScript') }}
             </el-button>
-            <span class="table-toolbar__total">
               {{ $t('admin.common.totalItems', {n: scriptTotal}) }}
             </span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="scriptLoading && !scriptList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!scriptLoading && !scriptList.length"
-            :title="scriptFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="scriptFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="scriptFailed" :icon="Refresh" @click="scriptLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-          <el-table v-else v-loading="scriptLoading" :data="scriptList" border stripe>
-            <el-table-column
-              :label="$t('admin.ops.deployment.scriptName')"
-              min-width="180"
-              prop="name"
-              show-overflow-tooltip
-            />
-            <el-table-column :label="$t('admin.ops.deployment.scriptType')" prop="script_type" width="130"/>
-            <el-table-column :label="$t('admin.ops.deployment.version')" prop="version" width="110"/>
-            <el-table-column
-              :label="$t('admin.common.description')"
-              min-width="200"
-              prop="description"
-              show-overflow-tooltip
-            />
-            <el-table-column :label="$t('admin.common.status')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as DeploymentScriptItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as DeploymentScriptItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button
-                  v-auth="'module_ops:deployment:edit'"
-                  :icon="EditPen"
-                  link
-                  type="primary"
-                  @click="openScriptEdit(row as DeploymentScriptItem)"
-                >
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button
-                  v-auth="'module_ops:deployment:edit'"
-                  :icon="Delete"
-                  link
-                  type="danger"
-                  @click="onDeleteScript(row as DeploymentScriptItem)"
-                >
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination
-            :current-page="scriptPage"
-            :page-size="scriptPageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="scriptTotal"
-            background
-            class="table-pagination"
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="onScriptPageChange"
-            @size-change="onScriptSizeChange"
+          <el-table-column
+            :label="$t('admin.ops.deployment.scriptName')"
+            min-width="180"
+            prop="name"
+            show-overflow-tooltip
           />
-        </el-card>
+          <el-table-column :label="$t('admin.ops.deployment.scriptType')" prop="script_type" width="130"/>
+          <el-table-column :label="$t('admin.ops.deployment.version')" prop="version" width="110"/>
+          <el-table-column
+            :label="$t('admin.common.description')"
+            min-width="200"
+            prop="description"
+            show-overflow-tooltip
+          />
+          <el-table-column :label="$t('admin.common.status')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as DeploymentScriptItem).is_active ? 'success' : 'info'" size="small">
+                {{
+                  (row as DeploymentScriptItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button
+                v-auth="'module_ops:deployment:edit'"
+                :icon="EditPen"
+                link
+                type="primary"
+                @click="openScriptEdit(row as DeploymentScriptItem)"
+              >
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button
+                v-auth="'module_ops:deployment:edit'"
+                :icon="Delete"
+                link
+                type="danger"
+                @click="onDeleteScript(row as DeploymentScriptItem)"
+              >
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 执行日志 -->
       <el-tab-pane :label="$t('admin.ops.deployment.logs')" name="log">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="logQuery" @submit.prevent="logSearch()">
+        <AdminListShell
+          :failed="logFailed"
+          :loading="logLoading"
+          :page="logPage"
+          :page-size="logPageSize"
+          :rows="logList"
+          :selectable="false"
+          :total="logTotal"
+          @page-change="onLogPageChange"
+          @refresh="logLoad"
+          @reset="logReset"
+          @search="logSearch"
+          @size-change="onLogSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.ops.deployment.scriptId')">
               <el-input-number
                 v-model="logQuery.script_id"
@@ -366,70 +360,49 @@ const scriptLabel = (id?: number | null) =>
                 @keyup.enter="logSearch()"
               />
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="logSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="logReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
-            <span class="table-toolbar__total">
+          <template #actions>
               {{ $t('admin.common.totalItems', {n: logTotal}) }}
             </span>
-          </div>
+          </template>
 
-          <el-table v-loading="logLoading" :data="logList" border stripe>
-            <el-table-column :label="$t('admin.ops.deployment.scriptId')" width="150">
-              <template #default="{ row }">
-                {{ scriptLabel((row as DeploymentLogItem).script_id) }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.ops.deployment.logStatus')" width="120">
-              <template #default="{ row }">{{ (row as DeploymentLogItem).status || '-' }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.ops.deployment.startedAt')" width="180">
-              <template #default="{ row }">{{ (row as DeploymentLogItem).started_at || '-' }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.ops.deployment.completedAt')" width="180">
-              <template #default="{ row }">{{ (row as DeploymentLogItem).completed_at || '-' }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.ops.deployment.logOutput')" min-width="200" show-overflow-tooltip>
-              <template #default="{ row }">
-                {{ (row as DeploymentLogItem).error_message || (row as DeploymentLogItem).output || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="160">
-              <template #default="{ row }">
-                <el-button :icon="View" link type="primary" @click="openLogDetail(row as DeploymentLogItem)">
-                  {{ $t('admin.ops.deployment.logDetail') }}
-                </el-button>
-                <el-button
-                  v-auth="'module_ops:deployment:edit'"
-                  :icon="Delete"
-                  link
-                  type="danger"
-                  @click="onDeleteLog(row as DeploymentLogItem)"
-                >
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination
-            :current-page="logPage"
-            :page-size="logPageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="logTotal"
-            background
-            class="table-pagination"
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="onLogPageChange"
-            @size-change="onLogSizeChange"
-          />
-        </el-card>
+          <el-table-column :label="$t('admin.ops.deployment.scriptId')" width="150">
+            <template #default="{ row }">
+              {{ scriptLabel((row as DeploymentLogItem).script_id) }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.ops.deployment.logStatus')" width="120">
+            <template #default="{ row }">{{ (row as DeploymentLogItem).status || '-' }}</template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.ops.deployment.startedAt')" width="180">
+            <template #default="{ row }">{{ (row as DeploymentLogItem).started_at || '-' }}</template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.ops.deployment.completedAt')" width="180">
+            <template #default="{ row }">{{ (row as DeploymentLogItem).completed_at || '-' }}</template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.ops.deployment.logOutput')" min-width="200" show-overflow-tooltip>
+            <template #default="{ row }">
+              {{ (row as DeploymentLogItem).error_message || (row as DeploymentLogItem).output || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="160">
+            <template #default="{ row }">
+              <el-button :icon="View" link type="primary" @click="openLogDetail(row as DeploymentLogItem)">
+                {{ $t('admin.ops.deployment.logDetail') }}
+              </el-button>
+              <el-button
+                v-auth="'module_ops:deployment:edit'"
+                :icon="Delete"
+                link
+                type="danger"
+                @click="onDeleteLog(row as DeploymentLogItem)"
+              >
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
     </el-tabs>
 

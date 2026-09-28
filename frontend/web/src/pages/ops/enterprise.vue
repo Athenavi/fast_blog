@@ -7,7 +7,7 @@
  * `features` 走后端 JSON 字符串列，这里用「每行一项」的多行文本与之互转；
  * `max_sites = -1` 表示不限站点数。
  */
-import {Delete, EditPen, Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Delete, EditPen, Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
@@ -278,8 +278,21 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
     <el-tabs v-model="activeTab">
       <!-- 企业许可证 -->
       <el-tab-pane :label="$t('admin.ops.enterprise.licenses')" name="license">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="licenseQuery" @submit.prevent="licenseSearch()">
+        <AdminListShell
+          :failed="licenseFailed"
+          :loading="licenseLoading"
+          :page="licensePage"
+          :page-size="licensePageSize"
+          :rows="licenseList"
+          :selectable="false"
+          :total="licenseTotal"
+          @page-change="onLicensePageChange"
+          @refresh="licenseLoad"
+          @reset="licenseReset"
+          @search="licenseSearch"
+          @size-change="onLicenseSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.common.search')">
               <el-input
                 v-model="licenseQuery.keyword"
@@ -289,15 +302,9 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
                 @keyup.enter="licenseSearch()"
               />
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="licenseSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="licenseReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button
               v-auth="'module_ops:enterprise:edit'"
               :icon="Plus"
@@ -306,105 +313,92 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
             >
               {{ $t('admin.ops.enterprise.createLicense') }}
             </el-button>
-            <span class="table-toolbar__total">
               {{ $t('admin.common.totalItems', {n: licenseTotal}) }}
             </span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="licenseLoading && !licenseList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!licenseLoading && !licenseList.length"
-            :title="licenseFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="licenseFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="licenseFailed" :icon="Refresh" @click="licenseLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-          <el-table v-else v-loading="licenseLoading" :data="licenseList" border stripe>
-            <el-table-column
-              :label="$t('admin.ops.enterprise.licenseKey')"
-              min-width="200"
-              prop="license_key"
-              show-overflow-tooltip
-            />
-            <el-table-column :label="$t('admin.ops.enterprise.licenseType')" prop="license_type" width="130"/>
-            <el-table-column
-              :label="$t('admin.ops.enterprise.companyName')"
-              min-width="160"
-              prop="company_name"
-              show-overflow-tooltip
-            />
-            <el-table-column :label="$t('admin.ops.enterprise.maxSites')" align="center" width="110">
-              <template #default="{ row }">
-                <span v-if="(row as EnterpriseLicenseItem).max_sites === -1">∞</span>
-                <span v-else>{{ (row as EnterpriseLicenseItem).max_sites }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.ops.enterprise.validUntil')" width="170">
-              <template #default="{ row }">
-                {{ (row as EnterpriseLicenseItem).valid_until || '-' }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.ops.enterprise.slaEnabled')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as EnterpriseLicenseItem).sla_enabled ? 'success' : 'info'" size="small">
-                  {{ (row as EnterpriseLicenseItem).sla_enabled ? $t('admin.common.yes') : $t('admin.common.no') }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.status')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as EnterpriseLicenseItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as EnterpriseLicenseItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button
-                  v-auth="'module_ops:enterprise:edit'"
-                  :icon="EditPen"
-                  link
-                  type="primary"
-                  @click="openLicenseEdit(row as EnterpriseLicenseItem)"
-                >
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button
-                  v-auth="'module_ops:enterprise:edit'"
-                  :icon="Delete"
-                  link
-                  type="danger"
-                  @click="onDeleteLicense(row as EnterpriseLicenseItem)"
-                >
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination
-            :current-page="licensePage"
-            :page-size="licensePageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="licenseTotal"
-            background
-            class="table-pagination"
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="onLicensePageChange"
-            @size-change="onLicenseSizeChange"
+          <el-table-column
+            :label="$t('admin.ops.enterprise.licenseKey')"
+            min-width="200"
+            prop="license_key"
+            show-overflow-tooltip
           />
-        </el-card>
+          <el-table-column :label="$t('admin.ops.enterprise.licenseType')" prop="license_type" width="130"/>
+          <el-table-column
+            :label="$t('admin.ops.enterprise.companyName')"
+            min-width="160"
+            prop="company_name"
+            show-overflow-tooltip
+          />
+          <el-table-column :label="$t('admin.ops.enterprise.maxSites')" align="center" width="110">
+            <template #default="{ row }">
+              <span v-if="(row as EnterpriseLicenseItem).max_sites === -1">∞</span>
+              <span v-else>{{ (row as EnterpriseLicenseItem).max_sites }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.ops.enterprise.validUntil')" width="170">
+            <template #default="{ row }">
+              {{ (row as EnterpriseLicenseItem).valid_until || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.ops.enterprise.slaEnabled')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as EnterpriseLicenseItem).sla_enabled ? 'success' : 'info'" size="small">
+                {{ (row as EnterpriseLicenseItem).sla_enabled ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.status')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as EnterpriseLicenseItem).is_active ? 'success' : 'info'" size="small">
+                {{
+                  (row as EnterpriseLicenseItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button
+                v-auth="'module_ops:enterprise:edit'"
+                :icon="EditPen"
+                link
+                type="primary"
+                @click="openLicenseEdit(row as EnterpriseLicenseItem)"
+              >
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button
+                v-auth="'module_ops:enterprise:edit'"
+                :icon="Delete"
+                link
+                type="danger"
+                @click="onDeleteLicense(row as EnterpriseLicenseItem)"
+              >
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 数据保留策略 -->
       <el-tab-pane :label="$t('admin.ops.enterprise.retention')" name="retention">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="policyQuery" @submit.prevent="policySearch()">
+        <AdminListShell
+          :failed="policyFailed"
+          :loading="policyLoading"
+          :page="policyPage"
+          :page-size="policyPageSize"
+          :rows="policyList"
+          :selectable="false"
+          :total="policyTotal"
+          @page-change="onPolicyPageChange"
+          @refresh="policyLoad"
+          @reset="policyReset"
+          @search="policySearch"
+          @size-change="onPolicySizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.common.search')">
               <el-input
                 v-model="policyQuery.keyword"
@@ -414,15 +408,9 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
                 @keyup.enter="policySearch()"
               />
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="policySearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="policyReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button
               v-auth="'module_ops:enterprise:edit'"
               :icon="Plus"
@@ -431,74 +419,59 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
             >
               {{ $t('admin.ops.enterprise.createPolicy') }}
             </el-button>
-            <span class="table-toolbar__total">
               {{ $t('admin.common.totalItems', {n: policyTotal}) }}
             </span>
-          </div>
+          </template>
 
-          <el-table v-loading="policyLoading" :data="policyList" border stripe>
-            <el-table-column
-              :label="$t('admin.ops.enterprise.dataCategory')"
-              min-width="180"
-              prop="data_category"
-              show-overflow-tooltip
-            />
-            <el-table-column :label="$t('admin.ops.enterprise.retentionDays')" align="center" prop="retention_days"
-                             width="120"/>
-            <el-table-column :label="$t('admin.ops.enterprise.action')" width="120">
-              <template #default="{ row }">
-                {{
-                  (row as DataRetentionPolicyItem).action === 'archive'
-                    ? $t('admin.ops.enterprise.actionArchive')
-                    : $t('admin.ops.enterprise.actionDelete')
-                }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.status')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as DataRetentionPolicyItem).is_active ? 'success' : 'info'" size="small">
-                  {{
-                    (row as DataRetentionPolicyItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
-                  }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button
-                  v-auth="'module_ops:enterprise:edit'"
-                  :icon="EditPen"
-                  link
-                  type="primary"
-                  @click="openPolicyEdit(row as DataRetentionPolicyItem)"
-                >
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button
-                  v-auth="'module_ops:enterprise:edit'"
-                  :icon="Delete"
-                  link
-                  type="danger"
-                  @click="onDeletePolicy(row as DataRetentionPolicyItem)"
-                >
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination
-            :current-page="policyPage"
-            :page-size="policyPageSize"
-            :page-sizes="[10, 20, 50, 100]"
-            :total="policyTotal"
-            background
-            class="table-pagination"
-            layout="total, sizes, prev, pager, next, jumper"
-            @current-change="onPolicyPageChange"
-            @size-change="onPolicySizeChange"
+          <el-table-column
+            :label="$t('admin.ops.enterprise.dataCategory')"
+            min-width="180"
+            prop="data_category"
+            show-overflow-tooltip
           />
-        </el-card>
+          <el-table-column :label="$t('admin.ops.enterprise.retentionDays')" align="center" prop="retention_days"
+                           width="120"/>
+          <el-table-column :label="$t('admin.ops.enterprise.action')" width="120">
+            <template #default="{ row }">
+              {{
+                (row as DataRetentionPolicyItem).action === 'archive'
+                  ? $t('admin.ops.enterprise.actionArchive')
+                  : $t('admin.ops.enterprise.actionDelete')
+              }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.status')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as DataRetentionPolicyItem).is_active ? 'success' : 'info'" size="small">
+                {{
+                  (row as DataRetentionPolicyItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled')
+                }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button
+                v-auth="'module_ops:enterprise:edit'"
+                :icon="EditPen"
+                link
+                type="primary"
+                @click="openPolicyEdit(row as DataRetentionPolicyItem)"
+              >
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button
+                v-auth="'module_ops:enterprise:edit'"
+                :icon="Delete"
+                link
+                type="danger"
+                @click="onDeletePolicy(row as DataRetentionPolicyItem)"
+              >
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
     </el-tabs>
 
