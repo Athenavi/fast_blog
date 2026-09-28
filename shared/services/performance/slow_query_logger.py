@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 class SlowQueryLogger:
     """
     慢查询日志服务
-    
+
     记录和监控数据库慢查询
     支持阈值配置和日志分析
     """
@@ -21,7 +21,7 @@ class SlowQueryLogger:
     def __init__(self, threshold: float = 0.1, max_logs: int = 1000):
         """
         初始化慢查询日志
-        
+
         Args:
             threshold: 慢查询阈值(秒)，默认100ms
             max_logs: 最大日志数量
@@ -48,7 +48,7 @@ class SlowQueryLogger:
     ):
         """
         记录查询
-        
+
         Args:
             sql: SQL语句
             duration: 执行时间(秒)
@@ -70,7 +70,7 @@ class SlowQueryLogger:
                 'sql': sql[:2000],  # 限制SQL长度
                 'duration': duration,
                 'params': params,
-                'table': table,
+                'table': table or self._detect_table(sql),
                 'query_type': query_type or self._detect_query_type(sql),
                 'timestamp': datetime.now().isoformat(),
             }
@@ -86,13 +86,13 @@ class SlowQueryLogger:
     ) -> List[Dict[str, Any]]:
         """
         获取慢查询列表
-        
+
         Args:
             limit: 返回数量限制
             hours: 最近多少小时的数据
             table: 表名过滤
             query_type: 查询类型过滤
-        
+
         Returns:
             慢查询列表
         """
@@ -122,10 +122,10 @@ class SlowQueryLogger:
     def get_statistics(self, hours: int = 24) -> Dict[str, Any]:
         """
         获取统计信息
-        
+
         Args:
             hours: 统计最近多少小时
-        
+
         Returns:
             统计信息字典
         """
@@ -186,10 +186,79 @@ class SlowQueryLogger:
             'by_type': by_type,
         }
 
+    def get_fingerprint_stats(
+        self,
+        *,
+        hours: int = 24,
+        limit: int | None = 20,
+    ) -> List[Dict[str, Any]]:
+        """按**归一化 SQL 指纹**聚合慢查询（执行次数 / 累计耗时 / 平均 / 最大）
+
+        为什么单独按指纹聚合：单条"不慢"但高频执行的查询在按耗时排序的列表里根本看不见，
+        而它们的**累计**耗时往往才是真正的成本大头（N+1 的典型形态）。
+        ``limit=None`` 表示返回全部指纹。
+        """
+        cutoff_time = datetime.now() - timedelta(hours=hours)
+        buckets: Dict[str, Dict[str, Any]] = {}
+
+        for query in self.queries:
+            if datetime.fromisoformat(query['timestamp']) < cutoff_time:
+                continue
+            fingerprint = self._normalize_sql(query['sql'])
+            bucket = buckets.get(fingerprint)
+            if bucket is None:
+                bucket = buckets[fingerprint] = {
+                    'fingerprint': fingerprint,
+                    'sample_sql': query['sql'],
+                    'table': query.get('table'),
+                    'query_type': query.get('query_type'),
+                    'executions': 0,
+                    'total_duration': 0.0,
+                    'max_duration': 0.0,
+                }
+            bucket['executions'] += 1
+            bucket['total_duration'] += query['duration']
+            if query['duration'] > bucket['max_duration']:
+                bucket['max_duration'] = query['duration']
+
+        rows = list(buckets.values())
+        for row in rows:
+            row['avg_duration'] = row['total_duration'] / row['executions']
+        rows.sort(key=lambda item: item['total_duration'], reverse=True)
+        return rows if limit is None else rows[:limit]
+
+    def detect_n_plus_one(
+        self,
+        *,
+        hours: int = 24,
+        min_executions: int = 10,
+        max_avg_duration: float = 0.5,
+    ) -> List[Dict[str, Any]]:
+        """疑似 N+1 的查询指纹
+
+        判据（与"慢 SQL"刻意区分）：**同一指纹反复出现**（``executions >= min_executions``）
+        且**单次并不慢**（``avg_duration <= max_avg_duration``）。单次就超阈值的属于慢 SQL，
+        由 ``get_slow_queries`` 负责，不该混进来。
+        """
+        suspects: List[Dict[str, Any]] = []
+        for row in self.get_fingerprint_stats(hours=hours, limit=None):
+            if row['query_type'] != 'SELECT':
+                continue
+            if row['executions'] < min_executions:
+                continue
+            if row['avg_duration'] > max_avg_duration:
+                continue
+            suspects.append({
+                **row,
+                'hint': '同一查询模板在窗口内反复执行：建议改为批量查询，或用 joinedload / selectinload 预加载关联以消除 N+1',
+            })
+        suspects.sort(key=lambda item: item['total_duration'], reverse=True)
+        return suspects
+
     def get_optimization_suggestions(self) -> List[Dict[str, str]]:
         """
         生成优化建议
-        
+
         Returns:
             优化建议列表
         """
@@ -224,10 +293,10 @@ class SlowQueryLogger:
     def _analyze_query(self, query: Dict[str, Any]) -> Optional[Dict[str, str]]:
         """
         分析单个查询并生成建议
-        
+
         Args:
             query: 查询日志
-        
+
         Returns:
             优化建议
         """
@@ -284,10 +353,10 @@ class SlowQueryLogger:
     def _normalize_sql(self, sql: str) -> str:
         """
         标准化SQL用于模式匹配
-        
+
         Args:
             sql: 原始SQL
-        
+
         Returns:
             标准化的SQL
         """
@@ -304,13 +373,30 @@ class SlowQueryLogger:
 
         return normalized
 
+    def _detect_table(self, sql: str) -> str | None:
+        """从 SQL 推断主表名
+
+        采集侧（``slow_query_hook``）通常不传 ``table``，若不推断则 ``get_statistics`` 的
+        ``by_table`` 与指纹聚合的 ``table`` 全是空 —— 索引建议也就无处落脚。
+        """
+        import re
+
+        match = re.search(
+            r'\b(?:from|join|into|update)\s+["`\[]?([A-Za-z_][\w]*(?:\.[A-Za-z_][\w]*)?)',
+            sql,
+            flags=re.IGNORECASE,
+        )
+        if not match:
+            return None
+        return match.group(1).split('.')[-1]
+
     def _detect_query_type(self, sql: str) -> str:
         """
         检测查询类型
-        
+
         Args:
             sql: SQL语句
-        
+
         Returns:
             查询类型
         """
@@ -340,7 +426,7 @@ class SlowQueryLogger:
     def update_threshold(self, new_threshold: float):
         """
         更新慢查询阈值
-        
+
         Args:
             new_threshold: 新的阈值(秒)
         """

@@ -49,10 +49,13 @@ from src.api.v3.modules.system.monitor.monitoring_service import (
     monitoring_metric_service,
     sla_service,
 )
+from src.api.v3.modules.system.monitor.performance_report import performance_report_service
+from src.api.v3.modules.system.monitor.query_optimizer import query_optimizer_service
 from src.api.v3.modules.system.monitor.schema import (
     AlertCreate,
     AlertUpdate,
     MetricCreate,
+    QueryExplainRequest,
     SLAComputeRequest,
     SLACreate,
     SLAUpdate,
@@ -419,3 +422,65 @@ async def clear_slow_queries(
 
     slow_query_logger.clear_logs()
     return resp.success(None, msg="已清空")
+
+
+# ─────────────────────── 查询优化（真实采集数据 + 真实计划分析）───────────────────────
+@router.get(
+    "/query-optimizer/analysis",
+    response_model=ResponseModel,
+    summary="查询优化分析（按 SQL 指纹聚合 + N+1 嫌疑）",
+)
+async def query_optimizer_analysis(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_VIEW),
+    hours: int = Query(default=24, ge=1, le=720, description="统计窗口（小时）"),
+    limit: int = Query(default=20, ge=1, le=200, description="返回的指纹数量"),
+    min_executions: int = Query(default=10, ge=2, le=1000, description="N+1 判定的最少执行次数"),
+    max_avg_duration: float = Query(
+        default=0.5, gt=0, le=60, description="N+1 判定的单次平均耗时上限（秒）"
+    ),
+) -> dict:
+    """按归一化 SQL 指纹聚合的慢查询排行 + N+1 嫌疑 + 规则化建议
+
+    数据源是引擎事件真实采集到的慢查询；单条不慢但高频的查询只有按指纹聚合才看得见。
+    """
+    return resp.success(
+        query_optimizer_service.analysis(
+            hours=hours,
+            limit=limit,
+            min_executions=min_executions,
+            max_avg_duration=max_avg_duration,
+        )
+    )
+
+
+@router.post(
+    "/query-optimizer/explain",
+    response_model=ResponseModel,
+    summary="对指定 SELECT 生成查询计划分析",
+)
+async def query_optimizer_explain(
+    payload: QueryExplainRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_VIEW),
+) -> dict:
+    """真跑 ``EXPLAIN (FORMAT JSON)`` 并解析计划；**不执行**该 SQL（不带 ANALYZE）"""
+    return resp.success(await query_optimizer_service.explain(db, payload.sql))
+
+
+# ─────────────────────────── 性能综合报告 ───────────────────────────
+@router.get(
+    "/performance-report",
+    response_model=ResponseModel,
+    summary="性能综合报告（RUM + 慢查询 + 服务器 + 告警 / 指标 / SLA）",
+)
+async def performance_report(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_VIEW),
+    hours: int = Query(default=24, ge=1, le=720, description="统计窗口（小时）"),
+    top: int = Query(default=5, ge=1, le=50, description="Top N 条目数"),
+) -> dict:
+    """聚合真实数据源：RUM（前端上报）、慢查询（引擎采集）、服务器采样、告警 / 指标 / SLA 真表"""
+    return resp.success(await performance_report_service.report(db, hours=hours, top=top))

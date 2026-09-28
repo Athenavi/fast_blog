@@ -229,3 +229,13 @@ class SLAOut(SchemaBase):
     total_minutes: int | None = None
     created_at: datetime | None = None
     checked_at: datetime | None = None
+
+
+class QueryExplainRequest(SchemaBase):
+    """查询优化面板：EXPLAIN 请求（只分析计划，**不会执行**该语句）"""
+
+    sql: str = Field(
+        min_length=1,
+        max_length=8000,
+        description="待分析的语句，仅接受单条 SELECT / WITH（服务端另有白名单校验）",
+    )
