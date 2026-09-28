@@ -368,3 +368,54 @@ async def delete_sla_report(
 ) -> dict:
     await sla_service.delete_report(db, report_id)
     return resp.success(None, msg="已删除")
+
+
+# ─────────────────────────── 慢查询（采集自 SQLAlchemy 引擎事件）───────────────────────────
+# 采集点见 src/utils/database/slow_query_hook.py：引擎初始化时挂 before/after_cursor_execute，
+# 每次查询计入总量、超过阈值才记明细（进程内队列，默认保留最近 1000 条）。
+@router.get("/slow-queries", response_model=ResponseModel, summary="慢查询列表与统计")
+async def list_slow_queries(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_VIEW),
+    limit: int = Query(default=50, ge=1, le=500),
+    hours: int = Query(default=24, ge=1, le=720),
+    table: Optional[str] = Query(default=None, description="按表名过滤"),
+    query_type: Optional[str] = Query(default=None, description="按语句类型过滤（SELECT/UPDATE…）"),
+) -> dict:
+    """慢查询明细 + 汇总统计 + 优化建议
+
+    统计是**进程内**的：多 worker 部署下每个进程各记一份（全局视图需另写 Redis/表）。
+    """
+    from shared.services.performance.slow_query_logger import slow_query_logger
+
+    return resp.success({
+        "threshold_ms": round(slow_query_logger.threshold * 1000, 2),
+        "items": slow_query_logger.get_slow_queries(
+            limit=limit, hours=hours, table=table, query_type=query_type
+        ),
+        "statistics": slow_query_logger.get_statistics(hours=hours),
+        "suggestions": slow_query_logger.get_optimization_suggestions(),
+    })
+
+
+@router.put("/slow-queries/threshold", response_model=ResponseModel, summary="更新慢查询阈值")
+async def update_slow_query_threshold(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_MANAGE),
+    threshold_ms: float = Query(..., gt=0, le=60000, description="慢查询阈值（毫秒）"),
+) -> dict:
+    from shared.services.performance.slow_query_logger import slow_query_logger
+
+    slow_query_logger.update_threshold(threshold_ms / 1000)
+    return resp.success({"threshold_ms": threshold_ms}, msg="已更新")
+
+
+@router.delete("/slow-queries", response_model=ResponseModel, summary="清空慢查询记录")
+async def clear_slow_queries(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.MONITOR_MANAGE),
+) -> dict:
+    from shared.services.performance.slow_query_logger import slow_query_logger
+
+    slow_query_logger.clear_logs()
+    return resp.success(None, msg="已清空")

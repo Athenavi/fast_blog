@@ -164,6 +164,14 @@ class UnifiedDatabaseManager:
 
             self._async_engine = create_async_engine(async_url, **engine_kwargs)
 
+            # 慢查询采集（可在 SLOW_QUERY_LOG_ENABLED=false 时关闭）
+            try:
+                from src.utils.database.slow_query_hook import install_slow_query_hook
+
+                install_slow_query_hook(self._async_engine)
+            except Exception as exc:  # noqa: BLE001 - 采集装不上不应影响数据库初始化
+                logger.warning(f"慢查询采集安装失败（已跳过）：{exc}")
+
             # 创建会话工厂
             self._async_session_factory = async_sessionmaker(
                 self._async_engine,
