@@ -6,7 +6,7 @@
  * 任务类型下拉来自后端 `/task-types`（与执行引擎同一份定义，不会出现前端有后端没有）。
  * 失败的任务会带 `error_message` 落库，页面可直接重跑。
  */
-import {Plus, Refresh, Search, VideoPlay} from '@element-plus/icons-vue'
+import {Plus, VideoPlay} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {onMounted, reactive, ref} from 'vue'
 
@@ -186,9 +186,21 @@ async function onDelete(row: AiWorkflowItem): Promise<void> {
 
 <template>
   <div class="page-container">
-    <el-card shadow="never">
-      <!-- 搜索区 -->
-      <el-form :inline="true" :model="query" @submit.prevent="search()">
+    <AdminListShell
+      :failed="workflowFailed"
+      :loading="loading"
+      :page="page"
+      :page-size="pageSize"
+      :rows="list"
+      :selectable="false"
+      :total="total"
+      @page-change="onPageChange"
+      @refresh="load"
+      @reset="reset"
+      @search="search"
+      @size-change="onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.ai.userId')">
           <el-input-number v-model="query.user_id" :min="1" controls-position="right" style="width: 130px"/>
         </el-form-item>
@@ -210,13 +222,9 @@ async function onDelete(row: AiWorkflowItem): Promise<void> {
             <el-option label="failed" value="failed"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <div class="table-toolbar">
+      <template #actions>
         <el-button
           v-auth="'module_ai:workflow:execute'"
           :icon="Plus"
@@ -225,79 +233,51 @@ async function onDelete(row: AiWorkflowItem): Promise<void> {
         >
           {{ $t('admin.ai.executeTask') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <!-- 表格 -->
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-
-      <AdminEmpty
-        v-else-if="!loading && !list.length"
-        :title="workflowFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-        :variant="workflowFailed ? 'error' : 'default'"
-      >
-        <el-button v-if="workflowFailed" :icon="Refresh" @click="load()">
-          {{ $t('admin.common.retry') }}
-        </el-button>
-      </AdminEmpty>
-      <el-table v-else v-loading="loading" :data="list" border stripe>
-        <el-table-column label="ID" prop="id" width="70"/>
-        <el-table-column :label="$t('admin.ai.userId')" prop="user_id" width="90"/>
-        <el-table-column :label="$t('admin.ai.taskType')" width="130">
-          <template #default="{ row }">{{ taskLabel((row as AiWorkflowItem).task_type) }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.ai.modelUsed')" min-width="130" prop="model_used" show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.ai.tokensUsed')" prop="tokens_used" width="110"/>
-        <el-table-column :label="$t('admin.ai.status')" width="110">
-          <template #default="{ row }">
-            <el-tag :type="statusType((row as AiWorkflowItem).status)" size="small">
-              {{ (row as AiWorkflowItem).status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.ai.errorMessage')" min-width="150" prop="error_message"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.common.createdAt')" min-width="160" prop="created_at"
-                         show-overflow-tooltip/>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="210">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openResult(row as AiWorkflowItem)">
-              {{ $t('admin.ai.viewResult') }}
-            </el-button>
-            <el-button
-              v-auth="'module_ai:workflow:execute'"
-              :icon="VideoPlay"
-              link
-              type="success"
-              @click="onRetry(row as AiWorkflowItem)"
-            >
-              {{ $t('admin.ai.retry') }}
-            </el-button>
-            <el-button
-              v-auth="'module_ai:workflow:delete'"
-              link
-              type="danger"
-              @click="onDelete(row as AiWorkflowItem)"
-            >
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+      <el-table-column label="ID" prop="id" width="70"/>
+      <el-table-column :label="$t('admin.ai.userId')" prop="user_id" width="90"/>
+      <el-table-column :label="$t('admin.ai.taskType')" width="130">
+        <template #default="{ row }">{{ taskLabel((row as AiWorkflowItem).task_type) }}</template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.ai.modelUsed')" min-width="130" prop="model_used" show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.ai.tokensUsed')" prop="tokens_used" width="110"/>
+      <el-table-column :label="$t('admin.ai.status')" width="110">
+        <template #default="{ row }">
+          <el-tag :type="statusType((row as AiWorkflowItem).status)" size="small">
+            {{ (row as AiWorkflowItem).status }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.ai.errorMessage')" min-width="150" prop="error_message"
+                       show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.common.createdAt')" min-width="160" prop="created_at"
+                       show-overflow-tooltip/>
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="210">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="openResult(row as AiWorkflowItem)">
+            {{ $t('admin.ai.viewResult') }}
+          </el-button>
+          <el-button
+            v-auth="'module_ai:workflow:execute'"
+            :icon="VideoPlay"
+            link
+            type="success"
+            @click="onRetry(row as AiWorkflowItem)"
+          >
+            {{ $t('admin.ai.retry') }}
+          </el-button>
+          <el-button
+            v-auth="'module_ai:workflow:delete'"
+            link
+            type="danger"
+            @click="onDelete(row as AiWorkflowItem)"
+          >
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
 
     <!-- 发起任务（真实调用模型） -->
     <el-dialog v-model="runVisible" :title="$t('admin.ai.executeTask')" width="620px">

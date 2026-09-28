@@ -6,7 +6,7 @@
  * **start 会真的导入** `config.file_path` 指向的 WordPress WXR（进度与日志实时可查）；
  * 平台没有导入器 / 文件不存在 / 文件过大都会直接报错，不会留下"看着在跑"的假任务。
  */
-import {Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Plus} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
@@ -165,13 +165,21 @@ async function openLogs(row: MigrationTaskItem) {
 
 <template>
   <div class="page-container">
-    <el-card shadow="never">
-      <el-alert
-        :closable="false" :title="$t('admin.ops.migration.engineHint')"
-        class="mb-3"
-        type="info"
-      />
-      <el-form :inline="true" @submit.prevent="search()">
+    <AdminListShell
+      :failed="failed"
+      :loading="loading"
+      :page="page"
+      :page-size="pageSize"
+      :rows="list"
+      :selectable="false"
+      :total="total"
+      @page-change="onPageChange"
+      @refresh="load"
+      @reset="reset"
+      @search="search"
+      @size-change="onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.system.sensitiveWord.keyword')">
           <el-input v-model="query.keyword" clearable style="width: 180px" @keyup.enter="search()"/>
         </el-form-item>
@@ -184,83 +192,59 @@ async function openLogs(row: MigrationTaskItem) {
             <el-option :label="$t('admin.ops.migration.statusCancelled')" value="cancelled"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <div class="table-toolbar">
+      <template #actions>
         <el-button v-auth="'module_ops:migration:create'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.ops.migration.createTask') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-
-      <AdminEmpty
-        v-else-if="!loading && !list.length"
-        :title="failed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-        :variant="failed ? 'error' : 'default'"
-      >
-        <el-button v-if="failed" :icon="Refresh" @click="load()">
-          {{ $t('admin.common.retry') }}
-        </el-button>
-      </AdminEmpty>
-      <el-table v-else v-loading="loading" :data="list" border stripe>
-        <el-table-column :label="$t('admin.common.name')" min-width="160" prop="task_name"/>
-        <el-table-column :label="$t('admin.ops.migration.platform')" prop="source_platform" width="120"/>
-        <el-table-column :label="$t('admin.common.status')" width="110">
-          <template #default="{ row }">
-            <el-tag :type="statusTag((row as MigrationTaskItem).status)" size="small">
-              {{ statusLabel((row as MigrationTaskItem).status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.ops.migration.progress')" width="170">
-          <template #default="{ row }">
-            <el-progress
-              :percentage="(row as MigrationTaskItem).total_items ? Math.round((row as MigrationTaskItem).migrated_items / (row as MigrationTaskItem).total_items * 100) : 0"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('admin.ops.migration.startedAt')" prop="started_at" width="170"/>
-        <el-table-column :label="$t('admin.common.actions')" fixed="right" width="280">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openLogs(row as MigrationTaskItem)">
-              {{ $t('admin.ops.migration.logs') }}
-            </el-button>
-            <el-button
-              v-if="(row as MigrationTaskItem).status === 'pending'"
-              v-auth="'module_ops:migration:edit'" link type="success" @click="startTask(row as MigrationTaskItem)"
-            >
-              {{ $t('admin.ops.migration.start') }}
-            </el-button>
-            <el-button
-              v-if="(row as MigrationTaskItem).status === 'running'"
-              v-auth="'module_ops:migration:edit'" link type="warning" @click="cancelTask(row as MigrationTaskItem)"
-            >
-              {{ $t('admin.ops.migration.cancel') }}
-            </el-button>
-            <el-button v-auth="'module_ops:migration:edit'" link type="primary"
-                       @click="openEdit(row as MigrationTaskItem)">
-              {{ $t('admin.common.edit') }}
-            </el-button>
-            <el-button v-auth="'module_ops:migration:delete'" link type="danger"
-                       @click="onDelete(row as MigrationTaskItem)">
-              {{ $t('admin.common.delete') }}
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <el-pagination
-        :current-page="page" :page-size="pageSize" :total="total"
-        background class="table-pagination" layout="total, sizes, prev, pager, next"
-        @current-change="onPageChange" @size-change="onSizeChange"
-      />
-    </el-card>
+      <el-table-column :label="$t('admin.common.name')" min-width="160" prop="task_name"/>
+      <el-table-column :label="$t('admin.ops.migration.platform')" prop="source_platform" width="120"/>
+      <el-table-column :label="$t('admin.common.status')" width="110">
+        <template #default="{ row }">
+          <el-tag :type="statusTag((row as MigrationTaskItem).status)" size="small">
+            {{ statusLabel((row as MigrationTaskItem).status) }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.ops.migration.progress')" width="170">
+        <template #default="{ row }">
+          <el-progress
+            :percentage="(row as MigrationTaskItem).total_items ? Math.round((row as MigrationTaskItem).migrated_items / (row as MigrationTaskItem).total_items * 100) : 0"
+          />
+        </template>
+      </el-table-column>
+      <el-table-column :label="$t('admin.ops.migration.startedAt')" prop="started_at" width="170"/>
+      <el-table-column :label="$t('admin.common.actions')" fixed="right" width="280">
+        <template #default="{ row }">
+          <el-button link type="primary" @click="openLogs(row as MigrationTaskItem)">
+            {{ $t('admin.ops.migration.logs') }}
+          </el-button>
+          <el-button
+            v-if="(row as MigrationTaskItem).status === 'pending'"
+            v-auth="'module_ops:migration:edit'" link type="success" @click="startTask(row as MigrationTaskItem)"
+          >
+            {{ $t('admin.ops.migration.start') }}
+          </el-button>
+          <el-button
+            v-if="(row as MigrationTaskItem).status === 'running'"
+            v-auth="'module_ops:migration:edit'" link type="warning" @click="cancelTask(row as MigrationTaskItem)"
+          >
+            {{ $t('admin.ops.migration.cancel') }}
+          </el-button>
+          <el-button v-auth="'module_ops:migration:edit'" link type="primary"
+                     @click="openEdit(row as MigrationTaskItem)">
+            {{ $t('admin.common.edit') }}
+          </el-button>
+          <el-button v-auth="'module_ops:migration:delete'" link type="danger"
+                     @click="onDelete(row as MigrationTaskItem)">
+            {{ $t('admin.common.delete') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </AdminListShell>
 
     <!-- 任务编辑 -->
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="480px">
