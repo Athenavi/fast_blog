@@ -137,8 +137,9 @@ export default defineNuxtConfig({
       // 因为 WS 的 upgrade 既不经 nitro.devProxy 也不经 Vite proxy（见上面的说明）；
       // 生产留空 → 同源，由 nginx 转发 Upgrade。
       wsBaseUrl: process.env.NUXT_PUBLIC_WS_BASE_URL || '',
-      // RUM 上报端点；留空表示只本地采集（后端 v3 暂无该端点）
-      rumEndpoint: process.env.NUXT_PUBLIC_RUM_ENDPOINT || '',
+      // RUM 上报端点：v3 已提供 `POST /api/v3/system/health/web-vitals`（同源、公开、无需鉴权）。
+      // 要临时关闭上报，显式设 NUXT_PUBLIC_RUM_ENDPOINT=""（这里用 ?? 而非 ||，以保留空串语义）。
+      rumEndpoint: process.env.NUXT_PUBLIC_RUM_ENDPOINT ?? '/api/v3/system/health/web-vitals',
     },
   },
 

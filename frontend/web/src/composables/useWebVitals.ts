@@ -7,9 +7,10 @@ import {shallowRef} from 'vue'
  * 用行业标准库 `web-vitals` 采集 5 项核心指标（LCP / INP / CLS / FCP / TTFB），
  * 评级（good / needs-improvement / poor）与上报批量由这里统一处理。
  *
- * **上报默认关闭**：后端 v3 目前没有 RUM 接收端点，`endpoint` 默认为空字符串，
- * 因此只做本地采集（存 sessionStorage）供后台「性能面板」查看，不产生任何请求。
- * 后端补上端点后，把端点传给 `endpoint` 即开启批量上报（优先 `sendBeacon`）。
+ * **上报默认开启**：端点默认指向同源的 `/api/v3/system/health/web-vitals`
+ * （见 nuxt.config.ts 的 runtimeConfig.public.rumEndpoint），前后台都会批量上报（优先
+ * `sendBeacon`）；本地样本仍会写一份到 sessionStorage 供后台「性能面板」查看。
+ * 要临时关闭上报，把 `NUXT_PUBLIC_RUM_ENDPOINT` 显式设为空串。
  */
 
 export type VitalRating = 'good' | 'needs-improvement' | 'poor'

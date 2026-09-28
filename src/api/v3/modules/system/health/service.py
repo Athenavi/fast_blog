@@ -7,12 +7,15 @@
 import os
 import tomllib
 from pathlib import Path
-from typing import Tuple
+from typing import TYPE_CHECKING, Dict, Sequence, Tuple
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v3.core.logger import get_logger
+
+if TYPE_CHECKING:  # 仅为类型注解，避免运行时循环导入
+    from src.api.v3.modules.system.health.schema import WebVitalSample
 
 logger = get_logger("health")
 
@@ -54,6 +57,9 @@ class HealthService:
 
     service_name = SERVICE_NAME
 
+    #: RUM 上报单次最多接受的样本数（公开端点，防止一次塞爆内存）
+    max_vitals_per_request = 50
+
     def build_payload(self) -> dict:
         """构造不含依赖检查的基础载荷（live 探针使用）"""
         return {
@@ -72,6 +78,39 @@ class HealthService:
         except Exception as exc:  # noqa: BLE001 - 探针不能把异常抛给调用方
             logger.error("数据库探针失败：%s", exc)
             return False, f"unavailable: {type(exc).__name__}"
+
+    # ------------------------------------------------------------------ RUM
+    def ingest_web_vitals(self, samples: Sequence["WebVitalSample"], user_agent: str = "") -> dict:
+        """把前端批量上报的 Web Vitals 按页面聚合后交给 ``PagePerformanceTracker``
+
+        tracker 的统计读的是**小写**键（lcp/fcp/cls/inp），而前端上报的是大写指标名，
+        这里统一转换 —— 否则面板会永远是 0。
+        """
+        from shared.services.performance.performance_tracker import performance_tracker
+
+        grouped: Dict[str, Dict[str, float]] = {}
+        for sample in samples:
+            path = (sample.path or "/")[:512]
+            grouped.setdefault(path, {})[sample.name.lower()] = float(sample.value)
+
+        for path, vitals in grouped.items():
+            performance_tracker.record_performance(
+                url=path,
+                user_agent=user_agent[:300],
+                performance_metrics={"sampleCount": 1},
+                core_web_vitals=vitals,
+            )
+
+        return {"accepted": len(samples), "pages": len(grouped)}
+
+    def web_vitals_summary(self, hours: int = 24, limit: int = 10) -> dict:
+        """整体 CWV 统计 + 最慢页面（供后台性能面板）"""
+        from shared.services.performance.performance_tracker import performance_tracker
+
+        return {
+            "overall": performance_tracker.get_overall_stats(hours=hours),
+            "slowest_pages": performance_tracker.get_slowest_pages(hours=hours, limit=limit),
+        }
 
 
 health_service = HealthService()
