@@ -77,3 +77,9 @@ class CommentReplyRequest(SchemaBase):
     """管理端回复内容"""
 
     content: str = Field(min_length=1, max_length=5000)
+
+
+class CommentModerateRequest(SchemaBase):
+    """内容审核试算请求（不落库，仅返回评分与原因）"""
+
+    content: str = Field(min_length=1, max_length=5000, description="待审核文本")

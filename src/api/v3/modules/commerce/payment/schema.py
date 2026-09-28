@@ -198,3 +198,17 @@ class PaymentInitiateRequest(SchemaBase):
     return_url: Optional[str] = Field(default=None, max_length=500)
     cancel_url: Optional[str] = Field(default=None, max_length=500)
     notify_url: Optional[str] = Field(default=None, max_length=500)
+
+
+# ---------------------------------------------------------------- 税务试算
+class TaxCalculateRequest(SchemaBase):
+    """税务试算（税率来自 ``tax_configs`` 真表）"""
+
+    amount: float = Field(gt=0, le=1_000_000_000, description="金额；inclusive=False 时为净额")
+    country: str = Field(min_length=2, max_length=2, description="ISO 3166-1 alpha-2 国家码")
+    region: Optional[str] = Field(default=None, max_length=100, description="地区/州/省")
+    tax_type: Optional[str] = Field(default=None, max_length=50, description="税种，如 VAT / GST")
+    inclusive: bool = Field(default=False, description="amount 是否已含税")
+    vat_number: Optional[str] = Field(
+        default=None, max_length=32, description="EU VAT 号；合法则按免税处理"
+    )

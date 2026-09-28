@@ -51,6 +51,7 @@ from src.api.v3.modules.commerce.payment.schema import (
     PaymentInitiateRequest,
     PaymentTransactionCreate,
     PaymentTransactionUpdate,
+    TaxCalculateRequest,
     TaxConfigCreate,
     TaxConfigUpdate,
 )
@@ -61,6 +62,7 @@ from src.api.v3.modules.commerce.payment.service import (
     payment_transaction_service,
     tax_config_service,
 )
+from src.api.v3.modules.commerce.payment.tax_service import tax_service
 
 router = APIRouter(prefix="/payment", tags=["commerce-payment"], route_class=OperationLogRoute)
 
@@ -377,3 +379,55 @@ async def payment_callback(provider: str, request: Request, db: DBSession) -> Re
     if provider == "wechat":
         return JSONResponse({"code": "SUCCESS", "message": "OK"})
     return JSONResponse({"received": True})
+
+
+# ---------------------------------------------------------------- 税务计算（真实税率）
+@router.post("/tax/calculate", response_model=ResponseModel, summary="计算税额（税率来自 tax_configs）")
+async def calculate_tax(
+    payload: TaxCalculateRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.PAYMENT_VIEW),
+) -> dict:
+    """按国家/地区/税种匹配**当前生效**税率并计税
+
+    - ``inclusive=False``：``amount`` 视为净额，税额另加；``True`` 则从含税额中拆出
+    - 传入合法 EU ``vat_number`` 时按免税处理（响应 ``exempt=true``）
+    - 未配置对应税率一律 404（宁可不计，也不静默按 0 计税）
+    """
+    return resp.success(
+        await tax_service.calculate(
+            db,
+            amount=payload.amount,
+            country=payload.country,
+            region=payload.region,
+            tax_type=payload.tax_type,
+            inclusive=payload.inclusive,
+            vat_number=payload.vat_number,
+        )
+    )
+
+
+@router.get("/tax/resolve", response_model=ResponseModel, summary="解析适用税率")
+async def resolve_tax_rate(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.PAYMENT_VIEW),
+    country: str = Query(..., min_length=2, max_length=2, description="ISO 3166-1 alpha-2"),
+    region: Optional[str] = Query(default=None, max_length=100),
+    tax_type: Optional[str] = Query(default=None, max_length=50),
+) -> dict:
+    return resp.success(
+        await tax_service.resolve_rate(db, country=country, region=region, tax_type=tax_type)
+    )
+
+
+@router.get("/tax/report", response_model=ResponseModel, summary="周期税务报表")
+async def tax_report(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.REVENUE_VIEW),
+    days: int = Query(default=30, ge=1, le=365),
+    currency: Optional[str] = Query(default=None, min_length=3, max_length=3),
+) -> dict:
+    return resp.success(await tax_service.report(db, days=days, currency=currency))

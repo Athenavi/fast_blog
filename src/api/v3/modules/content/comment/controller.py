@@ -31,10 +31,12 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
+from src.api.v3.modules.content.comment.moderation import content_moderation_service
 from src.api.v3.modules.content.comment.schema import (
     CommentBatchDecideRequest,
     CommentBatchDeleteRequest,
     CommentCreate,
+    CommentModerateRequest,
     CommentReplyRequest,
     CommentUpdate,
 )
@@ -112,6 +114,21 @@ async def batch_decide_comments(
     )
     action = "通过" if payload.approve else "拒绝"
     return resp.success({"affected": affected}, msg=f"已{action} {affected} 条")
+
+
+@router.post("/moderate", response_model=ResponseModel, summary="内容审核试算（不落库）")
+async def moderate_content(
+    payload: CommentModerateRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.COMMENT_VIEW),
+) -> dict:
+    """用**真实敏感词库 + 规则**对文本打分：返回评分、命中原因与建议处置（供后台预览/调试）
+
+    评论提交时走的是同一套判定（见 ``comment_service.create_comment``），
+    低分评论会自动进入待审核而不是直接可见。
+    """
+    return resp.success(await content_moderation_service.moderate(db, payload.content))
 
 
 # ─────────────────────────── 管理端：列表 ───────────────────────────

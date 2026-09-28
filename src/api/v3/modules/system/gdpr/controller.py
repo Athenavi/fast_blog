@@ -13,13 +13,15 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
-from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
+from src.api.v3.modules.system.gdpr.compliance_service import compliance_service
+from src.api.v3.modules.system.gdpr.schema import GDPRConsentCreate
 from src.api.v3.modules.system.gdpr.service import gdpr_service
 
 router = APIRouter(prefix="/gdpr", tags=["system-gdpr"], route_class=OperationLogRoute)
@@ -61,3 +63,59 @@ async def delete_consent(
 ) -> dict:
     await gdpr_service.delete_consent(db, consent_id)
     return resp.success(None, msg="已删除")
+
+
+@router.post("/consent", response_model=ResponseModel, summary="上报同意 / 撤回（访客可用）")
+async def create_consent(
+    payload: GDPRConsentCreate,
+    request: Request,
+    db: DBSession,
+    user: OptionalUser,
+) -> dict:
+    """记录 Cookie/统计/营销同意状态
+
+    前端 Cookie 横幅首访即出现，因此**不要求登录**；登录用户会带上 ``user_id``，
+    便于统计同意覆盖率（见 ``GET /compliance/check``）。
+    """
+    data = await gdpr_service.create_consent(
+        db,
+        consent_type=payload.consent_type,
+        granted=payload.granted,
+        details=payload.details,
+        user_id=getattr(user, "id", None),
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    return resp.success(data, msg="已记录")
+
+
+# ─────────────────────────── 合规检查与文档生成 ───────────────────────────
+@router.get("/compliance/check", response_model=ResponseModel, summary="GDPR / PCI DSS 合规检查")
+async def compliance_check(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.GDPR_VIEW),
+) -> dict:
+    """逐项检查（全部基于真表与真配置）：同意覆盖率、保留期、用户权利出口、支付卡数据、网关托管"""
+    return resp.success(await compliance_service.checklist(db))
+
+
+@router.get("/compliance/privacy-policy", response_model=ResponseModel, summary="生成隐私政策")
+async def compliance_privacy_policy(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.GDPR_VIEW),
+    as_html: bool = Query(default=False, description="true 返回 HTML，false 返回 Markdown"),
+) -> dict:
+    """用真实站点配置（站点名/域名/保留期/联系邮箱）生成中文隐私政策"""
+    return resp.success(await compliance_service.privacy_policy(db, as_html=as_html))
+
+
+@router.get("/compliance/cookie-consent", response_model=ResponseModel, summary="生成 Cookie 同意横幅")
+async def compliance_cookie_consent(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.GDPR_VIEW),
+) -> dict:
+    """生成可直接嵌入页面的 Cookie 同意横幅 HTML（内含向 ``POST /gdpr/consent`` 的上报逻辑）"""
+    return resp.success(await compliance_service.cookie_consent_html(db))

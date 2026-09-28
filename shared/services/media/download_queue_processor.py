@@ -3,16 +3,14 @@
 定期检查并处理待处理的下载任务
 """
 import asyncio
-
 from typing import Optional
 
 from sqlalchemy import select
 
+from shared.logging import default_logger as logger
 from shared.models import DownloadTask
 from shared.services.performance.resource_transfer_service import ResourceTransferService
 from src.utils.database.unified_manager import db_manager
-
-from shared.logging import default_logger as logger
 
 
 class DownloadQueueProcessor:
@@ -21,7 +19,7 @@ class DownloadQueueProcessor:
     def __init__(self, max_concurrent: int = 3, check_interval: int = 30):
         """
         初始化处理器
-        
+
         Args:
             max_concurrent: 最大并发下载数
             check_interval: 检查间隔（秒）
@@ -75,11 +73,11 @@ class DownloadQueueProcessor:
         """处理下载队列"""
         try:
             # 检查系统是否已安装
-            from shared.services.install.install_manager.installation_wizard import installation_wizard_service
+            from shared.services.install.install_manager.install_wizard import installation_wizard_service
             if not installation_wizard_service.is_installed():
                 logger.debug("System not installed, skipping download queue processing")
                 return
-            
+
             # 获取待处理的任务（原子性标记为 processing，防止多实例竞态）
             async with db_manager.get_session() as db:
                 result = await db.execute(

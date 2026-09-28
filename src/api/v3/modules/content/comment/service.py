@@ -17,6 +17,7 @@ from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes as C
 from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
 from src.api.v3.modules.content.comment.crud import comment_crud
+from src.api.v3.modules.content.comment.moderation import content_moderation_service
 from src.api.v3.modules.content.comment.schema import CommentCreate
 
 logger = get_logger("comment")
@@ -145,6 +146,7 @@ class CommentService:
         user=None,
         ip: Optional[str] = None,
         user_agent: Optional[str] = None,
+        auto_approve: bool = False,
     ) -> dict:
         if await db.scalar(select(Article.id).where(Article.id == payload.article_id)) is None:
             raise NotFoundError("目标文章不存在")
@@ -154,6 +156,10 @@ class CommentService:
                 raise NotFoundError("父评论不存在或不属于该文章")
 
         now = datetime.now()
+        # 真实审核：命中敏感词/刷屏/广告特征时记录评分与原因，低分自动进入待审核
+        moderation = await content_moderation_service.moderate_comment(
+            db, payload.content, auto_approve=auto_approve
+        )
         comment = await comment_crud.create(
             db,
             {
@@ -167,7 +173,9 @@ class CommentService:
                 "user_id": getattr(user, "id", None),
                 "author_ip": ip,
                 "user_agent": user_agent,
-                "is_approved": True,
+                "is_approved": moderation["is_approved"],
+                "spam_score": moderation["spam_score"],
+                "spam_reasons": moderation["spam_reasons"],
                 "likes": 0,
                 "created_at": now,
                 "updated_at": now,
@@ -231,7 +239,9 @@ class CommentService:
             parent_id=parent.id,
             content=content,
         )
-        return await self.create_comment(db, payload, user=user, ip=None, user_agent="admin-console")
+        return await self.create_comment(
+            db, payload, user=user, ip=None, user_agent="admin-console", auto_approve=True
+        )
 
     async def set_approved(
         self, db: AsyncSession, comment_id: int, approved: bool, *, scope_user: Any = None

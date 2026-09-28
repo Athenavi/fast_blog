@@ -110,3 +110,17 @@ class ArticlePublicQuery(SchemaBase):
     tag: Optional[str] = None
     keyword: Optional[str] = None
     post_type: Optional[str] = None
+
+
+class ArticlePreviewTokenCreate(SchemaBase):
+    """生成草稿预览令牌（``password`` 是可选的分享口令，只存 Argon2 哈希）"""
+
+    expires_hours: int = Field(
+        default=24, ge=1, le=720, description="有效期（小时），上限 30 天"
+    )
+    password: Optional[str] = Field(
+        default=None, min_length=4, max_length=64, description="可选访问口令（≥4 字符）"
+    )
+    max_views: Optional[int] = Field(
+        default=None, ge=1, le=10000, description="可选最大访问次数，为空表示不限"
+    )

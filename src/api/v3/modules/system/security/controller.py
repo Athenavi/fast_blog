@@ -28,8 +28,12 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
+from src.api.v3.modules.system.security.anomaly_service import anomaly_detection_service
 from src.api.v3.modules.system.security.report_service import security_report_service
-from src.api.v3.modules.system.security.schema import SecurityReportArchiveRequest
+from src.api.v3.modules.system.security.schema import (
+    AnomalyThresholdUpdate,
+    SecurityReportArchiveRequest,
+)
 from src.api.v3.modules.system.security.service import security_service
 
 router = APIRouter(prefix="/security", tags=["system-security"], route_class=OperationLogRoute)
@@ -126,3 +130,32 @@ async def security_report_history(
     return resp.success(
         await security_report_service.history(db, report_type=report_type, limit=limit)
     )
+
+
+# ─────────────────────────── 异常行为检测（真表窗口聚合）───────────────────────────
+@router.get("/anomalies", response_model=ResponseModel, summary="异常行为检测")
+async def list_anomalies(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SECURITY_VIEW),
+    limit: int = Query(default=50, ge=1, le=200, description="每类返回的最大条数"),
+) -> dict:
+    """四类检测：暴力破解 / 撞库扫描 / 非常规时段登录 / 速率滥用
+
+    数据源是 ``login_attempts`` 与 ``audit_logs`` 两张真表的时间窗聚合（非内存态统计），
+    并给出可疑 IP 加权排行；阈值可在 ``PUT /anomalies/thresholds`` 调整后持久化。
+    """
+    return resp.success(await anomaly_detection_service.detect(db, limit=limit))
+
+
+@router.put("/anomalies/thresholds", response_model=ResponseModel, summary="更新异常检测阈值")
+async def update_anomaly_thresholds(
+    payload: AnomalyThresholdUpdate,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SETTING_EDIT),
+) -> dict:
+    """增量更新阈值并写入 ``system_settings``（未知键会被拒绝，避免写脏数据）"""
+    values = payload.model_dump(exclude_none=True)
+    merged = await anomaly_detection_service.save_thresholds(db, values)
+    return resp.success(merged, msg="阈值已更新")

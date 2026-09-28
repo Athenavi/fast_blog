@@ -4043,6 +4043,68 @@ models:
           - created_at
         order: DESC
         comment: 创建时间索引
+  ArticlePreviewToken:
+    description: 文章草稿预览令牌（为未发布文章生成临时预览链接）
+    status: active
+    frontend_page: /admin/content/article
+    properties:
+      id:
+        type: bigint
+        description: 令牌 ID
+      article_id:
+        type: bigint
+        description: 文章 ID
+        foreignKey: Article
+        index: true
+      token:
+        type: string
+        maxLength: 64
+        unique: true
+        description: 预览令牌（URL 安全随机串，仅存明文其一）
+      password_hash:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 访问密码的 Argon2 哈希（为空表示无需密码）
+      max_views:
+        type: bigint
+        nullable: true
+        description: 最大访问次数（为空表示不限）
+      view_count:
+        type: bigint
+        description: 已访问次数
+      is_active:
+        type: boolean
+        description: 是否有效（撤销或达到访问上限后置 false）
+      expires_at:
+        type: string
+        format: date-time
+        description: 过期时间
+      created_by:
+        type: bigint
+        nullable: true
+        description: 创建者用户 ID
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    module: article
+    orm: true
+    table: article_preview_tokens
+    indexes:
+      - name: idx_article_preview_tokens_article
+        columns:
+          - article_id
+        comment: 按文章查询令牌
+      - name: idx_article_preview_tokens_expires
+        columns:
+          - expires_at
+        comment: 过期清理索引
   AdPlacement:
     description: 广告位模型
     status: active

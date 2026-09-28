@@ -6,8 +6,10 @@ from .article import Article
 from .article_annotation import ArticleAnnotation
 from .article_content import ArticleContent
 from .article_like import ArticleLike
+from .article_preview_token import ArticlePreviewToken
 from .article_revision import ArticleRevision
 from .article_revision_note import ArticleRevisionNote
 from .article_seo import ArticleSEO
 
-__all__ = ['Article', 'ArticleAnnotation', 'ArticleContent', 'ArticleLike', 'ArticleRevision', 'ArticleRevisionNote', 'ArticleSEO']
+__all__ = ['Article', 'ArticleAnnotation', 'ArticleContent', 'ArticleLike', 'ArticlePreviewToken', 'ArticleRevision',
+           'ArticleRevisionNote', 'ArticleSEO']

@@ -28,23 +28,28 @@
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Header, Query, Request
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser, PageDep
+from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
+from src.api.v3.modules.content.article.preview_service import article_preview_service
 from src.api.v3.modules.content.article.schema import (
     ArticleBatchDeleteRequest,
     ArticleBatchPublishRequest,
     ArticleCreate,
+    ArticlePreviewTokenCreate,
     ArticlePublishRequest,
     ArticleUpdate,
 )
 from src.api.v3.modules.content.article.service import article_service
 
 router = APIRouter(prefix="/article", tags=["content-article"], route_class=OperationLogRoute)
+
+logger = get_logger("article")
 
 
 # ─────────────────────────── 公开读（无鉴权）───────────────────────────
@@ -107,8 +112,23 @@ async def public_article_by_slug(
 
 
 @router.post("/public/{article_id}/views", response_model=ResponseModel, summary="浏览量 +1")
-async def increment_views(article_id: int, db: DBSession) -> dict:
-    return resp.success({"views": await article_service.increment_views(db, article_id)})
+async def increment_views(article_id: int, db: DBSession, request: Request) -> dict:
+    views = await article_service.increment_views(db, article_id)
+    # best-effort 埋点：把这次浏览写进 user_activities（target_type=article），失败不影响计数
+    try:
+        from src.api.v3.modules.analytics.tracking.service import tracking_service
+
+        await tracking_service.record_event(
+            db,
+            activity_type="view",
+            target_type="article",
+            target_id=article_id,
+            ip_address=request.client.host if request.client else None,
+            user_agent=request.headers.get("user-agent"),
+        )
+    except Exception:  # noqa: BLE001 - 埋点失败不得影响业务响应
+        logger.warning("文章浏览埋点失败 article_id=%s", article_id, exc_info=True)
+    return resp.success({"views": views})
 
 
 # ─────────────────────────── 管理端：列表 ───────────────────────────
@@ -165,6 +185,23 @@ async def create_article(
 ) -> dict:
     data = await article_service.create_article(db, payload, user_id=current.id)
     return resp.success(data, msg="创建成功")
+
+
+# ─────────────────────────── 公开：草稿预览（令牌即凭证，无鉴权）───────────────────────────
+@router.get("/public/preview/{token}", response_model=ResponseModel, summary="用预览令牌读取未发布草稿")
+async def public_preview_article(
+    token: str,
+    db: DBSession,
+    x_preview_password: Optional[str] = Header(
+        default=None,
+        alias="X-Preview-Password",
+        description="预览口令（仅当令牌设置了口令时需要）",
+    ),
+) -> dict:
+    """**无需登录**：持有令牌即可读该文章的草稿内容。口令走请求头，避免出现在 URL 与访问日志里。"""
+    return resp.success(
+        await article_preview_service.resolve_preview(db, token, password=x_preview_password)
+    )
 
 
 # ─────────────────────────── 管理端：批量操作（静态路径优先）───────────
@@ -268,3 +305,60 @@ async def publish_article(
 ) -> dict:
     data = await article_service.set_published(db, article_id, payload.publish, scope_user=_current)
     return resp.success(data, msg="已发布" if payload.publish else "已转草稿")
+
+
+# ─────────────────────────── 管理端：草稿预览令牌 ───────────────────────────
+@router.post("/{article_id}/preview-token", response_model=ResponseModel, summary="生成草稿预览令牌")
+async def create_preview_token(
+    article_id: int,
+    payload: ArticlePreviewTokenCreate,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_EDIT),
+) -> dict:
+    """为文章（含未发布草稿）生成临时预览链接
+
+    他人文章还需 ``article:edit_others`` 且数据范围允许（与其他写路径同一套判定）。
+    """
+    return resp.success(
+        await article_preview_service.create_token(
+            db,
+            article_id,
+            user=_current,
+            expires_hours=payload.expires_hours,
+            password=payload.password,
+            max_views=payload.max_views,
+        ),
+        msg="预览令牌已生成",
+    )
+
+
+@router.get("/{article_id}/preview-tokens", response_model=ResponseModel, summary="某文章的预览令牌列表")
+async def list_preview_tokens(
+    article_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_VIEW),
+) -> dict:
+    return resp.success(await article_preview_service.list_tokens(db, article_id))
+
+
+@router.post("/preview-token/cleanup", response_model=ResponseModel, summary="清理过期 / 已失效的预览令牌")
+async def cleanup_preview_tokens(
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_EDIT),
+) -> dict:
+    removed = await article_preview_service.cleanup_expired(db)
+    return resp.success({"removed": removed}, msg=f"已清理 {removed} 条")
+
+
+@router.delete("/preview-token/{token_id}", response_model=ResponseModel, summary="撤销预览令牌")
+async def revoke_preview_token(
+    token_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_EDIT),
+) -> dict:
+    await article_preview_service.revoke_token(db, token_id, user=_current)
+    return resp.success(None, msg="已撤销")

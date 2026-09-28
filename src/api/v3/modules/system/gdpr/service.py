@@ -1,5 +1,6 @@
 """gdpr 模块业务逻辑：合规同意记录（GDPR）"""
 
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import func, select
@@ -63,6 +64,36 @@ class GDPRService:
             raise NotFoundError("记录不存在")
         await db.delete(row)
         await db.commit()
+
+    async def create_consent(
+        self,
+        db: AsyncSession,
+        *,
+        consent_type: str,
+        granted: bool,
+        details: Optional[str] = None,
+        user_id: Optional[int] = None,
+        ip_address: Optional[str] = None,
+        user_agent: Optional[str] = None,
+    ) -> dict:
+        """记录一次同意 / 撤回（写 ``gdpr_consents``）
+
+        未登录访客也要能上报 Cookie 同意（前端横幅在首访时就会出现），因此该入口
+        不要求登录；登录用户则带上 ``user_id``，便于统计同意覆盖率。
+        """
+        row = GDPR_MODEL(
+            user_id=user_id,
+            consent_type=(consent_type or "cookies")[:50],
+            granted=bool(granted),
+            details=(details or None) and details[:2000],
+            ip_address=(ip_address or "")[:45] or None,
+            user_agent=(user_agent or "")[:500] or None,
+            created_at=datetime.now(),
+        )
+        db.add(row)
+        await db.commit()
+        await db.refresh(row)
+        return _to_out(row)
 
 
 gdpr_service = GDPRService()

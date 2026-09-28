@@ -39,3 +39,19 @@ class SecurityReportArchiveRequest(SchemaBase):
     """归档一份安全周期报表（写入 ``report_history``）"""
 
     kind: str = Field(default="weekly", description="weekly / monthly")
+
+
+class AnomalyThresholdUpdate(SchemaBase):
+    """异常行为检测阈值（增量更新；未提供的项保持原值，未知项会被拒绝）"""
+
+    brute_force_failures: Optional[int] = Field(default=None, ge=1, le=1000)
+    brute_force_window_minutes: Optional[int] = Field(default=None, ge=1, le=1440)
+    spray_usernames: Optional[int] = Field(default=None, ge=2, le=1000)
+    spray_window_minutes: Optional[int] = Field(default=None, ge=1, le=1440)
+    unusual_hour_start: Optional[int] = Field(default=None, ge=0, le=23)
+    unusual_hour_end: Optional[int] = Field(default=None, ge=0, le=23)
+    unusual_hour_logins: Optional[int] = Field(default=None, ge=1, le=1000)
+    unusual_hour_window_hours: Optional[int] = Field(default=None, ge=1, le=720)
+    rate_abuse_actions: Optional[int] = Field(default=None, ge=1, le=100000)
+    rate_abuse_window_minutes: Optional[int] = Field(default=None, ge=1, le=1440)
+    max_items: Optional[int] = Field(default=None, ge=1, le=500)

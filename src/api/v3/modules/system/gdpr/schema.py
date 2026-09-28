@@ -24,3 +24,13 @@ class GDPRStatsOut(SchemaBase):
     granted: int = 0
     revoked: int = 0
     by_type: dict[str, int] = Field(default_factory=dict, description="按 consent_type 分组计数")
+
+
+class GDPRConsentCreate(SchemaBase):
+    """同意 / 撤回上报（未登录访客也可上报 Cookie 同意）"""
+
+    consent_type: str = Field(
+        default="cookies", max_length=50, description="同意类型：cookies / analytics / marketing"
+    )
+    granted: bool = Field(description="true=同意，false=撤回")
+    details: Optional[str] = Field(default=None, max_length=2000, description="附加说明")

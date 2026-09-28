@@ -62,7 +62,7 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     ),
     "/content": ("approval", "article", "category", "collaboration", "comment", "custom_post_type", "media", "page", "page_builder",
                  "shortcode", "tag", "third_party_publish"),
-    "/analytics": ("dashboard", "report", "search", "seo"),
+    "/analytics": ("dashboard", "report", "search", "seo", "tracking"),
     "/ops": ("backup", "cdn", "deployment", "email", "enterprise", "migration", "notification", "supervisor", "upgrade",
              "webhook"),
     "/extension": ("block_pattern", "plugin", "theme", "widget"),
@@ -91,7 +91,7 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     # 批次 17：群聊消息（表 chat_messages 本批次新建，含 WebSocket 实时通道）
     "/chat": ("group", "message"),
     # T5-11 批次 7：商务域（支付 + 收益分成 + 打赏）
-    "/commerce": ("payment", "revenue", "tipping"),
+    "/commerce": ("payment", "revenue", "shop", "tipping"),
     # T5-11 批次 12：用户成长域（积分 / 勋章 / 专家认证）
     "/gamification": ("badge", "certification", "points"),
 }

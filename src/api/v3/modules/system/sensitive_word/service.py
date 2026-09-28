@@ -43,6 +43,17 @@ def _to_out(row: Any) -> dict:
 class SensitiveWordService:
     """敏感词库管理（system 域）"""
 
+    @staticmethod
+    def _invalidate_moderation_cache() -> None:
+        """词库变更后立即失效内容审核的进程内缓存
+
+        审核位于评论提交热路径，自带 60 秒词库缓存（见 ``comment/moderation.py``）；
+        不主动失效就会出现"刚加的词一分钟内不生效"。
+        """
+        from src.api.v3.modules.content.comment.moderation import content_moderation_service
+
+        content_moderation_service.invalidate_cache()
+
     async def list_words(
         self,
         db: AsyncSession,
@@ -89,6 +100,7 @@ class SensitiveWordService:
         )
         if row is None:
             raise BadRequestError("敏感词添加失败（可能已存在）")
+        self._invalidate_moderation_cache()
         return _to_out(row)
 
     async def update_word(self, word_id: int, payload: SensitiveWordUpdate) -> dict:
@@ -98,24 +110,28 @@ class SensitiveWordService:
         updated = await sensitive_word_service.update_sensitive_word(word_id=word_id, **data)
         if updated is None:
             raise NotFoundError("敏感词不存在")
+        self._invalidate_moderation_cache()
         return _to_out(updated)
 
     async def delete_word(self, word_id: int) -> None:
         ok = await sensitive_word_service.remove_sensitive_word(word_id=word_id)
         if not ok:
             raise NotFoundError("敏感词不存在")
+        self._invalidate_moderation_cache()
 
     async def batch_import(self, payload: SensitiveWordBatchImport, *, user_id: int) -> dict:
         words = [w.strip() for w in payload.words if w.strip()]
         if not words:
             raise BadRequestError("导入列表为空")
-        return await sensitive_word_service.batch_import_words(
+        result = await sensitive_word_service.batch_import_words(
             words=[
                 {"word": w, "level": payload.level, "action": payload.action, "category": payload.category}
                 for w in words
             ],
             created_by=user_id,
         )
+        self._invalidate_moderation_cache()
+        return result
 
 
 sensitive_word_module_service = SensitiveWordService()
