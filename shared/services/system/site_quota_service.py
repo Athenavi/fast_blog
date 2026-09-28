@@ -77,7 +77,6 @@ class SiteQuotaService:
         from shared.models.user import User
         from shared.models.media import Media
         from shared.models.category import Category
-        from sqlalchemy import select, func
 
         usage = {
             'articles': 0,

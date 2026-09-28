@@ -254,7 +254,6 @@ class SSOService:
             'grant_type': 'authorization_code',
         }
 
-        import aiohttp
         timeout = aiohttp.ClientTimeout(total=10)
 
         async with aiohttp.ClientSession() as session:

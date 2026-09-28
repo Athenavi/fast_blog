@@ -4,6 +4,9 @@ FastBlog 脚手架生成器
 提供插件、主题、API 端点的代码生成功能
 """
 
+from datetime import datetime
+from pathlib import Path
+
 
 class ScaffoldGenerator:
     """脚手架生成器基类"""
@@ -68,7 +71,7 @@ class PluginScaffold(ScaffoldGenerator):
         self._generate_tests(plugin_dir, plugin_name, slug)
 
         print(f"\n✅ Plugin '{plugin_name}' scaffold generated successfully!")
-        print(f"\n📝 Next steps:")
+        print("\n📝 Next steps:")
         print(f"   1. Edit {plugin_dir}/metadata.json with your plugin details")
         print(f"   2. Implement your plugin logic in {plugin_dir}/plugin.py")
         print(f"   3. Add templates in {plugin_dir}/templates/")
@@ -105,15 +108,19 @@ class PluginScaffold(ScaffoldGenerator):
 
     def _generate_plugin_main(self, plugin_dir: Path, name: str, slug: str):
         """生成 plugin.py 主文件"""
-        class_name = ''.join(word.capitalize() for word in name.replace('-', '_').split('_'))
+        class_name = ''.join(
+            word.capitalize() for word in name.replace('-', '_').replace(' ', '_').split('_')
+        )
 
-        content = f'''
+        content = f'''"""
 {name} Plugin
 
 A plugin for FastBlog that provides additional functionality.
-'''
+"""
 
 from typing import Dict, Any
+
+from shared.services.plugins.plugin_manager.core import BasePlugin
 
 from src.unified_logger import default_logger as logger
 
@@ -182,7 +189,7 @@ plugin_instance = {class_name}Plugin()
         """生成 README.md"""
         content = f'''# {name}
 
-{description or f"A plugin for FastBlog"}
+{description or "A plugin for FastBlog"}
 
 ## Features
 
@@ -236,17 +243,25 @@ MIT License
 
     def _generate_tests(self, plugin_dir: Path, name: str, slug: str):
         """生成测试文件"""
-        class_name = ''.join(word.capitalize() for word in name.replace('-', '_').split('_'))
-
         content = f'''"""
 Tests for {name} Plugin
 """
-from pathlib import Path
+
+import importlib
+import sys
+
+
+def _load_plugin():
+    """通过 importlib 加载插件实例（插件目录名含连字符，无法直接 import）"""
+    full_module = "plugins.{slug}.plugin"
+    if full_module not in sys.modules:
+        importlib.import_module(full_module)
+    return sys.modules[full_module].plugin_instance
 
 
 def test_plugin_initialization():
     """Test plugin can be initialized"""
-    from plugins.{slug}.plugin import plugin_instance
+    plugin_instance = _load_plugin()
 
     assert plugin_instance is not None
     assert plugin_instance.name == "{name}"
@@ -255,7 +270,7 @@ def test_plugin_initialization():
 
 def test_plugin_activation():
     """Test plugin activation"""
-    from plugins.{slug}.plugin import plugin_instance
+    plugin_instance = _load_plugin()
 
     plugin_instance.activate()
     assert plugin_instance.is_active()
@@ -266,9 +281,7 @@ def test_plugin_activation():
 
 def test_plugin_feature():
     """Test plugin core functionality - customize for your plugin"""
-    from plugins.
-    {slug}.plugin
-    import plugin_instance
+    plugin_instance = _load_plugin()
 
     plugin_instance.activate()
 
@@ -287,9 +300,7 @@ def test_plugin_feature():
 
 def test_plugin_settings():
     """测试插件设置"""
-    from plugins.
-    {slug}.plugin
-    import plugin_instance
+    plugin_instance = _load_plugin()
 
     # 检查默认设置是否存在
     assert hasattr(plugin_instance, 'settings')
@@ -303,15 +314,13 @@ def test_plugin_settings():
 
 def test_plugin_hooks():
     """测试插件钩子注册"""
-    from plugins.
-    {slug}.plugin
-    import plugin_instance
+    plugin_instance = _load_plugin()
 
     # 激活插件
     plugin_instance.activate()
 
     # 检查钩子是否已注册
-    from shared.services.plugins.plugin_manager.core import plugin_hooks
+    from shared.services.plugins.plugin_manager.core import plugin_hooks  # noqa: F401
     # 这里可以添加钩子注册的验证逻辑
 
     # 停用插件
@@ -320,9 +329,7 @@ def test_plugin_hooks():
 
 def test_plugin_activation_deactivation():
     """测试插件的激活和停用"""
-    from plugins.
-    {slug}.plugin
-    import plugin_instance
+    plugin_instance = _load_plugin()
 
     # 初始状态应该是未激活
     assert not plugin_instance.is_active()
@@ -338,9 +345,7 @@ def test_plugin_activation_deactivation():
 
 def test_plugin_info():
     """测试插件信息"""
-    from plugins.
-    {slug}.plugin
-    import plugin_instance
+    plugin_instance = _load_plugin()
 
     # 检查插件基本信息
     assert hasattr(plugin_instance, 'name')
@@ -388,11 +393,11 @@ class ThemeScaffold(ScaffoldGenerator):
         self._generate_theme_readme(theme_dir, theme_name, description)
 
         print(f"\n✅ Theme '{theme_name}' scaffold generated successfully!")
-        print(f"\n📝 Next steps:")
+        print("\n📝 Next steps:")
         print(f"   1. Edit {theme_dir}/theme.json with your theme details")
         print(f"   2. Customize templates in {theme_dir}/templates/")
         print(f"   3. Add styles in {theme_dir}/static/css/")
-        print(f"   4. Preview the theme in admin panel")
+        print("   4. Preview the theme in admin panel")
 
     def _generate_theme_json(self, theme_dir: Path, name: str, description: str, author: str):
         """生成 theme.json"""
@@ -589,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function() {
         """生成主题 README"""
         content = f'''# {name} Theme
 
-{description or f"A modern theme for FastBlog"}
+{description or "A modern theme for FastBlog"}
 
 ## Features
 
@@ -644,10 +649,10 @@ class ApiScaffold(ScaffoldGenerator):
         self._generate_api_module(api_dir, endpoint_name, module_name, description)
 
         print(f"\n✅ API endpoint '{endpoint_name}' scaffold generated successfully!")
-        print(f"\n📝 Next steps:")
+        print("\n📝 Next steps:")
         print(f"   1. Implement your API logic in {api_dir}/{module_name}.py")
-        print(f"   2. Register the router in src/api/v1/__init__.py")
-        print(f"   3. Test your endpoints at /docs")
+        print("   2. Register the router in src/api/v1/__init__.py")
+        print("   3. Test your endpoints at /docs")
 
     def _generate_api_module(self, api_dir: Path, name: str, module_name: str, description: str):
         """生成 API 模块文件"""

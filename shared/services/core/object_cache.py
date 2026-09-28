@@ -187,7 +187,6 @@ class ObjectCacheService:
         # 清除标签索引
         await self.cache.delete(index_key)
 
-        from shared.logging import default_logger as logger
         logger.info(f"[ObjectCache] Invalidated {deleted_count} objects with tag: {tag}")
         return deleted_count
 
