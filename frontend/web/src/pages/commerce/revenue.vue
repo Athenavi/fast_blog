@@ -8,7 +8,7 @@
  * 前台「我的收益」是另一组端点（`/mobile/revenue`），不在本页。
  * 真实打款通道属二期：`complete` 只做状态流转。
  */
-import {Delete, EditPen, Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Delete, EditPen, Plus, Refresh} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
@@ -271,8 +271,21 @@ onMounted(() => {
     <el-tabs v-model="activeTab">
       <!-- 收益记录 -->
       <el-tab-pane :label="$t('admin.commerce.revenue.records')" name="record">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="recordQuery" @submit.prevent="recordSearch()">
+        <AdminListShell
+          :failed="recordFailed"
+          :loading="recordLoading"
+          :page="recordPage"
+          :page-size="recordPageSize"
+          :rows="recordList"
+          :selectable="false"
+          :total="recordTotal"
+          @page-change="onRecordPageChange"
+          @refresh="recordLoad"
+          @reset="recordReset"
+          @search="recordSearch"
+          @size-change="onRecordSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.commerce.revenue.keyword')">
               <el-input v-model="recordQuery.keyword" clearable style="width: 180px"
                         @keyup.enter="recordSearch()"/>
@@ -286,73 +299,60 @@ onMounted(() => {
             <el-form-item :label="$t('admin.commerce.revenue.userId')">
               <el-input-number v-model="recordQuery.user_id" :min="1" clearable style="width: 130px"/>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="recordSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="recordReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button v-auth="'module_commerce:revenue:create'" :icon="Plus" type="primary"
                        @click="openRecordCreate">
               {{ $t('admin.commerce.revenue.createRecord') }}
             </el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: recordTotal}) }}</span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="recordLoading && !recordList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!recordLoading && !recordList.length"
-            :title="recordFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="recordFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="recordFailed" :icon="Refresh" @click="recordLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-
-          <el-table v-else v-loading="recordLoading" :data="recordList" border stripe>
-            <el-table-column :label="$t('admin.commerce.revenue.userId')" prop="user_id" width="90"/>
-            <el-table-column :label="$t('admin.commerce.revenue.revenueType')" min-width="150"
-                             prop="revenue_type"/>
-            <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
-                             :formatter="moneyCell"
-                             width="110"/>
-            <el-table-column :label="$t('admin.commerce.revenue.platformFee')" align="right" prop="platform_fee"
-                             :formatter="moneyCell"
-                             width="120"/>
-            <el-table-column :label="$t('admin.commerce.revenue.creatorEarnings')" align="right" prop="creator_earnings"
-                             :formatter="moneyCell"
-                             width="130"/>
-            <el-table-column :label="$t('admin.common.status')" width="110">
-              <template #default="{ row }">{{ (row as RevenueRecordItem).status || '-' }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.description')" min-width="160" prop="description"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
-              <template #default="{ row }">
-                <el-button v-auth="'module_commerce:revenue:delete'" :icon="Delete" link type="danger"
-                           @click="onDeleteRecord(row as RevenueRecordItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="recordPage" :page-size="recordPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="recordTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onRecordPageChange" @size-change="onRecordSizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.commerce.revenue.userId')" prop="user_id" width="90"/>
+          <el-table-column :label="$t('admin.commerce.revenue.revenueType')" min-width="150"
+                           prop="revenue_type"/>
+          <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
+                           :formatter="moneyCell"
+                           width="110"/>
+          <el-table-column :label="$t('admin.commerce.revenue.platformFee')" align="right" prop="platform_fee"
+                           :formatter="moneyCell"
+                           width="120"/>
+          <el-table-column :label="$t('admin.commerce.revenue.creatorEarnings')" align="right" prop="creator_earnings"
+                           :formatter="moneyCell"
+                           width="130"/>
+          <el-table-column :label="$t('admin.common.status')" width="110">
+            <template #default="{ row }">{{ (row as RevenueRecordItem).status || '-' }}</template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.description')" min-width="160" prop="description"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
+            <template #default="{ row }">
+              <el-button v-auth="'module_commerce:revenue:delete'" :icon="Delete" link type="danger"
+                         @click="onDeleteRecord(row as RevenueRecordItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 提现申请 -->
       <el-tab-pane :label="$t('admin.commerce.revenue.payouts')" name="payout">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="payoutQuery" @submit.prevent="payoutSearch()">
+        <AdminListShell
+          :failed="payoutFailed"
+          :loading="payoutLoading"
+          :page="payoutPage"
+          :page-size="payoutPageSize"
+          :rows="payoutList"
+          :selectable="false"
+          :total="payoutTotal"
+          @page-change="onPayoutPageChange"
+          @refresh="payoutLoad"
+          @reset="payoutReset"
+          @search="payoutSearch"
+          @size-change="onPayoutSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.commerce.revenue.userId')">
               <el-input-number v-model="payoutQuery.user_id" :min="1" clearable style="width: 130px"/>
             </el-form-item>
@@ -365,75 +365,61 @@ onMounted(() => {
                 <el-option label="rejected" value="rejected"/>
               </el-select>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="payoutSearch()">
-                {{ $t('admin.common.search') }}
+          </template>
+
+          <template #actions>
+          </template>
+
+          <el-table-column :label="$t('admin.commerce.revenue.userId')" prop="user_id" width="90"/>
+          <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
+                           :formatter="moneyCell"
+                           width="110"/>
+          <el-table-column :label="$t('admin.commerce.revenue.paymentMethod')" prop="payment_method"
+                           width="130"/>
+          <el-table-column :label="$t('admin.commerce.revenue.paymentAccount')" min-width="160"
+                           prop="payment_account" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.common.status')" align="center" width="110">
+            <template #default="{ row }">
+              <el-tag :type="(PAYOUT_TAG[(row as PayoutRequestItem).status || ''] || 'info') as never"
+                      size="small">
+                {{ (row as PayoutRequestItem).status || '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.commerce.revenue.adminNotes')" min-width="150"
+                           prop="admin_notes" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="220">
+            <template #default="{ row }">
+              <el-button
+                v-auth="'module_commerce:revenue:edit'"
+                :disabled="(row as PayoutRequestItem).status !== 'pending'"
+                :loading="payoutActing === (row as PayoutRequestItem).id"
+                link type="success"
+                @click="decidePayout(row as PayoutRequestItem, 'approve')"
+              >
+                {{ $t('admin.commerce.revenue.action_approve') }}
               </el-button>
-              <el-button :icon="Refresh" @click="payoutReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
-
-          <div class="table-toolbar">
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: payoutTotal}) }}</span>
-          </div>
-
-          <el-table v-loading="payoutLoading" :data="payoutList" border stripe>
-            <el-table-column :label="$t('admin.commerce.revenue.userId')" prop="user_id" width="90"/>
-            <el-table-column :label="$t('admin.commerce.revenue.amount')" align="right" prop="amount"
-                             :formatter="moneyCell"
-                             width="110"/>
-            <el-table-column :label="$t('admin.commerce.revenue.paymentMethod')" prop="payment_method"
-                             width="130"/>
-            <el-table-column :label="$t('admin.commerce.revenue.paymentAccount')" min-width="160"
-                             prop="payment_account" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.common.status')" align="center" width="110">
-              <template #default="{ row }">
-                <el-tag :type="(PAYOUT_TAG[(row as PayoutRequestItem).status || ''] || 'info') as never"
-                        size="small">
-                  {{ (row as PayoutRequestItem).status || '-' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.commerce.revenue.adminNotes')" min-width="150"
-                             prop="admin_notes" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="220">
-              <template #default="{ row }">
-                <el-button
-                  v-auth="'module_commerce:revenue:edit'"
-                  :disabled="(row as PayoutRequestItem).status !== 'pending'"
-                  :loading="payoutActing === (row as PayoutRequestItem).id"
-                  link type="success"
-                  @click="decidePayout(row as PayoutRequestItem, 'approve')"
-                >
-                  {{ $t('admin.commerce.revenue.action_approve') }}
-                </el-button>
-                <el-button
-                  v-auth="'module_commerce:revenue:edit'"
-                  :disabled="(row as PayoutRequestItem).status !== 'approved'"
-                  :loading="payoutActing === (row as PayoutRequestItem).id"
-                  link type="primary"
-                  @click="decidePayout(row as PayoutRequestItem, 'complete')"
-                >
-                  {{ $t('admin.commerce.revenue.action_complete') }}
-                </el-button>
-                <el-button
-                  v-auth="'module_commerce:revenue:edit'"
-                  :disabled="(row as PayoutRequestItem).status !== 'pending'"
-                  :loading="payoutActing === (row as PayoutRequestItem).id"
-                  link type="danger"
-                  @click="decidePayout(row as PayoutRequestItem, 'reject')"
-                >
-                  {{ $t('admin.commerce.revenue.action_reject') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="payoutPage" :page-size="payoutPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="payoutTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onPayoutPageChange" @size-change="onPayoutSizeChange"/>
-        </el-card>
+              <el-button
+                v-auth="'module_commerce:revenue:edit'"
+                :disabled="(row as PayoutRequestItem).status !== 'approved'"
+                :loading="payoutActing === (row as PayoutRequestItem).id"
+                link type="primary"
+                @click="decidePayout(row as PayoutRequestItem, 'complete')"
+              >
+                {{ $t('admin.commerce.revenue.action_complete') }}
+              </el-button>
+              <el-button
+                v-auth="'module_commerce:revenue:edit'"
+                :disabled="(row as PayoutRequestItem).status !== 'pending'"
+                :loading="payoutActing === (row as PayoutRequestItem).id"
+                link type="danger"
+                @click="decidePayout(row as PayoutRequestItem, 'reject')"
+              >
+                {{ $t('admin.commerce.revenue.action_reject') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 分成配置 -->
