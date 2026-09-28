@@ -5,6 +5,7 @@ RESTful 主路径::
     GET    /api/v3/system/menu                       菜单列表（含菜单项树）
     POST   /api/v3/system/menu                       新建菜单
     GET    /api/v3/system/menu/tree                  菜单项树（供动态路由）
+    GET    /api/v3/system/menu/public/{slug}         [公开] 前台导航菜单树
     GET    /api/v3/system/menu/{menu_id}             菜单详情
     PUT    /api/v3/system/menu/{menu_id}             更新菜单
     DELETE /api/v3/system/menu/{menu_id}             删除菜单（连带菜单项）
@@ -13,19 +14,21 @@ RESTful 主路径::
     PUT    /api/v3/system/menu/items/{item_id}       更新菜单项
     DELETE /api/v3/system/menu/items/{item_id}       删除菜单项
 
-静态路径（``/tree``、``/items/{item_id}``）必须注册在 ``/{menu_id}`` 之前
-（``assert_no_shadowed_routes`` 会强制）。
+静态路径（``/tree``、``/public/{slug}``、``/items/{item_id}``）必须注册在 ``/{menu_id}``
+之前（``assert_no_shadowed_routes`` 会强制）。
 
 权限码：``menu:view`` / ``menu:create`` / ``menu:edit`` / ``menu:delete``
+（``/public/{slug}`` 为前台导航专用，无需鉴权）
 """
 
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Response
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.exceptions import NotFoundError
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.system.menu.schema import (
@@ -66,6 +69,21 @@ async def menu_tree(
     menu_id: Optional[int] = Query(default=None, description="留空返回全部菜单的树"),
 ) -> dict:
     return resp.success(await menu_service.tree(db, menu_id))
+
+
+@router.get(
+    "/public/{slug}",
+    response_model=ResponseModel,
+    summary="[公开] 前台导航：按 slug 取菜单树",
+)
+async def public_menu_tree(slug: str, db: DBSession, response: Response) -> dict:
+    """前台导航（顶部/底部菜单）用，无需鉴权；未配置该 slug 时返回 404 由前端回退"""
+    tree = await menu_service.public_tree(db, slug)
+    if tree is None:
+        raise NotFoundError(f"菜单不存在: {slug}")
+    # 导航变化不频繁：允许 CDN / 浏览器缓存 60 秒
+    response.headers["Cache-Control"] = "public, max-age=60"
+    return resp.success(tree)
 
 
 # ─────────────────────────── 新建 ───────────────────────────

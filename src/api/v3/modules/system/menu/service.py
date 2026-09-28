@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.menu.menu_items import MenuItems
+from shared.models.menu.menus import Menus
 from src.api.v3.core.exceptions import ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.system.menu.crud import menu_crud, menu_item_crud
@@ -201,6 +202,30 @@ class MenuService:
             {"id": menu["id"], "name": menu["name"], "slug": menu["slug"], "items": menu["items"]}
             for menu in menus
         ]
+
+    async def public_tree(self, db: AsyncSession, slug: str) -> Optional[dict]:
+        """前台导航：按 ``slug`` 取启用菜单的树（菜单不存在返回 None）
+
+        能力来自旧的 ``src/utils/menu_builder.get_menu_tree_by_slug``，那份实现用的是
+        同步 ``Session``，与当前 async 架构不兼容，已并入这里。
+        """
+        menu = (
+            await db.execute(
+                select(Menus)
+                .where(Menus.slug == slug, Menus.is_active.is_(True))
+                .limit(1)
+            )
+        ).scalars().first()
+        if menu is None:
+            return None
+
+        items = [item for item in await self._items_of(db, menu.id) if item.is_active]
+        return {
+            "id": menu.id,
+            "name": menu.name,
+            "slug": menu.slug,
+            "items": build_tree([_item_out(item) for item in items]),
+        }
 
 
 menu_service = MenuService()

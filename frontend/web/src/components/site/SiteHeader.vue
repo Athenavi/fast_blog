@@ -1,5 +1,6 @@
 <script lang="ts" setup>
-/** 前台顶部导航（阅读优先：窄容器、克制的分割线、克制的动效） */
+/** 顶部导航（阅读优先：窄容器、克制的分割线、克制的动效） */
+import {apiGet} from '@/composables/useApi'
 import {useUserStore} from '@/store/modules/user'
 
 const {t} = useI18n()
@@ -8,6 +9,30 @@ const props = defineProps<{ siteName?: string }>()
 
 const userStore = useUserStore()
 
+/** 后台「菜单管理」里 slug=main-nav 的菜单项（未配置时接口 404 → 回退内置导航） */
+interface NavNode {
+  id: number
+  title: string
+  url: string
+}
+
+const {data: navTree} = await useAsyncData('site-main-nav', () =>
+  apiGet<{ items: NavNode[] }>('/system/menu/public/main-nav'),
+)
+
+/** url → 文案 key：后台沿用同一批 url 时，前台仍按当前语言显示 */
+const NAV_I18N: Record<string, string> = {
+  '/': 'site.navHome',
+  '/articles': 'site.navArticles',
+  '/categories': 'site.navCategories',
+  '/feed': 'site.navFeed',
+  '/chat': 'site.navChat',
+  '/experts': 'site.navExperts',
+  '/points': 'site.navPoints',
+  '/badges': 'site.navBadges',
+  '/about': 'site.navAbout',
+}
+
 /**
  * 导航分两层：
  *  - **主导航**只放内容入口（首页/文章/分类/关注/群聊）——此前 9 项平铺，
@@ -15,8 +40,9 @@ const userStore = useUserStore()
  *  - 专家 / 积分 / 勋章 / 关于 收进「更多」，需要时才展开。
  *
  * 两者都用 `computed`：此前是 setup 期求值的普通数组，**切换语言后导航文案不会更新**。
+ * 后台配置了 main-nav 菜单时以配置为准（内置导航作为兜底）。
  */
-const PRIMARY_NAV = computed(() => [
+const DEFAULT_PRIMARY_NAV = computed(() => [
   {label: t('site.navHome'), to: '/'},
   {label: t('site.navArticles'), to: '/articles'},
   {label: t('site.navCategories'), to: '/categories'},
@@ -24,12 +50,30 @@ const PRIMARY_NAV = computed(() => [
   {label: t('site.navChat'), to: '/chat'},
 ])
 
-const MORE_NAV = computed(() => [
+const DEFAULT_MORE_NAV = computed(() => [
   {label: t('site.navExperts'), to: '/experts'},
   {label: t('site.navPoints'), to: '/points'},
   {label: t('site.navBadges'), to: '/badges'},
   {label: t('site.navAbout'), to: '/about'},
 ])
+
+const configuredNav = computed(() =>
+  (navTree.value?.items ?? [])
+    .filter((node) => Boolean(node.url))
+    .map((node) => {
+      const i18nKey = NAV_I18N[node.url]
+      return {
+        label: i18nKey ? t(i18nKey) : node.title,
+        to: node.url,
+      }
+    }),
+)
+
+const PRIMARY_NAV = computed(() =>
+  configuredNav.value.length ? configuredNav.value : DEFAULT_PRIMARY_NAV.value,
+)
+
+const MORE_NAV = computed(() => (configuredNav.value.length ? [] : DEFAULT_MORE_NAV.value))
 
 /** 移动端抽屉里一次列全（不需要二级展开） */
 const ALL_NAV = computed(() => [...PRIMARY_NAV.value, ...MORE_NAV.value])
