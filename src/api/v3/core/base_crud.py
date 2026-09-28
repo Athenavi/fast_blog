@@ -13,7 +13,7 @@
 from typing import Any, Generic, Iterable, Mapping, Optional, Sequence, TypeVar
 
 from pydantic import BaseModel
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, delete, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Base
@@ -234,10 +234,33 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         await self.remove(db, obj)
         return True
 
+    async def remove_many(self, db: AsyncSession, objs: Iterable[ModelType]) -> int:
+        """批量删除实例，返回实际处理条数（软删除时打标记）
+
+        与 ``remove`` 语义一致，但只用一条语句：避免逐条 ``DELETE`` 的往返开销。
+        """
+        pks = [getattr(obj, self.primary_key) for obj in objs]
+        if not pks:
+            return 0
+        pk_column = getattr(self.model, self.primary_key)
+        if self.soft_delete_enabled:
+            stmt = (
+                update(self.model)
+                .where(pk_column.in_(pks))
+                .values({self.soft_delete_field: self.soft_delete_value})
+            )
+        else:
+            stmt = delete(self.model).where(pk_column.in_(pks))
+        result = await db.execute(stmt)
+        await db.commit()
+        return int(result.rowcount or 0)
+
     async def bulk_remove(self, db: AsyncSession, ids: Iterable[Any]) -> int:
-        """批量删除，返回实际处理条数"""
-        count = 0
-        for pk in list(ids):
-            if await self.remove_by_id(db, pk):
-                count += 1
-        return count
+        """按主键批量删除，返回命中并处理的条数"""
+        pk_list = list(ids)
+        if not pk_list:
+            return 0
+        pk_column = getattr(self.model, self.primary_key)
+        stmt = self._apply_soft_delete(select(self.model).where(pk_column.in_(pk_list)))
+        objs = (await db.execute(stmt)).scalars().unique().all()
+        return await self.remove_many(db, objs)

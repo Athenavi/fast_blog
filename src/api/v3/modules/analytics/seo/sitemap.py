@@ -246,17 +246,25 @@ async def get_multilingual_sitemap(request: Request, db: AsyncSession = Depends(
     )).scalars().all()
 
     generator = SitemapGenerator()
+    # 一次性按批取回全部译文，避免逐篇查询（N+1）
+    translations_by_article: dict = {}
+    article_ids = [article.id for article in articles]
+    for start in range(0, len(article_ids), 500):
+        chunk = article_ids[start:start + 500]
+        rows = (await db.execute(
+            select(ArticleContent).where(ArticleContent.article.in_(chunk))
+        )).scalars().all()
+        for row in rows:
+            translations_by_article.setdefault(row.article, []).append(row)
+
     for article in articles:
         main_url = (
             f'{base}/articles/{article.slug}' if article.slug
             else f'{base}/articles/id/{article.id}'
         )
-        translations = (await db.execute(
-            select(ArticleContent).where(ArticleContent.article == article.id)
-        )).scalars().all()
 
         translation_urls: dict = {}
-        for trans in translations:
+        for trans in translations_by_article.get(article.id, ()):
             if trans.slug:
                 translation_urls[trans.language_id] = f'{base}/articles/{trans.slug}'
 

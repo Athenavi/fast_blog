@@ -31,16 +31,20 @@ async def update_settings(arguments: dict) -> dict:
     async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         from sqlalchemy import select
-        updated = 0
-        for key, value in settings.items():
-            existing = (await db.execute(select(SystemSettings).where(SystemSettings.setting_key == key))).scalar_one_or_none()
-            if existing:
-                existing.setting_value = str(value)
+        keys = list(settings)
+        rows = (
+            await db.execute(select(SystemSettings).where(SystemSettings.setting_key.in_(keys)))
+        ).scalars().all()
+        existing_by_key = {row.setting_key: row for row in rows}
+        for key in keys:
+            value = str(settings[key])
+            existing = existing_by_key.get(key)
+            if existing is not None:
+                existing.setting_value = value
             else:
-                db.add(SystemSettings(setting_key=key, setting_value=str(value)))
-            updated += 1
+                db.add(SystemSettings(setting_key=key, setting_value=value))
         await db.commit()
-        return {"success": True, "message": f"已更新 {updated} 个设置", "count": updated}
+        return {"success": True, "message": f"已更新 {len(keys)} 个设置", "count": len(keys)}
 
 
 @require_superuser

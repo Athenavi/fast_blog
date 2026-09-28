@@ -147,8 +147,7 @@ class CommentService:
                 break
             to_delete.extend(children)
             frontier = [child.id for child in children]
-        for item in reversed(to_delete):
-            await team_comment_crud.remove(db, item)
+        await team_comment_crud.remove_many(db, to_delete)
         return len(to_delete)
 
     async def resolve(self, db: AsyncSession, comment_id: int, user_id: int, *, is_admin: bool) -> dict:

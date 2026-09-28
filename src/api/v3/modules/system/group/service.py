@@ -209,11 +209,12 @@ class GroupService:
 
         for user_id in target - current:
             db.add(UserGroupMember(user_id=user_id, group_id=group_id))
-        for user_id in current - target:
+        to_remove = current - target
+        if to_remove:
             await db.execute(
                 UserGroupMember.__table__.delete().where(
                     UserGroupMember.group_id == group_id,
-                    UserGroupMember.user_id == user_id,
+                    UserGroupMember.user_id.in_(sorted(to_remove)),
                 )
             )
         await db.commit()
@@ -278,10 +279,12 @@ class GroupService:
 
         for role_id in target - current:
             db.add(RoleGroup(role_id=role_id, group_id=group_id))
-        for role_id in current - target:
+        to_remove = current - target
+        if to_remove:
             await db.execute(
                 RoleGroup.__table__.delete().where(
-                    RoleGroup.group_id == group_id, RoleGroup.role_id == role_id
+                    RoleGroup.group_id == group_id,
+                    RoleGroup.role_id.in_(sorted(to_remove)),
                 )
             )
         await db.commit()

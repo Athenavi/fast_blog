@@ -189,11 +189,12 @@ class AdminMenuService:
         current = set(await self.menu_ids_of_role(db, role_id))
         for menu_id in target - current:
             db.add(RoleAdminMenu(role_id=role_id, admin_menu_id=menu_id))
-        for menu_id in current - target:
+        to_remove = current - target
+        if to_remove:
             await db.execute(
                 RoleAdminMenu.__table__.delete().where(
                     RoleAdminMenu.role_id == role_id,
-                    RoleAdminMenu.admin_menu_id == menu_id,
+                    RoleAdminMenu.admin_menu_id.in_(sorted(to_remove)),
                 )
             )
         await db.commit()

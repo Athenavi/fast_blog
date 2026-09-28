@@ -119,12 +119,16 @@ async def batch_publish_articles(arguments: dict) -> dict:
     async with db_manager.get_session() as db:
         from shared.models.article import Article
         from datetime import datetime
+        ids = [int(aid) for aid in article_ids]
+        articles = (
+            await db.execute(select(Article).where(Article.id.in_(ids)))
+        ).scalars().all()
+        now = datetime.now()
         published = 0
-        for aid in article_ids:
-            article = await db.scalar(select(Article).where(Article.id == int(aid)))
-            if article and article.status == 0:
+        for article in articles:
+            if article.status == 0:
                 article.status = 1
-                article.updated_at = datetime.now()
+                article.updated_at = now
                 published += 1
         await db.commit()
         return {"success": True, "message": f"已发布 {published} 篇文章", "published": published}
