@@ -12,8 +12,6 @@ from .auth_deps import (
     get_current_super_user,       # 向后兼容
 )
 
-from .user_manager import get_user_manager, get_user_db
-
 # 保留旧别名
 jwt_required_dependency = jwt_required
 jwt_required_page_dependency = jwt_required_page
@@ -36,6 +34,4 @@ __all__ = [
     "get_current_super_user",
     "admin_required_api",
     "admin_required_page_dependency",
-    "get_user_manager",
-    "get_user_db",
 ]

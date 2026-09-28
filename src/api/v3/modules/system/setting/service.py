@@ -13,6 +13,7 @@ from shared.models.system import SystemSettings
 from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.system.setting.crud import setting_crud
+from src.api.v3.modules.system.setting.runtime_sync import apply_runtime_settings
 from src.api.v3.modules.system.setting.schema import SettingUpsert
 
 logger = get_logger("setting")
@@ -115,16 +116,18 @@ class SettingService:
                     "is_public": bool(is_public),
                 },
             )
-            return _out(setting)
+        else:
+            data: dict = {"setting_value": value}
+            if kind:
+                data["setting_type"] = kind
+            if description is not None:
+                data["description"] = description
+            if is_public is not None:
+                data["is_public"] = is_public
+            setting = await setting_crud.update(db, setting, data)
 
-        data: dict = {"setting_value": value}
-        if kind:
-            data["setting_type"] = kind
-        if description is not None:
-            data["description"] = description
-        if is_public is not None:
-            data["is_public"] = is_public
-        setting = await setting_crud.update(db, setting, data)
+        # 落库后立刻同步到运行时实例（如 SMTP 邮件参数），避免改完配置必须重启才生效
+        apply_runtime_settings([(key, value)])
         return _out(setting)
 
     async def batch_upsert(self, db: AsyncSession, items: Sequence[SettingUpsert]) -> List[dict]:
