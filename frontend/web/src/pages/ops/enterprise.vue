@@ -313,8 +313,6 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
             >
               {{ $t('admin.ops.enterprise.createLicense') }}
             </el-button>
-              {{ $t('admin.common.totalItems', {n: licenseTotal}) }}
-            </span>
           </template>
 
           <el-table-column
@@ -419,8 +417,6 @@ async function onDeletePolicy(row: DataRetentionPolicyItem) {
             >
               {{ $t('admin.ops.enterprise.createPolicy') }}
             </el-button>
-              {{ $t('admin.common.totalItems', {n: policyTotal}) }}
-            </span>
           </template>
 
           <el-table-column

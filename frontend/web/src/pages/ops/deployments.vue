@@ -274,8 +274,6 @@ const scriptLabel = (id?: number | null) =>
             >
               {{ $t('admin.ops.deployment.createScript') }}
             </el-button>
-              {{ $t('admin.common.totalItems', {n: scriptTotal}) }}
-            </span>
           </template>
 
           <el-table-column
@@ -363,8 +361,6 @@ const scriptLabel = (id?: number | null) =>
           </template>
 
           <template #actions>
-              {{ $t('admin.common.totalItems', {n: logTotal}) }}
-            </span>
           </template>
 
           <el-table-column :label="$t('admin.ops.deployment.scriptId')" width="150">
