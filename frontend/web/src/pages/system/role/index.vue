@@ -1,7 +1,20 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never">
-      <el-form :inline="true" @submit.prevent="search()">
+    <AdminListShell
+      :failed="failed"
+      :loading="loading"
+      :page="page"
+      :page-size="pageSize"
+      :rows="list"
+      :selectable="false"
+      :total="total"
+      @page-change="onPageChange"
+      @refresh="load"
+      @reset="reset"
+      @search="search"
+      @size-change="onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.system.role.keyword')">
           <el-input
             v-model="query.keyword"
@@ -17,32 +30,15 @@
             <el-option :label="$t('admin.system.role.customLabel')" :value="false"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.common.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.common.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <div class="table-toolbar">
+      <template #actions>
         <el-button v-auth="'module_system:role:edit'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.system.role.createTitle') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-
-      <AdminEmpty
-        v-else-if="!loading && !list.length"
-        :title="failed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-        :variant="failed ? 'error' : 'default'"
-      >
-        <el-button v-if="failed" :icon="Refresh" @click="load()">
-          {{ $t('admin.common.retry') }}
-        </el-button>
-      </AdminEmpty>
-      <el-table v-else v-loading="loading" :data="list" border stripe>
-        <el-table-column label="ID" prop="id" width="70"/>
+      <el-table-column label="ID" prop="id" width="70"/>
         <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
         <el-table-column :label="$t('admin.system.role.code')" prop="slug" width="150"/>
         <el-table-column :label="$t('admin.common.description')" min-width="200" prop="description"
@@ -74,20 +70,7 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
-
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+    </AdminListShell>
 
     <!-- 新建 / 编辑 -->
     <el-dialog v-model="formVisible" :title="formTitle" destroy-on-close width="520px">
@@ -164,7 +147,7 @@ definePageMeta({
 })
 
 const {t} = useI18n()
-import {Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Plus} from '@element-plus/icons-vue'
 import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
@@ -342,23 +325,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.table-toolbar__total {
-  font-size: 13px;
-  color: var(--color-fg-muted);
-}
-
-.table-pagination {
-  margin-top: 16px;
-  justify-content: flex-end;
-}
-
 .perm {
   min-height: 200px;
 }

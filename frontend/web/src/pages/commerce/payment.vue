@@ -7,7 +7,7 @@
  * 「发起支付」走 `/commerce/payment/initiate`，实际由 payment-gateway 插件执行
  * （金额按**元**填写，服务端转发插件时转成分）。
  */
-import {Delete, EditPen, Plus, Promotion, Refresh, Search} from '@element-plus/icons-vue'
+import {Delete, EditPen, Plus, Promotion} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {DEFAULT_CURRENCY, formatMoney} from '@/utils/money'
 import {computed, reactive, ref} from 'vue'
@@ -540,8 +540,21 @@ async function submitInitiate() {
     <el-tabs v-model="activeTab">
       <!-- 支付网关 -->
       <el-tab-pane :label="$t('admin.commerce.payment.gateways')" name="gateway">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="gatewayQuery" @submit.prevent="gatewaySearch()">
+        <AdminListShell
+          :failed="gatewayFailed"
+          :loading="gatewayLoading"
+          :page="gatewayPage"
+          :page-size="gatewayPageSize"
+          :rows="gatewayList"
+          :selectable="false"
+          :total="gatewayTotal"
+          @page-change="onGatewayPageChange"
+          @refresh="gatewayLoad"
+          @reset="gatewayReset"
+          @search="gatewaySearch"
+          @size-change="onGatewaySizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.commerce.payment.keyword')">
               <el-input v-model="gatewayQuery.keyword" clearable style="width: 180px"
                         @keyup.enter="gatewaySearch()"/>
@@ -550,15 +563,9 @@ async function submitInitiate() {
               <el-input v-model="gatewayQuery.provider" clearable style="width: 140px"
                         @keyup.enter="gatewaySearch()"/>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="gatewaySearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="gatewayReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button v-auth="'module_commerce:payment:create'" :icon="Plus" type="primary"
                        @click="openGatewayCreate">
               {{ $t('admin.commerce.payment.createGateway') }}
@@ -566,66 +573,58 @@ async function submitInitiate() {
             <el-button :icon="Promotion" @click="openInitiate">
               {{ $t('admin.commerce.payment.initiate') }}
             </el-button>
-            <span class="table-toolbar__total">
-              {{ $t('admin.common.totalItems', {n: gatewayTotal}) }}
-            </span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="gatewayLoading && !gatewayList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!gatewayLoading && !gatewayList.length"
-            :title="gatewayFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="gatewayFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="gatewayFailed" :icon="Refresh" @click="gatewayLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-          <el-table v-else v-loading="gatewayLoading" :data="gatewayList" border stripe>
-            <el-table-column :label="$t('admin.common.name')" min-width="150" prop="name" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.commerce.payment.provider')" prop="provider" width="120"/>
-            <el-table-column :label="$t('admin.commerce.payment.currencies')" min-width="140"
-                             prop="supported_currencies" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.commerce.payment.hasConfig')" align="center" width="110">
-              <template #default="{ row }">
-                <el-tag :type="(row as PaymentGatewayItem).has_config_data ? 'success' : 'info'" size="small">
-                  {{ (row as PaymentGatewayItem).has_config_data ? $t('admin.common.yes') : $t('admin.common.no') }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.status')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as PaymentGatewayItem).is_active ? 'success' : 'info'" size="small">
-                  {{ (row as PaymentGatewayItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled') }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
-                           @click="openGatewayEdit(row as PaymentGatewayItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
-                           @click="onDeleteGateway(row as PaymentGatewayItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="gatewayPage" :page-size="gatewayPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="gatewayTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onGatewayPageChange" @size-change="onGatewaySizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.common.name')" min-width="150" prop="name" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.commerce.payment.provider')" prop="provider" width="120"/>
+          <el-table-column :label="$t('admin.commerce.payment.currencies')" min-width="140"
+                           prop="supported_currencies" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.commerce.payment.hasConfig')" align="center" width="110">
+            <template #default="{ row }">
+              <el-tag :type="(row as PaymentGatewayItem).has_config_data ? 'success' : 'info'" size="small">
+                {{ (row as PaymentGatewayItem).has_config_data ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.status')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as PaymentGatewayItem).is_active ? 'success' : 'info'" size="small">
+                {{ (row as PaymentGatewayItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
+                         @click="openGatewayEdit(row as PaymentGatewayItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
+                         @click="onDeleteGateway(row as PaymentGatewayItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 交易 -->
       <el-tab-pane :label="$t('admin.commerce.payment.transactions')" name="transaction">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="txQuery" @submit.prevent="txSearch()">
+        <AdminListShell
+          :failed="txFailed"
+          :loading="txLoading"
+          :page="txPage"
+          :page-size="txPageSize"
+          :rows="txList"
+          :selectable="false"
+          :total="txTotal"
+          @page-change="onTxPageChange"
+          @refresh="txLoad"
+          @reset="txReset"
+          @search="txSearch"
+          @size-change="onTxSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.commerce.payment.keyword')">
               <el-input v-model="txQuery.keyword" clearable style="width: 180px" @keyup.enter="txSearch()"/>
             </el-form-item>
@@ -635,65 +634,63 @@ async function submitInitiate() {
             <el-form-item :label="$t('admin.commerce.payment.currency')">
               <el-input v-model="txQuery.currency" clearable style="width: 100px" @keyup.enter="txSearch()"/>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="txSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="txReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
-            <el-button v-auth="'module_commerce:payment:create'" :icon="Plus" type="primary"
-                       @click="openTxCreate">
+          <template #actions>
+            <el-button v-auth="'module_commerce:payment:create'" :icon="Plus" type="primary" @click="openTxCreate">
               {{ $t('admin.commerce.payment.createTransaction') }}
             </el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: txTotal}) }}</span>
-          </div>
+          </template>
 
-          <el-table v-loading="txLoading" :data="txList" border stripe>
-            <el-table-column :label="$t('admin.commerce.payment.orderId')" min-width="150"
-                             prop="order_id" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.commerce.payment.userId')" prop="user" width="90"/>
-            <el-table-column :label="$t('admin.commerce.payment.amount')" align="right" width="150">
-              <template #default="{ row }">
-                {{ formatMoney((row as PaymentTransactionItem).amount, (row as PaymentTransactionItem).currency) }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.commerce.payment.txStatus')" align="center" width="110">
-              <template #default="{ row }">
-                <el-tag :type="statusTag((row as PaymentTransactionItem).status)" size="small">
-                  {{ (row as PaymentTransactionItem).status || '-' }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.commerce.payment.transactionId')" min-width="160"
-                             prop="transaction_id" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
-                           @click="openTxEdit(row as PaymentTransactionItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
-                           @click="onDeleteTx(row as PaymentTransactionItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="txPage" :page-size="txPageSize" :page-sizes="[10, 20, 50, 100]"
-                         :total="txTotal" background class="table-pagination"
-                         layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onTxPageChange" @size-change="onTxSizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.commerce.payment.orderId')" min-width="150"
+                           prop="order_id" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.commerce.payment.userId')" prop="user" width="90"/>
+          <el-table-column :label="$t('admin.commerce.payment.amount')" align="right" width="150">
+            <template #default="{ row }">
+              {{ formatMoney((row as PaymentTransactionItem).amount, (row as PaymentTransactionItem).currency) }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.commerce.payment.txStatus')" align="center" width="110">
+            <template #default="{ row }">
+              <el-tag :type="statusTag((row as PaymentTransactionItem).status)" size="small">
+                {{ (row as PaymentTransactionItem).status || '-' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.commerce.payment.transactionId')" min-width="160"
+                           prop="transaction_id" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
+                         @click="openTxEdit(row as PaymentTransactionItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
+                         @click="onDeleteTx(row as PaymentTransactionItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 加密支付 -->
       <el-tab-pane :label="$t('admin.commerce.payment.crypto')" name="crypto">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="cryptoQuery" @submit.prevent="cryptoSearch()">
+        <AdminListShell
+          :failed="cryptoFailed"
+          :loading="cryptoLoading"
+          :page="cryptoPage"
+          :page-size="cryptoPageSize"
+          :rows="cryptoList"
+          :selectable="false"
+          :total="cryptoTotal"
+          @page-change="onCryptoPageChange"
+          @refresh="cryptoLoad"
+          @reset="cryptoReset"
+          @search="cryptoSearch"
+          @size-change="onCryptoSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.commerce.payment.keyword')">
               <el-input v-model="cryptoQuery.keyword" clearable style="width: 200px"
                         @keyup.enter="cryptoSearch()"/>
@@ -702,114 +699,98 @@ async function submitInitiate() {
               <el-input v-model="cryptoQuery.blockchain" clearable style="width: 130px"
                         @keyup.enter="cryptoSearch()"/>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="cryptoSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="cryptoReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button v-auth="'module_commerce:payment:create'" :icon="Plus" type="primary"
                        @click="openCryptoCreate">
               {{ $t('admin.commerce.payment.createCrypto') }}
             </el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: cryptoTotal}) }}</span>
-          </div>
+          </template>
 
-          <el-table v-loading="cryptoLoading" :data="cryptoList" border stripe>
-            <el-table-column :label="$t('admin.commerce.payment.transactionId')" prop="transaction" width="110"/>
-            <el-table-column :label="$t('admin.commerce.payment.blockchain')" prop="blockchain" width="110"/>
-            <el-table-column :label="$t('admin.commerce.payment.token')" prop="token_symbol" width="90"/>
-            <el-table-column :label="$t('admin.commerce.payment.wallet')" min-width="180"
-                             prop="wallet_address" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.commerce.payment.confirmations')" align="center" width="110">
-              <template #default="{ row }">
-                {{ (row as CryptoPaymentItem).confirmations }}/{{ (row as CryptoPaymentItem).required_confirmations }}
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.status')" width="130">
-              <template #default="{ row }">{{ (row as CryptoPaymentItem).status || '-' }}</template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
-                           @click="openCryptoEdit(row as CryptoPaymentItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
-                           @click="onDeleteCrypto(row as CryptoPaymentItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="cryptoPage" :page-size="cryptoPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="cryptoTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onCryptoPageChange" @size-change="onCryptoSizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.commerce.payment.transactionId')" prop="transaction" width="110"/>
+          <el-table-column :label="$t('admin.commerce.payment.blockchain')" prop="blockchain" width="110"/>
+          <el-table-column :label="$t('admin.commerce.payment.token')" prop="token_symbol" width="90"/>
+          <el-table-column :label="$t('admin.commerce.payment.wallet')" min-width="180"
+                           prop="wallet_address" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.commerce.payment.confirmations')" align="center" width="110">
+            <template #default="{ row }">
+              {{ (row as CryptoPaymentItem).confirmations }}/{{ (row as CryptoPaymentItem).required_confirmations }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.status')" width="130">
+            <template #default="{ row }">{{ (row as CryptoPaymentItem).status || '-' }}</template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
+                         @click="openCryptoEdit(row as CryptoPaymentItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
+                         @click="onDeleteCrypto(row as CryptoPaymentItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 税务配置 -->
       <el-tab-pane :label="$t('admin.commerce.payment.taxConfigs')" name="tax">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="taxQuery" @submit.prevent="taxSearch()">
+        <AdminListShell
+          :failed="taxFailed"
+          :loading="taxLoading"
+          :page="taxPage"
+          :page-size="taxPageSize"
+          :rows="taxList"
+          :selectable="false"
+          :total="taxTotal"
+          @page-change="onTaxPageChange"
+          @refresh="taxLoad"
+          @reset="taxReset"
+          @search="taxSearch"
+          @size-change="onTaxSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.commerce.payment.country')">
               <el-input v-model="taxQuery.country" clearable style="width: 100px" @keyup.enter="taxSearch()"/>
             </el-form-item>
             <el-form-item :label="$t('admin.commerce.payment.taxType')">
               <el-input v-model="taxQuery.tax_type" clearable style="width: 130px" @keyup.enter="taxSearch()"/>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="taxSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="taxReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
-            <el-button v-auth="'module_commerce:payment:create'" :icon="Plus" type="primary"
-                       @click="openTaxCreate">
+          <template #actions>
+            <el-button v-auth="'module_commerce:payment:create'" :icon="Plus" type="primary" @click="openTaxCreate">
               {{ $t('admin.commerce.payment.createTax') }}
             </el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: taxTotal}) }}</span>
-          </div>
+          </template>
 
-          <el-table v-loading="taxLoading" :data="taxList" border stripe>
-            <el-table-column :label="$t('admin.commerce.payment.country')" prop="country" width="100"/>
-            <el-table-column :label="$t('admin.commerce.payment.region')" min-width="130" prop="region"/>
-            <el-table-column :label="$t('admin.commerce.payment.taxType')" min-width="130" prop="tax_type"/>
-            <el-table-column :label="$t('admin.commerce.payment.rate')" align="right" prop="rate" width="100"/>
-            <el-table-column :label="$t('admin.common.status')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as TaxConfigItem).is_active ? 'success' : 'info'" size="small">
-                  {{ (row as TaxConfigItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled') }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
-              <template #default="{ row }">
-                <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
-                           @click="openTaxEdit(row as TaxConfigItem)">
-                  {{ $t('admin.common.edit') }}
-                </el-button>
-                <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
-                           @click="onDeleteTax(row as TaxConfigItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="taxPage" :page-size="taxPageSize" :page-sizes="[10, 20, 50, 100]"
-                         :total="taxTotal" background class="table-pagination"
-                         layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onTaxPageChange" @size-change="onTaxSizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.commerce.payment.country')" prop="country" width="100"/>
+          <el-table-column :label="$t('admin.commerce.payment.region')" min-width="130" prop="region"/>
+          <el-table-column :label="$t('admin.commerce.payment.taxType')" min-width="130" prop="tax_type"/>
+          <el-table-column :label="$t('admin.commerce.payment.rate')" align="right" prop="rate" width="100"/>
+          <el-table-column :label="$t('admin.common.status')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as TaxConfigItem).is_active ? 'success' : 'info'" size="small">
+                {{ (row as TaxConfigItem).is_active ? $t('admin.common.enabled') : $t('admin.common.disabled') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+            <template #default="{ row }">
+              <el-button v-auth="'module_commerce:payment:edit'" :icon="EditPen" link type="primary"
+                         @click="openTaxEdit(row as TaxConfigItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_commerce:payment:delete'" :icon="Delete" link type="danger"
+                         @click="onDeleteTax(row as TaxConfigItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
     </el-tabs>
 

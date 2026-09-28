@@ -1,8 +1,20 @@
 <template>
   <div class="page-container">
-    <el-card shadow="never">
-      <!-- 搜索区 -->
-      <el-form :inline="true" :model="query" @submit.prevent="search()">
+    <AdminListShell
+      :failed="failed"
+      :loading="loading"
+      :page="page"
+      :page-size="pageSize"
+      :rows="list"
+      :selectable="false"
+      :total="total"
+      @page-change="onPageChange"
+      @refresh="load"
+      @reset="reset"
+      @search="search"
+      @size-change="onSizeChange"
+    >
+      <template #filters>
         <el-form-item :label="$t('admin.system.user.keyword')">
           <el-input
             v-model="query.keyword"
@@ -19,37 +31,18 @@
             <el-option :label="$t('admin.system.user.inactiveLabel')" :value="false"/>
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="search()">{{ $t('admin.system.user.search') }}</el-button>
-          <el-button :icon="Refresh" @click="reset()">{{ $t('admin.system.user.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
+      </template>
 
-      <!-- 操作区 -->
-      <div class="table-toolbar">
+      <template #actions>
         <el-button v-auth="'module_system:user:create'" :icon="Plus" type="primary" @click="openCreate">
           {{ $t('admin.system.user.createTitle') }}
         </el-button>
         <el-button :loading="exporting" @click="exportCsv">
           {{ $t('admin.common.exportCsv') }}
         </el-button>
-        <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: total}) }}</span>
-      </div>
+      </template>
 
-      <!-- 表格 -->
-      <AdminTableSkeleton v-if="loading && !list.length" :rows="5"/>
-
-      <AdminEmpty
-        v-else-if="!loading && !list.length"
-        :title="failed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-        :variant="failed ? 'error' : 'default'"
-      >
-        <el-button v-if="failed" :icon="Refresh" @click="load()">
-          {{ $t('admin.common.retry') }}
-        </el-button>
-      </AdminEmpty>
-      <el-table v-else v-loading="loading" :data="list" border stripe>
-        <el-table-column label="ID" prop="id" width="80"/>
+      <el-table-column label="ID" prop="id" width="80"/>
         <el-table-column :label="$t('admin.system.user.username')" min-width="140" prop="username"
                          show-overflow-tooltip/>
         <el-table-column :label="$t('admin.system.user.email')" min-width="200" prop="email" show-overflow-tooltip/>
@@ -95,21 +88,7 @@
             </el-button>
           </template>
         </el-table-column>
-      </el-table>
-
-      <!-- 分页 -->
-      <el-pagination
-        :current-page="page"
-        :page-size="pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="total"
-        background
-        class="table-pagination"
-        layout="total, sizes, prev, pager, next, jumper"
-        @current-change="onPageChange"
-        @size-change="onSizeChange"
-      />
-    </el-card>
+    </AdminListShell>
 
     <!-- 新建 / 编辑 -->
     <el-drawer v-model="formVisible" :title="formTitle" destroy-on-close size="520px">
@@ -189,7 +168,7 @@ definePageMeta({
 })
 
 const {t} = useI18n()
-import {Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {Plus} from '@element-plus/icons-vue'
 import {ElMessage, type FormInstance, type FormRules} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
@@ -434,23 +413,6 @@ onMounted(loadRoles)
 </script>
 
 <style scoped>
-.table-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.table-toolbar__total {
-  font-size: 13px;
-  color: var(--color-fg-muted);
-}
-
-.table-pagination {
-  margin-top: 16px;
-  justify-content: flex-end;
-}
-
 .text-muted {
   color: var(--color-fg-subtle);
 }

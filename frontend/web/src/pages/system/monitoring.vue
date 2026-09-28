@@ -8,7 +8,7 @@
  *  - 指标：时序列表 / 时间桶聚合 / 写入 / 按保留期清理；
  *  - SLA：报表列表 + **按真实告警计算**（周期内 critical 告警窗口合并 → 宕机分钟数）+ 达标统计。
  */
-import {Delete, Plus, Refresh, Search, TrendCharts} from '@element-plus/icons-vue'
+import {Delete, Plus, Refresh, TrendCharts} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
@@ -357,15 +357,28 @@ onMounted(() => {
     <el-tabs v-model="activeTab">
       <!-- 告警 -->
       <el-tab-pane :label="$t('admin.system.monitoring.alerts')" name="alert">
-        <el-card shadow="never">
-          <div class="stats-grid">
-            <div v-for="card in alertStatCards" :key="card.key" class="stats-card">
-              <div class="stats-card__label">{{ $t(`admin.system.monitoring.alertStat_${card.key}`) }}</div>
-              <div class="stats-card__value">{{ card.value }}</div>
-            </div>
+        <div class="stats-grid">
+          <div v-for="card in alertStatCards" :key="card.key" class="stats-card">
+            <div class="stats-card__label">{{ $t(`admin.system.monitoring.alertStat_${card.key}`) }}</div>
+            <div class="stats-card__value">{{ card.value }}</div>
           </div>
+        </div>
 
-          <el-form :inline="true" :model="alertQuery" class="mt-3" @submit.prevent="alertSearch()">
+        <AdminListShell
+          :failed="alertFailed"
+          :loading="alertLoading"
+          :page="alertPage"
+          :page-size="alertPageSize"
+          :rows="alertList"
+          :selectable="false"
+          :total="alertTotal"
+          @page-change="onAlertPageChange"
+          @refresh="alertLoad"
+          @reset="alertReset"
+          @search="alertSearch"
+          @size-change="onAlertSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.system.monitoring.keyword')">
               <el-input v-model="alertQuery.keyword" clearable style="width: 180px"
                         @keyup.enter="alertSearch()"/>
@@ -381,85 +394,73 @@ onMounted(() => {
                 <el-option :label="$t('admin.common.no')" :value="false"/>
               </el-select>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="alertSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="alertReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button v-auth="'module_system:monitor:manage'" :icon="Plus" type="primary"
                        @click="openAlertCreate">
               {{ $t('admin.system.monitoring.createAlert') }}
             </el-button>
             <el-button :icon="Refresh" @click="loadStats()">{{ $t('admin.common.refresh') }}</el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: alertTotal}) }}</span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="alertLoading && !alertList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!alertLoading && !alertList.length"
-            :title="alertFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="alertFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="alertFailed" :icon="Refresh" @click="alertLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-          <el-table v-else v-loading="alertLoading" :data="alertList" border stripe>
-            <el-table-column :label="$t('admin.system.monitoring.alertType')" min-width="140"
-                             prop="alert_type"/>
-            <el-table-column :label="$t('admin.system.monitoring.severity')" align="center" width="110">
-              <template #default="{ row }">
-                <el-tag :type="(SEVERITY_TAG[(row as AlertItem).severity || ''] || 'info') as never"
-                        size="small">
-                  {{ (row as AlertItem).severity }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.system.monitoring.alertTitle')" min-width="160" prop="title"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.monitoring.alertMessage')" min-width="200"
-                             prop="message" show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.monitoring.source')" min-width="120" prop="source"
-                             show-overflow-tooltip/>
-            <el-table-column :label="$t('admin.system.monitoring.isResolved')" align="center" width="100">
-              <template #default="{ row }">
-                <el-tag :type="(row as AlertItem).is_resolved ? 'success' : 'warning'" size="small">
-                  {{ (row as AlertItem).is_resolved ? $t('admin.common.yes') : $t('admin.common.no') }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.system.monitoring.createdAt')" min-width="170"
-                             prop="created_at"/>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="160">
-              <template #default="{ row }">
-                <el-button v-auth="'module_system:monitor:manage'" :disabled="(row as AlertItem).is_resolved"
-                           link type="success" @click="onResolveAlert(row as AlertItem)">
-                  {{ $t('admin.system.monitoring.resolve') }}
-                </el-button>
-                <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" link type="danger"
-                           @click="onDeleteAlert(row as AlertItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="alertPage" :page-size="alertPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="alertTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onAlertPageChange" @size-change="onAlertSizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.system.monitoring.alertType')" min-width="140"
+                           prop="alert_type"/>
+          <el-table-column :label="$t('admin.system.monitoring.severity')" align="center" width="110">
+            <template #default="{ row }">
+              <el-tag :type="(SEVERITY_TAG[(row as AlertItem).severity || ''] || 'info') as never"
+                      size="small">
+                {{ (row as AlertItem).severity }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.system.monitoring.alertTitle')" min-width="160" prop="title"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.alertMessage')" min-width="200"
+                           prop="message" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.source')" min-width="120" prop="source"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.isResolved')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as AlertItem).is_resolved ? 'success' : 'warning'" size="small">
+                {{ (row as AlertItem).is_resolved ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.system.monitoring.createdAt')" min-width="170"
+                           prop="created_at"/>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="160">
+            <template #default="{ row }">
+              <el-button v-auth="'module_system:monitor:manage'" :disabled="(row as AlertItem).is_resolved"
+                         link type="success" @click="onResolveAlert(row as AlertItem)">
+                {{ $t('admin.system.monitoring.resolve') }}
+              </el-button>
+              <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" link type="danger"
+                         @click="onDeleteAlert(row as AlertItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
 
       <!-- 指标 -->
       <el-tab-pane :label="$t('admin.system.monitoring.metrics')" name="metric">
-        <el-card shadow="never">
-          <el-form :inline="true" :model="metricQuery" @submit.prevent="metricSearch()">
+        <AdminListShell
+          :failed="metricFailed"
+          :loading="metricLoading"
+          :page="metricPage"
+          :page-size="metricPageSize"
+          :rows="metricList"
+          :selectable="false"
+          :total="metricTotal"
+          @page-change="onMetricPageChange"
+          @refresh="metricLoad"
+          @reset="metricReset"
+          @search="metricSearch"
+          @size-change="onMetricSizeChange"
+        >
+          <template #filters>
             <el-form-item :label="$t('admin.system.monitoring.keyword')">
               <el-input v-model="metricQuery.keyword" clearable style="width: 180px"
                         @keyup.enter="metricSearch()"/>
@@ -468,15 +469,9 @@ onMounted(() => {
               <el-input v-model="metricQuery.metric_type" clearable style="width: 140px"
                         @keyup.enter="metricSearch()"/>
             </el-form-item>
-            <el-form-item>
-              <el-button :icon="Search" type="primary" @click="metricSearch()">
-                {{ $t('admin.common.search') }}
-              </el-button>
-              <el-button :icon="Refresh" @click="metricReset()">{{ $t('admin.common.reset') }}</el-button>
-            </el-form-item>
-          </el-form>
+          </template>
 
-          <div class="table-toolbar">
+          <template #actions>
             <el-button v-auth="'module_system:monitor:manage'" :icon="Plus" type="primary"
                        @click="openMetricCreate">
               {{ $t('admin.system.monitoring.createMetric') }}
@@ -484,134 +479,108 @@ onMounted(() => {
             <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" @click="onPruneMetrics">
               {{ $t('admin.system.monitoring.prune') }}
             </el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: metricTotal}) }}</span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="metricLoading && !metricList.length" :rows="5"/>
+          <el-table-column :label="$t('admin.system.monitoring.metricName')" min-width="180"
+                           prop="metric_name"/>
+          <el-table-column :label="$t('admin.system.monitoring.metricValue')" align="right" prop="metric_value"
+                           width="130"/>
+          <el-table-column :label="$t('admin.system.monitoring.metricType')" prop="metric_type"
+                           width="140"/>
+          <el-table-column :label="$t('admin.system.monitoring.timestamp')" min-width="170"
+                           prop="timestamp"/>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
+            <template #default="{ row }">
+              <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" link type="danger"
+                         @click="onDeleteMetric(row as MetricItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
 
-          <AdminEmpty
-            v-else-if="!metricLoading && !metricList.length"
-            :title="metricFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="metricFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="metricFailed" :icon="Refresh" @click="metricLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-
-          <el-table v-else v-loading="metricLoading" :data="metricList" border stripe>
-            <el-table-column :label="$t('admin.system.monitoring.metricName')" min-width="180"
-                             prop="metric_name"/>
-            <el-table-column :label="$t('admin.system.monitoring.metricValue')" align="right" prop="metric_value"
-                             width="130"/>
-            <el-table-column :label="$t('admin.system.monitoring.metricType')" prop="metric_type"
-                             width="140"/>
-            <el-table-column :label="$t('admin.system.monitoring.timestamp')" min-width="170"
-                             prop="timestamp"/>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
-              <template #default="{ row }">
-                <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" link type="danger"
-                           @click="onDeleteMetric(row as MetricItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="metricPage" :page-size="metricPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="metricTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onMetricPageChange" @size-change="onMetricSizeChange"/>
-
-          <el-divider/>
-          <div class="table-toolbar">
-            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.series') }}</span>
-            <el-input v-model="seriesForm.metric_name"
-                      :placeholder="$t('admin.system.monitoring.metricNamePlaceholder')"
-                      style="width: 220px"/>
-            <el-select v-model="seriesForm.bucket" style="width: 120px">
-              <el-option v-for="item in BUCKETS" :key="item" :label="item" :value="item"/>
-            </el-select>
-            <el-button :icon="TrendCharts" :loading="seriesLoading" @click="loadSeries">
-              {{ $t('admin.system.monitoring.showSeries') }}
-            </el-button>
-          </div>
-          <el-table :data="series?.points ?? []" border size="small" stripe>
-            <el-table-column :label="$t('admin.system.monitoring.bucket')" min-width="180" prop="bucket"/>
-            <el-table-column :label="$t('admin.system.monitoring.avg')" prop="avg" width="110"/>
-            <el-table-column :label="$t('admin.system.monitoring.min')" prop="min" width="110"/>
-            <el-table-column :label="$t('admin.system.monitoring.max')" prop="max" width="110"/>
-            <el-table-column :label="$t('admin.system.monitoring.count')" prop="count" width="90"/>
-          </el-table>
-        </el-card>
+        <!-- 时序聚合：与上面的指标列表不是同一份数据，单独一块 -->
+        <el-divider/>
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.series') }}</span>
+          <el-input v-model="seriesForm.metric_name"
+                    :placeholder="$t('admin.system.monitoring.metricNamePlaceholder')"
+                    style="width: 220px"/>
+          <el-select v-model="seriesForm.bucket" style="width: 120px">
+            <el-option v-for="item in BUCKETS" :key="item" :label="item" :value="item"/>
+          </el-select>
+          <el-button :icon="TrendCharts" :loading="seriesLoading" @click="loadSeries">
+            {{ $t('admin.system.monitoring.showSeries') }}
+          </el-button>
+        </div>
+        <el-table :data="series?.points ?? []" border size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.bucket')" min-width="180" prop="bucket"/>
+          <el-table-column :label="$t('admin.system.monitoring.avg')" prop="avg" width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.min')" prop="min" width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.max')" prop="max" width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.count')" prop="count" width="90"/>
+        </el-table>
       </el-tab-pane>
 
       <!-- SLA -->
       <el-tab-pane :label="$t('admin.system.monitoring.sla')" name="sla">
-        <el-card shadow="never">
-          <div class="stats-grid">
-            <div v-for="card in slaStatCards" :key="card.key" class="stats-card">
-              <div class="stats-card__label">{{ $t(`admin.system.monitoring.slaStat_${card.key}`) }}</div>
-              <div class="stats-card__value">{{ card.value }}</div>
-            </div>
+        <div class="stats-grid">
+          <div v-for="card in slaStatCards" :key="card.key" class="stats-card">
+            <div class="stats-card__label">{{ $t(`admin.system.monitoring.slaStat_${card.key}`) }}</div>
+            <div class="stats-card__value">{{ card.value }}</div>
           </div>
+        </div>
 
-          <div class="table-toolbar mt-3">
+        <AdminListShell
+          :failed="slaFailed"
+          :loading="slaLoading"
+          :page="slaPage"
+          :page-size="slaPageSize"
+          :rows="slaList"
+          :selectable="false"
+          :total="slaTotal"
+          @page-change="onSlaPageChange"
+          @refresh="slaLoad"
+          @reset="slaReset"
+          @search="slaSearch"
+          @size-change="onSlaSizeChange"
+        >
+          <template #actions>
             <el-button v-auth="'module_system:monitor:manage'" :icon="Plus" type="primary"
                        @click="openSlaCompute">
               {{ $t('admin.system.monitoring.computeSla') }}
             </el-button>
             <el-button :icon="Refresh" @click="loadStats()">{{ $t('admin.common.refresh') }}</el-button>
-            <span class="table-toolbar__total">{{ $t('admin.common.totalItems', {n: slaTotal}) }}</span>
-          </div>
+          </template>
 
-          <AdminTableSkeleton v-if="slaLoading && !slaList.length" :rows="5"/>
-
-          <AdminEmpty
-            v-else-if="!slaLoading && !slaList.length"
-            :title="slaFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
-            :variant="slaFailed ? 'error' : 'default'"
-          >
-            <el-button v-if="slaFailed" :icon="Refresh" @click="slaLoad()">
-              {{ $t('admin.common.retry') }}
-            </el-button>
-          </AdminEmpty>
-
-          <el-table v-else v-loading="slaLoading" :data="slaList" border stripe>
-            <el-table-column :label="$t('admin.system.monitoring.licenseId')" prop="license_id"
-                             width="110"/>
-            <el-table-column :label="$t('admin.system.monitoring.periodStart')" min-width="170"
-                             prop="period_start"/>
-            <el-table-column :label="$t('admin.system.monitoring.periodEnd')" min-width="170"
-                             prop="period_end"/>
-            <el-table-column :label="$t('admin.system.monitoring.uptime')" align="right" prop="uptime_percentage"
-                             width="110"/>
-            <el-table-column :label="$t('admin.system.monitoring.target')" align="right" prop="target_percentage"
-                             width="100"/>
-            <el-table-column :label="$t('admin.system.monitoring.downtime')" align="right" prop="downtime_minutes"
-                             width="120"/>
-            <el-table-column :label="$t('admin.system.monitoring.isCompliant')" align="center" width="110">
-              <template #default="{ row }">
-                <el-tag :type="(row as SLAItem).is_compliant ? 'success' : 'danger'" size="small">
-                  {{ (row as SLAItem).is_compliant ? $t('admin.common.yes') : $t('admin.common.no') }}
-                </el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
-              <template #default="{ row }">
-                <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" link type="danger"
-                           @click="onDeleteSla(row as SLAItem)">
-                  {{ $t('admin.common.delete') }}
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-
-          <el-pagination :current-page="slaPage" :page-size="slaPageSize"
-                         :page-sizes="[10, 20, 50, 100]" :total="slaTotal" background
-                         class="table-pagination" layout="total, sizes, prev, pager, next, jumper"
-                         @current-change="onSlaPageChange" @size-change="onSlaSizeChange"/>
-        </el-card>
+          <el-table-column :label="$t('admin.system.monitoring.licenseId')" prop="license_id"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.periodStart')" min-width="170"
+                           prop="period_start"/>
+          <el-table-column :label="$t('admin.system.monitoring.periodEnd')" min-width="170"
+                           prop="period_end"/>
+          <el-table-column :label="$t('admin.system.monitoring.uptime')" align="right" prop="uptime_percentage"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.target')" align="right" prop="target_percentage"
+                           width="100"/>
+          <el-table-column :label="$t('admin.system.monitoring.downtime')" align="right" prop="downtime_minutes"
+                           width="120"/>
+          <el-table-column :label="$t('admin.system.monitoring.isCompliant')" align="center" width="110">
+            <template #default="{ row }">
+              <el-tag :type="(row as SLAItem).is_compliant ? 'success' : 'danger'" size="small">
+                {{ (row as SLAItem).is_compliant ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="100">
+            <template #default="{ row }">
+              <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" link type="danger"
+                         @click="onDeleteSla(row as SLAItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
       </el-tab-pane>
     </el-tabs>
 
@@ -717,11 +686,6 @@ onMounted(() => {
 
 .mt-3 {
   margin-top: 12px;
-}
-
-.table-toolbar__title {
-  margin-right: 12px;
-  font-weight: 600;
 }
 
 .stats-grid {
