@@ -22,6 +22,7 @@ from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
 from src.api.v3.modules.analytics.seo.schema import BulkCheckRequest, SEOAnalyzeRequest
 from src.api.v3.modules.analytics.seo.service import seo_service
+from src.api.v3.modules.analytics.seo.feed import router as _feed_router
 # 注意：别名必须以 "_" 开头——discover 会把 controller 模块里所有顶层 APIRouter
 # 都当作待挂载路由，重复挂载会让 sitemap 多出一份无 /seo 前缀的路径。
 from src.api.v3.modules.analytics.seo.sitemap import router as _sitemap_router
@@ -31,6 +32,10 @@ router = APIRouter(prefix="/seo", tags=["analytics-seo"])
 # 站点地图（/sitemap.xml、/sitemap-posts.xml、/robots.txt 等，自 v2 平移 T5-12）。
 # 公开路由：爬虫无需鉴权，XML 直接响应（无统一 envelope）。
 router.include_router(_sitemap_router, prefix="/sitemap")
+
+# RSS 2.0 / Atom 1.0 订阅（/api/v3/analytics/seo/feed/{rss,atom}）。
+# 与 sitemap 同为公开路由；根路径 /rss.xml 等由 src/app.py 301 过来。
+router.include_router(_feed_router, prefix="/feed")
 
 
 @router.post("/analyze", response_model=ResponseModel, summary="分析任意内容（不落库）")

@@ -1,302 +1,227 @@
-"""
-RSS/Atom Feed生成服务
-提供标准的RSS 2.0和Atom 1.0格式输出
-"""
+"""RSS / Atom Feed 生成服务
 
-from shared.logging import default_logger as logger
+职责划分（合并自两份历史实现）：
+  - 取数：本模块负责查库（文章 + 作者 + 分类 + 正文），一次查询取回，无 N+1
+  - 序列化：复用 ``src/utils/feed_generator.py``（RSS 2.0 / Atom 1.0 的唯一生成器）
 
+历史实现里指向 ``/api/v1/feed/*`` 的链接是 v2 时代的死链，这里统一用 v3 权威路径
+``RSS_PATH`` / ``ATOM_PATH``（与 ``analytics/seo/feed.py`` 的路由一致）。
+"""
 
 from datetime import datetime, timezone
-from typing import Optional, Dict, Any
-from xml.dom.minidom import parseString
-from xml.etree.ElementTree import Element, SubElement, tostring
+from typing import Any, Dict, List, Optional, Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.logging import default_logger as logger
 from shared.models.article import Article
-from shared.models.article_content import ArticleContent
+from shared.models.article.article_content import ArticleContent
 from shared.models.category import Category
 from shared.models.user import User
+from src.utils.feed_generator import FeedItem, RSSFeedGenerator
+
+#: feed 端点的权威路径（对外可发现的地址）
+RSS_PATH = "/api/v3/analytics/seo/feed/rss"
+ATOM_PATH = "/api/v3/analytics/seo/feed/atom"
+
+DEFAULT_TITLE = "FastBlog"
+DEFAULT_DESCRIPTION = "最新文章订阅"
+DEFAULT_LANGUAGE = "zh-CN"
+
+
+def _article_link(base_url: str, article: Article) -> str:
+    """文章对外 URL（与 sitemap 的规则保持一致）"""
+    if article.slug:
+        return f"{base_url}/articles/{article.slug}"
+    return f"{base_url}/articles/id/{article.id}"
+
+
+async def _load_items(
+    db: AsyncSession,
+    *,
+    base_url: str,
+    limit: int,
+    category_id: Optional[int],
+) -> List[FeedItem]:
+    """取回 feed 条目（作者 / 分类 / 正文各一次批量查询）"""
+    stmt = (
+        select(Article)
+        .where(Article.status == 1)
+        .order_by(Article.created_at.desc())
+        .limit(limit)
+    )
+    if category_id:
+        stmt = stmt.where(Article.category == category_id)
+
+    articles = (await db.execute(stmt)).scalars().all()
+    if not articles:
+        return []
+
+    article_ids = [article.id for article in articles]
+    author_ids = {int(article.user) for article in articles if article.user}
+    category_ids = {int(article.category) for article in articles if article.category}
+
+    authors: Dict[int, str] = {}
+    if author_ids:
+        rows = (
+            await db.execute(
+                select(User.id, User.username, User.email).where(User.id.in_(author_ids))
+            )
+        ).all()
+        authors = {int(uid): (email or username or "") for uid, username, email in rows}
+
+    categories: Dict[int, str] = {}
+    if category_ids:
+        rows = (
+            await db.execute(
+                select(Category.id, Category.name).where(Category.id.in_(category_ids))
+            )
+        ).all()
+        categories = {int(cid): (name or "") for cid, name in rows}
+
+    contents: Dict[int, str] = {}
+    rows = (
+        await db.execute(
+            select(ArticleContent.article, ArticleContent.content)
+            .where(ArticleContent.article.in_(article_ids))
+            .order_by(ArticleContent.id.asc())
+        )
+    ).all()
+    for aid, content in rows:
+        # 同一篇文章可能有多个语言版本，取 id 最小的（默认语言）作为正文
+        contents.setdefault(int(aid), content or "")
+
+    now = datetime.now(timezone.utc)
+    items: List[FeedItem] = []
+    for article in articles:
+        tags: Sequence[Any] = article.tags_list if isinstance(article.tags_list, list) else []
+        item_categories = [str(tag) for tag in tags if tag]
+        category_name = categories.get(int(article.category)) if article.category else None
+        if category_name:
+            item_categories.append(category_name)
+
+        items.append(
+            FeedItem(
+                title=article.title or "",
+                link=_article_link(base_url, article),
+                description=article.excerpt or "",
+                pub_date=article.created_at or now,
+                author=authors.get(int(article.user)) if article.user else None,
+                categories=item_categories,
+                content=contents.get(int(article.id)) or None,
+                image=article.cover_image or None,
+            )
+        )
+    return items
+
+
+def _build_generator(
+    *,
+    base_url: str,
+    feed_path: str,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
+) -> RSSFeedGenerator:
+    return RSSFeedGenerator(
+        title=title or DEFAULT_TITLE,
+        link=base_url,
+        description=description or DEFAULT_DESCRIPTION,
+        language=DEFAULT_LANGUAGE,
+        feed_url=f"{base_url}{feed_path}",
+    )
 
 
 async def generate_rss_feed(
-        db: AsyncSession,
-        base_url: str = "http://localhost:8000",
-        limit: int = 20,
-        category_id: Optional[int] = None
+    db: AsyncSession,
+    base_url: str = "http://localhost:8000",
+    limit: int = 20,
+    category_id: Optional[int] = None,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
 ) -> str:
-    """
-    生成RSS 2.0格式的Feed
-    
-    Args:
-        db: 数据库会话
-        base_url: 网站基础URL
-        limit: 文章数量限制
-        category_id: 分类ID（可选）
-        
-    Returns:
-        RSS XML字符串
-    """
+    """生成 RSS 2.0 订阅内容（失败时返回空串，由调用方决定响应）"""
     try:
-        # 查询已发布的文章
-        query = (
-            select(Article)
-            .where(Article.status == 1)  # 已发布
-            .order_by(Article.created_at.desc())
-            .limit(limit)
+        generator = _build_generator(
+            base_url=base_url, feed_path=RSS_PATH, title=title, description=description
         )
-
-        if category_id:
-            query = query.where(Article.category == category_id)
-
-        result = await db.execute(query)
-        articles = result.scalars().all()
-
-        # 构建RSS
-        rss = Element('rss', version='2.0')
-        channel = SubElement(rss, 'channel')
-
-        # Channel信息
-        title_elem = SubElement(channel, 'title')
-        title_elem.text = "博客RSS订阅"
-
-        link_elem = SubElement(channel, 'link')
-        link_elem.text = base_url
-
-        description_elem = SubElement(channel, 'description')
-        description_elem.text = "最新文章订阅"
-
-        language_elem = SubElement(channel, 'language')
-        language_elem.text = "zh-CN"
-
-        last_build_date = SubElement(channel, 'lastBuildDate')
-        last_build_date.text = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S +0000')
-
-        # 添加文章
-        for article in articles:
-            item = SubElement(channel, 'item')
-
-            # 标题
-            title = SubElement(item, 'title')
-            title.text = article.title
-
-            # 链接
-            link = SubElement(item, 'link')
-            link.text = f"{base_url}/article/{article.slug}"
-
-            # 描述（摘要）
-            description = SubElement(item, 'description')
-            description.text = article.excerpt or ""
-
-            # GUID
-            guid = SubElement(item, 'guid')
-            guid.text = f"{base_url}/article/{article.id}"
-            guid.set('isPermaLink', 'false')
-
-            # 发布时间
-            pub_date = SubElement(item, 'pubDate')
-            if article.created_at:
-                pub_date.text = article.created_at.strftime('%a, %d %b %Y %H:%M:%S +0000')
-
-            # 作者
-            if article.user:
-                author_query = select(User).where(User.id == article.user)
-                author_result = await db.execute(author_query)
-                author = author_result.scalar_one_or_none()
-                if author:
-                    author_elem = SubElement(item, 'author')
-                    author_elem.text = author.email or author.username
-
-            # 分类
-            if article.category:
-                category_query = select(Category).where(Category.id == article.category)
-                category_result = await db.execute(category_query)
-                category = category_result.scalar_one_or_none()
-                if category:
-                    category_elem = SubElement(item, 'category')
-                    category_elem.text = category.name
-
-        # 格式化XML
-        rough_string = tostring(rss, encoding='unicode')
-        reparsed = parseString(rough_string)
-        pretty_xml = reparsed.toprettyxml(indent="  ", encoding='UTF-8')
-
-        return pretty_xml.decode('utf-8')
-
-    except Exception as e:
-        logger.error(f"生成RSS失败: {e}")
+        for item in await _load_items(
+            db, base_url=base_url, limit=limit, category_id=category_id
+        ):
+            generator.add_item(item)
+        return generator.generate_rss()
+    except Exception as exc:  # noqa: BLE001 - feed 失败不应影响站点其他功能
+        logger.error(f"生成RSS失败: {exc}")
         return ""
 
 
 async def generate_atom_feed(
-        db: AsyncSession,
-        base_url: str = "http://localhost:8000",
-        limit: int = 20,
-        category_id: Optional[int] = None
+    db: AsyncSession,
+    base_url: str = "http://localhost:8000",
+    limit: int = 20,
+    category_id: Optional[int] = None,
+    *,
+    title: Optional[str] = None,
+    description: Optional[str] = None,
 ) -> str:
-    """
-    生成Atom 1.0格式的Feed
-    
-    Args:
-        db: 数据库会话
-        base_url: 网站基础URL
-        limit: 文章数量限制
-        category_id: 分类ID（可选）
-        
-    Returns:
-        Atom XML字符串
-    """
+    """生成 Atom 1.0 订阅内容（失败时返回空串）"""
     try:
-        from xml.etree.ElementTree import Element, SubElement, tostring
-        from xml.dom.minidom import parseString
-
-        # 查询已发布的文章
-        query = (
-            select(Article)
-            .where(Article.status == 1)
-            .order_by(Article.created_at.desc())
-            .limit(limit)
+        generator = _build_generator(
+            base_url=base_url, feed_path=ATOM_PATH, title=title, description=description
         )
-
-        if category_id:
-            query = query.where(Article.category == category_id)
-
-        result = await db.execute(query)
-        articles = result.scalars().all()
-
-        # 构建Atom Feed
-        atom_ns = "http://www.w3.org/2005/Atom"
-        feed = Element('{%s}feed' % atom_ns)
-
-        # Feed标题
-        title = SubElement(feed, '{%s}title' % atom_ns)
-        title.text = "博客Atom订阅"
-
-        # Feed链接
-        link = SubElement(feed, '{%s}link' % atom_ns)
-        link.set('href', base_url)
-        link.set('rel', 'alternate')
-
-        # Feed ID
-        id_elem = SubElement(feed, '{%s}id' % atom_ns)
-        id_elem.text = base_url
-
-        # 更新时间
-        updated = SubElement(feed, '{%s}updated' % atom_ns)
-        updated.text = datetime.now(timezone.utc).isoformat()
-
-        # 添加文章条目
-        for article in articles:
-            entry = SubElement(feed, '{%s}entry' % atom_ns)
-
-            # 标题
-            entry_title = SubElement(entry, '{%s}title' % atom_ns)
-            entry_title.text = article.title
-
-            # 链接
-            entry_link = SubElement(entry, '{%s}link' % atom_ns)
-            entry_link.set('href', f"{base_url}/article/{article.slug}")
-            entry_link.set('rel', 'alternate')
-
-            # ID
-            entry_id = SubElement(entry, '{%s}id' % atom_ns)
-            entry_id.text = f"{base_url}/article/{article.id}"
-
-            # 更新时间
-            entry_updated = SubElement(entry, '{%s}updated' % atom_ns)
-            if article.updated_at:
-                entry_updated.text = article.updated_at.isoformat()
-            else:
-                entry_updated.text = datetime.now(timezone.utc).isoformat()
-
-            # 发布时间
-            entry_published = SubElement(entry, '{%s}published' % atom_ns)
-            if article.created_at:
-                entry_published.text = article.created_at.isoformat()
-
-            # 摘要
-            summary = SubElement(entry, '{%s}summary' % atom_ns)
-            summary.text = article.excerpt or ""
-            summary.set('type', 'text')
-
-            # 内容
-            content = SubElement(entry, '{%s}content' % atom_ns)
-            content.set('type', 'html')
-
-            # 获取文章内容
-            content_query = select(ArticleContent).where(ArticleContent.aid == article.id)
-            content_result = await db.execute(content_query)
-            content_obj = content_result.scalar_one_or_none()
-            content.text = content_obj.content if content_obj else ""
-
-            # 作者
-            if article.user:
-                author_query = select(User).where(User.id == article.user)
-                author_result = await db.execute(author_query)
-                author = author_result.scalar_one_or_none()
-                if author:
-                    entry_author = SubElement(entry, '{%s}author' % atom_ns)
-                    author_name = SubElement(entry_author, '{%s}name' % atom_ns)
-                    author_name.text = author.username
-
-                    if author.email:
-                        author_email = SubElement(entry_author, '{%s}email' % atom_ns)
-                        author_email.text = author.email
-
-        # 格式化XML
-        rough_string = tostring(feed, encoding='unicode')
-        reparsed = parseString(rough_string)
-        pretty_xml = reparsed.toprettyxml(indent="  ", encoding='UTF-8')
-
-        return pretty_xml.decode('utf-8')
-
-    except Exception as e:
-        logger.error(f"生成Atom失败: {e}")
+        for item in await _load_items(
+            db, base_url=base_url, limit=limit, category_id=category_id
+        ):
+            generator.add_item(item)
+        return generator.generate_atom()
+    except Exception as exc:  # noqa: BLE001
+        logger.error(f"生成Atom失败: {exc}")
         return ""
 
 
 async def get_feed_metadata(db: AsyncSession) -> Dict[str, Any]:
-    """
-    获取Feed元数据（用于SEO和发现）
-    
-    Args:
-        db: 数据库会话
-        
-    Returns:
-        Feed元数据字典
-    """
+    """Feed 元数据（文章总数与最近更新时间），供前端/SEO 展示"""
     try:
-        # 统计文章总数
-        from sqlalchemy import func
-        count_query = select(func.count(Article.id)).where(Article.status == 1)
-        count_result = await db.execute(count_query)
-        total_articles = count_result.scalar() or 0
-
-        # 获取最新文章时间
-        latest_query = (
-            select(Article.created_at)
-            .where(Article.status == 1)
-            .order_by(Article.created_at.desc())
-            .limit(1)
+        total_articles = int(
+            (
+                await db.execute(
+                    select(func.count(Article.id)).where(Article.status == 1)
+                )
+            ).scalar()
+            or 0
         )
-        latest_result = await db.execute(latest_query)
-        latest_article = latest_result.scalar_one_or_none()
+        latest = (
+            await db.execute(
+                select(Article.created_at)
+                .where(Article.status == 1)
+                .order_by(Article.created_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
 
         return {
             "total_articles": total_articles,
-            "latest_update": latest_article.isoformat() if latest_article else None,
-            "rss_url": "/api/v1/feed/rss",
-            "atom_url": "/api/v1/feed/atom",
-            "formats": ["rss", "atom"]
+            "latest_update": latest.isoformat() if latest else None,
+            "rss_url": RSS_PATH,
+            "atom_url": ATOM_PATH,
+            "formats": ["rss", "atom"],
         }
-
-    except Exception as e:
-        logger.error(f"获取Feed元数据失败: {e}")
+    except Exception as exc:  # noqa: BLE001
+        logger.error(f"获取Feed元数据失败: {exc}")
         return {
             "total_articles": 0,
             "latest_update": None,
-            "rss_url": "/api/v1/feed/rss",
-            "atom_url": "/api/v1/feed/atom",
-            "formats": ["rss", "atom"]
+            "rss_url": RSS_PATH,
+            "atom_url": ATOM_PATH,
+            "formats": ["rss", "atom"],
         }
+
+
+__all__ = [
+    "ATOM_PATH",
+    "RSS_PATH",
+    "generate_atom_feed",
+    "generate_rss_feed",
+    "get_feed_metadata",
+]

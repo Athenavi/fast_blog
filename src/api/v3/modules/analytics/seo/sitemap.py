@@ -263,15 +263,16 @@ async def get_multilingual_sitemap(request: Request, db: AsyncSession = Depends(
             else f'{base}/articles/id/{article.id}'
         )
 
-        translation_urls: dict = {}
-        for trans in translations_by_article.get(article.id, ()):
-            if trans.slug:
-                translation_urls[trans.language_id] = f'{base}/articles/{trans.slug}'
+        # 前端 i18n 采用 no_prefix 策略（URL 不带语言前缀，语言由 cookie 协商），
+        # 各语言共用同一 URL，因此 hreflang 只标注「存在哪些语言」，href 不变。
+        languages = sorted({
+            (trans.language_code or '').strip()
+            for trans in translations_by_article.get(article.id, ())
+            if (trans.language_code or '').strip()
+        })
 
-        alternate_links = [
-            {'hreflang': lang, 'href': url} for lang, url in translation_urls.items()
-        ]
-        if translation_urls:
+        alternate_links = [{'hreflang': code, 'href': main_url} for code in languages]
+        if alternate_links:
             alternate_links.append({'hreflang': 'x-default', 'href': main_url})
 
         priority = 0.8 if (article.views or 0) > 100 else 0.6

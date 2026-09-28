@@ -72,7 +72,13 @@ class RSSFeedGenerator(FeedGenerator):
 
     def generate_rss(self) -> str:
         """生成 RSS 2.0 XML"""
-        rss = Element('rss', {'version': '2.0'})
+        # atom:link / content:encoded 使用了带前缀的元素名，必须在根元素声明命名空间，
+        # 否则序列化结果不是合法 XML（minidom 解析会抛 unbound prefix）。
+        rss = Element('rss', {
+            'version': '2.0',
+            'xmlns:atom': 'http://www.w3.org/2005/Atom',
+            'xmlns:content': 'http://purl.org/rss/1.0/modules/content/',
+        })
         channel = SubElement(rss, 'channel')
 
         # 频道信息
@@ -118,8 +124,10 @@ class RSSFeedGenerator(FeedGenerator):
                 SubElement(item_elem, 'category').text = category
 
             if item.image:
-                enclosure = SubElement(item_elem, 'enclosure', {
+                # RSS 2.0 的 enclosure 必须带 length / type
+                SubElement(item_elem, 'enclosure', {
                     'url': item.image,
+                    'length': '0',
                     'type': 'image/jpeg',
                 })
 

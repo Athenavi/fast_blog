@@ -557,6 +557,18 @@ def register_error_handlers(app: FastAPI):
     async def root_sitemap_videos():
         return RedirectResponse(url="/api/v3/analytics/seo/sitemap/sitemap-videos.xml", status_code=301)
 
+    @app.get("/rss.xml", include_in_schema=False)
+    @app.get("/rss", include_in_schema=False)
+    @app.get("/feed.xml", include_in_schema=False)
+    async def root_rss_feed():
+        """RSS 订阅根路径 — 301 到 v3 feed 端点"""
+        return RedirectResponse(url="/api/v3/analytics/seo/feed/rss", status_code=301)
+
+    @app.get("/atom.xml", include_in_schema=False)
+    @app.get("/atom", include_in_schema=False)
+    async def root_atom_feed():
+        return RedirectResponse(url="/api/v3/analytics/seo/feed/atom", status_code=301)
+
     @app.get("/robots.txt", include_in_schema=False)
     async def robots_txt(request: Request):
         """robots.txt — 搜索引擎爬取规则"""
