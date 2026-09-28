@@ -1,8 +1,8 @@
 """告警 / 指标 / SLA 三组业务逻辑（T5-11 批次 10）
 
-**v2 没有 monitoring 模块** —— 只有散在 ``dashboard/realtime_monitor.py`` 与
-``performance/performance_monitor.py`` 的**进程内内存**实现（重启即丢、多 worker 各一份），
-且**完全没有 SLA 能力**。因此这三组是按表结构
+**v2 没有 monitoring 模块** —— 只有散在 ``dashboard/realtime_monitor.py`` 的**进程内内存**
+实现（重启即丢、多 worker 各一份；同类的 ``services/performance/performance_monitor.py``
+已在 P10 作为重复实现删除），且**完全没有 SLA 能力**。因此这三组是按表结构
 （``monitoring_alerts`` / ``monitoring_metrics`` / ``sla_reports``）新建的**真实实现**：
 
   - **告警**：外部探针写入 → 列表 / 过滤 / 更新 / 解决 / 删除 / 统计（按类型、严重程度、未解决数）；
