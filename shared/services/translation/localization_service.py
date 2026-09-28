@@ -119,6 +119,48 @@ class LocalizationService:
             'hi-IN': {'thousands': ',', 'decimal': '.'},
         }
 
+        # 时间格式模板
+        self._time_formats = {
+            'zh-CN': '%H:%M:%S',
+            'zh-TW': '%H:%M:%S',
+            'en-US': '%I:%M %p',
+            'en-GB': '%H:%M',
+            'ja-JP': '%H:%M',
+            'ko-KR': '%H:%M',
+            'fr-FR': '%H:%M',
+            'de-DE': '%H:%M',
+            'es-ES': '%H:%M',
+            'pt-BR': '%H:%M',
+            'ru-RU': '%H:%M',
+            'ar-SA': '%H:%M',
+            'hi-IN': '%H:%M',
+        }
+
+        # 一周的第一天（0=周日，1=周一，6=周六），周历/周报统计用
+        self._first_day_of_week = {
+            'zh-CN': 1,
+            'zh-TW': 1,
+            'en-US': 0,
+            'en-GB': 1,
+            'ja-JP': 0,
+            'ko-KR': 0,
+            'fr-FR': 1,
+            'de-DE': 1,
+            'es-ES': 1,
+            'pt-BR': 0,
+            'ru-RU': 1,
+            'ar-SA': 6,
+            'hi-IN': 0,
+        }
+
+        # 货币符号位置（与 _currency_symbols 配套；未列出的按 before）
+        self._currency_position = {
+            'zh-TW': 'after',
+            'ru-RU': 'after',
+            'ar-SA': 'after',
+            'hi-IN': 'after',
+        }
+
     def detect_timezone(self, ip_address: str = None,
                         locale: str = None) -> str:
         """
@@ -159,9 +201,6 @@ class LocalizationService:
         """
         # 方法1: 使用 ipapi.co API (免费，无需API key)
         try:
-            import urllib.request
-            import json
-
             url = f"https://ipapi.co/{ip_address}/json/"
             response = urllib.request.urlopen(url, timeout=3)
             data = json.loads(response.read().decode('utf-8'))
@@ -176,9 +215,6 @@ class LocalizationService:
         api_key = os.getenv('IPGEOLOCATION_API_KEY', '')
         if api_key:
             try:
-                import urllib.request
-                import json
-
                 url = f"https://api.ipgeolocation.io/timezone?apiKey={api_key}&ip={ip_address}"
                 response = urllib.request.urlopen(url, timeout=3)
                 data = json.loads(response.read().decode('utf-8'))
@@ -189,31 +225,31 @@ class LocalizationService:
             except Exception as e:
                 logger.debug(f"ipgeolocation.io failed: {e}")
 
-        # 方法3: 使用本地IP段映射（针对常见地区）
-        timezone_by_ip_range = {
-            # 中国
+        # 方法3: 本地 IP 段兜底（离线或接口不可用时），按国家代码映射时区
+        timezone_by_country = {
             'CN': 'Asia/Shanghai',
-            # 美国
             'US': 'America/New_York',
-            # 日本
             'JP': 'Asia/Tokyo',
-            # 韩国
             'KR': 'Asia/Seoul',
-            # 英国
             'GB': 'Europe/London',
-            # 德国
             'DE': 'Europe/Berlin',
-            # 法国
             'FR': 'Europe/Paris',
-            # 澳大利亚
             'AU': 'Australia/Sydney',
         }
-
-        # 简单的IP前缀判断（仅作为最后手段）
-        if ip_address.startswith(('223.', '116.', '117.', '119.', '120.')):
-            return 'Asia/Shanghai'
-        elif ip_address.startswith(('8.', '9.', '10.', '11.')):
-            return 'America/New_York'
+        country_by_ip_prefix = {
+            '223.': 'CN',
+            '116.': 'CN',
+            '117.': 'CN',
+            '119.': 'CN',
+            '120.': 'CN',
+            '8.': 'US',
+            '9.': 'US',
+            '10.': 'US',
+            '11.': 'US',
+        }
+        for prefix, country in country_by_ip_prefix.items():
+            if ip_address.startswith(prefix):
+                return timezone_by_country.get(country)
 
         return None
 
@@ -388,21 +424,24 @@ class LocalizationService:
         # 格式化数字
         formatted_amount = self._format_number(amount, num_format)
 
-        # 不同地区的货币符号位置
-        if locale in ['en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'pt-BR']:
-            return f"{symbol}{formatted_amount}"
-        elif locale in ['zh-CN', 'ja-JP', 'ko-KR']:
-            return f"{symbol}{formatted_amount}"
-        else:
+        # 货币符号位置（zh-CN/ja-JP/ko-KR 等为前置，其余按映射表）
+        if self._currency_position.get(locale, 'before') == 'after':
             return f"{formatted_amount} {symbol}"
+        return f"{symbol}{formatted_amount}"
 
-    def _format_number(self, number: float, num_format: Dict) -> str:
+    def format_number(self, number: float, locale: str = 'en-US', decimals: int = 2) -> str:
+        """按 locale 输出数字（千位分隔符 + 小数分隔符）"""
+        num_format = self._number_formats.get(locale, {'thousands': ',', 'decimal': '.'})
+        return self._format_number(round(float(number), decimals), num_format, decimals)
+
+    def _format_number(self, number: float, num_format: Dict, decimals: int = 2) -> str:
         """
         格式化数字（千位分隔符和小数点）
 
         Args:
             number: 数字
             num_format: 数字格式配置
+            decimals: 小数位数（0 表示不保留小数）
 
         Returns:
             格式化后的数字字符串
@@ -411,19 +450,30 @@ class LocalizationService:
         decimal_sep = num_format['decimal']
 
         # 分离整数和小数部分
-        if isinstance(number, int):
-            integer_part = str(number)
+        if decimals <= 0:
+            integer_part = str(int(round(number)))
             decimal_part = ''
         else:
-            integer_part, decimal_part = f"{number:.2f}".split('.')
+            integer_part, decimal_part = f"{number:.{decimals}f}".split('.')
             decimal_part = decimal_sep + decimal_part
 
-        # 添加千位分隔符
-        reversed_int = integer_part[::-1]
-        groups = [reversed_int[i:i + 3] for i in range(0, len(reversed_int), 3)]
-        formatted_int = thousands_sep.join(groups)[::-1]
+        # 添加千位分隔符（含负号处理：符号不参与分组）
+        sign = '-' if integer_part.startswith('-') else ''
+        digits = integer_part.lstrip('-+')
+        groups = [digits[::-1][i:i + 3] for i in range(0, len(digits), 3)]
+        formatted_int = sign + thousands_sep.join(groups)[::-1]
 
         return formatted_int + decimal_part
+
+    def format_time(self, dt: datetime, locale: str = 'en-US',
+                    user_timezone: str = 'UTC') -> str:
+        """格式化时间部分（HH:mm 或 12 小时制，按 locale）"""
+        local_dt = self.convert_to_user_timezone(dt, user_timezone)
+        try:
+            return local_dt.strftime(self._time_formats.get(locale, '%H:%M:%S'))
+        except Exception as e:
+            logger.error(f"Failed to format time: {str(e)}")
+            return local_dt.strftime('%H:%M')
 
     def get_user_locale_info(self, locale: str = 'en-US') -> Dict:
         """
@@ -440,18 +490,22 @@ class LocalizationService:
         currency_code = self._currency_codes.get(locale, 'USD')
         date_format = self._date_formats.get(locale, '%Y-%m-%d')
         datetime_format = self._datetime_formats.get(locale, '%Y-%m-%d %H:%M:%S')
+        time_format = self._time_formats.get(locale, '%H:%M:%S')
         number_format = self._number_formats.get(locale, {'thousands': ',', 'decimal': '.'})
 
         return {
             'locale': locale,
             'timezone': timezone,
+            'first_day_of_week': self._first_day_of_week.get(locale, 1),
             'currency': {
                 'symbol': currency_symbol,
                 'code': currency_code,
+                'position': self._currency_position.get(locale, 'before'),
             },
             'formats': {
                 'date': date_format,
                 'datetime': datetime_format,
+                'time': time_format,
                 'number': number_format,
             },
         }
