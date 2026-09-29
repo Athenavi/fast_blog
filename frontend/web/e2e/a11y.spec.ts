@@ -11,16 +11,19 @@ import {PAGE_TARGETS, type PageTarget, readySelector} from './fixtures/page-targ
  * a11y 巡检（axe-core，WCAG 2.1/2.2 A+AA）—— UI/UX 路线图 Batch 0.2
  *
  * 为什么是"基线对比"而不是"零违规"：现有页面本就有大量历史违规，直接断言 0 会让整套
- * 测试一开始就红、随后被无视。这里把**现状冻结成基线**，只让"新增/加重的违规"失败 ——
+ * 测试一开始就红、随后被无视。这里把**现状冻结成基线**，只让"新出现的违规规则类型"失败 ——
  * 重构（Batch 1/2）才有可能在护栏内推进。
+ *
+ * 比较维度是**规则集合**（不是节点计数）：计数随动态内容（表格行数 / 统计数字）波动，
+ * 用它做断言只会产生噪声；基线里没见过的规则类型才算真回归。基线仍记录计数便于查看现状。
  *
  * 首次使用（仓库里还没有 `e2e/a11y-baseline.json`）：
  *   A11Y_UPDATE_BASELINE=1 npx playwright test e2e/a11y.spec.ts
  *   # 然后把生成的 e2e/a11y-baseline.json 一并提交
  *
  * 日常 / CI：
- *   npx playwright test e2e/a11y.spec.ts      # 只报"比基线更差"的规则
- * 修完一批违规后收紧基线：同样的 UPDATE 命令重跑即可（数字只会变小才算收紧）。
+ *   npx playwright test e2e/a11y.spec.ts      # 只报"基线中未记录"的规则
+ * 修完一批违规后收紧基线：同样的 UPDATE 命令重跑即可。
  *
  * 后台页跑在**已登录（superadmin）**视角、前台页跑在**匿名访客**视角。
  */
@@ -98,13 +101,18 @@ async function audit(page: Page, target: PageTarget): Promise<void> {
   if (UPDATE_BASELINE) return
 
   const allowed = baseline[target.slug] ?? {}
-  const regressions = Object.entries(current)
-    .filter(([rule, count]) => count > (allowed[rule] ?? 0))
-    .map(([rule, count]) => `${rule}: ${allowed[rule] ?? 0} → ${count}`)
+  // 为什么比较「规则集合」而不是节点计数：计数会随动态内容（表格行数、统计数字、
+  // 时间显示）波动 —— 实测同一页面在连续运行间 `color-contrast` 在 6~10 之间跳动，
+  // 用它做断言只会把巡检变成噪声。真正有意义的信号是**出现了基线中没有的规则类型**
+  // （例如某页突然多出 `image-alt` / `label`），那才是新引入的无障碍问题。
+  // 基线文件仍保留计数，便于人工查看现状与收紧。
+  const regressions = Object.keys(current)
+    .filter((rule) => !(rule in allowed))
+    .map((rule) => `${rule}: 基线未记录 → ${current[rule]} 个节点`)
 
   expect(
     regressions,
-    `${target.name}（${target.path}）出现新的 a11y 违规。\n` +
+    `${target.name}（${target.path}）出现基线中未记录的无障碍规则。\n` +
     '请修复；若确属"已知且暂不修"，用 A11Y_UPDATE_BASELINE=1 重跑并提交基线（不要在 PR 里静默放行）。',
   ).toEqual([])
 }
