@@ -86,6 +86,33 @@ export interface ExchangeResult extends PointsLedger {
   subscription: Record<string, unknown>
 }
 
+/** 等级视图（`GET /points/level/{score}`；`/me` 内嵌的 `level` 与其同构，来自纯函数 `level_for`） */
+export interface PointsLevel {
+  /** 参与计算的累计获得积分（负数按 0、超上限封顶后的值） */
+  score: number
+  /** 等级序号 */
+  level: number
+  /** 等级名 */
+  name: string
+  /** 本级最低累计积分 */
+  min_score: number
+  /** 下一级序号（已封顶为 null） */
+  next_level: number | null
+  next_level_name: string | null
+  next_level_score: number | null
+  /** 距下一级还需的积分（已封顶为 0） */
+  points_to_next: number
+  /** 本级区间进度 0~1（已封顶为 1） */
+  progress: number
+}
+
+/** 我的积分（`GET /points/me`）：账户 + 当前等级 + 最近流水，一次拿齐 */
+export interface PointsMeResult {
+  account: PointsAccount
+  level: PointsLevel
+  recent_transactions: PointsTransaction[]
+}
+
 export const pointsApi = {
   /** 我的积分账户（仅认证） */
   mine: () => http.get<PointsAccount>('/gamification/points/mine'),
@@ -125,4 +152,17 @@ export const pointsApi = {
     ruleId: number,
     data: { points?: number; description?: string; daily_limit?: number; is_active?: boolean; sort_order?: number },
   ) => http.put<PointsRule>(`/gamification/points/rule/${ruleId}`, data),
+
+  /** 我的积分（余额 + 当前等级 + 最近流水，一次拿齐；仅认证。比 `mine` 多等级与最近流水） */
+  me: (recent = 10) => http.get<PointsMeResult>('/gamification/points/me', {recent}),
+
+  /** 排行榜（公开；与 `leaderboard` 同数据、同结构，端点为 `ranking`） */
+  ranking: (limit = 20) => http.get<LeaderboardItem[]>('/gamification/points/ranking', {limit}),
+
+  /** 按累计获得积分算等级（公开，纯函数；`score` 为累计积分） */
+  level: (score: number) => http.get<PointsLevel>(`/gamification/points/level/${score}`),
+
+  /** 管理员加分（权限 `module_gamification:points:edit`；与 `grant` 同实现、同返回） */
+  award: (userId: number, amount: number, reason?: string) =>
+    http.post<PointsLedger>('/gamification/points/award', {user_id: userId, amount, reason}),
 }

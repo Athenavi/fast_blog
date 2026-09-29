@@ -11,10 +11,18 @@
  * 避免同一个功能在两处各有一套入口（原先前台页内嵌的「管理」tab 已移除）。
  */
 import {Refresh} from '@element-plus/icons-vue'
-import {ElMessage} from '@/utils/feedback'
+import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
-import {type ExchangeRule, pointsApi, type PointsRule, type PointsStats} from '@/api'
+import {
+  type ExchangeRule,
+  type LeaderboardItem,
+  pointsApi,
+  type PointsLevel,
+  type PointsMeResult,
+  type PointsRule,
+  type PointsStats,
+} from '@/api'
 
 definePageMeta({
   layout: 'admin',
@@ -120,6 +128,84 @@ async function submitAdjust(): Promise<void> {
 const topHolders = computed(() => stats.value?.top_holders ?? [])
 
 onMounted(load)
+
+// ---------------------------------------------------------------- 我的账户 / 排行榜 / 等级 / 手动奖励
+/** 我的积分账户（仅认证）：余额 + 当前等级 + 最近流水，一次拿齐 */
+const me = ref<PointsMeResult | null>(null)
+/** 我的账户 + 排行榜加载态与错误态 */
+const auxLoading = ref(false)
+const auxFailed = ref(false)
+/** 排行榜（公开，`ranking` 端点） */
+const ranking = ref<LeaderboardItem[]>([])
+/** 等级详情查询（公开，纯函数） */
+const levelScore = ref(0)
+const levelResult = ref<PointsLevel | null>(null)
+const levelBusy = ref(false)
+/** 手动奖励（管理员，需权限 + 二次确认） */
+const award = reactive<{ user_id: string; amount: string; reason: string }>({
+  user_id: '',
+  amount: '',
+  reason: '',
+})
+const awarding = ref(false)
+
+async function loadAuxiliary(): Promise<void> {
+  auxLoading.value = true
+  auxFailed.value = false
+  try {
+    const [meData, boardRows] = await Promise.all([pointsApi.me(), pointsApi.ranking(20)])
+    me.value = meData
+    ranking.value = boardRows ?? []
+  } catch {
+    auxFailed.value = true
+  } finally {
+    auxLoading.value = false
+  }
+}
+
+async function queryLevel(): Promise<void> {
+  const score = Number(levelScore.value)
+  if (!Number.isFinite(score)) {
+    ElMessage.warning(t('admin.gamification.points.levelInvalid'))
+    return
+  }
+  levelBusy.value = true
+  try {
+    levelResult.value = await pointsApi.level(Math.trunc(score))
+  } finally {
+    levelBusy.value = false
+  }
+}
+
+async function submitAward(): Promise<void> {
+  const userId = Number(award.user_id)
+  const amount = Number(award.amount)
+  if (!userId || !amount || amount <= 0) {
+    ElMessage.warning(t('admin.gamification.points.adjustInvalid'))
+    return
+  }
+  try {
+    await ElMessageBox.confirm(
+      t('admin.gamification.points.awardConfirmMessage', {amount, userId}),
+      t('admin.gamification.points.awardConfirmTitle'),
+      {type: 'warning'},
+    )
+  } catch {
+    return
+  }
+  awarding.value = true
+  try {
+    await pointsApi.award(userId, amount, award.reason || undefined)
+    ElMessage.success(t('admin.gamification.points.granted', {amount, userId}))
+    award.amount = ''
+    award.reason = ''
+    await Promise.all([load(), loadAuxiliary()])
+  } finally {
+    awarding.value = false
+  }
+}
+
+onMounted(loadAuxiliary)
 </script>
 
 <template>
@@ -276,6 +362,165 @@ onMounted(load)
         </el-table-column>
         <el-table-column :label="$t('admin.gamification.points.balance')" prop="balance" width="140"/>
       </el-table>
+    </el-card>
+
+    <!-- 手动奖励（award；需权限 + 二次确认） -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <span>{{ $t('admin.gamification.points.awardTitle') }}</span>
+      </template>
+      <el-form :inline="true" @submit.prevent="submitAward()">
+        <el-form-item :label="$t('admin.gamification.points.userId')">
+          <el-input v-model="award.user_id" :placeholder="$t('admin.gamification.points.userIdPlaceholder')"
+                    style="width: 140px"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.gamification.points.amount')">
+          <el-input v-model="award.amount" style="width: 120px"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.gamification.points.reason')">
+          <el-input v-model="award.reason" style="width: 220px"/>
+        </el-form-item>
+        <el-form-item>
+          <el-button v-auth="'module_gamification:points:edit'" :loading="awarding" type="primary"
+                     @click="submitAward()">
+            {{ $t('admin.gamification.points.awardSubmit') }}
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+
+    <!-- 我的积分账户（me：余额 + 等级 + 最近流水） -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <span>{{ $t('admin.gamification.points.meTitle') }}</span>
+      </template>
+
+      <AdminTableSkeleton v-if="auxLoading && !me" :rows="2"/>
+      <AdminEmpty
+        v-else-if="!me"
+        :title="auxFailed ? $t('admin.common.loadFailed') : $t('admin.common.empty')"
+        :variant="auxFailed ? 'error' : 'default'"
+      >
+        <el-button v-if="auxFailed" :icon="Refresh" @click="loadAuxiliary()">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
+      <template v-else>
+        <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <el-card shadow="never">
+            <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.balance') }}</p>
+            <p class="mt-1 text-xl font-semibold">{{ me?.account.balance ?? 0 }}</p>
+          </el-card>
+          <el-card shadow="never">
+            <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.totalEarned') }}</p>
+            <p class="mt-1 text-xl font-semibold">{{ me?.account.total_earned ?? 0 }}</p>
+          </el-card>
+          <el-card shadow="never">
+            <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.totalSpent') }}</p>
+            <p class="mt-1 text-xl font-semibold">{{ me?.account.total_spent ?? 0 }}</p>
+          </el-card>
+          <el-card shadow="never">
+            <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.meLevel') }}</p>
+            <p class="mt-1 text-xl font-semibold">
+              {{
+                me ? $t('admin.gamification.points.meLevelValue', {name: me.level.name, level: me.level.level}) : '-'
+              }}
+            </p>
+          </el-card>
+        </div>
+
+        <div class="mt-4">
+          <div class="mb-2 flex items-center justify-between text-xs text-fg-muted">
+            <span>{{ $t('admin.gamification.points.meProgress') }}</span>
+            <span v-if="me?.level.next_level === null">
+              {{ $t('admin.gamification.points.meMaxLevel') }}
+            </span>
+            <span v-else>
+              {{ $t('admin.gamification.points.mePointsToNext', {points: me?.level.points_to_next}) }}
+            </span>
+          </div>
+          <el-progress :percentage="Math.round((me?.level.progress ?? 0) * 100)"/>
+        </div>
+
+        <div class="mt-4">
+          <p class="mb-2 text-sm font-medium text-fg">{{ $t('admin.gamification.points.meRecent') }}</p>
+          <el-table :data="me?.recent_transactions ?? []" border stripe>
+            <el-table-column :label="$t('admin.gamification.points.action')" min-width="140" prop="action"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.gamification.points.description')" min-width="200" prop="description"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.gamification.points.amount')" prop="amount" width="110"/>
+            <el-table-column :label="$t('admin.gamification.points.balance')" prop="balance_after" width="110"/>
+          </el-table>
+        </div>
+      </template>
+    </el-card>
+
+    <!-- 排行榜（ranking） -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <span>{{ $t('admin.gamification.points.rankingTitle') }}</span>
+      </template>
+      <el-table v-loading="auxLoading" :data="ranking" border stripe>
+        <el-table-column :label="$t('admin.gamification.points.rank')" prop="rank" width="80"/>
+        <el-table-column :label="$t('admin.gamification.points.user')" min-width="160">
+          <template #default="{ row }">{{ row.username || `#${row.user_id}` }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.gamification.points.balance')" prop="balance" width="140"/>
+      </el-table>
+    </el-card>
+
+    <!-- 等级详情（level 纯函数查询） -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <span>{{ $t('admin.gamification.points.levelTitle') }}</span>
+      </template>
+      <el-form :inline="true" @submit.prevent="queryLevel()">
+        <el-form-item :label="$t('admin.gamification.points.levelScore')">
+          <el-input-number v-model="levelScore" :max="1000000" :min="0" controls-position="right" size="small"/>
+        </el-form-item>
+        <el-form-item>
+          <el-button :loading="levelBusy" @click="queryLevel()">
+            {{ $t('admin.gamification.points.levelQuery') }}
+          </el-button>
+        </el-form-item>
+      </el-form>
+      <div v-if="levelResult" class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <el-card shadow="never">
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.levelName') }}</p>
+          <p class="mt-1 text-xl font-semibold">
+            {{ $t('admin.gamification.points.meLevelValue', {name: levelResult?.name, level: levelResult?.level}) }}
+          </p>
+        </el-card>
+        <el-card shadow="never">
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.levelRange') }}</p>
+          <p class="mt-1 text-xl font-semibold">{{ levelResult?.min_score }}</p>
+        </el-card>
+        <el-card shadow="never">
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.levelNext') }}</p>
+          <p class="mt-1 text-xl font-semibold">
+            {{
+              levelResult?.next_level === null
+                ? $t('admin.gamification.points.levelNoNext')
+                : $t('admin.gamification.points.meLevelValue', {
+                  name: levelResult?.next_level_name ?? '',
+                  level: levelResult?.next_level,
+                })
+            }}
+          </p>
+        </el-card>
+        <el-card shadow="never">
+          <p class="text-xs text-fg-muted">{{ $t('admin.gamification.points.levelProgress') }}</p>
+          <el-progress :percentage="Math.round((levelResult?.progress ?? 0) * 100)" class="mt-2"/>
+          <p class="mt-1 text-xs text-fg-subtle">
+            {{
+              levelResult?.next_level === null
+                ? $t('admin.gamification.points.meMaxLevel')
+                : $t('admin.gamification.points.mePointsToNext', {points: levelResult?.points_to_next})
+            }}
+          </p>
+        </el-card>
+      </div>
     </el-card>
   </div>
 </template>

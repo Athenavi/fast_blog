@@ -843,8 +843,8 @@ onMounted(async () => {
         <el-tab-pane :label="$t('admin.analytics.seo.orphanArticles')" name="orphans">
           <el-alert
             :closable="false"
-            class="mb-3"
             :title="$t('admin.analytics.seo.orphanArticlesHaveNoInboundLinksFromOtherArticlesSoSearchEnginesMayMissThemAddInternalLinksToImproveDiscoverability')"
+            class="mb-3"
             type="info"
           />
           <el-table :data="orphans" max-height="520" row-key="article_id">
@@ -947,7 +947,8 @@ onMounted(async () => {
           >
             <template #filters>
               <el-form-item :label="$t('admin.analytics.seo.redirectKeyword')">
-                <el-input v-model="redirectQuery.keyword" :placeholder="$t('admin.analytics.seo.redirectKeywordPlaceholder')"
+                <el-input v-model="redirectQuery.keyword"
+                          :placeholder="$t('admin.analytics.seo.redirectKeywordPlaceholder')"
                           clearable
                           style="width: 200px" @keyup.enter="redirectSearch()"/>
               </el-form-item>
@@ -1133,7 +1134,8 @@ onMounted(async () => {
                 <el-col :span="12">
                   <el-form :model="ampConvertForm" label-width="110px">
                     <el-form-item :label="$t('admin.analytics.seo.ampSourceHtml')">
-                      <el-input v-model="ampConvertForm.html" :placeholder="$t('admin.analytics.seo.ampSourceHtmlPlaceholder')" :rows="10"
+                      <el-input v-model="ampConvertForm.html"
+                                :placeholder="$t('admin.analytics.seo.ampSourceHtmlPlaceholder')" :rows="10"
                                 type="textarea"/>
                     </el-form-item>
                     <el-form-item :label="$t('admin.analytics.seo.ampTitleOptional')">
@@ -1152,7 +1154,8 @@ onMounted(async () => {
                       <el-input v-model="ampConvertForm.featured_image" maxlength="1000"/>
                     </el-form-item>
                     <el-form-item :label="$t('admin.analytics.seo.ampPublishedAt')">
-                      <el-input v-model="ampConvertForm.published_at" :placeholder="$t('admin.analytics.seo.ampPublishedAtPlaceholder')"
+                      <el-input v-model="ampConvertForm.published_at"
+                                :placeholder="$t('admin.analytics.seo.ampPublishedAtPlaceholder')"
                                 maxlength="64"/>
                     </el-form-item>
                     <el-form-item :label="$t('admin.analytics.seo.ampExtraCss')">
@@ -1259,7 +1262,8 @@ onMounted(async () => {
             <!-- AMP 违规校验 -->
             <el-tab-pane :label="$t('admin.analytics.seo.ampValidate')" name="amp-validate">
               <el-alert :closable="false" :title="$t('admin.analytics.seo.ampValidateHint')" class="mb-3" type="info"/>
-              <el-input v-model="ampValidateHtml" :placeholder="$t('admin.analytics.seo.ampValidateHtmlPlaceholder')" :rows="10"
+              <el-input v-model="ampValidateHtml" :placeholder="$t('admin.analytics.seo.ampValidateHtmlPlaceholder')"
+                        :rows="10"
                         type="textarea"/>
               <div class="toolbar mt-2">
                 <el-button v-auth="'module_content:article:view'" :icon="Search" :loading="ampValidateLoading"
@@ -1581,7 +1585,8 @@ onMounted(async () => {
     >
       <el-form :model="redirectForm" label-width="96px">
         <el-form-item :label="$t('admin.analytics.seo.redirectFromPath')" required>
-          <el-input v-model="redirectForm.from_path" :placeholder="$t('admin.analytics.seo.redirectFromPathPlaceholder')"
+          <el-input v-model="redirectForm.from_path"
+                    :placeholder="$t('admin.analytics.seo.redirectFromPathPlaceholder')"
                     maxlength="500"/>
         </el-form-item>
         <el-form-item :label="$t('admin.analytics.seo.redirectToPath')" required>

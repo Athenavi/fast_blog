@@ -166,9 +166,9 @@ onMounted(async () => {
         <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldExcerpt') }}</label>
         <textarea
           v-model="form.excerpt"
+          :placeholder="$t('myPosts.excerptPlaceholder')"
           class="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm text-fg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           maxlength="255"
-          :placeholder="$t('myPosts.excerptPlaceholder')"
           rows="2"
         />
       </div>
@@ -243,8 +243,8 @@ onMounted(async () => {
         <textarea
           v-else
           v-model="form.content"
-          class="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm leading-relaxed text-fg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           :placeholder="$t('myPosts.sourcePlaceholder')"
+          class="w-full rounded-control border border-line bg-surface px-3 py-2 text-sm leading-relaxed text-fg outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           rows="16"
         />
       </div>

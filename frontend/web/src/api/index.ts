@@ -235,6 +235,9 @@ export type {
   FormFieldPayload,
   FormItem,
   FormPayload,
+  FormPublicDetail,
+  FormPublicField,
+  FormPublicSubmitResult,
   FormSubmissionItem,
 } from './modules/form'
 
@@ -280,7 +283,7 @@ export {commentApi} from './modules/comment'
 export type {CommentItem, CommentPublicItem, CommentQuery} from './modules/comment'
 
 export {mediaApi} from './modules/media'
-export type {MediaFolder, MediaItem, MediaQuery} from './modules/media'
+export type {MediaCoverFilename, MediaFolder, MediaItem, MediaQuery} from './modules/media'
 
 export {pageApi} from './modules/page'
 export type {PageDetail, PageItem, PagePayload} from './modules/page'
@@ -297,7 +300,22 @@ export type {
 } from './modules/dashboard'
 
 export {seoApi, searchAnalyticsApi} from './modules/seo'
-export type {ArticleSeoItem, SeoAnalyzePayload, SeoAnalyzeResult, SeoMetrics} from './modules/seo'
+export type {
+  ArticleSchemaResult,
+  ArticleSeoItem,
+  ArticleSeoMeta,
+  SchemaPreviewPayload,
+  SchemaPreviewResult,
+  SchemaTypeItem,
+  SeoAnalyzePayload,
+  SeoAnalyzeResult,
+  SeoGeneratePayload,
+  SeoGenerateResult,
+  SeoMetrics,
+  SeoSavePayload,
+  SeoSaveResult,
+  SeoSiteContext,
+} from './modules/seo'
 
 // ---------------------------------------------------------------- extension
 export {pluginApi} from './modules/plugin'
@@ -400,6 +418,14 @@ export type {
   TaxConfigItem,
   TaxConfigPayload,
   TaxConfigQuery,
+  TaxCalculatePayload,
+  TaxCalculateResult,
+  TaxRateResult,
+  TaxReportConfigItem,
+  TaxReportQuery,
+  TaxReportResult,
+  TaxReportSettledItem,
+  TaxResolveQuery,
 } from './modules/payment'
 
 export {revenueApi, revenueMineApi} from './modules/revenue'
@@ -553,6 +579,8 @@ export type {
   LeaderboardItem,
   PointsAccount,
   PointsLedger,
+  PointsLevel,
+  PointsMeResult,
   PointsRule,
   PointsStats,
   PointsTransaction,

@@ -67,33 +67,23 @@ export interface FormSubmissionItem {
   created_at?: string | null
 }
 
-/** 公开字段（GET /marketing/form/public/{slug} 的 fields 元素，对齐后端 FormFieldOut） */
-export interface FormPublicField {
-  id: number
-  form_id: number
-  label?: string | null
-  field_type?: string | null
-  placeholder?: string | null
-  help_text?: string | null
-  required: boolean
-  options?: string | null
-  validation_rules?: string | null
-  default_value?: string | null
-  order_index: number
-  is_active: boolean
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-/** 公开表单定义（后端 FormOut 叠加 fields） */
+/** 公开表单定义（`GET /marketing/form/public/{slug}`，无需鉴权）
+ *
+ * 后端只回 `status=published` 的表单，`fields` 只含 `is_active=True` 的激活字段。
+ */
 export interface FormPublicDetail extends FormItem {
-  fields: FormPublicField[]
+  fields: FormFieldItem[]
 }
 
-/** 匿名提交回执（后端 public_submit 返回值） */
+/** 匿名提交入参：`data` 的键是字段的 `label`（与后端 `service.public_submit` 的取值一致） */
+export interface FormPublicSubmitPayload {
+  data: Record<string, unknown>
+}
+
+/** 匿名提交回执：`store_submissions=false` 时只回执不落库（`stored=false`） */
 export interface FormPublicSubmitResult {
   accepted: boolean
-  stored: boolean
+  stored?: boolean
   submission_id?: number
 }
 
@@ -121,14 +111,17 @@ export const formApi = {
 
   removeSubmission: (id: number) => http.delete<null>(`/marketing/form/submission/${id}`),
 
-  /** 公开：取已发布表单定义与激活字段（无需登录） */
-  publicForm: (slug: string) => http.get<FormPublicDetail>(`/marketing/form/public/${slug}`),
-
-  /**
-   * 公开：匿名提交。
-   * 请求体为 `{data: {字段 label: 值}}`——后端按字段 label 从 data 中取值，
-   * 因此调用方必须以 label 作为键。
+  /** 公开：取已发布表单的定义（含激活字段），前台渲染用
+   *
+   * 路径参数是表单 `slug`（非 id，见后端 `controller.public_form`）。
    */
-  publicSubmit: (slug: string, data: Record<string, unknown>) =>
-    http.post<FormPublicSubmitResult>(`/marketing/form/public/${slug}/submit`, {data}),
+  publicDetail: (slug: string) =>
+    http.get<FormPublicDetail>(`/marketing/form/public/${encodeURIComponent(slug)}`),
+
+  /** 公开：匿名提交（`data` 的键为字段 `label`） */
+  publicSubmit: (slug: string, payload: FormPublicSubmitPayload) =>
+    http.post<FormPublicSubmitResult>(
+      `/marketing/form/public/${encodeURIComponent(slug)}/submit`,
+      payload,
+    ),
 }

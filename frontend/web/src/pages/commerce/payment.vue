@@ -6,8 +6,13 @@
  * 网关的 `config_data` **只入不出** —— 响应只有 `has_config_data`，编辑时留空即保持原值。
  * 「发起支付」走 `/commerce/payment/initiate`，实际由 payment-gateway 插件执行
  * （金额按**元**填写，服务端转发插件时转成分）。
+ *
+ * 追加：**税务计算**子能力（与 `tax-config` CRUD 是两套东西）——
+ *   - 税务试算 `POST /commerce/payment/tax/calculate`（税率来自 `tax_configs` 真表）
+ *   - 解析税率 `GET /commerce/payment/tax/resolve`
+ *   - 税务报表 `GET /commerce/payment/tax/report`（权限 `module_commerce:revenue:view`）
  */
-import {Delete, EditPen, Plus, Promotion} from '@element-plus/icons-vue'
+import {Delete, EditPen, Plus, Promotion, Search} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {DEFAULT_CURRENCY, formatMoney} from '@/utils/money'
 import {computed, reactive, ref} from 'vue'
@@ -17,7 +22,10 @@ import {
   paymentApi,
   type PaymentGatewayItem,
   type PaymentTransactionItem,
+  type TaxCalculateResult,
   type TaxConfigItem,
+  type TaxRateResult,
+  type TaxReportResult,
 } from '@/api'
 import type {PageQuery} from '@/api/types'
 import {useAdminList} from '@/composables/useAdminList'
@@ -533,6 +541,76 @@ async function submitInitiate() {
     initiateSaving.value = false
   }
 }
+
+// ---------------------------------------------------------------- 税务试算（税率来自 tax_configs）
+const taxCalcForm = reactive({
+  amount: undefined as number | undefined,
+  country: '',
+  region: '',
+  tax_type: '',
+  inclusive: false,
+  vat_number: '',
+})
+const taxCalcSaving = ref(false)
+const taxRateLoading = ref(false)
+const taxCalcResult = ref<TaxCalculateResult | null>(null)
+const taxRateResult = ref<TaxRateResult | null>(null)
+
+async function resolveTaxRate() {
+  if (taxCalcForm.country.trim().length !== 2) {
+    ElMessage.warning(t('admin.commerce.payment.taxCalcCountryRequired'))
+    return
+  }
+  taxRateLoading.value = true
+  try {
+    taxRateResult.value = await paymentApi.resolveTaxRate({
+      country: taxCalcForm.country.trim().toUpperCase(),
+      ...(taxCalcForm.region.trim() ? {region: taxCalcForm.region.trim()} : {}),
+      ...(taxCalcForm.tax_type.trim() ? {tax_type: taxCalcForm.tax_type.trim()} : {}),
+    })
+  } finally {
+    taxRateLoading.value = false
+  }
+}
+
+async function submitTaxCalc() {
+  if (!taxCalcForm.amount || taxCalcForm.amount <= 0 || taxCalcForm.country.trim().length !== 2) {
+    ElMessage.warning(t('admin.commerce.payment.taxCalcRequired'))
+    return
+  }
+  taxCalcSaving.value = true
+  try {
+    taxCalcResult.value = await paymentApi.calculateTax({
+      amount: taxCalcForm.amount,
+      country: taxCalcForm.country.trim().toUpperCase(),
+      region: taxCalcForm.region.trim() || null,
+      tax_type: taxCalcForm.tax_type.trim() || null,
+      inclusive: taxCalcForm.inclusive,
+      vat_number: taxCalcForm.vat_number.trim() || null,
+    })
+  } finally {
+    taxCalcSaving.value = false
+  }
+}
+
+// ---------------------------------------------------------------- 税务报表（权限：module_commerce:revenue:view）
+const taxReportQuery = reactive({days: 30, currency: ''})
+const taxReportLoading = ref(false)
+const taxReport = ref<TaxReportResult | null>(null)
+
+async function loadTaxReport() {
+  taxReportLoading.value = true
+  try {
+    taxReport.value = await paymentApi.taxReport({
+      days: taxReportQuery.days,
+      ...(taxReportQuery.currency.trim()
+        ? {currency: taxReportQuery.currency.trim().toUpperCase()}
+        : {}),
+    })
+  } finally {
+    taxReportLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -548,10 +626,10 @@ async function submitInitiate() {
           :rows="gatewayList"
           :selectable="false"
           :total="gatewayTotal"
-          @page-change="onGatewayPageChange"
           @refresh="gatewayLoad"
           @reset="gatewayReset"
           @search="gatewaySearch"
+          @page-change="onGatewayPageChange"
           @size-change="onGatewaySizeChange"
         >
           <template #filters>
@@ -618,10 +696,10 @@ async function submitInitiate() {
           :rows="txList"
           :selectable="false"
           :total="txTotal"
-          @page-change="onTxPageChange"
           @refresh="txLoad"
           @reset="txReset"
           @search="txSearch"
+          @page-change="onTxPageChange"
           @size-change="onTxSizeChange"
         >
           <template #filters>
@@ -684,10 +762,10 @@ async function submitInitiate() {
           :rows="cryptoList"
           :selectable="false"
           :total="cryptoTotal"
-          @page-change="onCryptoPageChange"
           @refresh="cryptoLoad"
           @reset="cryptoReset"
           @search="cryptoSearch"
+          @page-change="onCryptoPageChange"
           @size-change="onCryptoSizeChange"
         >
           <template #filters>
@@ -746,10 +824,10 @@ async function submitInitiate() {
           :rows="taxList"
           :selectable="false"
           :total="taxTotal"
-          @page-change="onTaxPageChange"
           @refresh="taxLoad"
           @reset="taxReset"
           @search="taxSearch"
+          @page-change="onTaxPageChange"
           @size-change="onTaxSizeChange"
         >
           <template #filters>
@@ -791,6 +869,138 @@ async function submitInitiate() {
             </template>
           </el-table-column>
         </AdminListShell>
+      </el-tab-pane>
+
+      <!-- 税务试算 -->
+      <el-tab-pane :label="$t('admin.commerce.payment.taxCalc')" name="taxCalc">
+        <div class="admin-card tax-calc">
+          <el-alert :closable="false" :title="$t('admin.commerce.payment.taxCalcHint')" class="mb-3"
+                    show-icon type="info"/>
+          <el-form :model="taxCalcForm" label-width="150px" style="max-width: 620px">
+            <el-form-item :label="$t('admin.commerce.payment.amount')" required>
+              <el-input-number v-model="taxCalcForm.amount" :min="0.01" :precision="2" style="width: 100%"/>
+            </el-form-item>
+            <el-form-item :label="$t('admin.commerce.payment.country')" required>
+              <el-input v-model="taxCalcForm.country" maxlength="2" placeholder="CN"/>
+            </el-form-item>
+            <el-form-item :label="$t('admin.commerce.payment.region')">
+              <el-input v-model="taxCalcForm.region"/>
+            </el-form-item>
+            <el-form-item :label="$t('admin.commerce.payment.taxType')">
+              <el-input v-model="taxCalcForm.tax_type" placeholder="VAT / GST / Sales Tax"/>
+            </el-form-item>
+            <el-form-item :label="$t('admin.commerce.payment.taxCalcInclusive')">
+              <el-switch v-model="taxCalcForm.inclusive"/>
+            </el-form-item>
+            <el-form-item :label="$t('admin.commerce.payment.taxCalcVat')">
+              <el-input v-model="taxCalcForm.vat_number"
+                        :placeholder="$t('admin.commerce.payment.taxCalcVatPlaceholder')"/>
+            </el-form-item>
+            <el-form-item>
+              <el-button :icon="Search" :loading="taxRateLoading" @click="resolveTaxRate">
+                {{ $t('admin.commerce.payment.taxCalcResolve') }}
+              </el-button>
+              <el-button :loading="taxCalcSaving" type="primary" @click="submitTaxCalc">
+                {{ $t('admin.commerce.payment.taxCalc') }}
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <el-descriptions v-if="taxRateResult" :column="3" :title="$t('admin.commerce.payment.taxCalcResolved')" border
+                           class="mb-3">
+            <el-descriptions-item :label="$t('admin.commerce.payment.country')">
+              {{ taxRateResult.country || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.region')">
+              {{ taxRateResult.region || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.taxType')">
+              {{ taxRateResult.tax_type || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.rate')">
+              {{ taxRateResult.rate }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <el-descriptions v-if="taxCalcResult" :column="3" :title="$t('admin.commerce.payment.taxCalcResult')"
+                           border>
+            <el-descriptions-item :label="$t('admin.commerce.payment.taxCalcRate')">
+              {{ taxCalcResult.rate }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.taxCalcConfiguredRate')">
+              {{ taxCalcResult.configured_rate }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.taxCalcExempt')">
+              {{ taxCalcResult.exempt ? $t('admin.common.yes') : $t('admin.common.no') }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.taxCalcNet')">
+              {{ taxCalcResult.net }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.taxCalcTax')">
+              {{ taxCalcResult.tax }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.commerce.payment.taxCalcTotal')">
+              {{ taxCalcResult.total }}
+            </el-descriptions-item>
+            <el-descriptions-item v-if="taxCalcResult.exemption_reason"
+                                  :label="$t('admin.commerce.payment.taxCalcExemptReason')"
+                                  :span="3">
+              {{ taxCalcResult.exemption_reason }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+      </el-tab-pane>
+
+      <!-- 税务报表 -->
+      <el-tab-pane :label="$t('admin.commerce.payment.taxReport')" name="taxReport">
+        <div class="admin-card">
+          <el-alert :closable="false" :title="$t('admin.commerce.payment.taxReportHint')" class="mb-3"
+                    show-icon type="info"/>
+          <el-form :inline="true" class="admin-filter">
+            <el-form-item :label="$t('admin.commerce.payment.taxReportDays')">
+              <el-input-number v-model="taxReportQuery.days" :max="365" :min="1"/>
+            </el-form-item>
+            <el-form-item :label="$t('admin.commerce.payment.currency')">
+              <el-input v-model="taxReportQuery.currency" maxlength="3" placeholder="USD" style="width: 110px"/>
+            </el-form-item>
+            <el-form-item>
+              <el-button v-auth="'module_commerce:revenue:view'" :loading="taxReportLoading" type="primary"
+                         @click="loadTaxReport">
+                {{ $t('admin.commerce.payment.taxReportLoad') }}
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <template v-if="taxReport">
+            <div class="admin-toolbar">
+              <span>{{ $t('admin.commerce.payment.taxReportPeriod', {n: taxReport.period_days}) }}</span>
+              <span class="admin-toolbar__spacer"/>
+              <span class="tax-report-statuses">{{ taxReport.settled_statuses.join(', ') }}</span>
+            </div>
+
+            <h4 class="tax-report-heading">{{ $t('admin.commerce.payment.taxReportConfigs') }}</h4>
+            <el-table :data="taxReport.tax_configs" border stripe>
+              <el-table-column :label="$t('admin.commerce.payment.country')" prop="country" width="100"/>
+              <el-table-column :label="$t('admin.commerce.payment.region')" min-width="120" prop="region"/>
+              <el-table-column :label="$t('admin.commerce.payment.taxType')" min-width="120" prop="tax_type"/>
+              <el-table-column :label="$t('admin.commerce.payment.rate')" align="right" prop="rate" width="100"/>
+              <el-table-column :label="$t('admin.commerce.payment.taxReportEffectiveFrom')" min-width="170"
+                               prop="effective_from"/>
+              <el-table-column :label="$t('admin.commerce.payment.taxReportEffectiveTo')" min-width="170"
+                               prop="effective_to"/>
+            </el-table>
+
+            <h4 class="tax-report-heading">{{ $t('admin.commerce.payment.taxReportSettled') }}</h4>
+            <el-table :data="taxReport.settled_transactions" border stripe>
+              <el-table-column :label="$t('admin.commerce.payment.currency')" prop="currency" width="110"/>
+              <el-table-column :label="$t('admin.commerce.payment.taxReportTransactions')" prop="transactions"
+                               width="140"/>
+              <el-table-column :label="$t('admin.commerce.payment.amount')" align="right" prop="amount"/>
+            </el-table>
+          </template>
+          <AdminEmpty v-else :desc="$t('admin.commerce.payment.taxReportEmptyDesc')"
+                      :title="$t('admin.commerce.payment.taxReportEmpty')"/>
+        </div>
       </el-tab-pane>
     </el-tabs>
 
@@ -974,5 +1184,19 @@ async function submitInitiate() {
   font-size: 12px;
   background: var(--el-fill-color-light);
   border-radius: 4px;
+}
+
+.tax-calc {
+  padding: var(--admin-gap-lg);
+}
+
+.tax-report-heading {
+  margin: 16px 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tax-report-statuses {
+  color: var(--el-text-color-secondary);
 }
 </style>

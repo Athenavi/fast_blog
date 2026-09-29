@@ -1,0 +1,77 @@
+{
+  "_note": "仅新增键。父代理把 zh-CN.payment / en.payment 下的键并入各自 frontend/web/i18n/locales/{zh-CN,en}.json 的 admin.commerce.payment 节点（既有键不动）。media cover 为纯 API 能力，无 UI 文案，故无新增键。",
+  "zh-CN": {
+    "admin": {
+      "commerce": {
+        "payment": {
+          "taxCalc": "税务试算",
+          "taxCalcHint": "按国家/地区/税种匹配当前生效税率并计税（税率来自税务配置）。金额含税时从总额拆出；填合法 EU VAT 号按免税处理。未配置对应税率会直接报错，不会按 0 计税。",
+          "taxCalcInclusive": "金额含税",
+          "taxCalcVat": "EU VAT 号",
+          "taxCalcVatPlaceholder": "合法则按免税处理",
+          "taxCalcResolve": "解析适用税率",
+          "taxCalcRequired": "请填写金额与 2 位国家代码",
+          "taxCalcCountryRequired": "请填写 2 位国家代码",
+          "taxCalcResult": "试算结果",
+          "taxCalcResolved": "已解析税率",
+          "taxCalcRate": "适用税率",
+          "taxCalcConfiguredRate": "配置税率",
+          "taxCalcExempt": "免税",
+          "taxCalcExemptReason": "免税原因",
+          "taxCalcNet": "净额",
+          "taxCalcTax": "税额",
+          "taxCalcTotal": "合计",
+          "taxReport": "税务报表",
+          "taxReportHint": "周期税务报表：税率配置清单 + 已结算交易按币种汇总（需收益查看权限）。",
+          "taxReportDays": "统计天数",
+          "taxReportLoad": "生成报表",
+          "taxReportPeriod": "统计周期：{n} 天",
+          "taxReportConfigs": "税率配置",
+          "taxReportSettled": "已结算交易",
+          "taxReportTransactions": "交易笔数",
+          "taxReportEffectiveFrom": "生效开始",
+          "taxReportEffectiveTo": "生效结束",
+          "taxReportEmpty": "尚未生成报表",
+          "taxReportEmptyDesc": "设置统计天数后点击「生成报表」"
+        }
+      }
+    }
+  },
+  "en": {
+    "admin": {
+      "commerce": {
+        "payment": {
+          "taxCalc": "Tax Calculator",
+          "taxCalcHint": "Matches the currently active rate by country/region/tax type and computes the tax (rates come from tax configs). When the amount is tax-inclusive the tax is split out of the total; a valid EU VAT number is treated as exempt. A missing rate fails outright instead of silently taxing at 0.",
+          "taxCalcInclusive": "Amount is tax-inclusive",
+          "taxCalcVat": "EU VAT number",
+          "taxCalcVatPlaceholder": "Valid ⇒ treated as exempt",
+          "taxCalcResolve": "Resolve Rate",
+          "taxCalcRequired": "Please enter the amount and a 2-letter country code",
+          "taxCalcCountryRequired": "Please enter a 2-letter country code",
+          "taxCalcResult": "Calculation Result",
+          "taxCalcResolved": "Resolved Rate",
+          "taxCalcRate": "Applied Rate",
+          "taxCalcConfiguredRate": "Configured Rate",
+          "taxCalcExempt": "Exempt",
+          "taxCalcExemptReason": "Exemption Reason",
+          "taxCalcNet": "Net",
+          "taxCalcTax": "Tax",
+          "taxCalcTotal": "Total",
+          "taxReport": "Tax Report",
+          "taxReportHint": "Periodic tax report: tax config list + settled transactions summarised by currency (requires revenue view permission).",
+          "taxReportDays": "Period (days)",
+          "taxReportLoad": "Generate Report",
+          "taxReportPeriod": "Period: {n} day(s)",
+          "taxReportConfigs": "Tax Configs",
+          "taxReportSettled": "Settled Transactions",
+          "taxReportTransactions": "Transactions",
+          "taxReportEffectiveFrom": "Effective From",
+          "taxReportEffectiveTo": "Effective To",
+          "taxReportEmpty": "No report yet",
+          "taxReportEmptyDesc": "Set the period and click “Generate Report”"
+        }
+      }
+    }
+  }
+}
