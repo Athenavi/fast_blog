@@ -12,6 +12,11 @@
 兑换**真实发放**：兑拨项就是 ``points_rules`` 里 ``action`` 以 ``exchange:`` 开头的行，
 兑换时用同一个 DB 事务「扣分 + 写流水 + 调 ``MembershipService.create_subscription`` 开通套餐」，
 不是只记一笔"待发放"。
+
+**等级**：按累计获得积分（``user_points.total_earned``）在 ``LEVELS`` 阈值表里定位等级名，
+``level_for`` 是**纯函数**（``GET /points/level/{score}`` 直接暴露它）；当 ``points_rules``
+为空（未跑 seed）时，``GET /points/rules`` 回退内置常量 ``DEFAULT_POINT_RULES``
+（与 ``scripts/seed_gamification.py`` 的 ``POINTS_RULES`` 一致），公开端点不返回空数组。
 """
 
 from datetime import datetime
@@ -34,7 +39,6 @@ from src.api.v3.modules.gamification.points.schema import (
     CHECKIN_ACTION,
     EXCHANGE_PREFIX,
     ExchangeRequest,
-    LeaderboardItem,
     PointsAccountOut,
     PointsGrantRequest,
     PointsRuleOut,
@@ -46,6 +50,129 @@ logger = get_logger("gamification.points")
 
 MAX_PAGE_SIZE = 100
 MAX_LEADERBOARD = 100
+
+# ---------------------------------------------------------------- 常量规则表 / 等级（纯函数，无 DB 依赖）
+#: **默认积分规则**（``action -> 积分值``）。与 ``scripts/seed_gamification.py`` 的
+#: ``POINTS_RULES`` 保持一致；``points_rules`` 表为空（未跑 seed）时作为回退展示。
+DEFAULT_POINT_RULES: dict[str, int] = {
+    "daily_checkin": 5,
+    "publish_article": 10,
+    "publish_comment": 2,
+    "receive_like": 1,
+    "profile_completed": 5,
+    # 二级/加码规则：由服务端事件计算（首篇发文、连续发文），不单独作为可领取动作
+    "first_article": 20,
+    "continuous_posting_7d": 50,
+    "continuous_posting_30d": 200,
+}
+
+#: 默认兑换项（值是需要消耗的**正数**积分）
+DEFAULT_EXCHANGE_RULES: dict[str, int] = {
+    "exchange:vip": 1000,
+}
+
+#: 等级阈值：``(最低累计获得积分, 等级序号, 等级名)``，按阈值升序
+LEVELS: tuple[tuple[int, int, str], ...] = (
+    (0, 1, "新手"),
+    (100, 2, "学徒"),
+    (500, 3, "活跃"),
+    (2000, 4, "资深"),
+    (5000, 5, "达人"),
+    (10000, 6, "大师"),
+    (50000, 7, "宗师"),
+)
+
+
+def level_for(score: int) -> dict:
+    """按累计积分算等级（**纯函数**）
+
+    ``score`` 为累计获得积分（``user_points.total_earned``）；负数按 0 处理，
+    超过最高阈值封顶在最高等级。返回当前等级、下一级所需积分与区间进度。
+    """
+    value = max(0, int(score or 0))
+    current = LEVELS[0]
+    next_entry: Optional[tuple[int, int, str]] = None
+    for entry in LEVELS:
+        if value >= entry[0]:
+            current = entry
+        else:
+            next_entry = entry
+            break
+    min_score, level, name = current
+    result: dict = {
+        "score": value,
+        "level": level,
+        "name": name,
+        "min_score": min_score,
+        "next_level": None,
+        "next_level_name": None,
+        "next_level_score": None,
+        "points_to_next": 0,
+        "progress": 0.0,
+    }
+    if next_entry is None:
+        # 已封顶：进度视为 100%
+        result["progress"] = 1.0
+    else:
+        next_min, next_level, next_name = next_entry
+        span = next_min - min_score
+        result.update(
+            next_level=next_level,
+            next_level_name=next_name,
+            next_level_score=next_min,
+            points_to_next=next_min - value,
+            progress=round((value - min_score) / span, 4) if span > 0 else 0.0,
+        )
+    return result
+
+
+def reward_for(
+    action: str,
+    *,
+    is_first: bool = False,
+    streak_days: int = 0,
+    rules: Optional[dict[str, int]] = None,
+) -> int:
+    """按动作计算应发积分（**纯函数**）
+
+    ``publish_article`` 支持加码：首篇叠加 ``first_article``；连续发文 ≥7 / ≥30 天再叠加
+    对应奖励。未知动作返回 0（不臆造）。``rules`` 可注入覆盖（默认用 ``DEFAULT_POINT_RULES``）。
+    """
+    table = rules if rules is not None else DEFAULT_POINT_RULES
+    total = int(table.get(action, 0))
+    if total == 0:
+        return 0
+    if action == "publish_article":
+        if is_first:
+            total += int(table.get("first_article", 0))
+        if int(streak_days) >= 30:
+            total += int(table.get("continuous_posting_30d", 0))
+        elif int(streak_days) >= 7:
+            total += int(table.get("continuous_posting_7d", 0))
+    return total
+
+
+def rank_entries(entries: list[dict], *, limit: int = 20) -> list[dict]:
+    """排行榜排序并赋名次（**纯函数**）
+
+    输入每项形如 ``{"user_id": int, "username": str|None, "balance": int}``；
+    按 ``balance`` 降序、``user_id`` 升序打破并列，截取前 ``limit`` 名并写 ``rank``。
+    ``limit <= 0`` 时回退上限 ``MAX_LEADERBOARD``。
+    """
+    ordered = sorted(
+        entries,
+        key=lambda e: (-int(e.get("balance", 0) or 0), int(e.get("user_id", 0) or 0)),
+    )
+    cap = int(limit) if int(limit) > 0 else MAX_LEADERBOARD
+    return [
+        {
+            "rank": index + 1,
+            "user_id": entry.get("user_id"),
+            "username": entry.get("username"),
+            "balance": int(entry.get("balance", 0) or 0),
+        }
+        for index, entry in enumerate(ordered[:cap])
+    ]
 
 
 def _account_out(row: UserPoints, *, checked_in_today: bool) -> dict:
@@ -178,27 +305,44 @@ class PointsService:
         )
         return [_tx_out(row) for row in rows], total
 
+    async def me(self, db: AsyncSession, user_id: int, *, recent: int = 10) -> dict:
+        """我的积分：余额 + 等级 + 最近流水（一次拿齐，供 ``GET /points/me``）"""
+        row = await self._account(db, user_id)
+        txs, _total = await points_transaction_crud.list(
+            db, page=1, page_size=max(1, min(recent, MAX_PAGE_SIZE)), filters={"user_id": user_id}
+        )
+        return {
+            "account": _account_out(row, checked_in_today=self._checked_in_today(row)),
+            "level": level_for(int(row.total_earned or 0)),
+            "recent_transactions": [_tx_out(tx) for tx in txs],
+        }
+
     async def leaderboard(self, db: AsyncSession, *, limit: int = 20) -> list[dict]:
+        """排行榜：SQL 先按余额倒序取前 N（真表聚合），再用 ``rank_entries`` 赋名次"""
+        cap = max(1, min(limit, MAX_LEADERBOARD))
         rows = (
             await db.execute(
                 select(UserPoints, User)
                 .join(User, User.id == UserPoints.user_id)
                 .order_by(UserPoints.balance.desc(), UserPoints.user_id.asc())
-                .limit(max(1, min(limit, MAX_LEADERBOARD)))
+                .limit(cap)
             )
         ).all()
-        return [
-            LeaderboardItem(
-                rank=index + 1,
-                user_id=account.user_id,
-                username=getattr(user, "username", None),
-                balance=int(account.balance or 0),
-            ).model_dump(mode="json")
-            for index, (account, user) in enumerate(rows)
+        entries = [
+            {
+                "user_id": account.user_id,
+                "username": getattr(user, "username", None),
+                "balance": int(account.balance or 0),
+            }
+            for account, user in rows
         ]
+        return rank_entries(entries, limit=cap)
 
     async def rules(self, db: AsyncSession, *, exchange: Optional[bool] = None) -> list[dict]:
         rows, _total = await points_rule_crud.list(db, page=1, page_size=0)
+        if not rows:
+            # 未跑 seed（points_rules 为空）时回退内置常量，公开端点不返回空数组
+            return self._default_rules(exchange)
         items: list[dict] = []
         for row in sorted(rows, key=lambda r: (r.sort_order or 0, r.id)):
             is_exchange = str(row.action or "").startswith(EXCHANGE_PREFIX)
@@ -216,6 +360,38 @@ class PointsService:
                 )
             else:
                 items.append(_rule_out(row))
+        return items
+
+    @staticmethod
+    def _default_rules(exchange: Optional[bool]) -> list[dict]:
+        """内置常量规则的回退视图（``points_rules`` 为空时使用）
+
+        ``exchange=False`` 只给加分规则；``True`` 只给兑换项；``None`` 全给。
+        """
+        items: list[dict] = []
+        if exchange is not True:
+            for action, points in DEFAULT_POINT_RULES.items():
+                items.append(
+                    {
+                        "id": 0,
+                        "action": action,
+                        "points": points,
+                        "description": "内置默认规则（未跑 seed_gamification.py）",
+                        "daily_limit": 0,
+                        "is_active": True,
+                        "sort_order": 0,
+                    }
+                )
+        if exchange is not False:
+            for action, cost in DEFAULT_EXCHANGE_RULES.items():
+                items.append(
+                    {
+                        "action": action,
+                        "cost": abs(int(cost)),
+                        "description": "内置默认兑换项（未跑 seed_gamification.py）",
+                        "is_active": True,
+                    }
+                )
         return items
 
     # ------------------------------------------------------------ 签到

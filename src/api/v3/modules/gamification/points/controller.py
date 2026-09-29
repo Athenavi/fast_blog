@@ -3,14 +3,18 @@
 ::
 
     GET  /api/v3/gamification/points/mine              我的积分账户（仅认证）
+    GET  /api/v3/gamification/points/me                我的积分（余额+等级+最近流水，仅认证）
     GET  /api/v3/gamification/points/history           我的积分流水（仅认证）
     POST /api/v3/gamification/points/checkin           每日签到（仅认证，幂等）
     POST /api/v3/gamification/points/exchange          兑换（仅认证，真实开通 VIP）
     GET  /api/v3/gamification/points/leaderboard       排行榜（公开）
+    GET  /api/v3/gamification/points/ranking           排行榜（公开，leaderboard 的别名）
     GET  /api/v3/gamification/points/rules             积分规则（公开）
     GET  /api/v3/gamification/points/exchange-rules    兑换项（公开）
+    GET  /api/v3/gamification/points/level/{score}     按积分数算等级（公开，纯函数）
     GET  /api/v3/gamification/points/stats             管理统计
     POST /api/v3/gamification/points/grant             管理员加分
+    POST /api/v3/gamification/points/award             管理员加分（grant 的别名）
     POST /api/v3/gamification/points/deduct            管理员扣分
     PUT  /api/v3/gamification/points/rule/{rule_id}    更新规则
 
@@ -33,7 +37,7 @@ from src.api.v3.modules.gamification.points.schema import (
     PointsGrantRequest,
     PointsRuleUpdate,
 )
-from src.api.v3.modules.gamification.points.service import points_service
+from src.api.v3.modules.gamification.points.service import level_for, points_service
 
 router = APIRouter(prefix="/points", tags=["gamification-points"], route_class=OperationLogRoute)
 
@@ -42,6 +46,16 @@ router = APIRouter(prefix="/points", tags=["gamification-points"], route_class=O
 @router.get("/mine", response_model=ResponseModel, summary="我的积分账户")
 async def my_points(db: DBSession, current: CurrentUser) -> dict:
     return resp.success(await points_service.account(db, current.id))
+
+
+@router.get("/me", response_model=ResponseModel, summary="我的积分（余额+等级+最近流水）")
+async def my_points_full(
+    db: DBSession,
+    current: CurrentUser,
+    recent: int = Query(default=10, ge=1, le=50, description="返回的最近流水条数"),
+) -> dict:
+    """一次拿齐：账户 + 当前等级（按累计获得积分）+ 最近流水"""
+    return resp.success(await points_service.me(db, current.id, recent=recent))
 
 
 @router.get("/history", response_model=ResponseModel, summary="我的积分流水")
@@ -79,6 +93,21 @@ async def leaderboard(
     return resp.success(await points_service.leaderboard(db, limit=limit))
 
 
+@router.get("/ranking", response_model=ResponseModel, summary="积分排行榜（公开）")
+async def ranking(
+    db: DBSession,
+    limit: int = Query(default=20, ge=1, le=100),
+) -> dict:
+    """公开读：按余额倒序（真表聚合 + ``rank_entries`` 赋名次）"""
+    return resp.success(await points_service.leaderboard(db, limit=limit))
+
+
+@router.get("/level/{score}", response_model=ResponseModel, summary="按积分数算等级（公开）")
+async def level_of(score: int) -> dict:
+    """纯函数：任意分数 → 等级名 / 阈值 / 到下一级进度（越界按 0，超上限封顶）"""
+    return resp.success(level_for(score))
+
+
 @router.get("/rules", response_model=ResponseModel, summary="积分规则")
 async def list_rules(db: DBSession) -> dict:
     return resp.success(await points_service.rules(db, exchange=False))
@@ -106,6 +135,17 @@ async def grant_points(
     current: CurrentUser,
     _perm=AuthControl(codes.POINTS_EDIT),
 ) -> dict:
+    return resp.success(await points_service.grant(db, payload, current.id), msg="已加分")
+
+
+@router.post("/award", response_model=ResponseModel, summary="管理员加分")
+async def award_points(
+    payload: PointsGrantRequest,
+    db: DBSession,
+    current: CurrentUser,
+    _perm=AuthControl(codes.POINTS_EDIT),
+) -> dict:
+    """管理员为指定用户加分（与 ``/grant`` 同实现，写 ``admin_grant`` 流水）"""
     return resp.success(await points_service.grant(db, payload, current.id), msg="已加分")
 
 
