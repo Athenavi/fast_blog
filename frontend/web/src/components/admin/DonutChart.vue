@@ -75,12 +75,13 @@ async function render(): Promise<void> {
   loading.value = true
   failed.value = false
   try {
-    const [{init, use}, {PieChart}, {CanvasRenderer}] = await Promise.all([
+    const [{init, use}, {PieChart}, {TooltipComponent}, {CanvasRenderer}] = await Promise.all([
       import('echarts/core'),
       import('echarts/charts'),
+      import('echarts/components'),
       import('echarts/renderers'),
     ])
-    use([PieChart, CanvasRenderer])
+    use([PieChart, TooltipComponent, CanvasRenderer])
 
     if (!canvasRef.value) return
     chart?.dispose()
