@@ -14,16 +14,23 @@
 权限码：``settings:view``（分析与报告）/ ``article:view``（文章维度）/ ``article:edit``（编辑器分析）
 """
 
+from typing import Optional
+
 from fastapi import APIRouter, Query
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
-from src.api.v3.modules.analytics.seo.assistant_schema import SEOGenerateRequest, SEOSaveRequest
+from src.api.v3.modules.analytics.seo.assistant_schema import (
+    SEOGenerateRequest,
+    SEOSaveRequest,
+    SchemaPreviewRequest,
+)
 from src.api.v3.modules.analytics.seo.assistant_service import seo_assistant_service
 from src.api.v3.modules.analytics.seo.feed import router as _feed_router
 from src.api.v3.modules.analytics.seo.schema import BulkCheckRequest, SEOAnalyzeRequest
+from src.api.v3.modules.analytics.seo.schema_org import schema_org_service
 from src.api.v3.modules.analytics.seo.service import seo_service
 # 注意：别名必须以 "_" 开头——discover 会把 controller 模块里所有顶层 APIRouter
 # 都当作待挂载路由，重复挂载会让 sitemap 多出一份无 /seo 前缀的路径。
@@ -170,3 +177,45 @@ async def generate_article_seo(
         max_tokens=payload.max_tokens,
     )
     return resp.success(result, msg=f"已生成（模型 {result['model']}）")
+
+
+# ───────────────────── 任务 14a：JSON-LD 结构化数据（schema.org） ─────────────────────
+@router.get("/schema/types", response_model=ResponseModel, summary="结构化数据类型清单")
+async def schema_types(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SEO_VIEW),
+) -> dict:
+    return resp.success(schema_org_service.types())
+
+
+@router.get("/schema/article/{article_id}", response_model=ResponseModel, summary="文章结构化数据")
+async def article_schema(
+    article_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SEO_VIEW),
+    base_url: Optional[str] = Query(default=None, max_length=500, description="覆盖站点基址"),
+) -> dict:
+    """按 ``article_seo.schema_org_enabled`` / ``schema_org_type`` 生成 Article（或 Person）+ 面包屑"""
+    return resp.success(await schema_org_service.for_article(db, article_id, base_url=base_url))
+
+
+@router.post("/schema/preview", response_model=ResponseModel, summary="结构化数据预览（不落库）")
+async def schema_preview(
+    payload: SchemaPreviewRequest,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.SEO_EDIT),
+) -> dict:
+    """``params`` 透传给生成器（Article 需要 title/description/url/author_name 等）"""
+    context = await schema_org_service.site_context(db, base_url=payload.base_url)
+    schema = schema_org_service.build(payload.schema_type, **payload.params)
+    return resp.success(
+        {
+            "schema_type": payload.schema_type,
+            "site": context,
+            "schema": schema,
+            "json_ld": schema_org_service.to_json_ld(schema),
+            "script_tag": schema_org_service.to_script_tag(schema),
+        }
+    )

@@ -37,3 +37,14 @@ class SEOGenerateRequest(SchemaBase):
     )
     apply: bool = Field(default=False, description="true 时把生成结果写入 article_seo")
     max_tokens: Optional[int] = Field(default=None, ge=1, le=32000)
+
+
+class SchemaPreviewRequest(SchemaBase):
+    """生成 JSON-LD 结构化数据预览（不落库）
+
+    ``params`` 直接透传给生成器，例如 Article 需要 ``title`` / ``description`` / ``url`` / ``author_name``。
+    """
+
+    schema_type: str = Field(default="Article", max_length=50)
+    params: dict = Field(default_factory=dict)
+    base_url: Optional[str] = Field(default=None, max_length=500, description="覆盖站点基址")

@@ -482,6 +482,15 @@ def register_middleware(app: FastAPI):
     except Exception as e:
         logger.warning(f"[Token Blacklist] 加载失败: {e}")
 
+    # 维护模式中间件：命中维护时对非白名单请求返回 503（配置有 5 秒缓存，写配置时主动失效）
+    try:
+        app.add_middleware(
+            _make_lazy_middleware("src.middleware.maintenance_mode", "MaintenanceModeMiddleware")
+        )
+        logger.info("[Maintenance] 已添加维护模式中间件")
+    except Exception as e:
+        logger.warning(f"[Maintenance] 加载失败: {e}")
+
     # 暴力破解防护中间件（阈值可用环境变量调整，默认 10 次/15 分钟每 IP、5 次/每用户名）
     try:
         from src.middleware.brute_force_protection import BruteForceProtectionMiddleware
