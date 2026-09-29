@@ -44,6 +44,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "admin_menu",
         "auth",
         "cache",
+        # 任务 15：边缘函数（Cloudflare Workers / Vercel Edge）接线
+        "edge",
         "export",
         "gdpr",
         "group",
@@ -55,6 +57,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "maintenance",
         "menu",
         "monitor",
+        # 任务 18：OAuth 第三方登录
+        "oauth",
         "permission",
         "quota",
         "role",
@@ -64,12 +68,17 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "setting",
         "site",
         "social",
+        # 任务 16：翻译能力（i18n / 本地化 / 记忆库 / 机器翻译）
+        "translation",
         "user",
+        # 任务 17：零散件（NLP 命令解析 / 模式定义 / Markdown 导出）
+        "utility",
         "workflow",
     ),
-    "/content": ("approval", "article", "category", "collaboration", "comment", "custom_post_type", "feed", "media",
-                 "page", "page_builder",
-                 "recommend", "redirect", "shortcode", "tag", "third_party_publish"),
+    # 任务 15：AMP（生成 / 转换 / 校验）、Yjs CRDT 协同、团队内部评论
+    "/content": ("amp", "approval", "article", "category", "collaboration", "comment", "custom_post_type", "feed",
+                 "media", "page", "page_builder",
+                 "recommend", "redirect", "shortcode", "tag", "team_comment", "third_party_publish", "yjs"),
     "/analytics": ("dashboard", "report", "search", "seo", "tracking"),
     "/ops": ("backup", "cdn", "deployment", "email", "enterprise", "migration", "notification", "supervisor", "upgrade",
              "webhook"),
@@ -97,7 +106,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     # T5-11 批次 4：AI 能力与群聊（表 ai_configs/ai_workflows、chat_groups 已存在）
     "/ai": ("config", "skill", "workflow"),
     # 批次 17：群聊消息（表 chat_messages 本批次新建，含 WebSocket 实时通道）
-    "/chat": ("group", "message"),
+    # 任务 15：Web Push 订阅与推送
+    "/chat": ("group", "message", "web_push"),
     # T5-11 批次 7：商务域（支付 + 收益分成 + 打赏）
     "/commerce": ("payment", "revenue", "shop", "tipping"),
     # T5-11 批次 12：用户成长域（积分 / 勋章 / 专家认证）

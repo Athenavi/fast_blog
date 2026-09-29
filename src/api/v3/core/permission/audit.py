@@ -99,6 +99,15 @@ EXEMPT_WRITE_ENDPOINTS: Dict[Tuple[str, str], str] = {
     # ---- chat/message（批次 17）：前端用户在群里发言，仅认证 + 群成员校验 ----
     ("POST", "/api/v3/chat/message"): "群聊发言（仅认证；必须是该群成员，非成员 403/404）",
     ("DELETE", "/api/v3/chat/message/item/{message_id}"): "撤回自己的群消息（仅认证；只能删本人发出的消息，软删除）",
+    # ---- chat/web_push（任务 15）：仅认证且只操作本人订阅（管理端借 ops 通知码，无需豁免）----
+    ("POST", "/api/v3/chat/web_push/subscribe"): "登记本人推送订阅（仅认证；只写当前用户的订阅，同 endpoint 幂等更新）",
+    ("POST", "/api/v3/chat/web_push/unsubscribe"): "退订本人推送（仅认证；只操作当前用户的订阅）",
+    # ---- system/utility（任务 17）：NLP 纯解析不写库，仅因方法为 POST 触发审计 ----
+    ("POST", "/api/v3/system/utility/nlp/parse"): "自然语言命令解析（公开；纯计算不写库，无权限语义，仅方法为 POST）",
+    # ---- system/oauth（任务 18）：公开登录回调 + 解绑本人（管理端绑定能力在 system/social）----
+    ("POST",
+     "/api/v3/system/oauth/{provider}/callback"): "第三方登录回调（公开；校验 state 后换令牌并签发登录态，属登录端点）",
+    ("DELETE", "/api/v3/system/oauth/{provider}"): "解绑本人第三方账号（仅认证；只操作本人，未绑定 404）",
 }
 
 _WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}

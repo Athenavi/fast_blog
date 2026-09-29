@@ -365,7 +365,12 @@ class AmpService:
             "\n".join(section for section in (BASE_CSS, fragment["css"], extra_css.strip()) if section)
         )
 
-        components = [name for name in ("amp-img", "amp-video", "amp-audio") if f"<{name}" in fragment["html"]]
+        # 组件脚本必须覆盖**文档里实际出现**的 AMP 组件：正文片段 + 封面图
+        # （封面图的 <amp-img> 在下面 body 里无条件输出，漏掉它会让生成的文档缺组件脚本）
+        used_components = {name for name in ("amp-img", "amp-video", "amp-audio") if f"<{name}" in fragment["html"]}
+        if featured_image:
+            used_components.add("amp-img")
+        components = [name for name in ("amp-img", "amp-video", "amp-audio") if name in used_components]
         published = to_datetime(published_at)
         modified = to_datetime(modified_at) or published
 
