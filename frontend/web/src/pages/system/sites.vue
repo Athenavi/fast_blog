@@ -10,6 +10,16 @@ import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, reactive, ref} from 'vue'
 
 import {siteApi, type SiteItem} from '@/api'
+import {
+  quotaApi,
+  type MySiteItem,
+  type MySitesResult,
+  type QuotaCheckResult,
+  type QuotaResource,
+  type QuotaSnapshot,
+  type SiteMemberItem,
+  type SiteResolveResult,
+} from '@/api'
 import type {PageQuery} from '@/api/types'
 import {useAdminList} from '@/composables/useAdminList'
 
@@ -136,6 +146,311 @@ async function onDelete(row: SiteItem) {
   ElMessage.success(t('admin.common.delete'))
   await list.reload()
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 以下为追加内容（多站点：默认站点 / 域名 / 成员 / 我的站点 / 域名解析 / 配额）。
+// 既有逻辑未被修改；新增 import 与新增列 / 弹窗均为旁路追加。
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** 站内角色文案映射（后端 role 为 owner / admin / member，未知值原样返回） */
+function roleLabel(role: string): string {
+  const map: Record<string, string> = {
+    owner: 'admin.system.site.roleOwner',
+    admin: 'admin.system.site.roleAdmin',
+    member: 'admin.system.site.roleMember',
+  }
+  return map[role] ? t(map[role]) : role
+}
+
+/** 配额资源文案（后端 RESOURCE_TYPES: articles / media / users / storage_mb） */
+function quotaResourceLabel(resource: string): string {
+  return t(`admin.system.site.quotaResource.${resource}`)
+}
+
+// ---- 设为默认站点（POST /system/site/{site_id}/default） ----
+async function onSetDefault(row: SiteItem) {
+  await ElMessageBox.confirm(
+    t('admin.system.site.setDefaultConfirm', {name: row.name || row.slug || row.id}),
+    t('admin.common.notice'),
+    {type: 'warning'},
+  )
+  await siteApi.setDefault(row.id)
+  ElMessage.success(t('admin.system.site.defaultSaved'))
+  await list.reload()
+}
+
+// ---- 域名设置（PUT /system/site/{site_id}/domains） ----
+const domainsVisible = ref(false)
+const domainsSiteId = ref<number | null>(null)
+const domainsSaving = ref(false)
+const domainsForm = reactive<{ domain: string; additional_domains: string }>({
+  domain: '',
+  additional_domains: '',
+})
+
+function openDomains(row: SiteItem) {
+  domainsSiteId.value = row.id
+  domainsForm.domain = row.domain || ''
+  domainsForm.additional_domains = (row.additional_domains || []).join(', ')
+  domainsVisible.value = true
+}
+
+async function submitDomains() {
+  if (!domainsSiteId.value) return
+  if (!domainsForm.domain.trim()) {
+    ElMessage.warning(t('admin.system.site.domainsRequired'))
+    return
+  }
+  domainsSaving.value = true
+  try {
+    await siteApi.setDomains(domainsSiteId.value, {
+      domain: domainsForm.domain.trim(),
+      additional_domains: domainsForm.additional_domains
+        .split(/[,，;\s]+/)
+        .map((s) => s.trim())
+        .filter(Boolean),
+    })
+    ElMessage.success(t('admin.system.site.domainsSaved'))
+    domainsVisible.value = false
+    await list.reload()
+  } finally {
+    domainsSaving.value = false
+  }
+}
+
+// ---- 站点成员（GET / POST /{site_id}/members、DELETE /{site_id}/members/{user_id}） ----
+const membersVisible = ref(false)
+const membersSite = ref<SiteItem | null>(null)
+const membersLoading = ref(false)
+const members = ref<SiteMemberItem[]>([])
+const memberPage = ref(1)
+const memberPageSize = ref(20)
+const memberTotal = ref(0)
+const memberSaving = ref(false)
+const memberRemoving = ref<number | null>(null)
+const memberForm = reactive<{ user_id: number | undefined; role: string; is_active: boolean }>({
+  user_id: undefined,
+  role: 'member',
+  is_active: true,
+})
+
+async function openMembers(row: SiteItem) {
+  membersSite.value = row
+  memberPage.value = 1
+  memberForm.user_id = undefined
+  memberForm.role = 'member'
+  memberForm.is_active = true
+  membersVisible.value = true
+  await loadMembers()
+}
+
+async function loadMembers() {
+  if (!membersSite.value) return
+  membersLoading.value = true
+  try {
+    const res = await siteApi.members(membersSite.value.id, {
+      page: memberPage.value,
+      page_size: memberPageSize.value,
+    })
+    members.value = res.items
+    memberTotal.value = res.total
+  } catch {
+    members.value = []
+    memberTotal.value = 0
+  } finally {
+    membersLoading.value = false
+  }
+}
+
+async function onMemberPageChange(next: number) {
+  memberPage.value = next
+  await loadMembers()
+}
+
+async function addMember() {
+  if (!membersSite.value) return
+  const userId = Number(memberForm.user_id)
+  if (!userId || userId < 1) {
+    ElMessage.warning(t('admin.system.site.memberUserIdRequired'))
+    return
+  }
+  memberSaving.value = true
+  try {
+    const res = await siteApi.addMember(membersSite.value.id, {
+      user_id: userId,
+      role: memberForm.role,
+      is_active: memberForm.is_active,
+    })
+    ElMessage.success(
+      t(res.created ? 'admin.system.site.memberAdded' : 'admin.system.site.memberUpdated'),
+    )
+    memberForm.user_id = undefined
+    await loadMembers()
+  } finally {
+    memberSaving.value = false
+  }
+}
+
+async function removeMember(row: SiteMemberItem) {
+  if (!membersSite.value) return
+  await ElMessageBox.confirm(
+    t('admin.system.site.memberRemoveConfirm', {userId: row.user_id}),
+    t('admin.common.notice'),
+    {type: 'warning'},
+  )
+  memberRemoving.value = row.user_id
+  try {
+    await siteApi.removeMember(membersSite.value.id, row.user_id)
+    ElMessage.success(t('admin.system.site.memberRemoved'))
+    await loadMembers()
+  } finally {
+    memberRemoving.value = null
+  }
+}
+
+// ---- 我的站点（GET /system/site/mine） ----
+const myVisible = ref(false)
+const myLoading = ref(false)
+const myFailed = ref(false)
+const myItems = ref<MySiteItem[]>([])
+
+async function openMySites() {
+  myVisible.value = true
+  myLoading.value = true
+  myFailed.value = false
+  try {
+    const res: MySitesResult = await siteApi.mine()
+    myItems.value = res.items
+  } catch {
+    myItems.value = []
+    myFailed.value = true
+  } finally {
+    myLoading.value = false
+  }
+}
+
+// ---- 域名解析（GET /system/site/resolve，公开端点） ----
+const resolveVisible = ref(false)
+const resolveLoading = ref(false)
+const resolveDomain = ref('')
+const resolveResult = ref<SiteResolveResult | null>(null)
+
+async function runResolve() {
+  const domain = resolveDomain.value.trim()
+  if (!domain) {
+    ElMessage.warning(t('admin.system.site.resolveDomainRequired'))
+    return
+  }
+  resolveLoading.value = true
+  try {
+    resolveResult.value = await siteApi.resolve(domain)
+  } finally {
+    resolveLoading.value = false
+  }
+}
+
+// ---- 站点配额（GET / POST check / PUT /system/quota/{site_id}） ----
+const QUOTA_RESOURCES: QuotaResource[] = ['articles', 'media', 'users', 'storage_mb']
+
+interface QuotaRow {
+  resource: QuotaResource
+  limit: number | null
+  usage: number | null
+  remaining: number | null
+  percent: number | null
+  exceeded: boolean
+}
+
+const quotaVisible = ref(false)
+const quotaSite = ref<SiteItem | null>(null)
+const quotaLoading = ref(false)
+const quotaFailed = ref(false)
+const quota = ref<QuotaSnapshot | null>(null)
+const quotaSaving = ref(false)
+const quotaForm = reactive<Record<QuotaResource, number | undefined>>({
+  articles: undefined,
+  media: undefined,
+  users: undefined,
+  storage_mb: undefined,
+})
+
+const checkForm = reactive<{ resource_type: QuotaResource; requested_amount: number }>({
+  resource_type: 'articles',
+  requested_amount: 1,
+})
+const checkLoading = ref(false)
+const checkResult = ref<QuotaCheckResult | null>(null)
+
+const quotaRows = computed<QuotaRow[]>(() => {
+  const snap = quota.value
+  if (!snap) return []
+  return QUOTA_RESOURCES.map((resource) => ({
+    resource,
+    limit: snap.quota[resource] ?? null,
+    usage: snap.usage[resource] ?? null,
+    remaining: snap.remaining[resource] ?? null,
+    percent: snap.usage_percent[resource] ?? null,
+    exceeded: snap.exceeded.includes(resource),
+  }))
+})
+
+async function openQuota(row: SiteItem) {
+  quotaSite.value = row
+  checkResult.value = null
+  checkForm.resource_type = 'articles'
+  checkForm.requested_amount = 1
+  quotaVisible.value = true
+  await loadQuota()
+}
+
+async function loadQuota() {
+  if (!quotaSite.value) return
+  quotaLoading.value = true
+  quotaFailed.value = false
+  try {
+    const res = await quotaApi.get(quotaSite.value.id)
+    quota.value = res
+    for (const key of QUOTA_RESOURCES) {
+      // 0 是合法值（表示不限），只有 null / undefined 才回退为空
+      quotaForm[key] = res.quota[key] ?? undefined
+    }
+  } catch {
+    quota.value = null
+    quotaFailed.value = true
+  } finally {
+    quotaLoading.value = false
+  }
+}
+
+async function saveQuota() {
+  if (!quotaSite.value) return
+  quotaSaving.value = true
+  try {
+    const payload: Partial<Record<QuotaResource, number | null>> = {}
+    for (const key of QUOTA_RESOURCES) {
+      const value = quotaForm[key]
+      payload[key] = value === undefined || Number.isNaN(value) ? null : Number(value)
+    }
+    await quotaApi.update(quotaSite.value.id, payload)
+    ElMessage.success(t('admin.system.site.quotaSaved'))
+    await loadQuota()
+  } finally {
+    quotaSaving.value = false
+  }
+}
+
+async function runCheck() {
+  if (!quotaSite.value) return
+  checkLoading.value = true
+  try {
+    checkResult.value = await quotaApi.check(quotaSite.value.id, {
+      resource_type: checkForm.resource_type,
+      requested_amount: Number(checkForm.requested_amount) || 0,
+    })
+  } finally {
+    checkLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -143,6 +458,14 @@ async function onDelete(row: SiteItem) {
     <template #actions>
       <el-button v-auth="'module_system:site:create'" :icon="Plus" type="primary" @click="openCreate">
         {{ $t('admin.system.site.createTitle') }}
+      </el-button>
+      <!-- 我的站点 -->
+      <el-button v-auth="'module_system:site:view'" @click="openMySites">
+        {{ $t('admin.system.site.mySites') }}
+      </el-button>
+      <!-- 域名解析（公开端点） -->
+      <el-button v-auth="'module_system:site:view'" @click="resolveVisible = true">
+        {{ $t('admin.system.site.resolveBtn') }}
       </el-button>
     </template>
 
@@ -207,6 +530,32 @@ async function onDelete(row: SiteItem) {
           </el-tag>
         </template>
       </el-table-column>
+      <!-- 管理操作列（成员 / 域名 / 配额 / 设为默认） -->
+      <el-table-column :label="$t('admin.system.site.manageTitle')" fixed="right" width="300">
+        <template #default="{ row }">
+          <el-button v-auth="'module_system:site:view'" link type="primary"
+                     @click="openMembers(row as SiteItem)">
+            {{ $t('admin.system.site.memberBtn') }}
+          </el-button>
+          <el-button v-auth="'module_system:site:edit'" link type="primary"
+                     @click="openDomains(row as SiteItem)">
+            {{ $t('admin.system.site.domainsBtn') }}
+          </el-button>
+          <el-button v-auth="'module_system:site:view'" link type="primary"
+                     @click="openQuota(row as SiteItem)">
+            {{ $t('admin.system.site.quotaBtn') }}
+          </el-button>
+          <el-button
+            v-auth="'module_system:site:edit'"
+            :disabled="(row as SiteItem).is_default"
+            link
+            type="warning"
+            @click="onSetDefault(row as SiteItem)"
+          >
+            {{ $t('admin.system.site.setDefault') }}
+          </el-button>
+        </template>
+      </el-table-column>
       <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
         <template #default="{ row }">
           <el-button v-auth="'module_system:site:edit'" link type="primary"
@@ -260,5 +609,356 @@ async function onDelete(row: SiteItem) {
         <el-button :loading="saving" type="primary" @click="submitForm">{{ $t('admin.common.save') }}</el-button>
       </template>
     </el-drawer>
+
+    <!-- ═════ 域名解析测试（GET /system/site/resolve，公开端点） ═════ -->
+    <el-dialog v-model="resolveVisible" :title="$t('admin.system.site.resolveTitle')" width="520px">
+      <p class="sq-hint">{{ $t('admin.system.site.resolveHint') }}</p>
+      <div class="sq-resolve">
+        <el-input v-model="resolveDomain" placeholder="blog.example.com" @keyup.enter="runResolve"/>
+        <el-button :loading="resolveLoading" type="primary" @click="runResolve">
+          {{ $t('admin.system.site.resolveRun') }}
+        </el-button>
+      </div>
+      <el-descriptions v-if="resolveResult" :column="1" border class="sq-mt" size="small">
+        <el-descriptions-item :label="$t('admin.system.site.resolveMatched')">
+          <el-tag :type="resolveResult.matched ? 'success' : 'info'" size="small">
+            {{ resolveResult.matched ? $t('admin.common.yes') : $t('admin.common.no') }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('admin.system.site.resolveMatchType')">
+          {{ $t(`admin.system.site.resolveMatch.${resolveResult.match}`) }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('admin.common.name')">
+          {{ resolveResult.name || '—' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('admin.system.site.slug')">
+          {{ resolveResult.slug || '—' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('admin.system.site.domain')">
+          {{ resolveResult.domain || '—' }}
+        </el-descriptions-item>
+      </el-descriptions>
+    </el-dialog>
+
+    <!-- ═════ 我的站点（GET /system/site/mine） ═════ -->
+    <el-dialog v-model="myVisible" :title="$t('admin.system.site.mySites')" width="640px">
+      <p class="sq-hint">{{ $t('admin.system.site.mySitesHint') }}</p>
+      <el-alert
+        v-if="myFailed"
+        :closable="false"
+        :title="$t('admin.common.loadFailed')"
+        class="sq-mb"
+        show-icon
+        type="error"
+      />
+      <el-table v-loading="myLoading" :data="myItems" border size="small">
+        <el-table-column :label="$t('admin.common.name')" min-width="140" prop="name" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.system.site.domain')" min-width="160" prop="domain" show-overflow-tooltip/>
+        <el-table-column :label="$t('admin.system.site.myRole')" width="110">
+          <template #default="{ row }">{{ roleLabel((row as MySiteItem).role) }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.common.status')" width="90">
+          <template #default="{ row }">
+            <el-tag :type="(row as MySiteItem).is_active ? 'success' : 'info'" size="small">
+              {{
+                (row as MySiteItem).is_active ? $t('admin.system.site.active') : $t('admin.system.site.inactive')
+              }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.system.site.joinedAt')" prop="joined_at" width="170"/>
+      </el-table>
+      <el-empty
+        v-if="!myLoading && !myItems.length"
+        :description="$t('admin.system.site.mySitesEmpty')"
+        :image-size="60"
+      />
+    </el-dialog>
+
+    <!-- ═════ 站点成员（GET / POST /{site_id}/members、DELETE members/{user_id}） ═════ -->
+    <el-drawer v-model="membersVisible" :title="$t('admin.system.site.membersTitle')" destroy-on-close size="620px">
+      <p class="sq-hint">{{ $t('admin.system.site.membersHint') }}</p>
+      <el-form :inline="true" :model="memberForm">
+        <el-form-item :label="$t('admin.system.site.memberUserId')">
+          <el-input-number
+            v-model="memberForm.user_id"
+            :controls="false"
+            :min="1"
+            :precision="0"
+            style="width: 120px"
+          />
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.site.memberRole')">
+          <el-select v-model="memberForm.role" style="width: 120px">
+            <el-option :label="$t('admin.system.site.roleOwner')" value="owner"/>
+            <el-option :label="$t('admin.system.site.roleAdmin')" value="admin"/>
+            <el-option :label="$t('admin.system.site.roleMember')" value="member"/>
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.site.memberActive')">
+          <el-switch v-model="memberForm.is_active"/>
+        </el-form-item>
+        <el-form-item>
+          <el-button
+            v-auth="'module_system:site:edit'"
+            :loading="memberSaving"
+            type="primary"
+            @click="addMember"
+          >
+            {{ $t('admin.system.site.memberAdd') }}
+          </el-button>
+        </el-form-item>
+      </el-form>
+
+      <el-table v-loading="membersLoading" :data="members" border size="small">
+        <el-table-column :label="$t('admin.system.site.memberUserId')" prop="user_id" width="100"/>
+        <el-table-column :label="$t('admin.system.site.memberRole')" width="120">
+          <template #default="{ row }">{{ roleLabel((row as SiteMemberItem).role) }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.common.status')" width="90">
+          <template #default="{ row }">
+            <el-tag :type="(row as SiteMemberItem).is_active ? 'success' : 'info'" size="small">
+              {{
+                (row as SiteMemberItem).is_active
+                  ? $t('admin.system.site.active')
+                  : $t('admin.system.site.inactive')
+              }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.system.site.joinedAt')" prop="joined_at" width="170"/>
+        <el-table-column :label="$t('admin.common.actions')" width="100">
+          <template #default="{ row }">
+            <el-button
+              v-auth="'module_system:site:edit'"
+              :loading="memberRemoving === (row as SiteMemberItem).user_id"
+              link
+              type="danger"
+              @click="removeMember(row as SiteMemberItem)"
+            >
+              {{ $t('admin.system.site.memberRemove') }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-empty
+        v-if="!membersLoading && !members.length"
+        :description="$t('admin.system.site.membersEmpty')"
+        :image-size="60"
+      />
+      <div v-if="memberTotal > memberPageSize" class="sq-pager">
+        <el-pagination
+          :current-page="memberPage"
+          :page-size="memberPageSize"
+          :total="memberTotal"
+          layout="prev, pager, next"
+          @current-change="onMemberPageChange"
+        />
+      </div>
+    </el-drawer>
+
+    <!-- ═════ 域名设置（PUT /system/site/{site_id}/domains） ═════ -->
+    <el-dialog v-model="domainsVisible" :title="$t('admin.system.site.domainsTitle')" width="480px">
+      <p class="sq-hint">{{ $t('admin.system.site.domainsHint') }}</p>
+      <el-form :model="domainsForm" label-width="110px">
+        <el-form-item :label="$t('admin.system.site.domain')" required>
+          <el-input v-model="domainsForm.domain" placeholder="blog.example.com"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.site.additionalDomains')">
+          <el-input
+            v-model="domainsForm.additional_domains"
+            :placeholder="$t('admin.system.site.additionalDomainsHint')"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="domainsVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="domainsSaving" type="primary" @click="submitDomains">
+          {{ $t('admin.system.site.saveDomains') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ═════ 站点配额（GET / PUT /system/quota/{site_id}、POST check） ═════ -->
+    <el-drawer v-model="quotaVisible" :title="$t('admin.system.site.quotaTitle')" destroy-on-close size="660px">
+      <p class="sq-hint">{{ $t('admin.system.site.quotaDesc') }}</p>
+      <el-alert
+        v-if="quotaFailed"
+        :closable="false"
+        :title="$t('admin.common.loadFailed')"
+        class="sq-mb"
+        show-icon
+        type="error"
+      />
+
+      <el-table v-loading="quotaLoading" :data="quotaRows" border size="small">
+        <el-table-column :label="$t('admin.system.site.quotaResourceLabel')" min-width="140">
+          <template #default="{ row }">
+            {{ quotaResourceLabel((row as QuotaRow).resource) }}
+            <el-tag v-if="(row as QuotaRow).exceeded" size="small" type="danger">
+              {{ $t('admin.system.site.quotaExceeded') }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.system.site.quotaLimit')" width="110">
+          <template #default="{ row }">
+            {{
+              ((row as QuotaRow).limit === null || (row as QuotaRow).limit === 0)
+                ? $t('admin.system.site.quotaUnlimited')
+                : (row as QuotaRow).limit
+            }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.system.site.quotaUsage')" prop="usage" width="100"/>
+        <el-table-column :label="$t('admin.system.site.quotaRemaining')" width="100">
+          <template #default="{ row }">
+            {{ (row as QuotaRow).remaining === null ? '—' : (row as QuotaRow).remaining }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('admin.system.site.quotaPercent')" width="100">
+          <template #default="{ row }">
+            {{ (row as QuotaRow).percent === null ? '—' : ((row as QuotaRow).percent + '%') }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <!-- 用量口径（后端 usage_scope 如实标注，直接展示后端文案） -->
+      <details v-if="quota" class="sq-scope">
+        <summary>{{ $t('admin.system.site.quotaUsageScope') }}</summary>
+        <ul>
+          <li v-for="(scopeText, scopeKey) in quota.usage_scope" :key="scopeKey">
+            <strong>{{ quotaResourceLabel(scopeKey) }}：</strong>{{ scopeText }}
+          </li>
+        </ul>
+      </details>
+
+      <!-- 编辑配额（PUT /system/quota/{site_id}） -->
+      <div class="sq-block">
+        <div class="sq-block__title">{{ $t('admin.system.site.quotaSaveTitle') }}</div>
+        <p class="sq-hint">{{ $t('admin.system.site.quotaLimitHint') }}</p>
+        <el-form :model="quotaForm" label-width="120px">
+          <el-form-item v-for="res in QUOTA_RESOURCES" :key="res" :label="quotaResourceLabel(res)">
+            <el-input-number
+              v-model="quotaForm[res]"
+              :min="0"
+              :precision="0"
+              :step="1"
+              controls-position="right"
+              style="width: 180px"
+            />
+          </el-form-item>
+        </el-form>
+        <el-button v-auth="'module_system:site:edit'" :loading="quotaSaving" type="primary" @click="saveQuota">
+          {{ $t('admin.system.site.quotaSave') }}
+        </el-button>
+      </div>
+
+      <!-- 配额校验（POST /system/quota/{site_id}/check） -->
+      <div class="sq-block">
+        <div class="sq-block__title">{{ $t('admin.system.site.quotaCheckTitle') }}</div>
+        <p class="sq-hint">{{ $t('admin.system.site.quotaCheckHint') }}</p>
+        <el-form :inline="true" :model="checkForm">
+          <el-form-item :label="$t('admin.system.site.quotaCheckResource')">
+            <el-select v-model="checkForm.resource_type" style="width: 140px">
+              <el-option v-for="res in QUOTA_RESOURCES" :key="res" :label="quotaResourceLabel(res)" :value="res"/>
+            </el-select>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.site.quotaCheckAmount')">
+            <el-input-number
+              v-model="checkForm.requested_amount"
+              :controls="false"
+              :min="0"
+              :precision="0"
+              style="width: 120px"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button v-auth="'module_system:site:view'" :loading="checkLoading" @click="runCheck">
+              {{ $t('admin.system.site.quotaCheckRun') }}
+            </el-button>
+          </el-form-item>
+        </el-form>
+        <el-alert
+          v-if="checkResult"
+          :closable="false"
+          :title="checkResult.allowed
+            ? $t('admin.system.site.quotaCheckAllowed')
+            : $t('admin.system.site.quotaCheckDenied')"
+          :type="checkResult.allowed ? 'success' : 'error'"
+          show-icon
+        />
+        <div v-if="checkResult" class="sq-check">
+          <span>{{ $t('admin.system.site.quotaCheckReason') }}：{{ checkResult.reason }}</span>
+          <span>{{ $t('admin.system.site.quotaUsage') }}：{{ checkResult.current ?? '—' }}</span>
+          <span>
+            {{ $t('admin.system.site.quotaLimit') }}：{{
+              (checkResult.limit === null || checkResult.limit === 0)
+                ? $t('admin.system.site.quotaUnlimited')
+                : checkResult.limit
+            }}
+          </span>
+          <span>{{ $t('admin.system.site.quotaRemaining') }}：{{ checkResult.remaining ?? '—' }}</span>
+        </div>
+      </div>
+    </el-drawer>
   </AdminPage>
 </template>
+
+<style scoped>
+.sq-hint {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--color-fg-subtle, #909399);
+}
+
+.sq-mb {
+  margin-bottom: 10px;
+}
+
+.sq-block {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line, #e5e7eb);
+}
+
+.sq-block__title {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sq-pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.sq-scope {
+  margin: 12px 0;
+  font-size: 12px;
+  color: var(--color-fg-muted, #606266);
+}
+
+.sq-scope ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.sq-check {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--color-fg-muted, #606266);
+}
+
+.sq-resolve {
+  display: flex;
+  gap: 10px;
+}
+
+.sq-mt {
+  margin-top: 12px;
+}
+</style>

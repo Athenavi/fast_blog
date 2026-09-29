@@ -7,12 +7,33 @@ const loadFailed = ref(false)
  *
  * 对齐 v3 `/analytics/seo`：综合报告、批量检查、关键词、孤立文章、内容分析器。
  * 全部为只读分析接口（`analyze` 不落库），因此只需 view 权限。
+ *
+ * 另承载 `/content/redirect`（SEO 跳转规则）：列表、新建/编辑/删除、批量导入、
+ * 路径解析测试、统计。跳转规则复用同一权限码 `module_analytics:seo:view/edit`。
+ *
+ * 并承载 `/content/amp`（AMP 工具）：按文章生成 AMP 文档、HTML 元素级转换、
+ * 规范校验。生成/校验需 `module_content:article:view`，转换需 `module_content:article:edit`。
  */
-import {Refresh, Search} from '@element-plus/icons-vue'
+import {CopyDocument, Delete, Edit, Plus, Refresh, Search, Upload} from '@element-plus/icons-vue'
 import {ElMessage} from '@/utils/feedback'
 import {reactive, ref} from 'vue'
 
-import {seoApi} from '@/api'
+import {
+  ampApi,
+  redirectApi,
+  seoApi,
+  type AmpArticleDocument,
+  type AmpConvertPayload,
+  type AmpConvertResult,
+  type AmpValidationResult,
+  type PageQuery,
+  type RedirectBatchResult,
+  type RedirectCreatePayload,
+  type RedirectItem,
+  type RedirectResolveResult,
+  type RedirectStats,
+} from '@/api'
+import {useAdminList} from '@/composables/useAdminList'
 import {formatDateTime} from '@/utils/format'
 
 definePageMeta({
@@ -138,8 +159,299 @@ async function runAnalyze(): Promise<void> {
   }
 }
 
+// ---------------------------------------------------------------- 跳转规则
+const REDIRECT_STATUS_CODES = [301, 302, 307, 308]
+
+const redirectState = useAdminList<
+  RedirectItem,
+  PageQuery & { keyword?: string; is_active?: boolean; source?: string }
+>({
+  fetcher: (params) => redirectApi.list(params),
+  defaultQuery: {keyword: '', is_active: undefined, source: undefined},
+})
+
+const redirectList = redirectState.rows
+const redirectLoading = redirectState.loading
+const redirectTotal = redirectState.total
+const redirectPage = redirectState.page
+const redirectPageSize = redirectState.pageSize
+const redirectQuery = redirectState.query
+const redirectSearch = redirectState.search
+const redirectReset = redirectState.reset
+const redirectLoad = redirectState.reload
+const onRedirectPageChange = redirectState.onPageChange
+const onRedirectSizeChange = redirectState.onSizeChange
+const redirectFailed = redirectState.failed
+
+const redirectStats = ref<RedirectStats | null>(null)
+
+async function loadRedirectStats(): Promise<void> {
+  try {
+    redirectStats.value = await redirectApi.stats()
+  } catch {
+    redirectStats.value = null
+  }
+}
+
+// ---- 新建 / 编辑
+const redirectDialogVisible = ref(false)
+const redirectEditingId = ref<number | null>(null)
+const redirectSaving = ref(false)
+const redirectForm = reactive<RedirectCreatePayload>({
+  from_path: '',
+  to_path: '',
+  status_code: 301,
+  is_active: true,
+  notes: '',
+})
+
+function openRedirectCreate(): void {
+  redirectEditingId.value = null
+  Object.assign(redirectForm, {
+    from_path: '',
+    to_path: '',
+    status_code: 301,
+    is_active: true,
+    notes: '',
+  })
+  redirectDialogVisible.value = true
+}
+
+async function openRedirectEdit(row: RedirectItem): Promise<void> {
+  redirectEditingId.value = row.id
+  // 编辑前拉一次详情，拿到服务端最新字段；失败则回退用列表行数据
+  let target = row
+  try {
+    target = await redirectApi.detail(row.id)
+  } catch {
+    target = row
+  }
+  Object.assign(redirectForm, {
+    from_path: target.from_path,
+    to_path: target.to_path,
+    status_code: target.status_code,
+    is_active: target.is_active,
+    notes: target.notes ?? '',
+  })
+  redirectDialogVisible.value = true
+}
+
+async function submitRedirect(): Promise<void> {
+  const fromPath = redirectForm.from_path.trim()
+  const toPath = redirectForm.to_path.trim()
+  if (!fromPath || !toPath) {
+    ElMessage.warning(t('admin.analytics.seo.redirectPathRequired'))
+    return
+  }
+  const payload: RedirectCreatePayload = {
+    from_path: fromPath,
+    to_path: toPath,
+    status_code: redirectForm.status_code,
+    is_active: redirectForm.is_active,
+    notes: redirectForm.notes ? redirectForm.notes : null,
+  }
+  redirectSaving.value = true
+  try {
+    if (redirectEditingId.value) {
+      await redirectApi.update(redirectEditingId.value, payload)
+      ElMessage.success(t('admin.analytics.seo.redirectSaved'))
+    } else {
+      await redirectApi.create(payload)
+      ElMessage.success(t('admin.analytics.seo.redirectCreated'))
+    }
+    redirectDialogVisible.value = false
+    await Promise.all([redirectLoad(), loadRedirectStats()])
+  } finally {
+    redirectSaving.value = false
+  }
+}
+
+async function removeRedirect(row: RedirectItem): Promise<void> {
+  const done = await redirectState.remove(
+    () => redirectApi.remove(row.id),
+    t('admin.analytics.seo.redirectDeleteConfirm', {path: row.from_path}),
+    t('admin.common.notice'),
+    t('admin.analytics.seo.redirectDeleted'),
+  )
+  if (done) await loadRedirectStats()
+}
+
+// ---- 批量导入
+const redirectBulkVisible = ref(false)
+const redirectBulkSaving = ref(false)
+const redirectBulkOverwrite = ref(true)
+const redirectBulkText = ref('')
+const redirectBulkResult = ref<RedirectBatchResult | null>(null)
+
+function openRedirectBulk(): void {
+  redirectBulkText.value = ''
+  redirectBulkOverwrite.value = true
+  redirectBulkResult.value = null
+  redirectBulkVisible.value = true
+}
+
+/** 每行一条：源路径,目标路径[,状态码]；以 # 开头的行视为注释跳过 */
+function parseRedirectBulk(text: string): RedirectCreatePayload[] {
+  const items: RedirectCreatePayload[] = []
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    if (!line || line.startsWith('#')) continue
+    const parts = line.split(',').map((part) => part.trim())
+    const fromPath = parts[0] || ''
+    const toPath = parts[1] || ''
+    if (!fromPath || !toPath) continue
+    const item: RedirectCreatePayload = {from_path: fromPath, to_path: toPath}
+    const statusCode = parts[2] ? Number(parts[2]) : NaN
+    if (Number.isFinite(statusCode)) item.status_code = statusCode
+    items.push(item)
+  }
+  return items
+}
+
+async function submitRedirectBulk(): Promise<void> {
+  const items = parseRedirectBulk(redirectBulkText.value)
+  if (!items.length) {
+    ElMessage.warning(t('admin.analytics.seo.redirectBulkEmpty'))
+    return
+  }
+  redirectBulkSaving.value = true
+  try {
+    const result = await redirectApi.bulk({items, overwrite: redirectBulkOverwrite.value})
+    redirectBulkResult.value = result
+    ElMessage.success(
+      t('admin.analytics.seo.redirectBulkDone', {
+        created: result.created,
+        updated: result.updated,
+        skipped: result.skipped,
+      }),
+    )
+    await Promise.all([redirectLoad(), loadRedirectStats()])
+  } finally {
+    redirectBulkSaving.value = false
+  }
+}
+
+// ---- 路径解析测试
+const redirectResolveVisible = ref(false)
+const redirectResolveLoading = ref(false)
+const redirectResolvePath = ref('')
+const redirectResolveResult = ref<RedirectResolveResult | null>(null)
+
+function openRedirectResolve(): void {
+  redirectResolvePath.value = ''
+  redirectResolveResult.value = null
+  redirectResolveVisible.value = true
+}
+
+async function runRedirectResolve(): Promise<void> {
+  const path = redirectResolvePath.value.trim()
+  if (!path) {
+    ElMessage.warning(t('admin.analytics.seo.redirectResolvePathRequired'))
+    return
+  }
+  redirectResolveLoading.value = true
+  try {
+    const result = await redirectApi.resolve(path)
+    redirectResolveResult.value = result
+    if (result.matched) await loadRedirectStats()
+  } finally {
+    redirectResolveLoading.value = false
+  }
+}
+
+// ---------------------------------------------------------------- AMP 工具
+/** 按文章生成 AMP 文档 */
+const ampArticleId = ref<number | undefined>(undefined)
+const ampGenerateLoading = ref(false)
+const ampDocument = ref<AmpArticleDocument | null>(null)
+
+async function runAmpGenerate(): Promise<void> {
+  const id = ampArticleId.value
+  if (!id || id < 1) {
+    ElMessage.warning(t('admin.analytics.seo.ampArticleIdRequired'))
+    return
+  }
+  ampGenerateLoading.value = true
+  try {
+    ampDocument.value = await ampApi.articleDocument(id)
+    ElMessage.success(t('admin.analytics.seo.ampGenerated'))
+  } finally {
+    ampGenerateLoading.value = false
+  }
+}
+
+/** HTML → AMP 转换 */
+const ampConvertForm = reactive({
+  html: '',
+  title: '',
+  author_name: '',
+  canonical_url: '',
+  site_name: '',
+  featured_image: '',
+  published_at: '',
+  extra_css: '',
+})
+const ampConvertLoading = ref(false)
+const ampConvertResult = ref<AmpConvertResult | null>(null)
+
+/** 只提交有值的可选字段，避免把空串当作有效元信息传给后端 */
+function buildAmpConvertPayload(): AmpConvertPayload {
+  const payload: AmpConvertPayload = {html: ampConvertForm.html}
+  if (ampConvertForm.title.trim()) payload.title = ampConvertForm.title.trim()
+  if (ampConvertForm.author_name.trim()) payload.author_name = ampConvertForm.author_name.trim()
+  if (ampConvertForm.canonical_url.trim()) payload.canonical_url = ampConvertForm.canonical_url.trim()
+  if (ampConvertForm.site_name.trim()) payload.site_name = ampConvertForm.site_name.trim()
+  if (ampConvertForm.featured_image.trim()) payload.featured_image = ampConvertForm.featured_image.trim()
+  if (ampConvertForm.published_at.trim()) payload.published_at = ampConvertForm.published_at.trim()
+  if (ampConvertForm.extra_css.trim()) payload.extra_css = ampConvertForm.extra_css
+  return payload
+}
+
+async function runAmpConvert(): Promise<void> {
+  if (!ampConvertForm.html.trim()) {
+    ElMessage.warning(t('admin.analytics.seo.ampConvertHtmlRequired'))
+    return
+  }
+  ampConvertLoading.value = true
+  try {
+    ampConvertResult.value = await ampApi.convert(buildAmpConvertPayload())
+    ElMessage.success(t('admin.analytics.seo.ampConverted'))
+  } finally {
+    ampConvertLoading.value = false
+  }
+}
+
+/** AMP 违规校验 */
+const ampValidateHtml = ref('')
+const ampValidateLoading = ref(false)
+const ampValidateResult = ref<AmpValidationResult | null>(null)
+
+async function runAmpValidate(): Promise<void> {
+  if (!ampValidateHtml.value.trim()) {
+    ElMessage.warning(t('admin.analytics.seo.ampValidateHtmlRequired'))
+    return
+  }
+  ampValidateLoading.value = true
+  try {
+    ampValidateResult.value = await ampApi.validate({html: ampValidateHtml.value})
+    ElMessage.success(t('admin.analytics.seo.ampValidated'))
+  } finally {
+    ampValidateLoading.value = false
+  }
+}
+
+/** 复制生成的 AMP HTML 到剪贴板 */
+async function copyAmpHtml(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success(t('admin.analytics.seo.ampCopied'))
+  } catch {
+    ElMessage.warning(t('admin.analytics.seo.ampCopyFailed'))
+  }
+}
+
 onMounted(async () => {
-  await Promise.all([loadReport(), loadKeywords(), loadOrphans()])
+  await Promise.all([loadReport(), loadKeywords(), loadOrphans(), loadRedirectStats()])
 })
 </script>
 
@@ -324,8 +636,537 @@ onMounted(async () => {
             </el-col>
           </el-row>
         </el-tab-pane>
+
+        <!-- 跳转规则 -->
+        <el-tab-pane :label="$t('admin.analytics.seo.redirectRules')" name="redirect">
+          <el-row v-if="redirectStats" :gutter="12" class="stats">
+            <el-col :span="6">
+              <el-statistic :title="$t('admin.analytics.seo.redirectTotal')" :value="redirectStats.total"/>
+            </el-col>
+            <el-col :span="6">
+              <el-statistic :title="$t('admin.analytics.seo.redirectActive')" :value="redirectStats.active"/>
+            </el-col>
+            <el-col :span="6">
+              <el-statistic :title="$t('admin.analytics.seo.redirectInactive')" :value="redirectStats.inactive"/>
+            </el-col>
+            <el-col :span="6">
+              <el-statistic :title="$t('admin.analytics.seo.redirectTotalHits')" :value="redirectStats.total_hits"/>
+            </el-col>
+          </el-row>
+
+          <div v-if="redirectStats && redirectStats.top_hits.length" class="mt-4">
+            <h4 class="sub-title">{{ $t('admin.analytics.seo.redirectTopHits') }}</h4>
+            <el-table :data="redirectStats.top_hits" border size="small">
+              <el-table-column :label="$t('admin.analytics.seo.redirectFromPath')" min-width="240" prop="from_path"
+                               show-overflow-tooltip/>
+              <el-table-column :label="$t('admin.analytics.seo.redirectToPath')" min-width="240" prop="to_path"
+                               show-overflow-tooltip/>
+              <el-table-column :label="$t('admin.analytics.seo.redirectHits')" prop="hits" width="100"/>
+            </el-table>
+          </div>
+
+          <AdminListShell
+            :empty-desc="$t('admin.analytics.seo.redirectEmptyDesc')"
+            :empty-title="$t('admin.analytics.seo.redirectEmptyTitle')"
+            :failed="redirectFailed"
+            :loading="redirectLoading"
+            :page="redirectPage"
+            :page-size="redirectPageSize"
+            :rows="redirectList"
+            :selectable="false"
+            :total="redirectTotal"
+            @refresh="redirectLoad"
+            @reset="redirectReset"
+            @search="redirectSearch"
+            @page-change="onRedirectPageChange"
+            @size-change="onRedirectSizeChange"
+          >
+            <template #filters>
+              <el-form-item :label="$t('admin.analytics.seo.redirectKeyword')">
+                <el-input v-model="redirectQuery.keyword" :placeholder="$t('admin.analytics.seo.redirectKeywordPlaceholder')"
+                          clearable
+                          style="width: 200px" @keyup.enter="redirectSearch()"/>
+              </el-form-item>
+              <el-form-item :label="$t('admin.common.status')">
+                <el-select v-model="redirectQuery.is_active" :placeholder="$t('admin.common.all')" clearable
+                           style="width: 130px">
+                  <el-option :label="$t('admin.common.enabled')" :value="true"/>
+                  <el-option :label="$t('admin.common.disabled')" :value="false"/>
+                </el-select>
+              </el-form-item>
+              <el-form-item :label="$t('admin.analytics.seo.redirectSource')">
+                <el-select v-model="redirectQuery.source" :placeholder="$t('admin.common.all')" clearable
+                           style="width: 140px">
+                  <el-option :label="$t('admin.analytics.seo.redirectSourceManual')" value="manual"/>
+                  <el-option :label="$t('admin.analytics.seo.redirectSourceMigration')" value="migration"/>
+                </el-select>
+              </el-form-item>
+            </template>
+
+            <template #actions>
+              <el-button v-auth="'module_analytics:seo:edit'" :icon="Plus" type="primary" @click="openRedirectCreate">
+                {{ $t('admin.analytics.seo.redirectCreate') }}
+              </el-button>
+              <el-button v-auth="'module_analytics:seo:edit'" :icon="Upload" @click="openRedirectBulk">
+                {{ $t('admin.analytics.seo.redirectBulk') }}
+              </el-button>
+              <el-button :icon="Search" @click="openRedirectResolve">
+                {{ $t('admin.analytics.seo.redirectResolve') }}
+              </el-button>
+            </template>
+
+            <el-table-column label="ID" prop="id" width="80"/>
+            <el-table-column :label="$t('admin.analytics.seo.redirectFromPath')" min-width="220" prop="from_path"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.analytics.seo.redirectToPath')" min-width="220" prop="to_path"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.analytics.seo.redirectStatusCode')" prop="status_code" width="100"/>
+            <el-table-column :label="$t('admin.analytics.seo.redirectSource')" width="110">
+              <template #default="{row}">
+                <el-tag :type="row.source === 'migration' ? 'warning' : 'info'" size="small">
+                  {{
+                    row.source === 'migration'
+                      ? $t('admin.analytics.seo.redirectSourceMigration')
+                      : $t('admin.analytics.seo.redirectSourceManual')
+                  }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column :label="$t('admin.analytics.seo.redirectHits')" prop="hits" width="100"/>
+            <el-table-column :label="$t('admin.common.status')" width="90">
+              <template #default="{row}">
+                <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+                  {{ row.is_active ? $t('admin.common.enabled') : $t('admin.common.disabled') }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column :label="$t('admin.common.updatedAt')" width="170">
+              <template #default="{row}">{{ formatDateTime(row.updated_at || row.created_at) }}</template>
+            </el-table-column>
+            <el-table-column :label="$t('admin.common.actions')" fixed="right" width="150">
+              <template #default="{row}">
+                <el-button v-auth="'module_analytics:seo:edit'" :icon="Edit" link type="primary"
+                           @click="openRedirectEdit(row)">
+                  {{ $t('admin.common.edit') }}
+                </el-button>
+                <el-button v-auth="'module_analytics:seo:edit'" :icon="Delete" link type="danger"
+                           @click="removeRedirect(row)">
+                  {{ $t('admin.common.delete') }}
+                </el-button>
+              </template>
+            </el-table-column>
+          </AdminListShell>
+        </el-tab-pane>
+
+        <!-- AMP 工具 -->
+        <el-tab-pane :label="$t('admin.analytics.seo.ampTools')" name="amp">
+          <el-alert :closable="false" :title="$t('admin.analytics.seo.ampHint')" class="mb-3" type="info"/>
+
+          <el-tabs type="border-card">
+            <!-- 按文章生成 AMP 文档 -->
+            <el-tab-pane :label="$t('admin.analytics.seo.ampGenerate')" name="amp-generate">
+              <el-form inline @submit.prevent>
+                <el-form-item :label="$t('admin.analytics.seo.ampArticleId')">
+                  <el-input-number v-model="ampArticleId" :controls="false" :min="1" style="width: 160px"/>
+                </el-form-item>
+                <el-form-item>
+                  <el-button v-auth="'module_content:article:view'" :icon="Refresh" :loading="ampGenerateLoading"
+                             type="primary" @click="runAmpGenerate">
+                    {{ $t('admin.analytics.seo.ampGenerateRun') }}
+                  </el-button>
+                </el-form-item>
+              </el-form>
+
+              <template v-if="ampDocument">
+                <el-descriptions :column="2" border class="mt-2">
+                  <el-descriptions-item :label="$t('admin.analytics.seo.ampDocumentTitle')">
+                    {{ ampDocument.title || '—' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item :label="$t('admin.analytics.seo.ampSlug')">
+                    {{ ampDocument.slug || '—' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item :label="$t('admin.analytics.seo.ampCanonical')">
+                    {{ ampDocument.canonical_url || '—' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item :label="$t('admin.analytics.seo.ampSite')">
+                    {{ ampDocument.site.name || '—' }}
+                  </el-descriptions-item>
+                  <el-descriptions-item :label="$t('admin.analytics.seo.ampComponents')">
+                    <el-tag v-for="name in ampDocument.components" :key="name" class="mr-1" size="small">{{
+                        name
+                      }}
+                    </el-tag>
+                    <span v-if="!ampDocument.components.length">{{ $t('admin.analytics.seo.ampNone') }}</span>
+                  </el-descriptions-item>
+                  <el-descriptions-item :label="$t('admin.analytics.seo.ampRemovedTags')">
+                    <el-tag v-for="name in ampDocument.removed_tags" :key="name" class="mr-1" size="small" type="info">
+                      {{ name }}
+                    </el-tag>
+                    <span v-if="!ampDocument.removed_tags.length">{{ $t('admin.analytics.seo.ampNone') }}</span>
+                  </el-descriptions-item>
+                  <el-descriptions-item :label="$t('admin.analytics.seo.ampCss')" :span="2">
+                    {{
+                      $t('admin.analytics.seo.ampCssUsage', {
+                        bytes: ampDocument.css.bytes,
+                        limit: ampDocument.css.limit
+                      })
+                    }}
+                    <el-tag v-if="ampDocument.css.truncated" class="ml-2" size="small" type="warning">
+                      {{ $t('admin.analytics.seo.ampCssTruncated') }}
+                    </el-tag>
+                  </el-descriptions-item>
+                </el-descriptions>
+
+                <div class="amp-validation mt-3">
+                  <div class="toolbar">
+                    <span class="sub-title">{{ $t('admin.analytics.seo.ampValidation') }}</span>
+                    <el-tag :type="ampDocument.validation.valid ? 'success' : 'danger'" size="small">
+                      {{
+                        ampDocument.validation.valid
+                          ? $t('admin.analytics.seo.ampValidationValid')
+                          : $t('admin.analytics.seo.ampValidationInvalid')
+                      }}
+                    </el-tag>
+                    <span class="hint">
+                      {{
+                        $t('admin.analytics.seo.ampValidationSummary', {
+                          errors: ampDocument.validation.summary.errors,
+                          warnings: ampDocument.validation.summary.warnings,
+                          elements: ampDocument.validation.summary.elements_checked,
+                        })
+                      }}
+                    </span>
+                  </div>
+                  <el-table v-if="ampDocument.validation.errors.length" :data="ampDocument.validation.errors" border
+                            class="mt-2" size="small">
+                    <el-table-column :label="$t('admin.analytics.seo.ampRule')" prop="rule" width="200"/>
+                    <el-table-column :label="$t('admin.analytics.seo.ampMessage')" min-width="260" prop="message"/>
+                  </el-table>
+                  <el-table v-if="ampDocument.validation.warnings.length" :data="ampDocument.validation.warnings" border
+                            class="mt-2" size="small">
+                    <el-table-column :label="$t('admin.analytics.seo.ampRule')" prop="rule" width="200"/>
+                    <el-table-column :label="$t('admin.analytics.seo.ampMessage')" min-width="260" prop="message"/>
+                  </el-table>
+                  <el-empty v-if="!ampDocument.validation.errors.length && !ampDocument.validation.warnings.length"
+                            :description="$t('admin.analytics.seo.ampNoErrors')" :image-size="60"/>
+                </div>
+
+                <div class="toolbar mt-3">
+                  <span class="sub-title">{{ $t('admin.analytics.seo.ampHtml') }}</span>
+                  <el-button :icon="CopyDocument" @click="copyAmpHtml(ampDocument.amp_html)">
+                    {{ $t('admin.analytics.seo.ampCopy') }}
+                  </el-button>
+                </div>
+                <el-input :model-value="ampDocument.amp_html" :rows="14" readonly type="textarea"/>
+              </template>
+              <el-empty v-else :description="$t('admin.analytics.seo.ampGenerateEmpty')"/>
+            </el-tab-pane>
+
+            <!-- HTML → AMP 转换 -->
+            <el-tab-pane :label="$t('admin.analytics.seo.ampConvert')" name="amp-convert">
+              <el-alert :closable="false" :title="$t('admin.analytics.seo.ampConvertHint')" class="mb-3" type="info"/>
+              <el-row :gutter="16">
+                <el-col :span="12">
+                  <el-form :model="ampConvertForm" label-width="110px">
+                    <el-form-item :label="$t('admin.analytics.seo.ampSourceHtml')">
+                      <el-input v-model="ampConvertForm.html" :placeholder="$t('admin.analytics.seo.ampSourceHtmlPlaceholder')" :rows="10"
+                                type="textarea"/>
+                    </el-form-item>
+                    <el-form-item :label="$t('admin.analytics.seo.ampTitleOptional')">
+                      <el-input v-model="ampConvertForm.title" maxlength="255"/>
+                    </el-form-item>
+                    <el-form-item :label="$t('admin.analytics.seo.ampAuthorName')">
+                      <el-input v-model="ampConvertForm.author_name" maxlength="255"/>
+                    </el-form-item>
+                    <el-form-item :label="$t('admin.analytics.seo.ampCanonical')">
+                      <el-input v-model="ampConvertForm.canonical_url" maxlength="500"/>
+                    </el-form-item>
+                    <el-form-item :label="$t('admin.analytics.seo.ampSiteName')">
+                      <el-input v-model="ampConvertForm.site_name" maxlength="255"/>
+                    </el-form-item>
+                    <el-form-item :label="$t('admin.analytics.seo.ampFeaturedImage')">
+                      <el-input v-model="ampConvertForm.featured_image" maxlength="1000"/>
+                    </el-form-item>
+                    <el-form-item :label="$t('admin.analytics.seo.ampPublishedAt')">
+                      <el-input v-model="ampConvertForm.published_at" :placeholder="$t('admin.analytics.seo.ampPublishedAtPlaceholder')"
+                                maxlength="64"/>
+                    </el-form-item>
+                    <el-form-item :label="$t('admin.analytics.seo.ampExtraCss')">
+                      <el-input v-model="ampConvertForm.extra_css" :rows="3" type="textarea"/>
+                    </el-form-item>
+                    <el-form-item>
+                      <el-button v-auth="'module_content:article:edit'" :loading="ampConvertLoading" type="primary"
+                                 @click="runAmpConvert">
+                        {{ $t('admin.analytics.seo.ampConvertRun') }}
+                      </el-button>
+                    </el-form-item>
+                  </el-form>
+                </el-col>
+
+                <el-col :span="12">
+                  <template v-if="ampConvertResult">
+                    <div class="toolbar">
+                      <span class="sub-title">{{ $t('admin.analytics.seo.ampCanonical') }}</span>
+                      <span class="hint">{{ ampConvertResult.canonical_url || '—' }}</span>
+                    </div>
+                    <div class="toolbar">
+                      <span class="sub-title">{{ $t('admin.analytics.seo.ampComponents') }}</span>
+                      <el-tag v-for="name in ampConvertResult.components" :key="name" class="mr-1" size="small">
+                        {{ name }}
+                      </el-tag>
+                      <span v-if="!ampConvertResult.components.length" class="hint">
+                        {{ $t('admin.analytics.seo.ampNone') }}
+                      </span>
+                    </div>
+                    <div class="toolbar">
+                      <span class="sub-title">{{ $t('admin.analytics.seo.ampRemovedTags') }}</span>
+                      <el-tag v-for="name in ampConvertResult.removed_tags" :key="name" class="mr-1" size="small"
+                              type="info">
+                        {{ name }}
+                      </el-tag>
+                      <span v-if="!ampConvertResult.removed_tags.length" class="hint">
+                        {{ $t('admin.analytics.seo.ampNone') }}
+                      </span>
+                    </div>
+                    <div class="toolbar">
+                      <span class="sub-title">{{ $t('admin.analytics.seo.ampCss') }}</span>
+                      <span class="hint">
+                        {{
+                          $t('admin.analytics.seo.ampCssUsage', {
+                            bytes: ampConvertResult.css.bytes,
+                            limit: ampConvertResult.css.limit
+                          })
+                        }}
+                      </span>
+                      <el-tag v-if="ampConvertResult.css.truncated" size="small" type="warning">
+                        {{ $t('admin.analytics.seo.ampCssTruncated') }}
+                      </el-tag>
+                    </div>
+
+                    <div class="amp-validation mt-3">
+                      <div class="toolbar">
+                        <span class="sub-title">{{ $t('admin.analytics.seo.ampValidation') }}</span>
+                        <el-tag :type="ampConvertResult.validation.valid ? 'success' : 'danger'" size="small">
+                          {{
+                            ampConvertResult.validation.valid
+                              ? $t('admin.analytics.seo.ampValidationValid')
+                              : $t('admin.analytics.seo.ampValidationInvalid')
+                          }}
+                        </el-tag>
+                        <span class="hint">
+                          {{
+                            $t('admin.analytics.seo.ampValidationSummary', {
+                              errors: ampConvertResult.validation.summary.errors,
+                              warnings: ampConvertResult.validation.summary.warnings,
+                              elements: ampConvertResult.validation.summary.elements_checked,
+                            })
+                          }}
+                        </span>
+                      </div>
+                      <el-table v-if="ampConvertResult.validation.errors.length"
+                                :data="ampConvertResult.validation.errors"
+                                border class="mt-2" size="small">
+                        <el-table-column :label="$t('admin.analytics.seo.ampRule')" prop="rule" width="200"/>
+                        <el-table-column :label="$t('admin.analytics.seo.ampMessage')" min-width="260" prop="message"/>
+                      </el-table>
+                      <el-table v-if="ampConvertResult.validation.warnings.length"
+                                :data="ampConvertResult.validation.warnings" border class="mt-2" size="small">
+                        <el-table-column :label="$t('admin.analytics.seo.ampRule')" prop="rule" width="200"/>
+                        <el-table-column :label="$t('admin.analytics.seo.ampMessage')" min-width="260" prop="message"/>
+                      </el-table>
+                      <el-empty
+                        v-if="!ampConvertResult.validation.errors.length && !ampConvertResult.validation.warnings.length"
+                        :description="$t('admin.analytics.seo.ampNoErrors')" :image-size="60"/>
+                    </div>
+
+                    <div class="toolbar mt-3">
+                      <span class="sub-title">{{ $t('admin.analytics.seo.ampHtml') }}</span>
+                      <el-button :icon="CopyDocument" @click="copyAmpHtml(ampConvertResult.amp_html)">
+                        {{ $t('admin.analytics.seo.ampCopy') }}
+                      </el-button>
+                    </div>
+                    <el-input :model-value="ampConvertResult.amp_html" :rows="10" readonly type="textarea"/>
+                  </template>
+                  <el-empty v-else :description="$t('admin.analytics.seo.ampConvertEmpty')"/>
+                </el-col>
+              </el-row>
+            </el-tab-pane>
+
+            <!-- AMP 违规校验 -->
+            <el-tab-pane :label="$t('admin.analytics.seo.ampValidate')" name="amp-validate">
+              <el-alert :closable="false" :title="$t('admin.analytics.seo.ampValidateHint')" class="mb-3" type="info"/>
+              <el-input v-model="ampValidateHtml" :placeholder="$t('admin.analytics.seo.ampValidateHtmlPlaceholder')" :rows="10"
+                        type="textarea"/>
+              <div class="toolbar mt-2">
+                <el-button v-auth="'module_content:article:view'" :icon="Search" :loading="ampValidateLoading"
+                           type="primary" @click="runAmpValidate">
+                  {{ $t('admin.analytics.seo.ampValidateRun') }}
+                </el-button>
+              </div>
+
+              <template v-if="ampValidateResult">
+                <div class="toolbar">
+                  <el-tag :type="ampValidateResult.valid ? 'success' : 'danger'">
+                    {{
+                      ampValidateResult.valid
+                        ? $t('admin.analytics.seo.ampValidationValid')
+                        : $t('admin.analytics.seo.ampValidationInvalid')
+                    }}
+                  </el-tag>
+                  <span class="hint">
+                    {{
+                      $t('admin.analytics.seo.ampValidationSummary', {
+                        errors: ampValidateResult.summary.errors,
+                        warnings: ampValidateResult.summary.warnings,
+                        elements: ampValidateResult.summary.elements_checked,
+                      })
+                    }}
+                  </span>
+                </div>
+                <el-row :gutter="12" class="mt-2">
+                  <el-col :span="6">
+                    <el-statistic :title="$t('admin.analytics.seo.ampErrors')"
+                                  :value="ampValidateResult.summary.errors"/>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-statistic :title="$t('admin.analytics.seo.ampWarnings')"
+                                  :value="ampValidateResult.summary.warnings"/>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-statistic :title="$t('admin.analytics.seo.ampElementsChecked')"
+                                  :value="ampValidateResult.summary.elements_checked"/>
+                  </el-col>
+                  <el-col :span="6">
+                    <el-statistic :title="$t('admin.analytics.seo.ampCssBytes')"
+                                  :value="ampValidateResult.summary.css_bytes"/>
+                  </el-col>
+                </el-row>
+                <el-table v-if="ampValidateResult.errors.length" :data="ampValidateResult.errors" border class="mt-2"
+                          size="small">
+                  <el-table-column :label="$t('admin.analytics.seo.ampRule')" prop="rule" width="200"/>
+                  <el-table-column :label="$t('admin.analytics.seo.ampMessage')" min-width="260" prop="message"/>
+                </el-table>
+                <el-table v-if="ampValidateResult.warnings.length" :data="ampValidateResult.warnings" border
+                          class="mt-2"
+                          size="small">
+                  <el-table-column :label="$t('admin.analytics.seo.ampRule')" prop="rule" width="200"/>
+                  <el-table-column :label="$t('admin.analytics.seo.ampMessage')" min-width="260" prop="message"/>
+                </el-table>
+              </template>
+              <el-empty v-else :description="$t('admin.analytics.seo.ampValidateEmpty')"/>
+            </el-tab-pane>
+          </el-tabs>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 新建 / 编辑跳转规则 -->
+    <el-dialog
+      v-model="redirectDialogVisible"
+      :title="redirectEditingId
+        ? $t('admin.analytics.seo.redirectEdit')
+        : $t('admin.analytics.seo.redirectCreate')"
+      destroy-on-close
+      width="560px"
+    >
+      <el-form :model="redirectForm" label-width="96px">
+        <el-form-item :label="$t('admin.analytics.seo.redirectFromPath')" required>
+          <el-input v-model="redirectForm.from_path" :placeholder="$t('admin.analytics.seo.redirectFromPathPlaceholder')"
+                    maxlength="500"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.analytics.seo.redirectToPath')" required>
+          <el-input v-model="redirectForm.to_path" :placeholder="$t('admin.analytics.seo.redirectToPathPlaceholder')"
+                    maxlength="500"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.analytics.seo.redirectStatusCode')">
+          <el-select v-model="redirectForm.status_code" style="width: 160px">
+            <el-option v-for="code in REDIRECT_STATUS_CODES" :key="code" :label="String(code)" :value="code"/>
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="$t('admin.common.enabled')">
+          <el-switch v-model="redirectForm.is_active"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.analytics.seo.redirectNotes')">
+          <el-input v-model="redirectForm.notes" :rows="3" maxlength="1000" type="textarea"/>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <el-button @click="redirectDialogVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="redirectSaving" type="primary" @click="submitRedirect">
+          {{ $t('admin.common.save') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 批量导入跳转规则 -->
+    <el-dialog v-model="redirectBulkVisible" :title="$t('admin.analytics.seo.redirectBulk')" destroy-on-close
+               width="640px">
+      <el-alert :closable="false" :title="$t('admin.analytics.seo.redirectBulkHint')" class="mb-3" type="info"/>
+      <el-input v-model="redirectBulkText" :placeholder="$t('admin.analytics.seo.redirectBulkPlaceholder')" :rows="10"
+                type="textarea"/>
+      <el-checkbox v-model="redirectBulkOverwrite" class="mt-2">
+        {{ $t('admin.analytics.seo.redirectBulkOverwrite') }}
+      </el-checkbox>
+      <div v-if="redirectBulkResult" class="hint mt-2">
+        <el-tag size="small" type="success">
+          {{
+            $t('admin.analytics.seo.redirectBulkDone', {
+              created: redirectBulkResult.created,
+              updated: redirectBulkResult.updated,
+              skipped: redirectBulkResult.skipped,
+            })
+          }}
+        </el-tag>
+      </div>
+
+      <template #footer>
+        <el-button @click="redirectBulkVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="redirectBulkSaving" type="primary" @click="submitRedirectBulk">
+          {{ $t('admin.analytics.seo.redirectBulkSubmit') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 路径解析测试 -->
+    <el-dialog v-model="redirectResolveVisible" :title="$t('admin.analytics.seo.redirectResolve')" destroy-on-close
+               width="520px">
+      <el-form inline>
+        <el-form-item :label="$t('admin.analytics.seo.redirectResolvePath')">
+          <el-input v-model="redirectResolvePath"
+                    :placeholder="$t('admin.analytics.seo.redirectResolvePathPlaceholder')"
+                    style="width: 280px" @keyup.enter="runRedirectResolve"/>
+        </el-form-item>
+      </el-form>
+
+      <div v-if="redirectResolveResult" class="mt-2">
+        <el-tag :type="redirectResolveResult.matched ? 'success' : 'info'">
+          {{
+            redirectResolveResult.matched
+              ? $t('admin.analytics.seo.redirectResolveMatched')
+              : $t('admin.analytics.seo.redirectResolveMissed')
+          }}
+        </el-tag>
+        <el-descriptions v-if="redirectResolveResult.matched" :column="1" border class="mt-2">
+          <el-descriptions-item :label="$t('admin.analytics.seo.redirectToPath')">
+            {{ redirectResolveResult.to_path }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.analytics.seo.redirectStatusCode')">
+            {{ redirectResolveResult.status_code }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.analytics.seo.redirectHits')">
+            {{ redirectResolveResult.hits }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+
+      <template #footer>
+        <el-button @click="redirectResolveVisible = false">{{ $t('admin.common.close') }}</el-button>
+        <el-button :loading="redirectResolveLoading" type="primary" @click="runRedirectResolve">
+          {{ $t('admin.analytics.seo.redirectResolveRun') }}
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -411,6 +1252,10 @@ onMounted(async () => {
   color: var(--color-fg-subtle);
 }
 
+.mt-2 {
+  margin-top: 8px;
+}
+
 .mt-4 {
   margin-top: 16px;
 }
@@ -433,5 +1278,17 @@ onMounted(async () => {
   font-size: 13px;
   line-height: 1.9;
   color: var(--color-fg-muted);
+}
+
+.mr-1 {
+  margin-right: 4px;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+
+.amp-validation {
+  margin-top: 12px;
 }
 </style>

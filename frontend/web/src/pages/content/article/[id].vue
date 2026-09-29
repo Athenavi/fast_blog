@@ -1,14 +1,26 @@
 <script lang="ts" setup>
 import {ArrowDown, ArrowLeft, Check, Picture, View} from '@element-plus/icons-vue'
 import {onBeforeRouteLeave} from 'vue-router'
-import {computed, ref} from 'vue'
+import {computed, reactive, ref, watch} from 'vue'
 
+import {
+  articleApi,
+  recommendApi,
+  type ArticlePreviewToken,
+  type ArticlePreviewTokenCreatePayload,
+  type RecommendArticleItem,
+  type RecommendPopularItem,
+  type RecommendRelatedItem,
+  type RecommendScoredItem,
+  type RecommendTagSuggestion,
+  type RecommendTrendingTag,
+} from '@/api'
 import RichEditor from '@/components/site/RichEditor.vue'
 import {useArticleForm} from '@/composables/useArticleForm'
 import {useCategoryOptions} from '@/composables/useCategoryOptions'
 import {useSaveShortcut} from '@/composables/useSaveShortcut'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {articleStatusKey, articleStatusTag, formatDateTime, localTimeZone} from '@/utils/format'
+import {articleStatusKey, articleStatusTag, formatDate, formatDateTime, localTimeZone} from '@/utils/format'
 
 /**
  * 文章编辑（独立页面）
@@ -162,6 +174,219 @@ onBeforeRouteLeave(async () => {
 
 onMounted(() => {
   void load()
+})
+
+// ---------------------------------------------------------------- 内容助手（推荐 /content/recommend）
+/** 右栏「内容助手」当前标签页 */
+const assistTab = ref<'tags' | 'related' | 'popular' | 'trending' | 'forMe'>('tags')
+
+/** 标签建议（service.tag_suggestions / suggest） */
+const tagSuggestions = ref<RecommendTagSuggestion[]>([])
+/** 相关文章（service.related） */
+const relatedItems = ref<RecommendRelatedItem[]>([])
+/** 热门文章（service.popular） */
+const popularItems = ref<RecommendPopularItem[]>([])
+/** 热门文章口径说明（后端原样文案） */
+const popularSource = ref('')
+/** 热门标签（service.trending_tags） */
+const trendingItems = ref<RecommendTrendingTag[]>([])
+/** 个性化推荐（service.for_user） */
+const forMeItems = ref<RecommendScoredItem[]>([])
+/** 个性化推荐冷启动标记（无行为样本） */
+const forMeColdStart = ref(false)
+
+/** 文章站内链接：有 slug 用 slug，否则回退到 id 路由（与前台卡片一致） */
+function articleLink(item: RecommendArticleItem): string {
+  return item.slug ? `/articles/${item.slug}` : `/articles/id/${item.id}`
+}
+
+/** 采纳建议标签：写入表单并标记未保存（无权限时按钮已由 v-auth 隐藏） */
+function adoptTag(tag: string): void {
+  if (!tag || form.tags.includes(tag)) return
+  form.tags = [...form.tags, tag]
+  markDirty()
+}
+
+async function loadTagSuggestions(): Promise<void> {
+  if (articleId.value === null) {
+    tagSuggestions.value = []
+    return
+  }
+  try {
+    const result = await recommendApi.tagSuggestions(articleId.value, 10)
+    tagSuggestions.value = result.suggestions ?? []
+  } catch {
+    tagSuggestions.value = []
+  }
+}
+
+async function loadRelated(): Promise<void> {
+  if (articleId.value === null) {
+    relatedItems.value = []
+    return
+  }
+  try {
+    const result = await recommendApi.related(articleId.value, 8)
+    relatedItems.value = result.items ?? []
+  } catch {
+    relatedItems.value = []
+  }
+}
+
+async function loadPopular(): Promise<void> {
+  try {
+    const result = await recommendApi.popular(undefined, 10)
+    popularItems.value = result.items ?? []
+    popularSource.value = result.source ?? ''
+  } catch {
+    popularItems.value = []
+    popularSource.value = ''
+  }
+}
+
+async function loadTrendingTags(): Promise<void> {
+  try {
+    const result = await recommendApi.trendingTags(30, 20)
+    trendingItems.value = result.items ?? []
+  } catch {
+    trendingItems.value = []
+  }
+}
+
+async function loadForMe(): Promise<void> {
+  try {
+    const result = await recommendApi.forMe(10)
+    forMeItems.value = result.items ?? []
+    forMeColdStart.value = Boolean(result.cold_start)
+  } catch {
+    forMeItems.value = []
+    forMeColdStart.value = false
+  }
+}
+
+/** 保存/发布后拿到文章 id：补齐依赖 article_id 的两项推荐 */
+// ---------------------------------------------------------------- 草稿预览令牌
+/** 该文章已签发的预览令牌（GET /content/article/{id}/preview-tokens） */
+const previewTokens = ref<ArticlePreviewToken[]>([])
+const previewTokensLoading = ref(false)
+/** 生成令牌入参：有效期 / 可选口令 / 可选访问上限 */
+const tokenForm = reactive<ArticlePreviewTokenCreatePayload>({
+  expires_hours: 24,
+  password: '',
+  max_views: undefined,
+})
+const tokenCreating = ref(false)
+/** 最近一次生成的令牌：明文只在生成响应里出现，提示用户立即复制 */
+const latestToken = ref<ArticlePreviewToken | null>(null)
+
+/** 令牌对应的公开预览地址（前台页面 `/articles/preview/{token}`，无须登录） */
+function tokenPreviewUrl(value: string): string {
+  const origin = import.meta.client ? window.location.origin : ''
+  return `${origin}/articles/preview/${value}`
+}
+
+/** 最近生成的令牌预览地址（模板里避免直接解引用可空 ref） */
+const latestTokenUrl = computed(() =>
+  latestToken.value ? tokenPreviewUrl(latestToken.value.token) : '',
+)
+
+async function loadPreviewTokens(): Promise<void> {
+  if (articleId.value === null) {
+    previewTokens.value = []
+    return
+  }
+  previewTokensLoading.value = true
+  try {
+    previewTokens.value = await articleApi.listPreviewTokens(articleId.value)
+  } catch {
+    previewTokens.value = []
+  } finally {
+    previewTokensLoading.value = false
+  }
+}
+
+async function copyText(text: string): Promise<void> {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    ElMessage.success(t('admin.content.article.previewToken.copied'))
+  } catch {
+    ElMessage.warning(text)
+  }
+}
+
+function copyTokenLink(value: string): void {
+  void copyText(tokenPreviewUrl(value))
+}
+
+async function createPreviewToken(): Promise<void> {
+  if (articleId.value === null) {
+    ElMessage.warning(t('admin.content.article.saveBeforePreview'))
+    return
+  }
+  tokenCreating.value = true
+  try {
+    const payload: ArticlePreviewTokenCreatePayload = {expires_hours: tokenForm.expires_hours ?? 24}
+    if (tokenForm.password) payload.password = tokenForm.password
+    if (tokenForm.max_views) payload.max_views = tokenForm.max_views
+    latestToken.value = await articleApi.createPreviewToken(articleId.value, payload)
+    tokenForm.password = ''
+    tokenForm.max_views = undefined
+    ElMessage.success(t('admin.content.article.previewToken.created'))
+    await loadPreviewTokens()
+  } catch {
+    /* 失败提示由 http 拦截器统一给出 */
+  } finally {
+    tokenCreating.value = false
+  }
+}
+
+async function revokeToken(row: ArticlePreviewToken): Promise<void> {
+  try {
+    await ElMessageBox.confirm(
+      t('admin.content.article.previewToken.revokeConfirm'),
+      t('admin.common.notice'),
+      {type: 'warning'},
+    )
+  } catch {
+    return
+  }
+  try {
+    await articleApi.revokePreviewToken(row.id)
+    if (latestToken.value?.id === row.id) latestToken.value = null
+    ElMessage.success(t('admin.content.article.previewToken.revoked'))
+    await loadPreviewTokens()
+  } catch {
+    /* 失败提示由 http 拦截器统一给出 */
+  }
+}
+
+async function cleanupTokens(): Promise<void> {
+  try {
+    const result = await articleApi.cleanupPreviewTokens()
+    ElMessage.success(t('admin.content.article.previewToken.cleanupDone', {n: result.removed}))
+    await loadPreviewTokens()
+  } catch {
+    /* 失败提示由 http 拦截器统一给出 */
+  }
+}
+
+/** 保存/发布后拿到文章 id：补齐依赖 article_id 的推荐与令牌列表 */
+watch(articleId, (id) => {
+  if (id !== null) {
+    void loadTagSuggestions()
+    void loadRelated()
+    void loadPreviewTokens()
+  }
+})
+
+onMounted(() => {
+  void loadPopular()
+  void loadTrendingTags()
+  void loadForMe()
+  void loadTagSuggestions()
+  void loadRelated()
+  void loadPreviewTokens()
 })
 </script>
 
@@ -372,6 +597,213 @@ onMounted(() => {
             </el-form-item>
           </el-form>
         </el-card>
+
+        <el-card shadow="never">
+          <template #header>{{ $t('admin.content.article.recommend.title') }}</template>
+
+          <el-tabs v-model="assistTab">
+            <!-- 标签建议（GET /content/recommend/tags/{article_id}） -->
+            <el-tab-pane :label="$t('admin.content.article.recommend.tabTags')" name="tags">
+              <p v-if="articleId === null" class="assist-hint">
+                {{ $t('admin.content.article.recommend.saveFirst') }}
+              </p>
+              <p v-else-if="!tagSuggestions.length" class="assist-hint">
+                {{ $t('admin.content.article.recommend.emptyTags') }}
+              </p>
+              <ul v-else class="assist-list">
+                <li v-for="item in tagSuggestions" :key="item.tag" class="assist-row">
+                  <span class="assist-row__main">
+                    <span class="assist-row__title">{{ item.tag }}</span>
+                    <span class="assist-row__meta">
+                      <el-tag v-if="item.already_on_article" size="small" type="success">
+                        {{ $t('admin.content.article.recommend.onArticle') }}
+                      </el-tag>
+                      <el-tag v-else-if="item.in_use" size="small" type="info">
+                        {{ $t('admin.content.article.recommend.inLibrary') }}
+                      </el-tag>
+                      <span>{{ item.count }}</span>
+                    </span>
+                  </span>
+                  <el-button
+                    v-auth="'module_content:article:edit'"
+                    :disabled="item.already_on_article"
+                    link
+                    size="small"
+                    @click="adoptTag(item.tag)"
+                  >
+                    {{ $t('admin.content.article.recommend.adopt') }}
+                  </el-button>
+                </li>
+              </ul>
+            </el-tab-pane>
+
+            <!-- 相关文章（GET /content/recommend/related/{article_id}） -->
+            <el-tab-pane :label="$t('admin.content.article.recommend.tabRelated')" name="related">
+              <p v-if="articleId === null" class="assist-hint">
+                {{ $t('admin.content.article.recommend.saveFirst') }}
+              </p>
+              <p v-else-if="!relatedItems.length" class="assist-hint">
+                {{ $t('admin.content.article.recommend.emptyRelated') }}
+              </p>
+              <ul v-else class="assist-list">
+                <li v-for="item in relatedItems" :key="item.id" class="assist-row">
+                  <a :href="articleLink(item)" class="assist-row__link" rel="noopener" target="_blank">{{
+                      item.title
+                    }}</a>
+                  <span class="assist-row__meta">
+                    {{ formatDate(item.published_at) }} · {{ item.views }}
+                  </span>
+                </li>
+              </ul>
+            </el-tab-pane>
+
+            <!-- 热门文章（GET /content/recommend/popular） -->
+            <el-tab-pane :label="$t('admin.content.article.recommend.tabPopular')" name="popular">
+              <p v-if="popularSource" class="assist-hint">{{ popularSource }}</p>
+              <p v-if="!popularItems.length" class="assist-hint">
+                {{ $t('admin.content.article.recommend.emptyPopular') }}
+              </p>
+              <ul v-else class="assist-list">
+                <li v-for="item in popularItems" :key="item.id" class="assist-row">
+                  <a :href="articleLink(item)" class="assist-row__link" rel="noopener" target="_blank">{{
+                      item.title
+                    }}</a>
+                  <span class="assist-row__meta">
+                    {{ item.views }}
+                    <template v-if="item.window_views">
+                      · {{ $t('admin.content.article.recommend.windowViews', {n: item.window_views}) }}
+                    </template>
+                  </span>
+                </li>
+              </ul>
+            </el-tab-pane>
+
+            <!-- 热门标签（GET /content/recommend/trending-tags） -->
+            <el-tab-pane :label="$t('admin.content.article.recommend.tabTrending')" name="trending">
+              <p v-if="!trendingItems.length" class="assist-hint">
+                {{ $t('admin.content.article.recommend.emptyTrending') }}
+              </p>
+              <ul v-else class="assist-list">
+                <li v-for="item in trendingItems" :key="item.tag" class="assist-row">
+                  <span class="assist-row__main">
+                    <span class="assist-row__title">{{ item.tag }}</span>
+                    <span class="assist-row__meta">{{ item.count }}</span>
+                  </span>
+                  <el-button
+                    v-auth="'module_content:article:edit'"
+                    link
+                    size="small"
+                    @click="adoptTag(item.tag)"
+                  >
+                    {{ $t('admin.content.article.recommend.adopt') }}
+                  </el-button>
+                </li>
+              </ul>
+            </el-tab-pane>
+
+            <!-- 为你推荐（GET /content/recommend/for-me） -->
+            <el-tab-pane :label="$t('admin.content.article.recommend.tabForMe')" name="forMe">
+              <p v-if="forMeColdStart" class="assist-hint">
+                {{ $t('admin.content.article.recommend.coldStart') }}
+              </p>
+              <p v-if="!forMeItems.length" class="assist-hint">
+                {{ $t('admin.content.article.recommend.emptyForMe') }}
+              </p>
+              <ul v-else class="assist-list">
+                <li v-for="item in forMeItems" :key="item.id" class="assist-row">
+                  <a :href="articleLink(item)" class="assist-row__link" rel="noopener" target="_blank">{{
+                      item.title
+                    }}</a>
+                  <span class="assist-row__meta">{{ item.score }}</span>
+                </li>
+              </ul>
+            </el-tab-pane>
+          </el-tabs>
+        </el-card>
+
+        <el-card shadow="never">
+          <template #header>{{ $t('admin.content.article.previewToken.title') }}</template>
+
+          <p class="assist-hint">{{ $t('admin.content.article.previewToken.desc') }}</p>
+
+          <el-form label-position="top">
+            <el-form-item :label="$t('admin.content.article.previewToken.expiresHours')">
+              <el-input-number v-model="tokenForm.expires_hours" :max="720" :min="1" style="width: 100%"/>
+            </el-form-item>
+            <el-form-item :label="$t('admin.content.article.previewToken.password')">
+              <el-input
+                v-model="tokenForm.password"
+                :placeholder="$t('admin.content.article.previewToken.passwordPlaceholder')"
+                show-password
+                type="password"
+              />
+            </el-form-item>
+            <el-form-item :label="$t('admin.content.article.previewToken.maxViews')">
+              <el-input-number v-model="tokenForm.max_views" :max="10000" :min="1" style="width: 100%"/>
+            </el-form-item>
+          </el-form>
+
+          <el-button
+            :disabled="articleId === null"
+            :loading="tokenCreating"
+            type="primary"
+            @click="createPreviewToken"
+          >
+            {{ $t('admin.content.article.previewToken.create') }}
+          </el-button>
+
+          <div v-if="latestToken" class="token-new">
+            <span class="token-new__hint">{{ $t('admin.content.article.previewToken.newTokenHint') }}</span>
+            <el-input :model-value="latestTokenUrl" readonly>
+              <template #append>
+                <el-button @click="copyText(latestTokenUrl)">
+                  {{ $t('admin.content.article.previewToken.copyLink') }}
+                </el-button>
+              </template>
+            </el-input>
+          </div>
+
+          <div class="token-list__head">
+            <span>{{ $t('admin.content.article.previewToken.list') }}</span>
+            <el-button link size="small" @click="cleanupTokens">
+              {{ $t('admin.content.article.previewToken.cleanup') }}
+            </el-button>
+          </div>
+
+          <p v-if="!previewTokens.length" class="assist-hint">
+            {{ $t('admin.content.article.previewToken.empty') }}
+          </p>
+          <ul v-else v-loading="previewTokensLoading" class="assist-list">
+            <li v-for="row in previewTokens" :key="row.id" class="assist-row">
+              <span class="assist-row__main">
+                <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+                  {{
+                    row.is_active
+                      ? $t('admin.content.article.previewToken.active')
+                      : $t('admin.content.article.previewToken.inactive')
+                  }}
+                </el-tag>
+                <el-tag v-if="row.has_password" size="small" type="warning">
+                  {{ $t('admin.content.article.previewToken.hasPassword') }}
+                </el-tag>
+                <span class="assist-row__meta">
+                  {{ $t('admin.content.article.previewToken.viewCount') }}
+                  {{ row.view_count }}/
+                  {{ row.max_views ?? $t('admin.content.article.previewToken.unlimited') }}
+                </span>
+              </span>
+              <span class="assist-row__meta">
+                {{ formatDateTime(row.expires_at) }}
+                <el-button link size="small" @click="copyTokenLink(row.token)">
+                  {{ $t('admin.content.article.previewToken.copyLink') }}
+                </el-button>
+                <el-button v-if="row.is_active" link size="small" type="danger" @click="revokeToken(row)">
+                  {{ $t('admin.content.article.previewToken.revoke') }}
+                </el-button>
+              </span>
+            </li>
+          </ul>
+        </el-card>
       </div>
 
       <!-- 右：并排预览（iframe 直接加载前台详情页，所见即所得） -->
@@ -481,6 +913,62 @@ onMounted(() => {
   width: 100%;
 }
 
+/* 内容助手：推荐列表 */
+.assist-hint {
+  margin: 0 0 var(--admin-gap-xs);
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
+}
+
+.assist-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap-xs);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.assist-row {
+  display: flex;
+  gap: var(--admin-gap-sm);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.assist-row__main {
+  display: flex;
+  gap: var(--admin-gap-xs);
+  align-items: center;
+  min-width: 0;
+}
+
+.assist-row__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--admin-fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assist-row__link {
+  font-size: 13px;
+  color: var(--admin-primary, var(--admin-fg));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assist-row__meta {
+  display: inline-flex;
+  gap: var(--admin-gap-xs);
+  align-items: center;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
+}
+
 /* 并排预览：把右栏（或整行）让给 iframe */
 .admin-split--preview {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -537,5 +1025,28 @@ onMounted(() => {
   border: 1px solid var(--admin-line);
   border-radius: var(--admin-radius-sm);
   object-fit: cover;
+}
+
+/* 草稿预览令牌 */
+.token-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap-xs);
+  margin-top: var(--admin-gap-sm);
+}
+
+.token-new__hint {
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
+}
+
+.token-list__head {
+  display: flex;
+  gap: var(--admin-gap-sm);
+  align-items: center;
+  justify-content: space-between;
+  margin: var(--admin-gap) 0 var(--admin-gap-xs);
+  font-weight: 600;
+  color: var(--admin-fg);
 }
 </style>

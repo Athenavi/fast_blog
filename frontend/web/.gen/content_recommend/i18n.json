@@ -1,0 +1,56 @@
+{
+  "zh-CN": {
+    "admin": {
+      "content": {
+        "article": {
+          "recommend": {
+            "title": "内容助手",
+            "tabTags": "标签建议",
+            "tabRelated": "相关文章",
+            "tabPopular": "热门文章",
+            "tabTrending": "热门标签",
+            "tabForMe": "为你推荐",
+            "saveFirst": "保存文章后可获取该项推荐",
+            "emptyTags": "暂无标签建议",
+            "emptyRelated": "暂无相关文章",
+            "emptyPopular": "暂无热门文章",
+            "emptyTrending": "暂无热门标签",
+            "emptyForMe": "暂无个性化推荐",
+            "onArticle": "已在本文",
+            "inLibrary": "已在标签库",
+            "adopt": "采纳",
+            "windowViews": "窗口内 {n} 次浏览",
+            "coldStart": "行为样本不足，暂按热度推荐"
+          }
+        }
+      }
+    }
+  },
+  "en": {
+    "admin": {
+      "content": {
+        "article": {
+          "recommend": {
+            "title": "Content assistant",
+            "tabTags": "Tag suggestions",
+            "tabRelated": "Related articles",
+            "tabPopular": "Popular articles",
+            "tabTrending": "Trending tags",
+            "tabForMe": "For you",
+            "saveFirst": "Save the article to get this recommendation",
+            "emptyTags": "No tag suggestions",
+            "emptyRelated": "No related articles",
+            "emptyPopular": "No popular articles",
+            "emptyTrending": "No trending tags",
+            "emptyForMe": "No personalized recommendations",
+            "onArticle": "On this article",
+            "inLibrary": "In tag library",
+            "adopt": "Adopt",
+            "windowViews": "{n} views in window",
+            "coldStart": "Not enough activity; showing popular instead"
+          }
+        }
+      }
+    }
+  }
+}

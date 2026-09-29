@@ -5,12 +5,17 @@ import {computed, onMounted, ref} from 'vue'
 import {
   cacheApi,
   type CacheStats,
+  healthApi,
+  type HealthPayload,
   installApi,
   type InstallStatus,
   monitorApi,
   type OnlineSession,
   type OnlineStats,
   type ServerInfo,
+  type SiteHealthItem,
+  type SiteHealthReport,
+  type WebVitalsSummary,
 } from '@/api'
 import {Refresh} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
@@ -105,6 +110,95 @@ function barColor(percent: number): string {
 }
 
 onMounted(load)
+
+// ───────────────── 健康探针（v3 `system/health`）─────────────────
+// 承载 `GET /system/health/live`、`/ready`、`/site-report`、`/web-vitals/summary`。
+// RUM 上报（POST /system/health/web-vitals）由 composables/useWebVitals.ts 负责，此处不重复接线。
+
+/** 探针请求的统计窗口（小时），与后端 `hours` query 默认值一致 */
+const HEALTH_WINDOW_HOURS = 24
+/** 最慢页面条数，与后端 `limit` query 默认值一致 */
+const HEALTH_SLOWEST_LIMIT = 10
+
+const healthLoading = ref(false)
+/** 全部探针请求都失败时置错误态 */
+const healthFailed = ref(false)
+const healthLive = ref<HealthPayload | null>(null)
+const healthReady = ref<HealthPayload | null>(null)
+const siteReport = ref<SiteHealthReport | null>(null)
+const vitals = ref<WebVitalsSummary | null>(null)
+
+/** 站点健康报告分组（键 → 检查项列表） */
+const reportGroups = computed<[string, SiteHealthItem[]][]>(() =>
+  Object.entries(siteReport.value?.checks ?? {}),
+)
+
+async function loadHealth(): Promise<void> {
+  healthLoading.value = true
+  healthFailed.value = false
+  try {
+    const [live, ready, report, summary] = await Promise.all([
+      // ready 探针在数据库不可用时后端返回 code=500，http 层会 reject，需自行兜底
+      healthApi.live().catch(() => null),
+      healthApi.ready().catch(() => null),
+      healthApi.siteReport().catch(() => null),
+      healthApi
+        .webVitalsSummary({hours: HEALTH_WINDOW_HOURS, limit: HEALTH_SLOWEST_LIMIT})
+        .catch(() => null),
+    ])
+    healthLive.value = live
+    healthReady.value = ready
+    siteReport.value = report
+    vitals.value = summary
+    if (!live && !report && !summary) healthFailed.value = true
+  } finally {
+    healthLoading.value = false
+  }
+}
+
+/** 状态 → el-tag 类型；覆盖探针 ok/degraded、报告 good/warning/critical、检查项 pass/warning/fail */
+function healthTagType(status?: string): 'success' | 'warning' | 'danger' | 'info' {
+  if (status === 'ok' || status === 'pass' || status === 'good') return 'success'
+  if (status === 'degraded' || status === 'warning') return 'warning'
+  if (status === 'fail' || status === 'critical') return 'danger'
+  return 'info'
+}
+
+/** 站点健康报告分组 → i18n key（未知分组回退为原始键名） */
+const REPORT_GROUP_LABEL_KEYS: Record<string, string> = {
+  system: 'admin.system.hub.siteReportGroupSystem',
+  database: 'admin.system.hub.siteReportGroupDatabase',
+  storage: 'admin.system.hub.siteReportGroupStorage',
+  security: 'admin.system.hub.siteReportGroupSecurity',
+  performance: 'admin.system.hub.siteReportGroupPerformance',
+}
+
+function groupLabelKey(group: string): string {
+  return REPORT_GROUP_LABEL_KEYS[group] ?? group
+}
+
+/** 站点健康报告总体状态 → i18n key */
+function siteReportStatusKey(status: string): string {
+  const map: Record<string, string> = {
+    good: 'admin.system.hub.siteReportStatusGood',
+    warning: 'admin.system.hub.siteReportStatusWarning',
+    critical: 'admin.system.hub.siteReportStatusCritical',
+  }
+  return map[status] ?? 'admin.system.hub.siteReportStatusInfo'
+}
+
+/** 单项检查状态 → i18n key */
+function itemStatusLabelKey(status: string): string {
+  const map: Record<string, string> = {
+    pass: 'admin.system.hub.siteReportStatusPass',
+    warning: 'admin.system.hub.siteReportStatusWarn',
+    fail: 'admin.system.hub.siteReportStatusFail',
+    info: 'admin.system.hub.siteReportStatusInfo',
+  }
+  return map[status] ?? 'admin.system.hub.siteReportStatusInfo'
+}
+
+onMounted(loadHealth)
 </script>
 
 <template>
@@ -341,6 +435,194 @@ onMounted(load)
         </el-descriptions-item>
       </el-descriptions>
       <p v-else class="text-sm text-fg-muted">{{ $t('admin.system.hub.installUnavailable') }}</p>
+    </el-card>
+
+    <!-- 健康探针（`system/health` live / ready / site-report / web-vitals/summary） -->
+    <el-card class="mt-4" shadow="never">
+      <template #header>
+        <span class="font-medium">{{ $t('admin.system.hub.healthProbe') }}</span>
+        <el-button
+          :loading="healthLoading"
+          class="ml-3"
+          link
+          size="small"
+          type="primary"
+          @click="loadHealth"
+        >
+          {{ $t('common.refresh') }}
+        </el-button>
+      </template>
+
+      <AdminEmpty
+        v-if="healthFailed && !healthLoading"
+        :title="$t('admin.common.loadFailed')"
+        variant="error"
+      >
+        <el-button :icon="Refresh" @click="loadHealth">
+          {{ $t('admin.common.retry') }}
+        </el-button>
+      </AdminEmpty>
+
+      <template v-else>
+        <!-- 存活 / 就绪探针 -->
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div class="gauge">
+            <p class="gauge__label">{{ $t('admin.system.hub.healthLive') }}</p>
+            <el-descriptions v-if="healthLive" :column="1" border size="small">
+              <el-descriptions-item :label="$t('admin.system.hub.healthStatus')">
+                <el-tag :type="healthTagType(healthLive.status)" size="small">{{ healthLive.status }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item :label="$t('admin.system.hub.healthService')">{{
+                  healthLive.service
+                }}
+              </el-descriptions-item>
+              <el-descriptions-item :label="$t('admin.system.hub.healthVersion')">{{
+                  healthLive.version
+                }}
+              </el-descriptions-item>
+              <el-descriptions-item :label="$t('admin.system.hub.healthEnvironment')">{{
+                  healthLive.environment
+                }}
+              </el-descriptions-item>
+            </el-descriptions>
+            <p v-else class="text-sm text-fg-muted">{{ $t('admin.system.hub.healthUnavailable') }}</p>
+          </div>
+
+          <div class="gauge">
+            <p class="gauge__label">{{ $t('admin.system.hub.healthReady') }}</p>
+            <el-descriptions v-if="healthReady" :column="1" border size="small">
+              <el-descriptions-item :label="$t('admin.system.hub.healthStatus')">
+                <el-tag :type="healthTagType(healthReady.status)" size="small">{{ healthReady.status }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item :label="$t('admin.system.hub.healthChecks')">
+                <template v-if="Object.keys(healthReady.checks).length">
+                  <el-tag
+                    v-for="(detail, name) in healthReady.checks"
+                    :key="name"
+                    :type="healthTagType(detail === 'ok' ? 'ok' : 'degraded')"
+                    class="mr-1"
+                    size="small"
+                  >
+                    {{ name }}: {{ detail }}
+                  </el-tag>
+                </template>
+                <span v-else class="text-fg-subtle">—</span>
+              </el-descriptions-item>
+            </el-descriptions>
+            <p v-else class="text-sm text-fg-muted">{{ $t('admin.system.hub.healthReadyUnavailable') }}</p>
+          </div>
+        </div>
+
+        <!-- 站点健康报告 -->
+        <div class="mt-4">
+          <div class="mb-2 flex flex-wrap items-center gap-3">
+            <span class="font-medium">{{ $t('admin.system.hub.siteReport') }}</span>
+            <template v-if="siteReport">
+              <span class="text-xs text-fg-subtle">
+                {{ $t('admin.system.hub.siteReportScore') }}：{{ siteReport.overall_score }}
+              </span>
+              <el-tag :type="healthTagType(siteReport.status)" size="small">
+                {{ $t(siteReportStatusKey(siteReport.status)) }}
+              </el-tag>
+              <span class="text-xs text-fg-subtle">
+                {{ $t('admin.system.hub.siteReportTime') }}：{{ formatDateTime(siteReport.timestamp) }}
+              </span>
+            </template>
+          </div>
+
+          <div v-if="reportGroups.length" class="space-y-3">
+            <div v-for="[group, items] in reportGroups" :key="group">
+              <p class="gauge__label mb-1">{{ $t(groupLabelKey(group)) }}</p>
+              <el-table :data="items" border size="small">
+                <el-table-column :label="$t('admin.system.hub.siteReportItemName')" min-width="160">
+                  <template #default="{row}">{{ row.name }}</template>
+                </el-table-column>
+                <el-table-column :label="$t('admin.system.hub.siteReportItemValue')" min-width="140">
+                  <template #default="{row}">{{ row.value }}</template>
+                </el-table-column>
+                <el-table-column :label="$t('admin.system.hub.siteReportItemStatus')" width="110">
+                  <template #default="{row}">
+                    <el-tag :type="healthTagType(row.status)" size="small">
+                      {{ $t(itemStatusLabelKey(row.status)) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column :label="$t('admin.system.hub.siteReportItemRecommendation')" min-width="200">
+                  <template #default="{row}">{{ row.recommendation || '—' }}</template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+          <p v-else class="text-sm text-fg-muted">{{ $t('admin.system.hub.siteReportEmpty') }}</p>
+        </div>
+
+        <!-- Web Vitals 汇总 -->
+        <div class="mt-4">
+          <div class="mb-2 flex flex-wrap items-center gap-3">
+            <span class="font-medium">{{ $t('admin.system.hub.webVitals') }}</span>
+            <span v-if="vitals" class="text-xs text-fg-subtle">
+              {{ $t('admin.system.hub.webVitalsWindow', {hours: HEALTH_WINDOW_HOURS}) }}
+            </span>
+          </div>
+
+          <template v-if="vitals">
+            <div class="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsSamples') }}</p>
+                <p class="gauge__big">{{ vitals.overall.total_samples }}</p>
+              </div>
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsPages') }}</p>
+                <p class="gauge__big">{{ vitals.overall.total_pages }}</p>
+              </div>
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsPassRate') }}</p>
+                <p class="gauge__big">{{ vitals.overall.cwv_pass_rate ?? '—' }}</p>
+              </div>
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsAvgLcp') }}</p>
+                <p class="gauge__big">{{ vitals.overall.avg_largest_contentful_paint ?? '—' }}</p>
+              </div>
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsAvgInp') }}</p>
+                <p class="gauge__big">{{ vitals.overall.avg_interaction_to_next_paint ?? '—' }}</p>
+              </div>
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsAvgCls') }}</p>
+                <p class="gauge__big">{{ vitals.overall.avg_cumulative_layout_shift ?? '—' }}</p>
+              </div>
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsAvgFcp') }}</p>
+                <p class="gauge__big">{{ vitals.overall.avg_first_contentful_paint ?? '—' }}</p>
+              </div>
+              <div class="gauge">
+                <p class="gauge__label">{{ $t('admin.system.hub.webVitalsAvgTtfb') }}</p>
+                <p class="gauge__big">{{ vitals.overall.avg_time_to_first_byte ?? '—' }}</p>
+              </div>
+            </div>
+
+            <el-table
+              v-if="vitals.slowest_pages.length"
+              :data="vitals.slowest_pages"
+              border
+              class="mt-3"
+              size="small"
+            >
+              <el-table-column :label="$t('admin.system.hub.webVitalsSlowest')" min-width="220">
+                <template #default="{row}"><span class="font-mono text-xs">{{ row.url }}</span></template>
+              </el-table-column>
+              <el-table-column :label="$t('admin.system.hub.webVitalsLoadTime')" width="150">
+                <template #default="{row}">{{ row.avg_load_time }}</template>
+              </el-table-column>
+              <el-table-column :label="$t('admin.system.hub.webVitalsSampleCount')" width="100">
+                <template #default="{row}">{{ row.sample_count }}</template>
+              </el-table-column>
+            </el-table>
+            <p v-else class="mt-3 text-sm text-fg-muted">{{ $t('admin.system.hub.webVitalsEmpty') }}</p>
+          </template>
+          <p v-else class="text-sm text-fg-muted">{{ $t('admin.system.hub.webVitalsEmpty') }}</p>
+        </div>
+      </template>
     </el-card>
   </div>
 </template>

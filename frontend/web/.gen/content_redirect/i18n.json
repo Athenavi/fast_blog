@@ -1,0 +1,100 @@
+{
+  "zh-CN": {
+    "admin": {
+      "analytics": {
+        "seo": {
+          "redirectRules": "跳转规则",
+          "redirectCreate": "新建跳转规则",
+          "redirectEdit": "编辑跳转规则",
+          "redirectSaved": "已保存",
+          "redirectCreated": "已创建",
+          "redirectDeleted": "已删除",
+          "redirectDeleteConfirm": "确定删除跳转规则「{path}」吗？",
+          "redirectPathRequired": "请填写源路径与目标路径",
+          "redirectFromPath": "源路径",
+          "redirectFromPathPlaceholder": "如 /old-url 或 https://example.com/old",
+          "redirectToPath": "目标路径",
+          "redirectToPathPlaceholder": "如 /new-url 或 https://example.com/new",
+          "redirectStatusCode": "状态码",
+          "redirectSource": "来源",
+          "redirectSourceManual": "手动",
+          "redirectSourceMigration": "迁移导入",
+          "redirectHits": "命中次数",
+          "redirectNotes": "备注",
+          "redirectKeyword": "关键词",
+          "redirectKeywordPlaceholder": "按源/目标路径搜索",
+          "redirectTotal": "规则总数",
+          "redirectActive": "已启用",
+          "redirectInactive": "已停用",
+          "redirectTotalHits": "累计命中",
+          "redirectTopHits": "命中 Top 5",
+          "redirectEmptyTitle": "暂无跳转规则",
+          "redirectEmptyDesc": "还没有任何跳转规则，可新建或批量导入。",
+          "redirectBulk": "批量导入",
+          "redirectBulkHint": "每行一条规则，格式：源路径,目标路径[,状态码]。以 # 开头的行会被忽略。",
+          "redirectBulkPlaceholder": "/old-post,/new-post,301",
+          "redirectBulkOverwrite": "覆盖已存在的源路径（否则跳过）",
+          "redirectBulkSubmit": "开始导入",
+          "redirectBulkEmpty": "没有可导入的有效规则",
+          "redirectBulkDone": "新增 {created} / 更新 {updated} / 跳过 {skipped}",
+          "redirectResolve": "路径解析测试",
+          "redirectResolvePath": "站点内路径或完整 URL",
+          "redirectResolvePathPlaceholder": "如 /old-post?utm=x",
+          "redirectResolvePathRequired": "请填写要解析的路径",
+          "redirectResolveRun": "解析",
+          "redirectResolveMatched": "已命中",
+          "redirectResolveMissed": "未命中"
+        }
+      }
+    }
+  },
+  "en": {
+    "admin": {
+      "analytics": {
+        "seo": {
+          "redirectRules": "Redirect Rules",
+          "redirectCreate": "New Redirect Rule",
+          "redirectEdit": "Edit Redirect Rule",
+          "redirectSaved": "Saved",
+          "redirectCreated": "Created",
+          "redirectDeleted": "Deleted",
+          "redirectDeleteConfirm": "Delete redirect rule \u201c{path}\u201d?",
+          "redirectPathRequired": "Please fill in the source and target paths",
+          "redirectFromPath": "Source Path",
+          "redirectFromPathPlaceholder": "e.g. /old-url or https://example.com/old",
+          "redirectToPath": "Target Path",
+          "redirectToPathPlaceholder": "e.g. /new-url or https://example.com/new",
+          "redirectStatusCode": "Status Code",
+          "redirectSource": "Source",
+          "redirectSourceManual": "Manual",
+          "redirectSourceMigration": "Migration",
+          "redirectHits": "Hits",
+          "redirectNotes": "Notes",
+          "redirectKeyword": "Keyword",
+          "redirectKeywordPlaceholder": "Search by source/target path",
+          "redirectTotal": "Total Rules",
+          "redirectActive": "Active",
+          "redirectInactive": "Inactive",
+          "redirectTotalHits": "Total Hits",
+          "redirectTopHits": "Top 5 Hits",
+          "redirectEmptyTitle": "No Redirect Rules",
+          "redirectEmptyDesc": "No redirect rules yet. Create one or import in bulk.",
+          "redirectBulk": "Bulk Import",
+          "redirectBulkHint": "One rule per line, format: source,target[,status_code]. Lines starting with # are ignored.",
+          "redirectBulkPlaceholder": "/old-post,/new-post,301",
+          "redirectBulkOverwrite": "Overwrite existing source paths (otherwise skip)",
+          "redirectBulkSubmit": "Import",
+          "redirectBulkEmpty": "No valid rules to import",
+          "redirectBulkDone": "Created {created} / Updated {updated} / Skipped {skipped}",
+          "redirectResolve": "Resolve Test",
+          "redirectResolvePath": "In-site path or full URL",
+          "redirectResolvePathPlaceholder": "e.g. /old-post?utm=x",
+          "redirectResolvePathRequired": "Please enter a path to resolve",
+          "redirectResolveRun": "Resolve",
+          "redirectResolveMatched": "Matched",
+          "redirectResolveMissed": "Not matched"
+        }
+      }
+    }
+  }
+}

@@ -71,7 +71,19 @@ export type {
 
 // ---------------------------------------------------------------- system 安全与集成（T5-11 批次 3）
 export {gdprApi} from './modules/gdpr'
-export type {GdprConsentItem, GdprConsentQuery, GdprStats} from './modules/gdpr'
+export type {
+  GdprCheckGroup,
+  GdprCheckItem,
+  GdprCheckSummary,
+  GdprComplianceReport,
+  GdprComplianceSettings,
+  GdprConsentItem,
+  GdprConsentQuery,
+  GdprCookieConsent,
+  GdprPrivacyPolicy,
+  GdprSiteInfo,
+  GdprStats,
+} from './modules/gdpr'
 
 export {integrationApi} from './modules/integration'
 export type {
@@ -86,14 +98,40 @@ export type {SocialAccountItem, SocialAccountQuery} from './modules/social'
 
 export {securityApi} from './modules/security'
 export type {
+  AnomalyItem,
+  AnomalyResult,
+  AnomalyThresholds,
+  AnomalyThresholdUpdate,
   BlacklistItem,
   LoginAttemptItem,
   LoginAttemptQuery,
   SecurityOverview,
+  SecurityReport,
+  SecurityReportHistoryItem,
+  SecurityReportHistoryQuery,
+  SecurityReportHistoryResult,
+  SecurityReportPeriod,
+  SecurityReportSummary,
+  SecurityReportTrendPoint,
+  SecurityScore,
+  SuspiciousIp,
 } from './modules/security'
 
 export {siteApi} from './modules/site'
-export type {SiteItem, SitePayload, SiteQuery} from './modules/site'
+export type {
+  MySiteItem,
+  MySitesResult,
+  SiteBrief,
+  SiteDomainsPayload,
+  SiteDomainsResult,
+  SiteItem,
+  SiteMemberAddResult,
+  SiteMemberItem,
+  SiteMemberPayload,
+  SitePayload,
+  SiteQuery,
+  SiteResolveResult,
+} from './modules/site'
 
 // ---------------------------------------------------------------- 批次 4（ai / chat / cdn）
 export {aiApi} from './modules/ai'
@@ -127,9 +165,23 @@ export {upgradeApi} from './modules/upgrade'
 export type {
   UpgradeApplyCheck,
   UpgradeApplyResult,
+  UpgradeBackupItem,
+  UpgradeBackupList,
   UpgradeCheckResult,
+  UpgradeExecutePayload,
+  UpgradeExecuteResult,
   UpgradeHistoryItem,
+  UpgradePackageItem,
+  UpgradePackages,
+  UpgradePathPolicy,
+  UpgradePlan,
+  UpgradeRollbackPayload,
+  UpgradeSettings,
+  UpgradeSettingsPayload,
   UpgradeStatus,
+  UpgradeStep,
+  UpgradeVersionInfo,
+  UpgradeVersions,
 } from './modules/upgrade'
 
 export {shortcodeApi} from './modules/shortcode'
@@ -210,6 +262,11 @@ export type {
   ArticleDetail,
   ArticleItem,
   ArticlePayload,
+  ArticlePreviewMeta,
+  ArticlePreviewPublicArticle,
+  ArticlePreviewResult,
+  ArticlePreviewToken,
+  ArticlePreviewTokenCreatePayload,
   ArticleQuery,
 } from './modules/article'
 
@@ -402,23 +459,78 @@ export type {
 // ---------------------------------------------------------------- 批次 10（system 监控中心：告警 / 指标 / SLA）
 export {monitoringApi} from './modules/monitoring'
 export type {
+  AlertChannelItem,
+  AlertChannelPayload,
+  AlertChannelQuery,
+  AlertChannelSendResult,
+  AlertDeliveriesResult,
+  AlertDeliveryItem,
+  AlertDispatchResult,
   AlertItem,
   AlertPayload,
+  AlertPlatform,
   AlertQuery,
   AlertSeverity,
   AlertStats,
+  ExplainAnalysis,
+  ExplainBottleneck,
   MetricBucket,
   MetricItem,
   MetricPayload,
   MetricQuery,
   MetricSeriesPoint,
   MetricSeriesResult,
+  PerformanceReport,
+  PerfMetricTypeStat,
+  PerfOverallStats,
+  PerfSlowestPage,
+  QueryExplainResult,
+  QueryFingerprintStat,
+  QueryOptimizerAnalysis,
   SLAComputePayload,
   SLAItem,
   SLAPayload,
   SLAQuery,
   SLAStats,
+  SlowQueryItem,
+  SlowQueryResult,
+  SlowQueryStatistics,
+  SlowQuerySuggestion,
+  SlowQueryTableStat,
 } from './modules/monitoring'
+
+// ---------------------------------------------------------------- 批次 13（system 健康探针与屏幕选项）
+export {healthApi} from './modules/health'
+export type {
+  HealthPayload,
+  SiteHealthGroups,
+  SiteHealthItem,
+  SiteHealthReport,
+  SiteHealthTextReport,
+  WebVitalsOverall,
+  WebVitalsSlowPage,
+  WebVitalsSummary,
+} from './modules/health'
+
+export {screenOptionsApi} from './modules/screenOptions'
+export type {
+  ScreenOptionsAll,
+  ScreenOptionsPageMap,
+  ScreenOptionsResetResult,
+} from './modules/screenOptions'
+
+// ---------------------------------------------------------------- 批次 13（system 站点配额）
+export {quotaApi} from './modules/quota'
+export type {
+  QuotaCheckPayload,
+  QuotaCheckResult,
+  QuotaLimits,
+  QuotaResource,
+  QuotaSnapshot,
+  QuotaUpdatePayload,
+  QuotaUpdateResult,
+  QuotaUsage,
+} from './modules/quota'
 
 // ---------------------------------------------------------------- 批次 11（前台关注）
 export {followApi} from './modules/follow'
@@ -470,6 +582,160 @@ export type {
   CertTypeItem,
   ExpertQuery,
 } from './modules/certification'
+
+// ---------------------------------------------------------------- 批次 16（content yjs / 推荐 / 跳转规则）
+export {yjsApi} from './modules/yjs'
+export type {
+  AccessVia,
+  InvitePermission,
+  RoomState,
+  YjsAuthor,
+  YjsCollaborators,
+  YjsDocumentAccess,
+  YjsInviteCollaborator,
+  YjsRestorePayload,
+  YjsRestoreResult,
+  YjsRevision,
+  YjsRevisionDetail,
+  YjsRoomDetail,
+  YjsRoomItem,
+  YjsRoomsResult,
+  YjsSnapshotPayload,
+  YjsSnapshotResult,
+} from './modules/yjs'
+
+export {recommendApi} from './modules/recommend'
+export type {
+  RecommendArticleItem,
+  RecommendForMeResult,
+  RecommendPopularItem,
+  RecommendPopularResult,
+  RecommendRelatedItem,
+  RecommendRelatedResult,
+  RecommendScoredItem,
+  RecommendTagSuggestion,
+  RecommendTagSuggestionsResult,
+  RecommendTrendingTag,
+  RecommendTrendingTagsResult,
+} from './modules/recommend'
+
+export {redirectApi} from './modules/redirect'
+export type {
+  RedirectBatchPayload,
+  RedirectBatchResult,
+  RedirectCreatePayload,
+  RedirectItem,
+  RedirectQuery,
+  RedirectResolveResult,
+  RedirectStats,
+  RedirectUpdatePayload,
+} from './modules/redirect'
+
+// ---------------------------------------------------------------- 批次 17（content amp / feed / 团队评论）
+export {ampApi} from './modules/amp'
+export type {
+  AmpArticleDocument,
+  AmpConvertPayload,
+  AmpConvertResult,
+  AmpCssInfo,
+  AmpSiteContext,
+  AmpValidationResult,
+  AmpValidationSummary,
+  AmpValidatePayload,
+  AmpViolation,
+} from './modules/amp'
+
+export {contentFeedApi} from './modules/contentFeed'
+export type {
+  FeedArticle,
+  FeedEvent,
+  FeedEventType,
+  FeedStats,
+  FeedStreamQuery,
+} from './modules/contentFeed'
+
+export {teamCommentApi} from './modules/teamComment'
+export type {
+  TeamCommentAuthorCount,
+  TeamCommentCreatePayload,
+  TeamCommentListQuery,
+  TeamCommentMentionsQuery,
+  TeamCommentOut,
+  TeamCommentStatistics,
+  TeamCommentStatisticsQuery,
+  TeamCommentUpdatePayload,
+} from './modules/teamComment'
+
+// ---------------------------------------------------------------- 批次 19（commerce shop / analytics tracking / ops web-push）
+export {shopApi} from './modules/shop'
+export type {
+  CartAddPayload,
+  CartLineItem,
+  CartResult,
+  LowStockItem,
+  LowStockResult,
+  OrderCreatePayload,
+  OrderDetail,
+  OrderItem,
+  OrderItemRequest,
+  OrderLineItem,
+  OrderPaidPayload,
+  OrderQuery,
+  OrderRefundPayload,
+  OrderStats,
+  OrderStatus,
+  ProductCreatePayload,
+  ProductItem,
+  ProductQuery,
+  ProductUpdatePayload,
+  StockAdjustResult,
+} from './modules/shop'
+
+export {trackingApi} from './modules/tracking'
+export type {
+  AdClickTrackPayload,
+  AdClickTrackResult,
+  AdImpressionTrackPayload,
+  AdImpressionTrackResult,
+  AdStatsResult,
+  ArticleEventsResult,
+  DeviceBreakdownResult,
+  DeviceCountItem,
+  EventTrackPayload,
+  EventTrackResult,
+  PageViewTrackPayload,
+  PageViewTrackResult,
+  PopularPageItem,
+  PopularPagesResult,
+  SearchStatItem,
+  SearchStatsResult,
+  SearchTrackPayload,
+  SearchTrackResult,
+  SessionStatsResult,
+  TopAdItem,
+  TrafficSourceItem,
+  TrafficSourcesResult,
+} from './modules/tracking'
+
+export {webPushApi} from './modules/webPush'
+export type {
+  WebPushBroadcastIn,
+  WebPushBroadcastOut,
+  WebPushBroadcastUserDetail,
+  WebPushCleanupIn,
+  WebPushCleanupOut,
+  WebPushSendIn,
+  WebPushSendResponse,
+  WebPushSendResult,
+  WebPushStatsOut,
+  WebPushSubscribeOut,
+  WebPushSubscriptionIn,
+  WebPushSubscriptionKeys,
+  WebPushSubscriptionOut,
+  WebPushUnsubscribeIn,
+  WebPushUnsubscribeOut,
+  WebPushVapidOut,
+} from './modules/webPush'
 
 // ---------------------------------------------------------------- 批次 15（commerce 打赏与提现）
 export {tippingApi} from './modules/tipping'

@@ -25,6 +25,7 @@ const NAV_I18N: Record<string, string> = {
   '/': 'site.navHome',
   '/articles': 'site.navArticles',
   '/categories': 'site.navCategories',
+  '/discover': 'site.navDiscover',
   '/feed': 'site.navFeed',
   '/chat': 'site.navChat',
   '/experts': 'site.navExperts',
@@ -51,6 +52,7 @@ const DEFAULT_PRIMARY_NAV = computed(() => [
 ])
 
 const DEFAULT_MORE_NAV = computed(() => [
+  {label: t('site.navDiscover'), to: '/discover'},
   {label: t('site.navExperts'), to: '/experts'},
   {label: t('site.navPoints'), to: '/points'},
   {label: t('site.navBadges'), to: '/badges'},

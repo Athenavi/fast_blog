@@ -81,6 +81,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '多平台发布',
         permission: 'module_content:third_party_publish:view'
       },
+      {
+        name: 'TeamComment',
+        path: '/content/team-comment',
+        title: '团队评论',
+        permission: 'module_content:collaboration:view'
+      },
     ],
   },
   {
@@ -190,6 +196,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '系统工具',
         permission: 'module_system:setting:view'
       },
+      {
+        name: 'ScreenOptions',
+        path: '/system/screen-options',
+        title: '屏幕选项',
+        permission: 'module_system:setting:view'
+      },
     ],
   },
   {
@@ -280,6 +292,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       },
       {name: 'Enterprise', path: '/ops/enterprise', title: '企业版授权', permission: 'module_ops:enterprise:view'},
       {name: 'Deployments', path: '/ops/deployments', title: '部署脚本', permission: 'module_ops:deployment:view'},
+      {
+        name: 'WebPush',
+        path: '/ops/web-push',
+        title: '浏览器推送',
+        permission: 'module_ops:notification:view'
+      },
     ],
   },
   {
@@ -296,6 +314,18 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         path: '/commerce/tipping',
         title: '打赏与提现',
         permission: 'module_commerce:tipping:view'
+      },
+      {
+        name: 'ShopProducts',
+        path: '/commerce/shop-products',
+        title: '商品管理',
+        permission: 'module_commerce:payment:view'
+      },
+      {
+        name: 'ShopOrders',
+        path: '/commerce/shop-orders',
+        title: '订单管理',
+        permission: 'module_commerce:payment:view'
       },
     ],
   },

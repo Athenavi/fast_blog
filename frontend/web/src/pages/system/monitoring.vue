@@ -9,6 +9,7 @@
  *  - SLA：报表列表 + **按真实告警计算**（周期内 critical 告警窗口合并 → 宕机分钟数）+ 达标统计。
  */
 import {Delete, Plus, Refresh, TrendCharts} from '@element-plus/icons-vue'
+import {Connection, MagicStick, Promotion, Search} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
@@ -20,6 +21,16 @@ import {
   monitoringApi,
   type SLAItem,
   type SLAStats,
+} from '@/api'
+import type {
+  AlertChannelItem,
+  AlertChannelPayload,
+  AlertDeliveriesResult,
+  AlertPlatform,
+  PerformanceReport,
+  QueryExplainResult,
+  QueryOptimizerAnalysis,
+  SlowQueryResult,
 } from '@/api'
 import type {PageQuery} from '@/api/types'
 import {useAdminList} from '@/composables/useAdminList'
@@ -350,6 +361,305 @@ const slaStatCards = computed(() => [
 onMounted(() => {
   loadStats().catch(() => undefined)
 })
+
+// ================================================================ 告警推送渠道 / 投递 / 慢查询 / 查询优化 / 性能报告
+// 字段来源逐条对照后端 `alert_channel_service.py` / `slow_query_logger.py` /
+// `query_optimizer.py` / `performance_report.py`，无编造、无 mock。
+
+// ---------------------------------------------------------------- 告警推送渠道（任务 9）
+const PLATFORMS: AlertPlatform[] = ['telegram', 'discord', 'slack', 'webhook', 'email']
+
+const channelState = useAdminList<AlertChannelItem, PageQuery & { platform?: string; is_active?: boolean }>({
+  fetcher: (params) => monitoringApi.listAlertChannels(params),
+  defaultQuery: {platform: '', is_active: undefined},
+})
+
+const channelList = channelState.rows
+const channelLoading = channelState.loading
+const channelFailed = channelState.failed
+const channelTotal = channelState.total
+const channelPage = channelState.page
+const channelPageSize = channelState.pageSize
+const channelQuery = channelState.query
+const channelSearch = channelState.search
+const channelReset = channelState.reset
+const channelLoad = channelState.reload
+const onChannelPageChange = channelState.onPageChange
+const onChannelSizeChange = channelState.onSizeChange
+
+const channelFormVisible = ref(false)
+const channelSaving = ref(false)
+const channelEditingId = ref<number | null>(null)
+const channelForm = reactive({
+  platform: 'telegram' as string,
+  webhook_url: '',
+  bot_token: '',
+  channel_id: '',
+  enable_new_article_notification: false,
+  enable_comment_notification: false,
+  enable_system_alert: true,
+  notification_template: '',
+  is_active: true,
+})
+
+function openChannelCreate() {
+  Object.assign(channelForm, {
+    platform: 'telegram',
+    webhook_url: '',
+    bot_token: '',
+    channel_id: '',
+    enable_new_article_notification: false,
+    enable_comment_notification: false,
+    enable_system_alert: true,
+    notification_template: '',
+    is_active: true,
+  })
+  channelEditingId.value = null
+  channelFormVisible.value = true
+}
+
+function openChannelEdit(row: AlertChannelItem) {
+  Object.assign(channelForm, {
+    platform: row.platform || 'telegram',
+    webhook_url: row.webhook_url || '',
+    // bot_token 永不回显：留空即表示保持原值（与后端 update 约定一致）
+    bot_token: '',
+    channel_id: row.channel_id || '',
+    enable_new_article_notification: row.enable_new_article_notification,
+    enable_comment_notification: row.enable_comment_notification,
+    enable_system_alert: row.enable_system_alert,
+    notification_template: row.notification_template || '',
+    is_active: row.is_active,
+  })
+  channelEditingId.value = row.id
+  channelFormVisible.value = true
+}
+
+function buildChannelPayload(): AlertChannelPayload {
+  const payload: AlertChannelPayload = {
+    platform: channelForm.platform,
+    webhook_url: channelForm.webhook_url.trim() || null,
+    channel_id: channelForm.channel_id.trim() || null,
+    enable_new_article_notification: channelForm.enable_new_article_notification,
+    enable_comment_notification: channelForm.enable_comment_notification,
+    enable_system_alert: channelForm.enable_system_alert,
+    notification_template: channelForm.notification_template.trim() || null,
+    is_active: channelForm.is_active,
+  }
+  // 仅当用户填了新 token 才下发；留空代表保持原值（后端 update 同语义）
+  if (channelForm.bot_token.trim()) payload.bot_token = channelForm.bot_token.trim()
+  return payload
+}
+
+async function submitChannel() {
+  if (!channelForm.platform.trim()) {
+    ElMessage.warning(t('admin.system.monitoring.channelRequired'))
+    return
+  }
+  channelSaving.value = true
+  try {
+    if (channelEditingId.value === null) {
+      await monitoringApi.createAlertChannel(buildChannelPayload())
+    } else {
+      await monitoringApi.updateAlertChannel(channelEditingId.value, buildChannelPayload())
+    }
+    ElMessage.success(t('admin.common.save'))
+    channelFormVisible.value = false
+    await channelLoad()
+  } finally {
+    channelSaving.value = false
+  }
+}
+
+async function onTestChannel(row: AlertChannelItem) {
+  const result = await monitoringApi.testAlertChannel(row.id)
+  if (result.sent) {
+    ElMessage.success(t('admin.system.monitoring.channelTestSent'))
+  } else {
+    ElMessage.warning(
+      `${t('admin.system.monitoring.channelTestFailed')}：${result.status_code ?? '-'} ${result.detail || ''}`,
+    )
+  }
+}
+
+async function onDeleteChannel(row: AlertChannelItem) {
+  await ElMessageBox.confirm(
+    t('admin.system.monitoring.channelDeleteConfirm', {name: row.channel_id || row.platform || row.id}),
+    t('admin.common.notice'),
+    {type: 'warning'},
+  )
+  await monitoringApi.removeAlertChannel(row.id)
+  ElMessage.success(t('admin.common.delete'))
+  await channelLoad()
+}
+
+// ---------------------------------------------------------------- 通知投递记录
+const deliveryAlertId = ref<number | undefined>(undefined)
+const deliveryLoading = ref(false)
+const deliveries = ref<AlertDeliveriesResult | null>(null)
+const dispatchForce = ref(false)
+const dispatchLoading = ref(false)
+
+async function loadDeliveries() {
+  if (deliveryAlertId.value === undefined) {
+    ElMessage.warning(t('admin.system.monitoring.deliveryAlertIdRequired'))
+    return
+  }
+  deliveryLoading.value = true
+  try {
+    deliveries.value = await monitoringApi.alertDeliveries(deliveryAlertId.value)
+  } finally {
+    deliveryLoading.value = false
+  }
+}
+
+async function onDispatchAlert() {
+  if (deliveryAlertId.value === undefined) {
+    ElMessage.warning(t('admin.system.monitoring.deliveryAlertIdRequired'))
+    return
+  }
+  dispatchLoading.value = true
+  try {
+    const result = await monitoringApi.dispatchAlert(deliveryAlertId.value, dispatchForce.value)
+    ElMessage.success(
+      t('admin.system.monitoring.deliveryDispatched', {sent: result.sent, failed: result.failed}),
+    )
+    await loadDeliveries()
+  } finally {
+    dispatchLoading.value = false
+  }
+}
+
+// ---------------------------------------------------------------- 慢查询与阈值
+const slowForm = reactive({hours: 24, limit: 50, table: '', query_type: ''})
+const slowLoading = ref(false)
+const slowResult = ref<SlowQueryResult | null>(null)
+const slowThreshold = ref<number | undefined>(undefined)
+const slowThresholdSaving = ref(false)
+const slowClearing = ref(false)
+
+async function loadSlowQueries() {
+  slowLoading.value = true
+  try {
+    const result = await monitoringApi.listSlowQueries({
+      hours: slowForm.hours,
+      limit: slowForm.limit,
+      table: slowForm.table.trim() || undefined,
+      query_type: slowForm.query_type.trim() || undefined,
+    })
+    slowResult.value = result
+    slowThreshold.value = result.threshold_ms
+  } finally {
+    slowLoading.value = false
+  }
+}
+
+async function onUpdateSlowThreshold() {
+  if (slowThreshold.value === undefined || slowThreshold.value <= 0) {
+    ElMessage.warning(t('admin.system.monitoring.slowThresholdInvalid'))
+    return
+  }
+  slowThresholdSaving.value = true
+  try {
+    const result = await monitoringApi.updateSlowQueryThreshold(slowThreshold.value)
+    ElMessage.success(t('admin.system.monitoring.slowThresholdUpdated'))
+    slowThreshold.value = result.threshold_ms
+  } finally {
+    slowThresholdSaving.value = false
+  }
+}
+
+/** 清空进程内慢查询记录（`DELETE /system/monitor/slow-queries`，需 manage 权限） */
+async function onClearSlowQueries() {
+  try {
+    await ElMessageBox.confirm(
+      t('admin.system.monitoring.slowClearConfirm'),
+      t('admin.common.notice'),
+      {type: 'warning'},
+    )
+  } catch {
+    return
+  }
+  slowClearing.value = true
+  try {
+    await monitoringApi.clearSlowQueries()
+    ElMessage.success(t('admin.system.monitoring.slowCleared'))
+    await loadSlowQueries()
+  } finally {
+    slowClearing.value = false
+  }
+}
+
+/** `by_table` 是对象，转成可渲染的行数组 */
+const slowByTableRows = computed(() => {
+  const byTable = slowResult.value?.statistics?.by_table ?? {}
+  return Object.entries(byTable).map(([table, stat]) => ({table, ...stat}))
+})
+
+// ---------------------------------------------------------------- 查询优化
+const qoForm = reactive({hours: 24, limit: 20, min_executions: 10, max_avg_duration: 0.5})
+const qoLoading = ref(false)
+const qoResult = ref<QueryOptimizerAnalysis | null>(null)
+const explainSql = ref('')
+const explainLoading = ref(false)
+const explainResult = ref<QueryExplainResult | null>(null)
+
+async function runAnalysis() {
+  qoLoading.value = true
+  try {
+    qoResult.value = await monitoringApi.queryOptimizerAnalysis({
+      hours: qoForm.hours,
+      limit: qoForm.limit,
+      min_executions: qoForm.min_executions,
+      max_avg_duration: qoForm.max_avg_duration,
+    })
+  } finally {
+    qoLoading.value = false
+  }
+}
+
+async function runExplain() {
+  if (!explainSql.value.trim()) {
+    ElMessage.warning(t('admin.system.monitoring.qoExplainRequired'))
+    return
+  }
+  explainLoading.value = true
+  try {
+    explainResult.value = await monitoringApi.queryOptimizerExplain(explainSql.value.trim())
+  } finally {
+    explainLoading.value = false
+  }
+}
+
+/** `node_types` 是对象，转成可渲染的行数组 */
+const explainNodeRows = computed(() => {
+  const nodeTypes = explainResult.value?.analysis?.node_types ?? {}
+  return Object.entries(nodeTypes).map(([node_type, count]) => ({node_type, count}))
+})
+
+// ---------------------------------------------------------------- 性能综合报告
+const perfForm = reactive({hours: 24, top: 5})
+const perfLoading = ref(false)
+const perfReport = ref<PerformanceReport | null>(null)
+
+async function loadPerformanceReport() {
+  perfLoading.value = true
+  try {
+    perfReport.value = await monitoringApi.performanceReport({
+      hours: perfForm.hours,
+      top: perfForm.top,
+    })
+  } finally {
+    perfLoading.value = false
+  }
+}
+
+// 页面挂载后并行加载新的只读视图（渠道列表已由 useAdminList 自动加载）
+onMounted(() => {
+  loadSlowQueries().catch(() => undefined)
+  runAnalysis().catch(() => undefined)
+  loadPerformanceReport().catch(() => undefined)
+})
 </script>
 
 <template>
@@ -582,6 +892,515 @@ onMounted(() => {
           </el-table-column>
         </AdminListShell>
       </el-tab-pane>
+
+      <!-- 告警推送渠道（追加） -->
+      <el-tab-pane :label="$t('admin.system.monitoring.tabAlertChannel')" name="alertChannel">
+        <AdminListShell
+          :failed="channelFailed"
+          :loading="channelLoading"
+          :page="channelPage"
+          :page-size="channelPageSize"
+          :rows="channelList"
+          :selectable="false"
+          :total="channelTotal"
+          @refresh="channelLoad"
+          @reset="channelReset"
+          @search="channelSearch"
+          @page-change="onChannelPageChange"
+          @size-change="onChannelSizeChange"
+        >
+          <template #filters>
+            <el-form-item :label="$t('admin.system.monitoring.channelPlatform')">
+              <el-select v-model="channelQuery.platform" clearable style="width: 160px">
+                <el-option v-for="item in PLATFORMS" :key="item" :label="item" :value="item"/>
+              </el-select>
+            </el-form-item>
+            <el-form-item :label="$t('admin.system.monitoring.channelActive')">
+              <el-select v-model="channelQuery.is_active" clearable style="width: 120px">
+                <el-option :label="$t('admin.common.yes')" :value="true"/>
+                <el-option :label="$t('admin.common.no')" :value="false"/>
+              </el-select>
+            </el-form-item>
+          </template>
+
+          <template #actions>
+            <el-button v-auth="'module_system:monitor:manage'" :icon="Plus" type="primary"
+                       @click="openChannelCreate">
+              {{ $t('admin.system.monitoring.channelCreate') }}
+            </el-button>
+          </template>
+
+          <el-table-column :label="$t('admin.system.monitoring.channelPlatform')" prop="platform"
+                           width="120"/>
+          <el-table-column :label="$t('admin.system.monitoring.channelChatId')" min-width="160"
+                           prop="channel_id" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.channelWebhookUrl')" min-width="220"
+                           prop="webhook_url" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.channelHasToken')" align="center" width="120">
+            <template #default="{ row }">
+              <el-tag :type="(row as AlertChannelItem).has_token ? 'success' : 'info'" size="small">
+                {{ (row as AlertChannelItem).has_token ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.system.monitoring.channelEnableSystemAlert')" align="center"
+                           width="140">
+            <template #default="{ row }">
+              <el-tag :type="(row as AlertChannelItem).enable_system_alert ? 'success' : 'info'" size="small">
+                {{ (row as AlertChannelItem).enable_system_alert ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.system.monitoring.channelActive')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="(row as AlertChannelItem).is_active ? 'success' : 'info'" size="small">
+                {{ (row as AlertChannelItem).is_active ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.common.actions')" fixed="right" width="220">
+            <template #default="{ row }">
+              <el-button v-auth="'module_system:monitor:manage'" :icon="Promotion" link type="primary"
+                         @click="onTestChannel(row as AlertChannelItem)">
+                {{ $t('admin.system.monitoring.channelTest') }}
+              </el-button>
+              <el-button v-auth="'module_system:monitor:manage'" link type="success"
+                         @click="openChannelEdit(row as AlertChannelItem)">
+                {{ $t('admin.common.edit') }}
+              </el-button>
+              <el-button v-auth="'module_system:monitor:manage'" :icon="Delete" link type="danger"
+                         @click="onDeleteChannel(row as AlertChannelItem)">
+                {{ $t('admin.common.delete') }}
+              </el-button>
+            </template>
+          </el-table-column>
+        </AdminListShell>
+      </el-tab-pane>
+
+      <!-- 通知投递记录（追加） -->
+      <el-tab-pane :label="$t('admin.system.monitoring.tabDeliveries')" name="deliveries">
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.deliveryAlertId') }}</span>
+          <el-input-number v-model="deliveryAlertId" :min="1" style="width: 160px"/>
+          <el-button :icon="Search" :loading="deliveryLoading" @click="loadDeliveries">
+            {{ $t('admin.system.monitoring.deliveryQuery') }}
+          </el-button>
+          <el-button v-auth="'module_system:monitor:manage'" :icon="Promotion" :loading="dispatchLoading"
+                     type="primary" @click="onDispatchAlert">
+            {{ $t('admin.system.monitoring.deliveryDispatch') }}
+          </el-button>
+          <el-checkbox v-model="dispatchForce" v-auth="'module_system:monitor:manage'">
+            {{ $t('admin.system.monitoring.deliveryForce') }}
+          </el-checkbox>
+        </div>
+
+        <el-descriptions v-if="deliveries" :border="true" :column="3" class="mt-3">
+          <el-descriptions-item :label="$t('admin.system.monitoring.deliveryAlertId')">
+            {{ deliveries.alert_id }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.monitoring.deliveryTotal')">
+            {{ deliveries.total }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.monitoring.deliverySent')">
+            {{ deliveries.sent }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-table v-if="deliveries" :data="deliveries.items" border class="mt-3" size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.deliveryPlatform')" prop="platform"
+                           width="120"/>
+          <el-table-column :label="$t('admin.system.monitoring.deliveryStatus')" align="center" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.sent ? 'success' : 'danger'" size="small">
+                {{ row.sent ? $t('admin.common.yes') : $t('admin.common.no') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('admin.system.monitoring.deliveryStatusCode')" align="center"
+                           prop="status_code" width="100"/>
+          <el-table-column :label="$t('admin.system.monitoring.deliveryDetail')" min-width="260"
+                           prop="detail" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.deliveryAt')" min-width="180" prop="at"/>
+        </el-table>
+        <el-empty v-else :description="$t('admin.system.monitoring.deliveryEmpty')"/>
+      </el-tab-pane>
+
+      <!-- 慢查询与阈值 -->
+      <el-tab-pane :label="$t('admin.system.monitoring.tabSlowQuery')" name="slowQuery">
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.slowThreshold') }}</span>
+          <el-input-number v-model="slowThreshold" :max="60000" :min="1" style="width: 160px"/>
+          <el-button v-auth="'module_system:monitor:manage'" :loading="slowThresholdSaving"
+                     @click="onUpdateSlowThreshold">
+            {{ $t('admin.system.monitoring.slowThresholdUpdate') }}
+          </el-button>
+        </div>
+
+        <el-divider/>
+
+        <div class="table-toolbar">
+          <el-form-item :label="$t('admin.system.monitoring.slowHours')">
+            <el-input-number v-model="slowForm.hours" :max="720" :min="1" style="width: 130px"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.monitoring.slowLimit')">
+            <el-input-number v-model="slowForm.limit" :max="500" :min="1" style="width: 120px"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.monitoring.slowTable')">
+            <el-input v-model="slowForm.table" clearable style="width: 160px"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.monitoring.slowQueryType')">
+            <el-input v-model="slowForm.query_type" clearable placeholder="SELECT / UPDATE" style="width: 160px"/>
+          </el-form-item>
+          <el-button :icon="Search" :loading="slowLoading" @click="loadSlowQueries">
+            {{ $t('admin.system.monitoring.slowLoad') }}
+          </el-button>
+          <el-button v-auth="'module_system:monitor:manage'" :loading="slowClearing" type="danger"
+                     @click="onClearSlowQueries">
+            {{ $t('admin.system.monitoring.slowClear') }}
+          </el-button>
+        </div>
+
+        <el-descriptions v-if="slowResult" :border="true" :column="4" class="mt-3">
+          <el-descriptions-item :label="$t('admin.system.monitoring.slowStatTotal')">
+            {{ slowResult.statistics.slow_queries }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.monitoring.slowStatAvg')">
+            {{ slowResult.statistics.avg_duration }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.monitoring.slowStatMax')">
+            {{ slowResult.statistics.max_duration }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('admin.system.monitoring.slowThreshold')">
+            {{ slowResult.threshold_ms }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <el-table :data="slowResult?.items ?? []" border class="mt-3" size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.slowSql')" min-width="320" prop="sql"
+                           show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.slowDuration')" align="right" prop="duration"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowTable')" prop="table" show-overflow-tooltip
+                           width="150"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowQueryType')" prop="query_type"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowTimestamp')" min-width="180"
+                           prop="timestamp"/>
+        </el-table>
+
+        <el-divider/>
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.slowByTable') }}</span>
+        </div>
+        <el-table :data="slowByTableRows" border size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.slowTable')" min-width="180" prop="table"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowCount')" align="right" prop="count"
+                           width="100"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowTotalTime')" align="right" prop="total_time"
+                           width="130"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowAvgTime')" align="right" prop="avg_time"
+                           width="130"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowMaxTime')" align="right" prop="max_time"
+                           width="130"/>
+        </el-table>
+
+        <el-divider/>
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.slowSuggestions') }}</span>
+        </div>
+        <el-table :data="slowResult?.suggestions ?? []" border size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionType')" prop="type"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionTitle')" min-width="160"
+                           prop="title"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionMessage')" min-width="240"
+                           prop="message" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionRecommendation')" min-width="240"
+                           prop="recommendation" show-overflow-tooltip/>
+        </el-table>
+      </el-tab-pane>
+
+      <!-- 查询优化（追加） -->
+      <el-tab-pane :label="$t('admin.system.monitoring.tabQueryOptimizer')" name="queryOptimizer">
+        <div class="table-toolbar">
+          <el-form-item :label="$t('admin.system.monitoring.qoHours')">
+            <el-input-number v-model="qoForm.hours" :max="720" :min="1" style="width: 130px"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.monitoring.qoLimit')">
+            <el-input-number v-model="qoForm.limit" :max="200" :min="1" style="width: 120px"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.monitoring.qoMinExecutions')">
+            <el-input-number v-model="qoForm.min_executions" :max="1000" :min="2" style="width: 120px"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.monitoring.qoMaxAvgDuration')">
+            <el-input-number v-model="qoForm.max_avg_duration" :max="60" :min="0.01" :precision="2"
+                             :step="0.1" style="width: 130px"/>
+          </el-form-item>
+          <el-button :icon="TrendCharts" :loading="qoLoading" @click="runAnalysis">
+            {{ $t('admin.system.monitoring.qoAnalyze') }}
+          </el-button>
+        </div>
+
+        <el-divider/>
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.qoFingerprints') }}</span>
+        </div>
+        <el-table :data="qoResult?.by_fingerprint ?? []" border size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.qoFingerprint')" min-width="320"
+                           prop="fingerprint" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.slowTable')" prop="table" width="150"/>
+          <el-table-column :label="$t('admin.system.monitoring.qoExecutions')" align="right" prop="executions"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.qoTotalDuration')" align="right" prop="total_duration"
+                           width="130"/>
+          <el-table-column :label="$t('admin.system.monitoring.qoAvgDuration')" align="right" prop="avg_duration"
+                           width="130"/>
+          <el-table-column :label="$t('admin.system.monitoring.qoMaxDuration')" align="right" prop="max_duration"
+                           width="130"/>
+        </el-table>
+
+        <el-divider/>
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.qoNPlusOne') }}</span>
+        </div>
+        <el-table :data="qoResult?.n_plus_one ?? []" border size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.qoFingerprint')" min-width="280"
+                           prop="fingerprint" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.qoExecutions')" align="right" prop="executions"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.qoTotalDuration')" align="right" prop="total_duration"
+                           width="130"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionRecommendation')" min-width="260"
+                           prop="hint" show-overflow-tooltip/>
+        </el-table>
+
+        <el-divider/>
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.slowSuggestions') }}</span>
+        </div>
+        <el-table :data="qoResult?.suggestions ?? []" border size="small" stripe>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionType')" prop="type"
+                           width="110"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionTitle')" min-width="160"
+                           prop="title"/>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionMessage')" min-width="240"
+                           prop="message" show-overflow-tooltip/>
+          <el-table-column :label="$t('admin.system.monitoring.slowSuggestionRecommendation')" min-width="240"
+                           prop="recommendation" show-overflow-tooltip/>
+        </el-table>
+
+        <el-divider/>
+        <div class="table-toolbar">
+          <span class="table-toolbar__title">{{ $t('admin.system.monitoring.qoExplainTitle') }}</span>
+        </div>
+        <el-input v-model="explainSql" :autosize="{minRows: 3, maxRows: 10}"
+                  :placeholder="$t('admin.system.monitoring.qoExplainPlaceholder')" type="textarea"/>
+        <div class="table-toolbar mt-3">
+          <el-button v-auth="'module_system:monitor:manage'" :icon="MagicStick" :loading="explainLoading"
+                     type="primary" @click="runExplain">
+            {{ $t('admin.system.monitoring.qoExplainRun') }}
+          </el-button>
+        </div>
+
+        <template v-if="explainResult">
+          <el-descriptions :border="true" :column="3" class="mt-3">
+            <el-descriptions-item :label="$t('admin.system.monitoring.qoExplainParsed')">
+              {{ explainResult.analysis.parsed ? $t('admin.common.yes') : $t('admin.common.no') }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.qoExplainExecuted')">
+              {{ explainResult.executed ? $t('admin.common.yes') : $t('admin.common.no') }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.qoExplainSeqScan')">
+              {{ explainResult.analysis.uses_sequential_scan ? $t('admin.common.yes') : $t('admin.common.no') }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.qoExplainSeqTables')" :span="3">
+              {{ explainResult.analysis.sequential_scan_tables.join('、') || '-' }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.qoExplainNodeTypes') }}</span>
+          </div>
+          <el-table :data="explainNodeRows" border size="small" stripe>
+            <el-table-column label="Node Type" min-width="200" prop="node_type"/>
+            <el-table-column :label="$t('admin.system.monitoring.count')" align="right" prop="count"
+                             width="100"/>
+          </el-table>
+
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.qoExplainBottlenecks') }}</span>
+          </div>
+          <el-table :data="explainResult.analysis.bottlenecks" border size="small" stripe>
+            <el-table-column label="Node Type" min-width="160" prop="node_type"/>
+            <el-table-column :label="$t('admin.system.monitoring.slowTable')" min-width="140"
+                             prop="relation"/>
+            <el-table-column align="right" label="Total Cost" prop="total_cost" width="120"/>
+            <el-table-column align="right" label="Plan Rows" prop="plan_rows" width="120"/>
+            <el-table-column align="right" label="Actual Time (ms)" prop="actual_time_ms" width="150"/>
+          </el-table>
+
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.qoExplainRecommendations') }}</span>
+          </div>
+          <ul class="mt-3">
+            <li v-for="(item, idx) in explainResult.analysis.recommendations" :key="idx">{{ item }}</li>
+          </ul>
+        </template>
+      </el-tab-pane>
+
+      <!-- 性能综合报告（追加） -->
+      <el-tab-pane :label="$t('admin.system.monitoring.tabPerformance')" name="performanceReport">
+        <div class="table-toolbar">
+          <el-form-item :label="$t('admin.system.monitoring.perfHours')">
+            <el-input-number v-model="perfForm.hours" :max="720" :min="1" style="width: 130px"/>
+          </el-form-item>
+          <el-form-item :label="$t('admin.system.monitoring.perfTop')">
+            <el-input-number v-model="perfForm.top" :max="50" :min="1" style="width: 120px"/>
+          </el-form-item>
+          <el-button :icon="TrendCharts" :loading="perfLoading" @click="loadPerformanceReport">
+            {{ $t('admin.system.monitoring.perfGenerate') }}
+          </el-button>
+        </div>
+
+        <template v-if="perfReport">
+          <el-descriptions :border="true" :column="2" class="mt-3">
+            <el-descriptions-item :label="$t('admin.system.monitoring.perfGeneratedAt')">
+              {{ perfReport.generated_at }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.perfHours')">
+              {{ perfReport.period_hours }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <!-- RUM -->
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.perfRum') }}</span>
+          </div>
+          <el-descriptions :border="true" :column="4">
+            <el-descriptions-item :label="$t('admin.system.monitoring.perfTotalPages')">
+              {{ perfReport.runtime.overall.total_pages }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.perfTotalSamples')">
+              {{ perfReport.runtime.overall.total_samples }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.perfAvgLoad')">
+              {{ perfReport.runtime.overall.avg_load_time ?? '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.perfCwvPassRate')">
+              {{ perfReport.runtime.overall.cwv_pass_rate ?? '-' }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <el-table :data="perfReport.runtime.slowest_pages" border class="mt-3" size="small" stripe>
+            <el-table-column :label="$t('admin.system.monitoring.perfUrl')" min-width="320" prop="url"
+                             show-overflow-tooltip/>
+            <el-table-column :label="$t('admin.system.monitoring.perfAvgLoad')" align="right" prop="avg_load_time"
+                             width="140"/>
+            <el-table-column :label="$t('admin.system.monitoring.perfTotalSamples')" align="right"
+                             prop="sample_count" width="120"/>
+          </el-table>
+
+          <!-- 数据库 -->
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.perfDatabase') }}</span>
+          </div>
+          <el-descriptions :border="true" :column="4">
+            <el-descriptions-item :label="$t('admin.system.monitoring.slowStatTotal')">
+              {{ perfReport.database.statistics.slow_queries }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.slowThreshold')">
+              {{ perfReport.database.threshold_ms }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.qoNPlusOne')">
+              {{ perfReport.database.n_plus_one.length }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.qoFingerprints')">
+              {{ perfReport.database.top_fingerprints.length }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <!-- 服务器 -->
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.perfServer') }}</span>
+          </div>
+          <el-descriptions :border="true" :column="4">
+            <el-descriptions-item label="Platform">
+              {{ perfReport.server?.platform }}
+            </el-descriptions-item>
+            <el-descriptions-item label="Hostname">
+              {{ perfReport.server?.hostname }}
+            </el-descriptions-item>
+            <el-descriptions-item label="Python">
+              {{ perfReport.server?.python_version }}
+            </el-descriptions-item>
+            <el-descriptions-item label="Uptime (s)">
+              {{ perfReport.server?.uptime_seconds }}
+            </el-descriptions-item>
+            <el-descriptions-item label="CPU (%)">
+              {{ perfReport.server?.cpu?.percent }}
+            </el-descriptions-item>
+            <el-descriptions-item label="CPU Cores">
+              {{ perfReport.server?.cpu?.count }}
+            </el-descriptions-item>
+            <el-descriptions-item label="Memory (%)">
+              {{ perfReport.server?.memory?.percent }}
+            </el-descriptions-item>
+            <el-descriptions-item label="PID">
+              {{ perfReport.server?.process?.pid }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <!-- 持久态：告警 / 指标 / SLA -->
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.perfAlerts') }}</span>
+          </div>
+          <el-descriptions :border="true" :column="3">
+            <el-descriptions-item :label="$t('admin.system.monitoring.alertStat_total')">
+              {{ perfReport.alerts.total }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.alertStat_unresolved')">
+              {{ perfReport.alerts.unresolved }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.alertStat_resolved')">
+              {{ perfReport.alerts.resolved }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.perfMetrics') }}</span>
+          </div>
+          <el-table :data="perfReport.metrics.by_type" border size="small" stripe>
+            <el-table-column :label="$t('admin.system.monitoring.perfMetricType')" min-width="180"
+                             prop="metric_type"/>
+            <el-table-column :label="$t('admin.system.monitoring.count')" align="right" prop="count"
+                             width="120"/>
+            <el-table-column :label="$t('admin.system.monitoring.perfAvgValue')" align="right" prop="avg_value"
+                             width="140"/>
+          </el-table>
+
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.perfSla') }}</span>
+          </div>
+          <el-descriptions :border="true" :column="3">
+            <el-descriptions-item :label="$t('admin.system.monitoring.slaStat_total_reports')">
+              {{ perfReport.sla.total_reports }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.slaStat_compliant')">
+              {{ perfReport.sla.compliant }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('admin.system.monitoring.slaStat_breached')">
+              {{ perfReport.sla.breached }}
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <div class="table-toolbar mt-3">
+            <span class="table-toolbar__title">{{ $t('admin.system.monitoring.perfNotes') }}</span>
+          </div>
+          <ul class="mt-3">
+            <li v-for="(item, idx) in perfReport.notes" :key="idx">{{ item }}</li>
+          </ul>
+        </template>
+        <el-empty v-else :description="$t('admin.system.monitoring.perfEmpty')"/>
+      </el-tab-pane>
     </el-tabs>
 
     <!-- 新建告警 -->
@@ -676,6 +1495,55 @@ onMounted(() => {
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- 新建 / 编辑告警推送渠道（追加） -->
+    <el-drawer v-model="channelFormVisible"
+               :title="channelEditingId === null
+                 ? $t('admin.system.monitoring.channelCreate')
+                 : $t('admin.system.monitoring.channelEdit')"
+               destroy-on-close size="480px">
+      <el-form :model="channelForm" label-width="150px">
+        <el-form-item :label="$t('admin.system.monitoring.channelPlatform')" required>
+          <el-select v-model="channelForm.platform" style="width: 100%">
+            <el-option v-for="item in PLATFORMS" :key="item" :label="item" :value="item"/>
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelWebhookUrl')">
+          <el-input v-model="channelForm.webhook_url"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelBotToken')">
+          <el-input v-model="channelForm.bot_token" show-password type="password"/>
+          <div class="stats-card__label mt-3">{{ $t('admin.system.monitoring.channelBotTokenHint') }}</div>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelChatId')">
+          <el-input v-model="channelForm.channel_id"/>
+          <div class="stats-card__label mt-3">{{ $t('admin.system.monitoring.channelChatIdHint') }}</div>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelTemplate')">
+          <el-input v-model="channelForm.notification_template"
+                    :autosize="{minRows: 2, maxRows: 6}" type="textarea"/>
+          <div class="stats-card__label mt-3">{{ $t('admin.system.monitoring.channelTemplateHint') }}</div>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelEnableSystemAlert')">
+          <el-switch v-model="channelForm.enable_system_alert"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelEnableNewArticle')">
+          <el-switch v-model="channelForm.enable_new_article_notification"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelEnableComment')">
+          <el-switch v-model="channelForm.enable_comment_notification"/>
+        </el-form-item>
+        <el-form-item :label="$t('admin.system.monitoring.channelActive')">
+          <el-switch v-model="channelForm.is_active"/>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="channelFormVisible = false">{{ $t('admin.common.cancel') }}</el-button>
+        <el-button :loading="channelSaving" type="primary" @click="submitChannel">
+          {{ $t('admin.common.save') }}
+        </el-button>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
