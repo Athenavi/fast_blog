@@ -4501,7 +4501,42 @@
       "status": "Status",
       "modelUsed": "Model Used",
       "tokensUsed": "Tokens Used",
-      "errorMessage": "Error Message"
+      "errorMessage": "Error Message",
+      "skill": {
+        "title": "AI Skills",
+        "desc": "Skills are a code registry: each one calls a real service (LLM / SEO / migration parsing / real-table aggregation), and the backend re-checks the skill's declared permission on run.",
+        "category": "Category",
+        "categoryAll": "All categories",
+        "keyword": "Keyword",
+        "keywordPlaceholder": "Search by name / description",
+        "name": "Name",
+        "label": "Label",
+        "description": "Description",
+        "requiredPermission": "Required permission",
+        "noPermission": "None",
+        "detail": "Detail",
+        "detailTitle": "Skill Detail",
+        "params": "Params",
+        "paramName": "Param",
+        "paramType": "Type",
+        "paramRequired": "Required",
+        "paramDescription": "Description",
+        "noParams": "This skill takes no params",
+        "yes": "Yes",
+        "no": "No",
+        "run": "Run",
+        "runTitle": "Run skill: {name}",
+        "runHint": "Running executes for real; if the skill declares an extra permission your account lacks, the backend rejects it with a reason.",
+        "configId": "AI Config ID",
+        "configIdHint": "Leave empty to let the backend pick the first usable config",
+        "runSkill": "Skill",
+        "runDuration": "Duration",
+        "runResult": "Result",
+        "runSuccess": "Finished in {ms}ms",
+        "requiredMissing": "Missing required params: {fields}",
+        "empty": "No matching skills",
+        "loadFailed": "Failed to load skills"
+      }
     },
     "chat": {
       "title": "Chat Groups",
@@ -4858,7 +4893,8 @@
     "TeamComment": "Team Comments",
     "ShopProducts": "Products",
     "ShopOrders": "Orders",
-    "WebPush": "Web Push"
+    "WebPush": "Web Push",
+    "AISkills": "AI Skills"
   },
   "category": {
     "subtitle": "Browse all articles by category",

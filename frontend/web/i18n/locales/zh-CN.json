@@ -4501,7 +4501,42 @@
       "status": "状态",
       "modelUsed": "使用模型",
       "tokensUsed": "Token 消耗",
-      "errorMessage": "错误信息"
+      "errorMessage": "错误信息",
+      "skill": {
+        "title": "AI 技能",
+        "desc": "技能是代码注册表：每个技能都调用真实服务（LLM / SEO / 迁移解析 / 真表聚合），执行时后端会再校验技能声明的权限。",
+        "category": "分类",
+        "categoryAll": "全部分类",
+        "keyword": "关键字",
+        "keywordPlaceholder": "按名称 / 描述搜索",
+        "name": "标识",
+        "label": "名称",
+        "description": "说明",
+        "requiredPermission": "所需权限",
+        "noPermission": "无额外要求",
+        "detail": "详情",
+        "detailTitle": "技能详情",
+        "params": "参数",
+        "paramName": "参数名",
+        "paramType": "类型",
+        "paramRequired": "必填",
+        "paramDescription": "说明",
+        "noParams": "该技能无需参数",
+        "yes": "是",
+        "no": "否",
+        "run": "执行",
+        "runTitle": "执行技能：{name}",
+        "runHint": "执行是真实调用；如果技能声明了额外权限而当前账号没有，后端会拒绝并给出原因。",
+        "configId": "AI 配置 ID",
+        "configIdHint": "留空由后端取第一条可用配置",
+        "runSkill": "技能",
+        "runDuration": "耗时",
+        "runResult": "执行结果",
+        "runSuccess": "执行完成（{ms}ms）",
+        "requiredMissing": "缺少必填参数：{fields}",
+        "empty": "没有匹配的技能",
+        "loadFailed": "技能列表加载失败"
+      }
     },
     "chat": {
       "title": "群聊管理",
@@ -4858,7 +4893,8 @@
     "TeamComment": "团队评论",
     "ShopProducts": "商品管理",
     "ShopOrders": "订单管理",
-    "WebPush": "浏览器推送"
+    "WebPush": "浏览器推送",
+    "AISkills": "AI 技能"
   },
   "category": {
     "subtitle": "按分类浏览全部文章",

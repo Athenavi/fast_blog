@@ -221,6 +221,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     children: [
       {name: 'AIConfigs', path: '/ai/configs', title: 'AI 配置', permission: 'module_ai:config:view'},
       {name: 'AIWorkflows', path: '/ai/workflows', title: 'AI 工作流', permission: 'module_ai:workflow:view'},
+      {name: 'AISkills', path: '/ai/skills', title: 'AI 技能', permission: 'module_ai:workflow:view'},
     ],
   },
   {

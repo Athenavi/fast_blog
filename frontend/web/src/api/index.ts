@@ -147,6 +147,17 @@ export type {
   AiWorkflowQuery,
 } from './modules/ai'
 
+export {aiSkillApi} from './modules/aiSkill'
+export type {
+  AiSkillCategory,
+  AiSkillItem,
+  AiSkillListResult,
+  AiSkillParam,
+  AiSkillQuery,
+  AiSkillRunPayload,
+  AiSkillRunResult,
+} from './modules/aiSkill'
+
 export {chatApi} from './modules/chat'
 export type {
   ChatGroupItem,
