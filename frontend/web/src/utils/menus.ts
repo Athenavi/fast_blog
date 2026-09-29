@@ -136,6 +136,60 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '监控中心',
         permission: 'module_system:monitor:view'
       },
+      {
+        name: 'AccessibilitySettings',
+        path: '/system/accessibility',
+        title: '无障碍设置',
+        permission: 'module_system:setting:view'
+      },
+      {
+        name: 'Maintenance',
+        path: '/system/maintenance',
+        title: '维护模式',
+        permission: 'module_system:setting:view'
+      },
+      {
+        name: 'Translation',
+        path: '/system/translation',
+        title: '多语言',
+        permission: 'module_system:setting:view'
+      },
+      {
+        name: 'Workflow',
+        path: '/system/workflow',
+        title: '工作流',
+        permission: 'module_system:setting:view'
+      },
+      {
+        name: 'EdgeFunctions',
+        path: '/system/edge',
+        title: '边缘函数',
+        permission: 'module_system:integration:view'
+      },
+      {
+        name: 'AdminMenus',
+        path: '/system/admin-menus',
+        title: '后台菜单',
+        permission: 'module_system:menu:view'
+      },
+      {
+        name: 'HelpCenter',
+        path: '/system/help',
+        title: '帮助中心',
+        permission: 'module_system:setting:view'
+      },
+      {
+        name: 'DataExport',
+        path: '/system/data-export',
+        title: '数据导出',
+        permission: 'module_analytics:report:view'
+      },
+      {
+        name: 'SystemUtilities',
+        path: '/system/utilities',
+        title: '系统工具',
+        permission: 'module_system:setting:view'
+      },
     ],
   },
   {

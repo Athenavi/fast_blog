@@ -1,0 +1,76 @@
+{
+  "zh-CN": {
+    "admin": {
+      "system": {
+        "gdpr": {
+          "complianceSection": "合规检查与合规文档",
+          "tabCheck": "合规检查",
+          "tabCookie": "Cookie 同意横幅",
+          "tabPrivacy": "隐私政策",
+          "runCheck": "运行检查",
+          "generatedAt": "生成时间",
+          "settingsTitle": "当前合规配置",
+          "settingRetention": "数据保留期（天）",
+          "settingRequireConsent": "需先同意再采集",
+          "settingAllowExport": "开放数据导出",
+          "settingAllowDeletion": "开放数据删除",
+          "settingContactEmail": "联系邮箱",
+          "settingPrivacyUrl": "隐私政策地址",
+          "groupGdpr": "GDPR",
+          "groupPci": "PCI DSS",
+          "checkItem": "检查项",
+          "checkStatus": "状态",
+          "checkMessage": "说明",
+          "statusOk": "通过",
+          "statusWarn": "提醒",
+          "statusFail": "不合规",
+          "cookieHint": "生成可直接嵌入前台页面的 Cookie 同意横幅 HTML（内含向 /system/gdpr/consent 上报同意的逻辑）。",
+          "generateCookie": "生成横幅 HTML",
+          "privacyHint": "根据真实站点配置生成中文隐私政策，可复制为 Markdown 或 HTML。",
+          "generatePrivacyMarkdown": "生成 Markdown",
+          "generatePrivacyHtml": "生成 HTML",
+          "copy": "复制",
+          "copied": "已复制到剪贴板",
+          "copyFailed": "复制失败，请手动选择文本"
+        }
+      }
+    }
+  },
+  "en": {
+    "admin": {
+      "system": {
+        "gdpr": {
+          "complianceSection": "Compliance Check & Documents",
+          "tabCheck": "Compliance Check",
+          "tabCookie": "Cookie Consent Banner",
+          "tabPrivacy": "Privacy Policy",
+          "runCheck": "Run Check",
+          "generatedAt": "Generated At",
+          "settingsTitle": "Current Compliance Settings",
+          "settingRetention": "Retention (days)",
+          "settingRequireConsent": "Require consent before collection",
+          "settingAllowExport": "Allow data export",
+          "settingAllowDeletion": "Allow data deletion",
+          "settingContactEmail": "Contact Email",
+          "settingPrivacyUrl": "Privacy Policy URL",
+          "groupGdpr": "GDPR",
+          "groupPci": "PCI DSS",
+          "checkItem": "Check",
+          "checkStatus": "Status",
+          "checkMessage": "Message",
+          "statusOk": "OK",
+          "statusWarn": "Warning",
+          "statusFail": "Fail",
+          "cookieHint": "Generate an embeddable Cookie consent banner HTML (includes reporting consent to /system/gdpr/consent).",
+          "generateCookie": "Generate Banner HTML",
+          "privacyHint": "Generate a privacy policy in Chinese from the real site settings; copy it as Markdown or HTML.",
+          "generatePrivacyMarkdown": "Generate Markdown",
+          "generatePrivacyHtml": "Generate HTML",
+          "copy": "Copy",
+          "copied": "Copied to clipboard",
+          "copyFailed": "Copy failed, please select the text manually"
+        }
+      }
+    }
+  }
+}

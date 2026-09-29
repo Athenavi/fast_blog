@@ -530,3 +530,179 @@ export type {
   SupervisorProcessPayload,
   SupervisorProbe,
 } from './modules/supervisor'
+
+// ---------------------------------------------------------------- system 无障碍（WCAG 2.1）
+export {accessibilityApi} from './modules/accessibility'
+export type {
+  AccessibilityConfig,
+  AccessibilityConfigUpdate,
+  AccessibilityCss,
+  AccessibilityGuide,
+  AccessibilityGuideFeature,
+  AccessibilityShortcut,
+  AccessibilitySkipLink,
+  AccessibilityValidationResult,
+  AccessibilityViolation,
+  AriaSuggestion,
+  AriaSuggestionRequest,
+} from './modules/accessibility'
+
+// ---------------------------------------------------------------- system 维护模式
+export {maintenanceApi} from './modules/maintenance'
+export type {
+  MaintenanceConfig,
+  MaintenanceConfigPayload,
+  MaintenanceEnablePayload,
+  MaintenanceSchedulePayload,
+  MaintenanceStatus,
+} from './modules/maintenance'
+
+// ---------------------------------------------------------------- system 多语言 / 本地化
+export {translationApi} from './modules/translation'
+export type {
+  BundleReplacePayload,
+  BundleReplaceResult,
+  BundleResult,
+  CurrencyInfo,
+  DetectResult,
+  EntryResult,
+  EntryUpsertPayload,
+  EntryUpsertResult,
+  ImportPayload,
+  ImportResult,
+  LanguageItem,
+  LanguageProgress,
+  LanguageStat,
+  LanguageUpsertPayload,
+  LanguageUpsertResult,
+  LocaleInfo,
+  LocalizeResult,
+  MemoryAddPayload,
+  MemoryAddResult,
+  MemoryClearResult,
+  MemoryImportPayload,
+  MemoryImportResult,
+  MemoryMatch,
+  MemoryPair,
+  MemoryStats,
+  MemorySuggestResult,
+  MissingResult,
+  MTBatchPayload,
+  MTBatchResult,
+  MTBatchResultItem,
+  MTProviderStatus,
+  MTTranslatePayload,
+  MTTranslateResult,
+  NumberFormat,
+  ProgressContributor,
+  ProgressRegisterPayload,
+  ProgressResult,
+  ReportResult,
+  StatsResult,
+  TemplateResult,
+  TextDirection,
+  TranslationFormat,
+} from './modules/translation'
+
+// ---------------------------------------------------------------- system 工作流
+export {workflowApi} from './modules/workflow'
+export type {
+  WorkflowApproval,
+  WorkflowDefinition,
+  WorkflowDefinitionSave,
+  WorkflowDefinitionValidate,
+  WorkflowHistoryEvent,
+  WorkflowHistoryItem,
+  WorkflowHistoryQuery,
+  WorkflowInstance,
+  WorkflowInstanceCreate,
+  WorkflowInstanceQuery,
+  WorkflowInstanceStatus,
+  WorkflowNode,
+  WorkflowNodeRuntime,
+  WorkflowNodeRuntimeStatus,
+  WorkflowNodeType,
+  WorkflowValidationResult,
+} from './modules/workflow'
+
+// ---------------------------------------------------------------- system 边缘函数
+export {edgeApi} from './modules/edge'
+export type {
+  EdgeArtifact,
+  EdgeArtifactFile,
+  EdgeCreateResult,
+  EdgeCredentialStatus,
+  EdgeDeployLogEntry,
+  EdgeDeployResult,
+  EdgeFunctionCreate,
+  EdgeFunctionDetail,
+  EdgeFunctionListResult,
+  EdgeFunctionSummary,
+  EdgeLogResult,
+  EdgePlatform,
+  EdgeValidateResult,
+  EdgeValidationCheck,
+  EdgeValidationResult,
+} from './modules/edge'
+
+// ---------------------------------------------------------------- system 后台菜单与角色授权
+export {adminMenuApi, MENU_TYPE_BUTTON, MENU_TYPE_DIR, MENU_TYPE_MENU} from './modules/adminMenu'
+export type {
+  AdminMenu,
+  AdminMenuCreatePayload,
+  AdminMenuQuery,
+  AdminMenuUpdatePayload,
+  MyAdminMenus,
+  RoleMenuAssignPayload,
+} from './modules/adminMenu'
+
+// ---------------------------------------------------------------- system 帮助中心
+export {helpApi} from './modules/help'
+export type {
+  HelpRelatedLink,
+  HelpSearchItem,
+  HelpSearchQuery,
+  HelpTooltipQuery,
+  HelpTooltipResult,
+  HelpTopicDeleteResult,
+  HelpTopicDetail,
+  HelpTopicSummary,
+  HelpTopicUpsertPayload,
+  HelpTopicUpsertResult,
+  HelpVideoItem,
+} from './modules/help'
+
+// ---------------------------------------------------------------- system 数据导出
+export {systemExportApi} from './modules/systemExport'
+export type {
+  ExportCsvParams,
+  ExportDownloadResult,
+  ExportField,
+  ExportPreviewRequest,
+  ExportPreviewResult,
+  ExportResource,
+  ExportRow,
+  ExportTemplatesResult,
+} from './modules/systemExport'
+
+// ---------------------------------------------------------------- system 系统工具
+export {utilityApi} from './modules/utility'
+export type {
+  ArticleMarkdownParams,
+  BlockPatternDef,
+  NlpIntentCatalog,
+  NlpParseRequest,
+  NlpParseResult,
+  UserVipStatus,
+} from './modules/utility'
+
+// ---------------------------------------------------------------- system OAuth 第三方登录
+export {oauthApi} from './modules/oauth'
+export type {
+  OAuthAuthorizeUrl,
+  OAuthBindingItem,
+  OAuthCallbackPayload,
+  OAuthCallbackResult,
+  OAuthProviderItem,
+  OAuthUnbindResult,
+} from './modules/oauth'

@@ -12,7 +12,7 @@ import {Delete, Plus, Refresh} from '@element-plus/icons-vue'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
 import {computed, onMounted, reactive, ref} from 'vue'
 
-import {maintenanceApi, type MaintenanceConfig, type MaintenanceStatus} from '@/api/modules/maintenance'
+import {maintenanceApi, type MaintenanceConfig, type MaintenanceStatus} from '@/api'
 import {formatDateTime, localTimeZone} from '@/utils/format'
 
 definePageMeta({
