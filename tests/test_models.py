@@ -13,7 +13,6 @@
 """
 
 import datetime
-from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy import create_engine, select

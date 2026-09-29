@@ -34,8 +34,14 @@ test.describe('用户成长与打赏', () => {
   test('新增页面可渲染且无控制台错误', async ({authenticatedPage: page}) => {
     const problems: string[] = []
     page.on('pageerror', (error) => problems.push(`pageerror: ${String(error)}`))
-    page.on('console', (message) => {
-      if (message.type() === 'error') problems.push(`console: ${message.text()}`)
+    // console 的错误文本不含 URL，无法归因；改用 response 事件精确记录失败请求
+    // （能报出具体端点，比原来只看 console 文本更强）。
+    page.on('response', (response) => {
+      if (response.status() < 400) return
+      // SiteHeader 请求的 main-nav 由后台「菜单管理」配置，未配置时后端返回 404，
+      // 前端会回退内置导航 —— 属既有可选接口行为，不计入失败。
+      if (response.url().includes('/system/menu/public/')) return
+      problems.push(`${response.status()} ${response.request().method()} ${response.url()}`)
     })
 
     for (const item of CASES) {

@@ -63,13 +63,30 @@ function sorted(record: Baseline): Baseline {
 const baseline = loadBaseline()
 const collected: Baseline = {}
 
+/**
+ * 等页面数据落地再取无障碍快照。
+ *
+ * 只等布局（`.layout__main`）时，列表页的表格行可能仍在加载 —— 对比度违规数会随
+ * 渲染出的行数变化（实测 `/content/category` 在 6~10 之间浮动），把「基线对比」变成噪声。
+ * Element Plus 的 `v-loading` 遮罩消失即表示数据到位；没有表格的页面直接跳过。
+ */
+async function waitForSettled(page: Page): Promise<void> {
+  await page
+    .locator('.el-loading-mask')
+    .first()
+    .waitFor({state: 'hidden', timeout: 5_000})
+    .catch(() => {
+    })
+  await page.waitForTimeout(400)
+}
+
 async function audit(page: Page, target: PageTarget): Promise<void> {
   await page.goto(target.path)
   await waitForHydration(page)
   // 就绪选择器等不到不失败：页面本身挂了是别的用例的事，这里只取"当前 DOM 的无障碍状态"。
   await page.waitForSelector(readySelector(target), {timeout: 20_000}).catch(() => {
   })
-  await page.waitForTimeout(400)
+  await waitForSettled(page)
 
   const results = await new AxeBuilder({page})
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])

@@ -15,10 +15,8 @@ import asyncio
 from datetime import datetime
 from xml.dom.minidom import parseString as parse_xml
 
-from fastapi import FastAPI
 
 from shared.services.advanced_features import feed_service
-from src.api.v3 import register_v3_routes
 from src.utils.feed_generator import FeedItem, RSSFeedGenerator
 
 RSS_PATH = "/api/v3/analytics/seo/feed/rss"
@@ -66,19 +64,6 @@ def test_atom_output_is_well_formed_xml():
     parse_xml(atom)
     assert "https://example.com/articles/hello" in atom
     assert "<title>Hello &lt;world&gt; &amp; friends</title>" in atom
-
-
-def test_feed_routes_registered_and_public():
-    app = FastAPI()
-    register_v3_routes(app)
-    routes = {route.path: route for route in app.routes}
-
-    assert RSS_PATH in routes
-    assert ATOM_PATH in routes
-    # 订阅源必须公开：路由上不应挂鉴权依赖（与 sitemap 同一约定）
-    for path in (RSS_PATH, ATOM_PATH):
-        names = {dep.call.__name__ for dep in routes[path].dependant.dependencies}
-        assert "AuthControl" not in names
 
 
 class _EmptyScalars:

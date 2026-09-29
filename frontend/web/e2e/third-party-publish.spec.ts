@@ -25,8 +25,9 @@ test.describe('多平台发布', () => {
     await expect(body).toContainText('多平台发布', {timeout: 20_000})
     await expect(body).toContainText('渠道配置')
     await expect(body).toContainText('发布任务')
-    // 平台适配器分期接入：当前应为空，页面顶部如实说明
-    await expect(body).toContainText('没有已接入的平台适配器')
+    // 平台适配器已分期接入（`GET /platform` 返回 5 个平台），空态提示只在清单为空时出现；
+    // 这里断言「渠道配置」页的主操作可用，代替原先「应为空」的过时假设。
+    await expect(body).toContainText('新建渠道')
 
     expect(problems).toEqual([])
   })

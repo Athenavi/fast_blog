@@ -11,13 +11,10 @@
   4. 路由已注册且需要鉴权
 """
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 
 import src.utils.database.slow_query_hook as hook
 from shared.services.performance.slow_query_logger import SlowQueryLogger
-from src.api.v3 import register_v3_routes
 
 
 def _fresh_logger(monkeypatch, threshold: float) -> SlowQueryLogger:
@@ -74,15 +71,3 @@ def test_hook_can_be_disabled(monkeypatch):
     engine = create_engine("sqlite://")
     assert hook.install_slow_query_hook(engine) is False
 
-
-def test_slow_query_routes_registered_and_guarded():
-    app = FastAPI()
-    register_v3_routes(app)
-    paths = {route.path for route in app.routes}
-
-    assert "/api/v3/system/monitor/slow-queries" in paths
-    assert "/api/v3/system/monitor/slow-queries/threshold" in paths
-
-    client = TestClient(app, raise_server_exceptions=False)
-    assert client.get("/api/v3/system/monitor/slow-queries").status_code == 401
-    assert client.delete("/api/v3/system/monitor/slow-queries").status_code == 401

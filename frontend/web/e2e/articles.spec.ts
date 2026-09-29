@@ -9,12 +9,12 @@ import {expect, test} from './fixtures/auth'
 test.describe('文章管理', () => {
   test('管理员登录后可以访问文章列表', async ({authenticatedPage: page}) => {
     await page.goto('/content/article')
-    await expect(page.locator('.page-container').first()).toBeVisible({timeout: 15000})
+    await expect(page.locator('.admin-page, .page-container').first()).toBeVisible({timeout: 15000})
   })
 
   test('文章列表页包含关键 UI 元素', async ({authenticatedPage: page}) => {
     await page.goto('/content/article')
-    await page.locator('.page-container').first().waitFor({timeout: 15000})
+    await page.locator('.admin-page, .page-container').first().waitFor({timeout: 15000})
 
     const hasSearch = await page
       .locator('input[placeholder*="关键词"], input[placeholder*="搜索"], input[type="search"]')
@@ -32,12 +32,13 @@ test.describe('文章管理', () => {
 
   test('点击新建按钮能打开创建表单', async ({authenticatedPage: page}) => {
     await page.goto('/content/article')
-    await page.locator('.page-container').first().waitFor({timeout: 15000})
+    await page.locator('.admin-page, .page-container').first().waitFor({timeout: 15000})
 
     const createBtn = page.locator('button').filter({hasText: /新建|创建|新增|Create|New/}).first()
     if (await createBtn.isVisible().catch(() => false)) {
       await createBtn.click()
-      await expect(page.locator('.el-dialog').first()).toBeVisible({timeout: 10000})
+      // 新建走独立编辑页 /content/article/new（不再是 el-dialog）
+      await expect(page).toHaveURL(/\/content\/article\/new/, {timeout: 10000})
     }
   })
 
@@ -54,7 +55,8 @@ test.describe('文章管理', () => {
       .first()
     if (await editBtn.isVisible().catch(() => false)) {
       await editBtn.click()
-      await expect(page.locator('.el-dialog').first()).toBeVisible({timeout: 10000})
+      // 编辑走独立编辑页 /content/article/{id}
+      await expect(page).toHaveURL(/\/content\/article\/[^/]+/, {timeout: 10000})
     }
   })
 })

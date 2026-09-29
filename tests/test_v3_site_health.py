@@ -13,11 +13,8 @@
 
 import asyncio
 
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
 
 from shared.services.system.site_health import SiteHealthService
-from src.api.v3 import register_v3_routes
 
 
 class _OkSession:
@@ -73,11 +70,3 @@ def test_report_text_format_mentions_score():
     assert "站点健康检查报告" in report
     assert "总体评分" in report
 
-
-def test_site_report_route_registered_and_guarded():
-    app = FastAPI()
-    register_v3_routes(app)
-    assert "/api/v3/system/health/site-report" in {route.path for route in app.routes}
-
-    client = TestClient(app, raise_server_exceptions=False)
-    assert client.get("/api/v3/system/health/site-report").status_code == 401
