@@ -8,7 +8,6 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from shared.logging import default_logger as logger
 
 
 class ArticleAnalyticsService:

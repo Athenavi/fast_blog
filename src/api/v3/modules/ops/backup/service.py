@@ -96,9 +96,14 @@ class BackupOpsService:
         differential: bool = False,
     ) -> dict:
         """创建增量 / 差异备份（相对基准的**变化表数据快照**，不含结构）"""
-        result = await self._service.create_incremental_backup(
-            base_path=base_path, tables=tables, differential=differential
-        )
+        try:
+            result = await self._service.create_incremental_backup(
+                base_path=base_path, tables=tables, differential=differential
+            )
+        except ValueError as exc:
+            # 表名未通过 information_schema 白名单校验（backup_service.table_fingerprints）
+            # → 客户端错误 400，而不是 500
+            raise BadRequestError(str(exc)) from exc
         if not result.get("success"):
             raise BadRequestError(result.get("error", "增量备份失败"))
         return result

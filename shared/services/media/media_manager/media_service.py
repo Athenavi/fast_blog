@@ -3,12 +3,12 @@
 SQLAlchemy async 版本 — 替代原 Django ORM 实现
 提供缩略图生成、分类标签、批量操作、EXIF处理等
 """
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 from PIL import Image, ExifTags
-from sqlalchemy import select, func, delete as sa_delete, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media

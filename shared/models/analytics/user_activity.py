@@ -4,15 +4,21 @@ SQLAlchemy 模型定义 - UserActivity
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class UserActivity(Base):
     """用户活动模型模型"""
     __tablename__ = 'user_activities'
+    # 手工补充的索引：活动流水表按时间/用户/类型查询，无索引会全表扫描。
+    # （模型由生成器产出，若重新生成请同步 config/models.yaml 的 indexes 段。）
+    __table_args__ = (
+        Index('idx_user_activities_created_at', 'created_at'),
+        Index('idx_user_activities_user_created', 'user', 'created_at'),
+        Index('idx_user_activities_type_created', 'activity_type', 'created_at'),
+    )
 
 
 

@@ -551,7 +551,7 @@ def init_extensions(app):
     try:
         import time
         from sqlalchemy import event
-        from shared.services.performance.query_monitor import QueryMonitorService, query_monitor_service
+        from shared.services.performance.query_monitor import query_monitor_service
 
         # 使用全局实例并开始录制
         query_monitor_service.start_recording()

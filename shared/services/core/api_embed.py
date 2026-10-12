@@ -5,7 +5,6 @@ API嵌入服务
 避免N+1查询问题，提高API效率
 """
 
-import re
 from typing import Any, Dict, List
 
 from sqlalchemy import select

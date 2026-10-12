@@ -2,19 +2,15 @@
 TOTP 双因素认证服务
 支持 TOTP 验证、2FA 启用/禁用、备用码管理
 """
-import hashlib
 import hmac
-import struct
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set
 
 import pyotp
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
-from shared.logging import default_logger as logger
 
 
 BACKUP_CODE_COUNT = 8

@@ -11,6 +11,7 @@
 """
 
 import os
+import shlex
 import socket
 import subprocess
 import time
@@ -195,10 +196,31 @@ def run_action(entry: dict[str, Any], action: str) -> dict[str, Any]:
         }
 
     started = time.time()
+    # 登记命令按 argv 直接执行（shell=False）：命令虽由管理员登记，但交给 shell 解释后
+    # `;` / `&&` / `$(...)` 等就能在 supervisor:execute 权限下执行任意命令（存储型命令注入）。
+    # 代价：依赖管道 / 重定向 / 变量展开的登记命令不再生效 —— 会如实报错，而不是静默降级。
+    try:
+        argv = shlex.split(command, posix=os.name != "nt")
+    except ValueError as exc:
+        return {
+            "ok": False,
+            "action": action,
+            "command": command,
+            "duration_ms": int((time.time() - started) * 1000),
+            "detail": f"命令无法解析为参数列表：{exc}",
+        }
+    if not argv:
+        return {
+            "ok": False,
+            "action": action,
+            "command": command,
+            "duration_ms": int((time.time() - started) * 1000),
+            "detail": "登记命令为空，未执行",
+        }
     try:
         proc = subprocess.run(
-            command,
-            shell=True,
+            argv,
+            shell=False,
             cwd=str(project_root()),
             capture_output=True,
             text=True,

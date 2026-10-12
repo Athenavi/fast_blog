@@ -20,6 +20,8 @@
 
 import hashlib
 import json
+import os
+import shlex
 import shutil
 import subprocess
 import sys
@@ -521,10 +523,19 @@ class UpgradeExecutor:
     @staticmethod
     def _run_restart(command: str) -> tuple[bool, str]:
         """执行配置的重启命令（真实执行；失败如实返回输出尾巴）"""
+        # 按 argv 直接执行（shell=False）
+        # restart_command 来自 system_settings；交给 shell 解释就等于 upgrade:execute 权限下的
+        # 任意命令执行。代价：依赖管道 / 重定向 / 变量展开的命令不再生效（会如实报错）。
+        try:
+            argv = shlex.split(command, posix=os.name != "nt")
+        except ValueError as exc:
+            return False, f"重启命令无法解析为参数列表：{exc}"
+        if not argv:
+            return False, "重启命令为空，未执行"
         try:
             proc = subprocess.run(
-                command,
-                shell=True,
+                argv,
+                shell=False,
                 cwd=str(PROJECT_ROOT),
                 capture_output=True,
                 text=True,

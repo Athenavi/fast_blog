@@ -781,18 +781,29 @@ class BackupService:
         fingerprints: Dict[str, str] = {}
         conn = await self._connect(db_config)
         try:
-            if not tables:
-                rows = await conn.fetch(
-                    """
-                    SELECT table_name
-                    FROM information_schema.tables
-                    WHERE table_schema = 'public'
-                      AND table_type = 'BASE TABLE'
-                    ORDER BY table_name
-                    """
-                )
-                tables = [row['table_name'] for row in rows]
-            for table in tables:
+            # 表名无法参数化、只能拼进 SQL，因此**始终**先取 information_schema 的真实表名当白名单：
+            # 显式传入的 tables 必须命中它，否则拒绝执行。
+            # （此前是直接把请求参数拼进 FROM "{table}"，带 backup:create 权限即可注入表名。）
+            rows = await conn.fetch(
+                """
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                  AND table_type = 'BASE TABLE'
+                ORDER BY table_name
+                """
+            )
+            known = {row['table_name'] for row in rows}
+            if tables:
+                unknown = [t for t in tables if t not in known]
+                if unknown:
+                    raise ValueError(
+                        "未知表名（已拒绝执行）：" + ", ".join(sorted(unknown)[:10])
+                    )
+                selected = [t for t in tables if t in known]
+            else:
+                selected = sorted(known)
+            for table in selected:
                 value = await conn.fetchval(
                     f'SELECT COALESCE(MAX(xmin::text::bigint), 0) FROM "{table}"'
                 )

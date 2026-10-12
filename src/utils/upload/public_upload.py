@@ -23,6 +23,7 @@ from shared.services.media.media_manager import media_service
 from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.storage import s3_storage
 from src.utils.image.video_processor import video_processor
+from src.utils.upload.svg_sanitizer import sanitize_svg_bytes
 
 from src.unified_logger import default_logger as logger
 from shared.config.settings import app_config
@@ -1065,6 +1066,10 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
                     r'(href|xlink:href|src|style)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)',
                     _strip_proto, content, flags=svg_re.IGNORECASE)
                 file_data = content.encode('utf-8')
+                # 第二道防线：白名单清洗（XML 解析重建文档）。
+                # 正则黑名单无法覆盖"未被列出的元素 / 实体编码 / 命名空间混淆"，
+                # 这里按元素与属性白名单过滤，未知元素整棵子树丢弃。
+                file_data = sanitize_svg_bytes(file_data)
                 logger.info(f"[OK] SVG 消毒完成: {filename}")
             except Exception as svg_err:
                 logger.warning(f"[WARN] SVG 消毒失败: {svg_err}，将拒绝该文件")

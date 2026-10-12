@@ -3,9 +3,7 @@
 包含输入验证、SQL注入防护、XSS防护等功能
 """
 import os
-import random
 import re
-import string
 from urllib.parse import urlparse
 
 from fastapi import Request
@@ -423,10 +421,6 @@ def is_valid_iso_language_code(iso_code: str) -> bool:
     # 所有有效的语言代码集合(基于提供的对照表)
 
     return iso_code in valid_language_codes
-
-
-def random_string(param):
-    return ''.join(random.sample(string.ascii_letters + string.digits, param))
 
 
 def validate_email_base(email):

@@ -435,7 +435,7 @@ class ConflictDetector:
             last_updated = plugin.get('last_updated')
             if last_updated:
                 try:
-                    from datetime import datetime, timedelta
+                    from datetime import datetime
                     
                     # 解析最后更新时间
                     if isinstance(last_updated, str):

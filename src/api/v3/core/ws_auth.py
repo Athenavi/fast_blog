@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from src.api.v3.core.exceptions import UnauthorizedError
-from src.api.v3.core.security import decode_token
+from src.api.v3.core.security import decode_token_async
 
 #: 应用自定义关闭码（RFC 6455 把 4000-4999 留给应用）—— 全仓唯一来源
 WS_CLOSE_UNAUTHORIZED = 4401
@@ -62,7 +62,7 @@ async def resolve_ws_user(db: AsyncSession, websocket: WebSocket) -> Optional[Us
     if not token:
         return None
     try:
-        payload = decode_token(token)
+        payload = await decode_token_async(token)
     except UnauthorizedError:
         return None
     subject = str(payload.get("sub") or "")

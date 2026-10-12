@@ -34,6 +34,9 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env (>=32 random chars)}
       - ENVIRONMENT=production
       - DEBUG=False
+      # 站点对外地址（Cookie 加 Secure 的唯一判定依据）：必须是 https://你的域名。
+      # 缺失/留空会让登录 cookie 不带 Secure，compose 直接报错以避免静默降级。
+      - SITE_URL=${SITE_URL:?SITE_URL must be set in .env (https://your-domain)}
       # 多 worker 进程数（>1 时启用；依赖 Redis 共享限流/缓存，调度任务由 Redis 分布式锁保证单次执行）
       - WORKERS=${WORKERS:-2}
       # 内置插件开关：逗号分隔需要关闭的非核心模块名，如 ecommerce,enterprise

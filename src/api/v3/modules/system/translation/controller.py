@@ -20,7 +20,7 @@
     GET    /api/v3/system/translation/template/{locale}                生成翻译模板
 
     # 导入导出
-    GET    /api/v3/system/translation/export?locale=&format=           导出词条（**真实文件下载**）
+    GET    /api/v3/system/translation/export?locale=&format=           导出词条（**真实文件下载**，需 setting:view）
     POST   /api/v3/system/translation/import                           导入解析并落库（需 setting:edit）
 
     # 进度
@@ -185,11 +185,13 @@ async def translation_template(locale: str, db: DBSession) -> dict:
 
 
 # ================================================================ 导入导出
-@router.get("/export", summary="导出词条（真实文件下载）")
+@router.get("/export", summary="导出词条（需 setting:view）")
 async def export_translations(
     db: DBSession,
+    _current: CurrentUser,
     locale: str = Query(..., min_length=1, max_length=20, description="要导出的语言"),
     fmt: str = Query(default="json", alias="format", description=f"导出格式：{'/'.join(SUPPORTED_FORMATS)}"),
+    _perm=AuthControl(codes.SETTING_VIEW),
 ) -> Response:
     """返回真实文件内容（``Content-Disposition: attachment``）。
 

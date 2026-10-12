@@ -512,9 +512,23 @@ class WordPressImportService:
                     continue
 
                 # 下载文件
+                # SSRF 防护：WXR 里的媒体 URL 来自被导入文件（用户可控），不校验就能拿它
+                # 探测内网 / 云元数据（169.254.169.254）。校验放在下载前，且不跟随重定向
+                # （否则可用 302 跳回内网绕过校验）。
+                from src.utils.security.safe import validate_public_url
+                valid_url, url_err = validate_public_url(url)
+                if not valid_url:
+                    results['failed'] += 1
+                    results['errors'].append(f"下载被拒绝: {url} - {url_err}")
+                    continue
+
                 try:
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                        async with session.get(
+                            url,
+                            timeout=aiohttp.ClientTimeout(total=60),
+                            allow_redirects=False,
+                        ) as response:
                             if response.status == 200:
                                 content = await response.read()
                                 with open(local_path, 'wb') as f:

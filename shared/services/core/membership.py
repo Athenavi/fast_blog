@@ -7,11 +7,14 @@
 3. 订阅管理
 4. 权限检查
 """
+import logging
 from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 
 class MembershipService:
@@ -601,8 +604,10 @@ class MembershipService:
                         'user_id': uid,
                         'count': 1,
                     })
-            except Exception:
-                pass
+            except Exception as exc:
+                # 事件派发失败不应影响"清理到期订阅"这一主流程，但必须留痕，
+                # 否则会员到期事件静默丢失时无从排查
+                logger.warning(f"会员到期事件派发失败：{exc}")
 
         return count
 

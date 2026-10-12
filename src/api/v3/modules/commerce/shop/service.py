@@ -157,11 +157,30 @@ class ShopService:
         await db.commit()
 
     # ------------------------------------------------------------------ 库存
+    @staticmethod
+    async def _products_of_items(db: AsyncSession, items: Sequence[Any]) -> Dict[int, "Product"]:
+        """按订单项批量取回商品（单次 IN 查询，避免逐项 db.get 的 N+1）"""
+        ids = [int(i.product_id) for i in items if getattr(i, "product_id", None)]
+        if not ids:
+            return {}
+        rows = (
+            await db.execute(select(Product).where(Product.id.in_(ids)))
+        ).scalars().all()
+        return {p.id: p for p in rows}
+
     async def stock_check(self, db: AsyncSession, items: Sequence[Tuple[int, int]]) -> List[Dict[str, Any]]:
         """逐项校验库存（返回每项的可用性与缺口，不写库）"""
         result: List[Dict[str, Any]] = []
+        # 一次性取回全部商品：此前是循环内逐项 db.get(Product)，购物车/结算含数十项时
+        # 就是几十次往返（N+1）。
+        ids = [int(pid) for pid, _ in items]
+        rows = (
+            (await db.execute(select(Product).where(Product.id.in_(ids)))).scalars().all()
+            if ids else []
+        )
+        by_id = {p.id: p for p in rows}
         for product_id, quantity in items:
-            product = await db.get(Product, product_id)
+            product = by_id.get(int(product_id))
             if product is None:
                 result.append({"product_id": product_id, "ok": False, "reason": "商品不存在"})
                 continue
@@ -599,8 +618,10 @@ class ShopService:
             await db.execute(select(OrderItem).where(OrderItem.order == order.id))
         ).scalars().all()
         now = datetime.now()
+        # 批量取回商品，避免逐项 db.get(Product) 的 N+1
+        products = await self._products_of_items(db, items)
         for item in items:
-            product = await db.get(Product, int(item.product_id)) if item.product_id else None
+            product = products.get(int(item.product_id)) if item.product_id else None
             if product is not None:
                 product.stock = int(product.stock or 0) + int(item.quantity or 0)
                 product.updated_at = now
@@ -631,8 +652,10 @@ class ShopService:
                 await db.execute(select(OrderItem).where(OrderItem.order == order.id))
             ).scalars().all()
             now = datetime.now()
+            # 批量取回商品，避免逐项 db.get(Product) 的 N+1
+            products = await self._products_of_items(db, items)
             for item in items:
-                product = await db.get(Product, int(item.product_id)) if item.product_id else None
+                product = products.get(int(item.product_id)) if item.product_id else None
                 if product is not None:
                     product.stock = int(product.stock or 0) + int(item.quantity or 0)
                     product.updated_at = now

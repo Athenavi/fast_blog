@@ -9,7 +9,7 @@
 5. 重复内容检测
 """
 import re
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 
 
 class ContentModerationService:

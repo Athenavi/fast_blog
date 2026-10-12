@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - Notification
 生成时间：2026-06-13 23:20:01
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class Notification(Base):

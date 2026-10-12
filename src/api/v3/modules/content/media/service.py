@@ -58,7 +58,7 @@ _PREVIEWABLE_TYPES = {
     "video/mp4", "video/webm",
     "audio/mpeg", "audio/wav", "audio/mp3",
     "application/pdf",
-    "text/plain", "text/markdown", "text/html",
+    "text/plain", "text/markdown",
 }
 
 

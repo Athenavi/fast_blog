@@ -3,7 +3,6 @@
 提供插件可以安全调用的公开接口，避免插件直接操作数据库
 """
 import logging
-import re
 from typing import Dict, List, Any, Optional
 
 from sqlalchemy import select

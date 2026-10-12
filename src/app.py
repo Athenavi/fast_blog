@@ -329,8 +329,17 @@ def register_middleware(app: FastAPI):
             "http://127.0.0.1:9421",
             "http://localhost"  # Capacitor Android 模拟器
         ]
-        if "*" in allow_origins:
-            allow_origins = [o for o in allow_origins if o != "*"] or ["http://localhost:3000"]
+
+    # 通配校验放在两个分支**之外**：此前它嵌在默认分支里，而默认列表本身不含 "*"，
+    # 于是 CORS_ORIGINS=* 时不会被清理 —— 与 allow_credentials=True 组合时
+    # starlette 会把 Access-Control-Allow-Origin 回显为请求 Origin，
+    # 等价于任意站点都能携带凭据跨域读接口。
+    if "*" in allow_origins:
+        logger.warning(
+            "[CORS] CORS_ORIGINS 含通配 '*'，与 allow_credentials=True 冲突；"
+            "已剔除通配。请显式列出允许的前端域名。"
+        )
+        allow_origins = [o for o in allow_origins if o != "*"] or ["http://localhost:3000"]
 
     logger.info(f"[CORS] 允许源: {allow_origins}")
     app.add_middleware(
@@ -698,17 +707,20 @@ def create_app(config=None):
     worker_info = _get_worker_info()
 
     # OpenAPI 元数据（精简但保留核心内容）
-    # 生产环境（ENVIRONMENT=production）禁用 API 文档界面，避免泄露 API 结构信息
-    _env = os.environ.get('ENVIRONMENT', 'development').lower()
+    # API 文档界面**默认关闭**：只有本地/测试环境显式开启（.env 里的 ENVIRONMENT=development
+    # 或 DEBUG=true）才暴露 —— 避免"忘了设 ENVIRONMENT=production 就把 API 结构挂到公网"。
+    _env = os.environ.get('ENVIRONMENT', '').lower()
+    _debug_env = os.environ.get('DEBUG', '').lower() in ('1', 'true', 'yes', 'on')
     _is_production = (_env == 'production')
+    _expose_docs = _debug_env or _env in ('development', 'dev', 'testing', 'test')
     app = FastAPI(
         title="FastBlog API",
         version="1.0.0",
         lifespan=lifespan,
-        docs_url=None if _is_production else "/api/v3/docs",
-        redoc_url=None if _is_production else "/api/v3/redoc",
-        openapi_url=None if _is_production else "/api/v3/openapi.json",
-        swagger_ui_oauth2_redirect_url=None if _is_production else "/api/v2/docs/oauth2-redirect",
+        docs_url="/api/v3/docs" if _expose_docs else None,
+        redoc_url="/api/v3/redoc" if _expose_docs else None,
+        openapi_url="/api/v3/openapi.json" if _expose_docs else None,
+        swagger_ui_oauth2_redirect_url="/api/v2/docs/oauth2-redirect" if _expose_docs else None,
     )
 
     # 注册中间件

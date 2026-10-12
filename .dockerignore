@@ -38,10 +38,16 @@ logs
 *.log
 
 # Environment files
+# 注意：镜像会被分发/推送，任何 .env 变体都不得进入镜像层。
+# 后端运行时配置由 docker-compose 的 environment 注入（见 docker-compose.yml），
+# config/.env 只在本地开发时由 load_dotenv 读取。
 .env
-.env.local
-.env.dev
-.env.prod
+.env.*
+*.env
+.env.bak-*
+config/.env
+config/.env.*
+frontend/web/.env.e2e
 
 # Documentation (not needed in container)
 docs

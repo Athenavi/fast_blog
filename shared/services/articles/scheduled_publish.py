@@ -10,7 +10,7 @@
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select
 
 
 def _utcnow() -> datetime:

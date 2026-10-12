@@ -15,7 +15,9 @@ services:
     container_name: fastblog-backend
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT:-9421}:9421"
+      # 仅绑定回环：外部流量统一经 nginx 入口转发（nginx 走容器网络），
+      # 开发机仍可直连 127.0.0.1:9421 调试。与 docker-compose.prod.yml 保持一致。
+      - "127.0.0.1:${BACKEND_PORT:-9421}:9421"
     environment:
       # --- 数据库配置（Docker 内部网络，host 使用服务名） ---
       - DB_HOST=postgres
@@ -26,6 +28,9 @@ services:
       # --- Redis 配置 ---
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+      # --- 站点对外地址（Cookie Secure 判定依据；生产填 https://你的域名） ---
+      - SITE_URL=${SITE_URL:-}
       # --- 应用配置 ---
       # SECRET_KEY 生成示例：python -c "import secrets; print(secrets.token_urlsafe(32))"
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env (>=32 random chars)}
@@ -117,7 +122,8 @@ services:
     container_name: fastblog-postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # 仅绑定回环：数据库只需被容器网络内的 backend 访问，不对外暴露。
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
@@ -140,14 +146,20 @@ services:
     container_name: fastblog-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+      # 仅绑定回环：Redis 只应被容器网络内的服务访问（与 docker-compose.prod.yml 一致）。
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    environment:
+      # healthcheck 需要该变量；redis-server 的密码来自下方 command
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+    command: >
+      redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes:
       - fastblog-redis:/data
     networks:
       - fastblog-network
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5

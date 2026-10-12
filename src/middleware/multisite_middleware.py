@@ -34,7 +34,7 @@ class MultiSiteMiddleware(BaseHTTPMiddleware):
             async with db_manager.get_session() as db:
                 current_site = await self._resolve_site(request, db)
                 request.state.current_site = current_site
-        except Exception as e:
+        except Exception:
             # 如果无法解析站点，使用默认站点
             request.state.current_site = None
 

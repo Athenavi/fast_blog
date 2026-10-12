@@ -3,7 +3,7 @@
 """
 import os, sys
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List
 
 from shared.logging import default_logger as logger
 

@@ -9,6 +9,7 @@ token 都能被同一套鉴权依赖（``src/auth/auth_deps.py``）接受：:
 两处实现漂移，v3 在此提供等价实现；待 v2 下线时把本模块提升到 ``src/auth/``。
 """
 
+import asyncio
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
@@ -63,10 +64,10 @@ def issue_token(
     return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def decode_token(token: str) -> dict:
-    """解析并校验 token；失败或已被吊销时抛 ``UnauthorizedError``"""
+def _decode_jwt(token: str) -> dict:
+    """只做 JWT 解析与过期校验（同步、无 I/O），不查黑名单"""
     try:
-        payload = jwt.decode(
+        return jwt.decode(
             token,
             settings.JWT_SECRET_KEY,
             algorithms=[settings.JWT_ALGORITHM],
@@ -75,10 +76,33 @@ def decode_token(token: str) -> dict:
     except InvalidTokenError as exc:
         raise UnauthorizedError("令牌无效或已过期") from exc
 
+
+def decode_token(token: str) -> dict:
+    """解析并校验 token；失败或已被吊销时抛 ``UnauthorizedError``。
+
+    同步版本：黑名单检查会调用**同步** Redis 客户端，只能在事件循环之外的上下文使用
+    （同步 CLI / 后台线程）。async 请求路径请用 ``decode_token_async``。
+    """
+    payload = _decode_jwt(token)
     jti = payload.get("jti")
     blacklist = get_token_blacklist()
     if jti and blacklist.is_available and blacklist.is_blacklisted(jti):
         raise UnauthorizedError("令牌已失效")
+    return payload
+
+
+async def decode_token_async(token: str) -> dict:
+    """``decode_token`` 的异步版本：黑名单查询放到线程池执行。
+
+    此前 async 路由（WebSocket 鉴权、refresh）走的是同步版本，一次同步 Redis 往返
+    会阻塞整个事件循环；Redis 不可达时更会阻塞到 socket 超时。
+    """
+    payload = _decode_jwt(token)
+    jti = payload.get("jti")
+    blacklist = get_token_blacklist()
+    if jti and blacklist.is_available:
+        if await asyncio.to_thread(blacklist.is_blacklisted, jti):
+            raise UnauthorizedError("令牌已失效")
     return payload
 
 

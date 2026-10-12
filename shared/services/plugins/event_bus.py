@@ -25,12 +25,10 @@ FastBlog Plugin EventBus
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 import logging
-import traceback
-from dataclasses import dataclass, field, asdict
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, Optional
 
 logger = logging.getLogger(__name__)
 

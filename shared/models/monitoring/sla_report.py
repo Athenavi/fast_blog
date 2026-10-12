@@ -3,7 +3,7 @@ SQLAlchemy 模型定义 - SLAReport
 SLA 报告模型，记录企业许可证的 SLA 达标情况与历史报告。
 """
 
-from sqlalchemy import Column, BigInteger, String, Integer, Boolean, DateTime, Numeric, Index
+from sqlalchemy import Column, BigInteger, Integer, Boolean, DateTime, Numeric, Index
 
 from .. import Base  # 使用统一的 Base
 

@@ -122,6 +122,19 @@ class BaseConfig:
     # 添加数据库回显选项，用于调试
     database_echo = os.getenv('DATABASE_ECHO', 'False').lower() == 'true'
 
+    # Redis（限流 / 缓存 / token 黑名单 / 会话共享）
+    # 此前只在各处 os.environ.get('REDIS_PASSWORD') 就地读取，settings 上缺这几个属性，
+    # 导致依赖 getattr(settings, 'REDIS_PASSWORD') 的调用方（如 rate_limiter）拿不到密码，
+    # 在启用 Redis 认证后会静默降级为内存实现。
+    REDIS_HOST = os.environ.get('REDIS_HOST') or 'localhost'
+    REDIS_PORT = int(os.environ.get('REDIS_PORT') or 6379)
+    REDIS_DB = int(os.environ.get('REDIS_DB') or 0)
+    REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD') or None
+
+    # 站点对外地址：Cookie 是否加 Secure 的判定依据（需以 https:// 开头）。
+    # 未设置时 cookie 不带 Secure（仅适合本地 http 调试），生产必须在 .env 中显式配置。
+    SITE_URL = os.environ.get('SITE_URL') or (os.environ.get('DOMAIN') or '')
+
     CACHE_TYPE = 'simple'
     SESSION_COOKIE_NAME = 'zb_session'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=48)

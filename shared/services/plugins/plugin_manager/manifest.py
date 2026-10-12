@@ -613,7 +613,6 @@ class DependencyResolver:
         """
         import subprocess
         import sys
-        import shlex
 
         messages = []
         success = True

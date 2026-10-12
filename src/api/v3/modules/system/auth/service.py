@@ -22,7 +22,7 @@ from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from src.api.v3.core.exceptions import BadRequestError, UnauthorizedError
 from src.api.v3.core.logger import get_logger
-from src.api.v3.core.security import authenticate_user, decode_token, issue_token
+from src.api.v3.core.security import authenticate_user, decode_token_async, issue_token
 
 logger = get_logger("auth")
 
@@ -148,7 +148,7 @@ class AuthService:
         if not refresh_token:
             raise BadRequestError("未提供刷新令牌")
 
-        payload = decode_token(refresh_token)
+        payload = await decode_token_async(refresh_token)
         if payload.get("type") != "refresh":
             raise BadRequestError("令牌类型错误")
 
