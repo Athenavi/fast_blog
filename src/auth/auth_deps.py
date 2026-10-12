@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config.settings import settings
 from shared.models.user import User as UserModel
+from src.auth.api_token import Principal
 from src.utils.database.unified_manager import get_db_session as get_async_session
 
 # token_blacklist 改为惰性导入：避免模块加载时触发 Redis .ping() 导致启动缓慢
@@ -74,6 +75,34 @@ async def _get_token_from_request(request: Request) -> Optional[str]:
     return request.cookies.get("access_token") or request.cookies.get("access_token_cookie")
 
 
+async def _authenticate_api_key(request: Request, db: AsyncSession) -> Optional[Principal]:
+    """用 ``X-API-Key`` 认证（第三方应用 / CI 的接入方式）。
+
+    成功时把 :class:`Principal` 挂到 ``request.state.principal``；权限层据此把可用权限
+    **收窄**到令牌的 ``scopes``。任何失败都返回 ``None``（由调用方统一给同一个 401），
+    不区分"不存在 / 已撤销 / 已过期 / 哈希不匹配"，避免用差异枚举令牌。
+    """
+    raw = (request.headers.get("X-API-Key") or "").strip()
+    if not raw:
+        return None
+
+    from src.auth.api_token import authenticate_api_key, principal_from_token
+
+    row = await authenticate_api_key(db, raw)
+    if row is None:
+        return None
+
+    user = (
+        await db.execute(select(UserModel).where(UserModel.id == row.user_id))
+    ).scalar_one_or_none()
+    if not user or not user.is_active:
+        return None
+
+    principal = principal_from_token(row, user)
+    request.state.principal = principal
+    return principal
+
+
 async def _authenticate_user(
     request: Request,
     db: AsyncSession,
@@ -86,6 +115,10 @@ async def _authenticate_user(
     """
     token = await _get_token_from_request(request)
     if not token:
+        # 无 JWT 时尝试 API 令牌（X-API-Key）：第三方应用 / CI 不需要共享用户密码
+        principal = await _authenticate_api_key(request, db)
+        if principal is not None:
+            return principal.user
         if required:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -149,6 +182,8 @@ async def _authenticate_user(
             )
         return None
 
+    # 标记身份来源：权限层据此判断是否需要把权限收窄到 token 的 scopes
+    request.state.principal = Principal(user=user, scopes=None, source="jwt")
     return user
 
 

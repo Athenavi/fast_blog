@@ -111,6 +111,10 @@ ROLE_DEFS = [
             C.BACKUP_VIEW, C.BACKUP_CREATE,
             C.WEBHOOK_VIEW, C.WEBHOOK_EDIT,
             C.NOTIFICATION_VIEW, C.NOTIFICATION_EDIT,
+            # API 令牌（第三方 / CI 接入）
+            C.APITOKEN_VIEW, C.APITOKEN_CREATE, C.APITOKEN_DELETE,
+            # 审计导出（真实文件下载）
+            C.AUDIT_EXPORT,
         ),
     },
     {
@@ -146,6 +150,8 @@ ROLE_DEFS = [
             C.MEDIA_VIEW, C.MEDIA_UPLOAD,
             C.COMMENT_VIEW, C.COMMENT_EDIT,
             C.DASHBOARD_VIEW,
+            # API 令牌：普通用户也应能为自己签发受限令牌（scopes 不得超出自身权限）
+            C.APITOKEN_VIEW, C.APITOKEN_CREATE, C.APITOKEN_DELETE,
         ),
     },
 ]

@@ -87,4 +87,7 @@ aiofiles==25.1.0
 aiohttp==3.14.0
 aioboto3==15.5.0
 
+# GraphQL（读 + 少量写；与 REST 共享鉴权，见 src/api/v3/graphql/）
+strawberry-graphql[fastapi]==0.315.4
+
 cryptography==44.0.0

@@ -60,6 +60,7 @@ DELETE /api/v3/ops/notification/{notification_id}
 DELETE /api/v3/ops/webhook/{webhook_id}
 DELETE /api/v3/system/admin-menu/delete
 DELETE /api/v3/system/admin-menu/{menu_id}
+DELETE /api/v3/system/api-token/{token_id}
 DELETE /api/v3/system/cache/items/{key}
 DELETE /api/v3/system/edge/function/{name}
 DELETE /api/v3/system/gdpr/consent/{consent_id}
@@ -193,6 +194,7 @@ GET /api/v3/content/article/public/list
 GET /api/v3/content/article/public/preview/{token}
 GET /api/v3/content/article/public/slug/{slug}
 GET /api/v3/content/article/{article_id}
+GET /api/v3/content/article/{article_id}/locales
 GET /api/v3/content/article/{article_id}/preview-tokens
 GET /api/v3/content/category
 GET /api/v3/content/category/detail/{category_id}
@@ -218,6 +220,7 @@ GET /api/v3/content/comment/pending
 GET /api/v3/content/comment/public/article/{article_id}
 GET /api/v3/content/comment/{comment_id}
 GET /api/v3/content/custom-post-type
+GET /api/v3/content/custom-post-type/{type_id}/values/{content_id}
 GET /api/v3/content/feed/discover
 GET /api/v3/content/feed/stats
 GET /api/v3/content/feed/timeline
@@ -230,6 +233,7 @@ GET /api/v3/content/media/folders/tree
 GET /api/v3/content/media/list
 GET /api/v3/content/media/{media_id}
 GET /api/v3/content/media/{media_id}/file
+GET /api/v3/content/media/{media_id}/variant/{name}
 GET /api/v3/content/page
 GET /api/v3/content/page-builder
 GET /api/v3/content/page-builder/{page_id}
@@ -272,6 +276,9 @@ GET /api/v3/extension/block-pattern
 GET /api/v3/extension/plugin
 GET /api/v3/extension/plugin/detail/{slug}
 GET /api/v3/extension/plugin/list
+GET /api/v3/extension/plugin/market/plugins
+GET /api/v3/extension/plugin/market/plugins/{slug}
+GET /api/v3/extension/plugin/market/updates
 GET /api/v3/extension/plugin/scan
 GET /api/v3/extension/plugin/{slug}
 GET /api/v3/extension/plugin/{slug}/settings
@@ -351,6 +358,7 @@ GET /api/v3/mobile/user/stats
 GET /api/v3/mobile/vip/check-access
 GET /api/v3/mobile/vip/my-subscription
 GET /api/v3/mobile/vip/premium-content
+GET /api/v3/ops/audit/export
 GET /api/v3/ops/backup
 GET /api/v3/ops/backup/chain
 GET /api/v3/ops/backup/cloud
@@ -396,6 +404,7 @@ GET /api/v3/system/admin-menu/my
 GET /api/v3/system/admin-menu/role/{role_id}
 GET /api/v3/system/admin-menu/tree
 GET /api/v3/system/admin-menu/{menu_id}
+GET /api/v3/system/api-token
 GET /api/v3/system/auth/me
 GET /api/v3/system/auth/status
 GET /api/v3/system/cache/items/{key}
@@ -636,6 +645,7 @@ POST /api/v3/content/third-party-publish/task/{task_id}/retry
 POST /api/v3/content/yjs/document/{document_id}/snapshot
 POST /api/v3/content/yjs/document/{document_id}/version/{revision_number}/restore
 POST /api/v3/extension/block-pattern
+POST /api/v3/extension/plugin/market/install
 POST /api/v3/extension/plugin/{slug}/action
 POST /api/v3/extension/plugin/{slug}/activate
 POST /api/v3/extension/plugin/{slug}/deactivate
@@ -717,6 +727,7 @@ POST /api/v3/system/accessibility/aria
 POST /api/v3/system/accessibility/validate
 POST /api/v3/system/admin-menu
 POST /api/v3/system/admin-menu/create
+POST /api/v3/system/api-token
 POST /api/v3/system/auth/login
 POST /api/v3/system/auth/logout
 POST /api/v3/system/auth/refresh
@@ -806,6 +817,7 @@ PUT /api/v3/content/collaboration/workspace/{workspace_id}
 PUT /api/v3/content/collaboration/workspace/{workspace_id}/member/{member_user_id}
 PUT /api/v3/content/comment/{comment_id}
 PUT /api/v3/content/custom-post-type/{type_id}
+PUT /api/v3/content/custom-post-type/{type_id}/values/{content_id}
 PUT /api/v3/content/media/folders/{folder_id}
 PUT /api/v3/content/media/update/{media_id}
 PUT /api/v3/content/media/{media_id}

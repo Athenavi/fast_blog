@@ -21,6 +21,7 @@
 （这里验证的是「是否需要登录」，不是「业务能否成功」）。
 """
 
+import os
 import pathlib
 import sys
 
@@ -38,7 +39,13 @@ from src.api.v3.core.discover import (
 )
 
 SNAPSHOT_PATH = pathlib.Path(__file__).with_name("v3_route_snapshot.txt")
-UPDATE_SNAPSHOT = "--update-snapshot" in sys.argv
+#: 快照更新开关。除历史写法 ``--update-snapshot`` 外，**必须**支持环境变量：
+#: pytest 对未注册的命令行选项会直接报错退出（本仓库 pytest.ini 未注册该选项），
+#: 因此只判断 ``sys.argv`` 时这个开关实际上永远触发不了。
+UPDATE_SNAPSHOT = (
+    "--update-snapshot" in sys.argv
+    or os.environ.get("UPDATE_ROUTE_SNAPSHOT") == "1"
+)
 
 
 def _app(**kwargs) -> FastAPI:

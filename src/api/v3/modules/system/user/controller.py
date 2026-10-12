@@ -32,6 +32,7 @@ from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
 from src.api.v3.core.exceptions import BadRequestError
 from src.api.v3.core.permission import codes
+from src.api.v3.core.permission.field_policy import redact_user
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.system.user.schema import (
     RoleAssignRequest,
@@ -47,8 +48,14 @@ router = APIRouter(
 )
 
 
-def _out(user) -> dict:
-    return UserOut.model_validate(user).model_dump()
+def _out(user, viewer=None) -> dict:
+    """用户输出。
+
+    **字段级权限**（见 ``core/permission/field_policy.py``）：他人的 ``email`` /
+    ``last_login_at`` 仅本人或超级管理员可见；其余字段不受影响。不可见字段是
+    **移除**而不是置空 —— 置空会让前端误判成"用户没填邮箱"。
+    """
+    return redact_user(UserOut.model_validate(user).model_dump(), viewer)
 
 
 # ─────────────────────────── 列表 ───────────────────────────
@@ -75,7 +82,9 @@ async def list_users(
         is_active=is_active,
         is_superuser=is_superuser,
     )
-    return resp.success_page([_out(user) for user in items], total, page.page, page.page_size)
+    return resp.success_page(
+        [_out(user, _current) for user in items], total, page.page, page.page_size
+    )
 
 
 # ─────────────────────────── 新建 ───────────────────────────
@@ -132,7 +141,7 @@ async def get_user(
     _perm=AuthControl(codes.USER_VIEW),
 ) -> dict:
     user = await user_service.get_user(db, user_id)
-    return resp.success(_out(user))
+    return resp.success(_out(user, _current))
 
 
 # ─────────────────────────── 更新 ───────────────────────────

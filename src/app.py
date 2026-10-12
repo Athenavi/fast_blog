@@ -733,6 +733,16 @@ def create_app(config=None):
     register_all_routes(app, worker_info)
     logger.info(f"{worker_info} [create_app] 路由注册耗时: {_time.monotonic() - step_start:.2f}s")
 
+    # GraphQL（读 + 少量写）：与 REST 共享鉴权与权限语义（见 src/api/v3/graphql/）
+    # 仅在缺少依赖时降级为"未启用"，schema 自身的构建错误不吞 —— 直接暴露。
+    try:
+        from src.api.v3.graphql import build_router
+    except ImportError as exc:  # pragma: no cover - 依赖缺失的环境
+        logger.warning("[GraphQL] 未启用（缺少 strawberry-graphql）：%s", exc)
+    else:
+        app.include_router(build_router(graphiql=_expose_docs), prefix="/api/v3/graphql")
+        logger.info("[GraphQL] 已挂载 /api/v3/graphql")
+
     # 错误处理和 SPA 回退
     register_error_handlers(app)
 

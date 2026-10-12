@@ -81,6 +81,22 @@ async def public_articles(
     return resp.success_page(items, total, page, page_size)
 
 
+@router.get("/{article_id}/locales", response_model=ResponseModel, summary="文章的可用语言列表")
+async def article_locales(
+    article_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_VIEW),
+) -> dict:
+    """该文章已有正文的语言（``article_content.language_code`` 去重）。
+
+    多语言正文按"一行一语言"存储；请求某语言而缺失时，**详情接口会按回退链**
+    （``zh-CN`` → ``zh`` → 默认语言）取用，并在响应里用 ``resolved_locale``
+    如实给出实际命中的语言。
+    """
+    return resp.success({"locales": await article_service.available_locales(db, article_id)})
+
+
 @router.get("/public/detail/{article_id}", response_model=ResponseModel, summary="公开文章详情")
 async def public_article_detail(
     article_id: int,

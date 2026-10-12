@@ -192,8 +192,15 @@ SOCIAL_VIEW = "module_system:social:view"
 SOCIAL_DELETE = "module_system:social:delete"
 SECURITY_VIEW = "module_system:security:view"
 SECURITY_DELETE = "module_system:security:delete"
+# API 令牌（第三方 / CI 接入）：view = 列出可见令牌，create = 签发，delete = 撤销
+APITOKEN_VIEW = "module_system:apitoken:view"
+APITOKEN_CREATE = "module_system:apitoken:create"
+APITOKEN_DELETE = "module_system:apitoken:delete"
 
 BACKUP_VIEW = "module_ops:backup:view"
+
+# 审计日志导出（真实文件下载）
+AUDIT_EXPORT = "module_ops:audit:export"
 BACKUP_CREATE = "module_ops:backup:create"
 BACKUP_RESTORE = "module_ops:backup:restore"
 BACKUP_DELETE = "module_ops:backup:delete"
@@ -393,6 +400,9 @@ CODE_LABELS: dict[str, str] = {
     SOCIAL_DELETE: "解除社交绑定",
     SECURITY_VIEW: "查看安全中心",
     SECURITY_DELETE: "删除安全记录",
+    APITOKEN_VIEW: "查看 API 令牌",
+    APITOKEN_CREATE: "签发 API 令牌",
+    APITOKEN_DELETE: "撤销 API 令牌",
     PAGE_VIEW: "查看页面",
     PAGE_CREATE: "创建页面",
     PAGE_EDIT: "编辑页面",
@@ -555,6 +565,7 @@ CODE_LABELS: dict[str, str] = {
     BACKUP_RESTORE: "恢复备份",
     BACKUP_DELETE: "删除备份",
     BACKUP_CLOUD: "配置云存储并上传备份",
+    AUDIT_EXPORT: "导出审计日志",
     WEBHOOK_VIEW: "查看 Webhook",
     WEBHOOK_EDIT: "编辑 Webhook",
     NOTIFICATION_VIEW: "查看通知",

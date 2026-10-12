@@ -19,6 +19,10 @@ from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes as C
 from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
 from src.api.v3.modules.content.article.crud import article_crud
+from src.api.v3.modules.content.article.locale import (
+    pick_locale,
+    resolve_requested_locale,
+)
 from src.api.v3.modules.content.article.schema import (
     STATUS_DELETED,
     STATUS_DRAFT,
@@ -82,6 +86,56 @@ class ArticleService:
             stmt = stmt.where(ArticleContent.language_code == language_code)
         stmt = stmt.order_by(ArticleContent.id.asc())
         return (await db.execute(stmt)).scalars().first()
+
+    async def _content_row_by_chain(
+        self,
+        db: AsyncSession,
+        article_id: int,
+        *,
+        locale: Optional[str] = None,
+        accept_language: Optional[str] = None,
+    ) -> Tuple[Optional[ArticleContent], Optional[str]]:
+        """按 locale 回退链取正文行，返回 ``(行, 实际命中的语言)``。
+
+        与 ``_content_row``（精确匹配、否则首行）的区别：指定语言缺失时不直接给空，
+        而是按链回退（``zh-CN`` → ``zh`` → 默认语言）；链完全不命中时退到该文章
+        已有的第一条语言，并把**实际语言**回传，供响应里的 ``resolved_locale`` 使用。
+        """
+        rows = (
+            await db.execute(
+                select(ArticleContent)
+                .where(ArticleContent.article == article_id)
+                .order_by(ArticleContent.id.asc())
+            )
+        ).scalars().all()
+        if not rows:
+            return None, None
+
+        available = [getattr(row, "language_code", None) for row in rows]
+        chain = resolve_requested_locale(locale, accept_language)
+        hit = pick_locale(available, chain)
+        if hit is not None:
+            for row in rows:
+                current = str(getattr(row, "language_code", "") or "")
+                if current.lower() == hit.lower():
+                    return row, getattr(row, "language_code", None)
+        first = rows[0]
+        return first, getattr(first, "language_code", None)
+
+    async def available_locales(self, db: AsyncSession, article_id: int) -> List[str]:
+        """该文章已有正文的语言列表（按行序去重）"""
+        rows = (
+            await db.execute(
+                select(ArticleContent.language_code)
+                .where(ArticleContent.article == article_id)
+                .order_by(ArticleContent.id.asc())
+            )
+        ).scalars().all()
+        out: List[str] = []
+        for item in rows:
+            if item and item not in out:
+                out.append(item)
+        return out
 
     async def _seo_dict(self, db: AsyncSession, article_id: int) -> Optional[dict]:
         row = (
@@ -187,9 +241,11 @@ class ArticleService:
 
         data = to_out(article)
         if with_content:
-            row = await self._content_row(db, article_id, language_code)
+            row, resolved = await self._content_row_by_chain(db, article_id, locale=language_code)
             data["content"] = row.content if row is not None else None
             data["language_code"] = row.language_code if row is not None else None
+            # 实际命中的语言：与请求语言不同即说明"发生了回退"，前端可据此提示
+            data["resolved_locale"] = resolved
         data["seo"] = await self._seo_dict(db, article_id)
         return data
 

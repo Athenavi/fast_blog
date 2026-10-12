@@ -17,6 +17,8 @@ P4 迁移到官方三段式（``module_{域}:{模块}:{动作}``）后，此处�
 ``codes.LEGACY_ALIASES`` 里的"纯改名"权限码，其旧写法仍被接受（P6 移除）。
 """
 
+from typing import Any, Optional
+
 from fastapi import Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +28,7 @@ from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission.codes import legacy_aliases_of
 from src.api.v3.core.permission.constants import WILDCARD_CODES, normalize_code
 from src.api.v3.core.permission.loader import load_codes
+from src.auth.api_token import Principal
 from src.auth.auth_deps import get_current_user
 from src.utils.database.unified_manager import get_db_session
 
@@ -35,13 +38,36 @@ logger = get_logger("permission.control")
 LEGACY_COMPAT_ENABLED = True
 
 
-def _satisfied(required: str, owned: set[str] | frozenset[str]) -> bool:
+def satisfies(required: str, owned: set[str] | frozenset[str]) -> bool:
     """要求的权限码是否被满足（过渡期同时接受其旧的等价写法）"""
     if required in owned:
         return True
     if not LEGACY_COMPAT_ENABLED:
         return False
     return bool(legacy_aliases_of(required) & owned)
+
+
+#: 兼容旧私有名（GraphQL 层等外部调用方请用 ``satisfies``）
+_satisfied = satisfies
+
+
+def token_scopes(request: Any) -> Optional[frozenset[str]]:
+    """取 API 令牌的权限收窄集合；用户会话返回 ``None``（表示"不额外收窄"）。
+
+    只认真正的 :class:`Principal` 实例，理由有二：
+
+      - 测试替身（``Mock``）的 ``getattr`` 永不返回 ``None``，用 ``getattr`` 探测会把
+        替身误判成令牌，进而把可用权限收窄成空集；
+      - ``request`` 在内部调用/单测里可能缺席，此时应视为"不做收窄"，而不是"无权限"。
+    """
+    principal = getattr(getattr(request, "state", None), "principal", None)
+    if isinstance(principal, Principal) and principal.scopes is not None:
+        return frozenset(principal.scopes)
+    return None
+
+
+#: 兼容旧私有名
+_token_scopes = token_scopes
 
 
 class AuthPermission:
@@ -70,12 +96,20 @@ class AuthPermission:
         if WILDCARD_CODES.intersection(self.permissions):
             return user
 
-        # 4. 读取用户权限集合（失败即拒绝，不放行）
+        # 4. 计算**可用**权限集合（失败即拒绝，不放行）
+        #    - 用户会话（JWT）：即该用户的全部权限码
+        #    - API 令牌（X-API-Key）：token scopes ∩ 用户当前权限码
+        #      —— 用户被降权/撤销角色后，其令牌对应的权限立即同步失效
+        # 注意：收窄判定必须放在 try 之外 —— 它不涉及 I/O，出问题应直接暴露，
+        # 不能被"加载失败"的 except 伪装成 403。
+        scopes = _token_scopes(request)
         try:
             owned = await load_codes(db, user.id, request=request)
         except Exception as exc:  # noqa: BLE001
             logger.exception("权限码加载失败 user=%s", getattr(user, "id", None))
             raise ForbiddenError("权限校验失败") from exc
+        if scopes is not None:
+            owned = frozenset(owned) & scopes
 
         # 5. 用户持有通配 ⇒ 放行
         if WILDCARD_CODES.intersection(owned):

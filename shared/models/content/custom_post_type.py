@@ -30,6 +30,11 @@ class CustomPostType(Base):
 
     supports = Column(String(255), nullable=True, doc='支持的功能(JSON数组)')
 
+    # 字段定义（JSON 数组文本）：手工追加，避免为加一列而重新生成整个模型
+    # （生成器会覆盖文件，且无 relationship 的模型会漏 Base 导入 —— 见 security/api_token.py 注释）。
+    # 已在 config/models.yaml 同步登记，保持"单一权威"一致。
+    fields = Column(String(4000), nullable=True, doc='字段定义（JSON 数组文本）')
+
     has_archive = Column(Boolean, default=False, doc='是否有归档页')
 
 

@@ -2976,6 +2976,11 @@ models:
         type: string
         nullable: true
         description: 支持的功能(JSON数组)
+      fields:
+        type: string
+        maxLength: 4000
+        nullable: true
+        description: 字段定义（JSON 数组文本：key/type/label/required/options…）
       has_archive:
         type: boolean
         default: false
@@ -4043,6 +4048,66 @@ models:
           - created_at
         order: DESC
         comment: 创建时间索引
+  ApiToken:
+    description: API 令牌（第三方 / CI 接入；scopes 为权限码子集，明文只在创建时返回一次）
+    status: active
+    frontend_page: /admin/security
+    properties:
+      id:
+        type: bigint
+        description: 令牌 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 用途备注
+      token_prefix:
+        type: string
+        maxLength: 16
+        description: 明文前缀（仅用于展示与检索）
+      token_hash:
+        type: string
+        maxLength: 255
+        unique: true
+        description: 令牌哈希（argon2；不存明文）
+      scopes:
+        type: string
+        maxLength: 2000
+        nullable: true
+        description: 权限码子集（JSON 数组文本；空数组 = 只有默认读权限）
+      user_id:
+        type: bigint
+        description: 归属用户
+        foreignKey: User
+      expires_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 过期时间（留空 = 不过期，不推荐）
+      last_used_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最近使用时间
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    module: security
+    orm: true
+    table: api_tokens
+    indexes:
+      - name: idx_api_tokens_prefix
+        columns:
+          - token_prefix
+        comment: 前缀检索
+      - name: idx_api_tokens_user
+        columns:
+          - user_id
+        comment: 按用户查询
   ArticlePreviewToken:
     description: 文章草稿预览令牌（为未发布文章生成临时预览链接）
     status: active

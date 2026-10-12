@@ -4,6 +4,10 @@
 
     GET    /api/v3/extension/plugin                  插件列表
     GET    /api/v3/extension/plugin/scan             扫描新插件（静态路径，必须先注册）
+    GET    /api/v3/extension/plugin/market/plugins   远程市场：插件目录（需配置 PLUGIN_MARKETPLACE_URL）
+    GET    /api/v3/extension/plugin/market/plugins/{slug}  远程市场：插件详情
+    GET    /api/v3/extension/plugin/market/updates   远程市场：按本机已装插件查更新
+    POST   /api/v3/extension/plugin/market/install   远程市场：下载并安装（需 confirm=true）
     GET    /api/v3/extension/plugin/{slug}           插件详情
     GET    /api/v3/extension/plugin/{slug}/settings  插件配置
     PUT    /api/v3/extension/plugin/{slug}/settings  保存插件配置
@@ -18,12 +22,14 @@
 """
 
 from fastapi import APIRouter, Query
+from pydantic import BaseModel, Field
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
+from src.api.v3.modules.extension.plugin.market_service import market_client
 from src.api.v3.modules.extension.plugin.schema import PluginActionRequest, PluginSettingsUpdate
 from src.api.v3.modules.extension.plugin.service import plugin_ops_service, require_confirm
 
@@ -33,6 +39,82 @@ CONFIRM_QUERY = Query(
     default=False,
     description="危险操作二次确认：必须显式传 true",
 )
+
+
+# ───────────────────── 远程市场（服务端由站点自建） ─────────────────────
+# 未配置 PLUGIN_MARKETPLACE_URL 时这些端点**明确报错**，而不是返回空列表 ——
+# 空列表会让前端误以为"市场里没有插件"（与项目"不静默 mock"的既有要求一致）。
+class MarketInstallRequest(BaseModel):
+    """从市场安装插件的请求（危险操作，必须显式二次确认）"""
+
+    slug: str = Field(min_length=1, max_length=64, description="插件标识")
+    version: str = Field(min_length=1, max_length=32, description="语义化版本")
+    sha256: str = Field(default="", max_length=64, description="市场声明的包校验和（可选，二次校验）")
+    confirm: bool = Field(default=False, description="二次确认：必须显式传 true")
+
+
+@router.get("/market/plugins", response_model=ResponseModel, summary="远程市场：插件目录")
+async def market_plugins(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.PLUGIN_VIEW),
+    keyword: str = Query(default="", max_length=100),
+    category: str = Query(default="", max_length=50),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+) -> dict:
+    data = await market_client.list_plugins(
+        keyword=keyword, category=category, page=page, page_size=page_size
+    )
+    return resp.success(
+        {
+            "items": data.get("items", []),
+            "total": data.get("total", 0),
+            "page": page,
+            "page_size": page_size,
+            "marketplace": market_client.base_url,
+        }
+    )
+
+
+@router.get("/market/plugins/{slug}", response_model=ResponseModel, summary="远程市场：插件详情")
+async def market_plugin_detail(
+    slug: str,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.PLUGIN_VIEW),
+) -> dict:
+    return resp.success(await market_client.plugin_detail(slug))
+
+
+@router.get("/market/updates", response_model=ResponseModel, summary="远程市场：更新检查")
+async def market_updates(
+    _current: CurrentUser,
+    _perm=AuthControl(codes.PLUGIN_VIEW),
+) -> dict:
+    """按**本机已装插件**批量查更新；只返回确实有更新的条目。"""
+    installed_items = await plugin_ops_service.list_plugins()
+    installed = {
+        str(item.get("slug")): str(item.get("version") or "")
+        for item in installed_items
+        if item.get("slug")
+    }
+    return resp.success(await market_client.updates(installed))
+
+
+@router.post(
+    "/market/install",
+    response_model=ResponseModel,
+    summary="远程市场：下载并安装（需二次确认）",
+)
+async def market_install(
+    payload: MarketInstallRequest,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.PLUGIN_INSTALL),
+) -> dict:
+    require_confirm(payload.confirm, "从市场安装插件")
+    result = await market_client.install_from_market(
+        payload.slug, payload.version, expect_sha256=payload.sha256
+    )
+    return resp.success(result, msg=f"已从市场安装 {payload.slug}@{payload.version}")
 
 
 # ─────────────────────────── 静态路径优先 ───────────────────────────

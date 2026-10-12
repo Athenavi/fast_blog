@@ -21,6 +21,7 @@ from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.custom_post_type.schema import (
+    CustomFieldValuesUpdate,
     CustomPostTypeCreate,
     CustomPostTypeUpdate,
 )
@@ -76,3 +77,36 @@ async def delete_type(
 ) -> dict:
     await custom_post_type_service.delete_type(db, type_id)
     return resp.success(None, msg="已删除")
+
+
+# ─────────────────────────── 字段值（EAV） ───────────────────────────
+@router.get("/{type_id}/values/{content_id}", response_model=ResponseModel, summary="读取字段值")
+async def get_field_values(
+    type_id: int,
+    content_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.CPT_VIEW),
+) -> dict:
+    """按类型定义返回字段值（未填字段为 ``null``），便于前端直接渲染表单。"""
+    return resp.success(await custom_post_type_service.get_values(db, type_id, content_id))
+
+
+@router.put(
+    "/{type_id}/values/{content_id}",
+    response_model=ResponseModel,
+    summary="写入字段值（按定义校验）",
+)
+async def set_field_values(
+    type_id: int,
+    content_id: int,
+    payload: CustomFieldValuesUpdate,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.CPT_EDIT),
+) -> dict:
+    """按类型定义校验并 upsert 字段值；未定义的 key、类型不符一律 400（不静默丢弃）。"""
+    result = await custom_post_type_service.set_values(
+        db, type_id, content_id, payload.values, user_id=getattr(_current, "id", None)
+    )
+    return resp.success(result, msg="字段值已保存")

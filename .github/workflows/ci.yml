@@ -53,6 +53,12 @@ jobs:
         run: |
           python -m mypy src/ --ignore-missing-imports --no-error-summary 2>&1 || echo "mypy found issues (non-blocking)"
 
+      - name: Static checks (ruff, blocking)
+        run: |
+          pip install ruff
+          # 只查"绝不误报"的硬错误：语法错误 / 未定义名 / 重复定义
+          ruff check --select E9,F63,F7,F82,F811 src shared cli
+
   # ============================================================================
   # Quick Unit Tests (mock-based, no external services)
   # ============================================================================
@@ -89,7 +95,12 @@ jobs:
           ENVIRONMENT: testing
           SECRET_KEY: test-secret-key-for-ci-only
         run: |
-          python -m pytest tests/test_mcp_agent_engine.py tests/test_auth.py tests/test_crud_api.py tests/test_sse_mcp_chat.py -v --tb=short
+          python -m pytest \
+            tests/test_mcp_agent_engine.py tests/test_mcp_tool_handlers.py tests/test_auth.py tests/test_crud_api.py \
+            tests/test_models.py tests/test_security.py tests/test_svg_sanitize.py \
+            tests/test_permission_control.py tests/test_permission_cache.py \
+            tests/test_v3_route_contract.py \
+            -v --tb=short
 
   # ============================================================================
   # Frontend Unit Tests (Vitest, parallel to backend)

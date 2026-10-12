@@ -9,7 +9,14 @@ from src.api.v3.core.base_schema import SchemaBase
 
 
 class SSOProviderCreate(SchemaBase):
-    provider_type: str = Field(max_length=50, description="oauth2/oidc/saml…")
+    provider_type: str = Field(
+        max_length=50,
+        description=(
+            "oauth2/oidc/saml。**当前仅 oauth2/oidc 接入实际登录流程**；"
+            "saml 只是登记配置项，断言（Assertion）校验与元数据端点均未实现，"
+            "填 saml 不会产生可用的登录入口。"
+        ),
+    )
     name: str = Field(min_length=1, max_length=100)
     client_id: str = Field(max_length=200)
     client_secret: str = Field(max_length=255)

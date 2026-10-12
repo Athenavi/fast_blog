@@ -51,6 +51,21 @@ def media_file_url(media_id: int) -> str:
     return MEDIA_FILE_URL_TEMPLATE.format(media_id=media_id)
 
 
+def _variant_urls(media) -> list:
+    """图片变体 URL 清单（懒生成：首次访问某变体时才产出文件）。
+
+    非图片（含 SVG 等矢量）返回空列表 —— 前端据此决定是否拼 ``srcset``。
+    """
+    from src.api.v3.modules.content.media.variants import is_image, variant_names
+
+    if not is_image(getattr(media, "mime_type", None)):
+        return []
+    return [
+        f"/api/v3/content/media/{media.id}/variant/{name}"
+        for name in variant_names()
+    ]
+
+
 # 可内联预览的 MIME 类型（镜像 v2 media_legacy/routes_stream.py 的同名集合；
 # 该模块使用旧式顶层导入无法被 v3 直接导入，故此处保留副本）
 _PREVIEWABLE_TYPES = {
@@ -77,6 +92,8 @@ def to_out(media: Media) -> dict:
         "height": media.height,
         "duration": media.duration,
         "thumbnail_url": media.thumbnail_url,
+        # 图片变体（多尺寸；按 Accept 协商 webp/avif，非图片为空列表）
+        "variants": _variant_urls(media),
         "description": media.description,
         "alt_text": media.alt_text,
         "is_public": bool(media.is_public),
@@ -413,6 +430,77 @@ class MediaService:
         await media_folder_crud.remove(db, folder)
 
     # ------------------------------------------------------------------ 文件本体
+    # ------------------------------------------------------------------ 图片变体
+    def _local_source_path(self, media):
+        """原图本地路径（与 ``stream_file`` 同口径：``storage/{hash[:2]}/{hash}[ext]``）"""
+        from pathlib import Path
+
+        without_ext = Path(f"storage/{media.hash[:2]}/{media.hash}")
+        if without_ext.exists():
+            return without_ext
+        for suffix in (".jpg", ".jpeg", ".png", ".webp", ".gif", ".avif"):
+            candidate = Path(f"storage/{media.hash[:2]}/{media.hash}{suffix}")
+            if candidate.exists():
+                return candidate
+        return None
+
+    async def stream_variant(
+        self,
+        db: AsyncSession,
+        media_id: int,
+        name: str,
+        *,
+        current_user: Any,
+        request: Any,
+    ):
+        """图片变体交付：鉴权与 ``stream_file`` 完全一致（公开媒体匿名可读，私有仅属主）。
+
+        格式按 ``Accept`` 协商（avif → webp → 原格式），响应带 ``Vary: Accept``；
+        变体**懒生成**，生成动作放进线程池（PIL 缩放是 CPU 密集且阻塞的）。
+        """
+        import asyncio
+        from pathlib import Path  # noqa: F401  (类型提示)
+
+        from shared.services.media.streaming import handle_local_file
+
+        from src.api.v3.modules.content.media import variants as V
+
+        if name not in V.SIZE_MAP:
+            raise NotFoundError("未知的变体尺寸")
+        media = await media_crud.get(db, media_id)
+        if media is None:
+            raise NotFoundError("媒体不存在")
+        if media.user != getattr(current_user, "id", None) and not media.is_public:
+            raise ForbiddenError("无权访问该媒体文件")
+        if not V.is_image(media.mime_type):
+            raise NotFoundError("该媒体不支持图片变体")
+        # 防御路径遍历：hash 只允许字母数字与 -_
+        if not all(c.isalnum() or c in "-_" for c in (media.hash or "")):
+            raise NotFoundError("文件不存在")
+
+        source = self._local_source_path(media)
+        if source is None:
+            raise NotFoundError("文件不存在")
+
+        fmt = V.pick_format(request.headers.get("accept", ""))
+        target = await asyncio.to_thread(V.generate, source, media.hash, name, fmt)
+        if target is None or not target.exists():
+            raise NotFoundError("变体生成失败")
+
+        mime = {"webp": "image/webp", "avif": "image/avif"}.get(
+            fmt, media.mime_type or "image/jpeg"
+        )
+        headers = {
+            "Content-Type": mime,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "public, max-age=604800, immutable",
+            "Vary": "Accept",
+            "ETag": f'"{media.hash}-{name}-{fmt}"',
+        }
+        return await handle_local_file(
+            target, mime, target.name, request.headers.get("range"), headers
+        )
+
     async def stream_file(
         self, db: AsyncSession, media_id: int, *, current_user: Any, request: Any
     ):

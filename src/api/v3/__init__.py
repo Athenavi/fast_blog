@@ -42,6 +42,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
     "/system": (
         "accessibility",
         "admin_menu",
+        # 对外 API 令牌（第三方 / CI 接入）
+        "api_token",
         "auth",
         "cache",
         # 任务 15：边缘函数（Cloudflare Workers / Vercel Edge）接线
@@ -80,8 +82,8 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
                  "media", "page", "page_builder",
                  "recommend", "redirect", "shortcode", "tag", "team_comment", "third_party_publish", "yjs"),
     "/analytics": ("dashboard", "report", "search", "seo", "tracking"),
-    "/ops": ("backup", "cdn", "deployment", "email", "enterprise", "migration", "notification", "supervisor", "upgrade",
-             "webhook"),
+    "/ops": ("audit", "backup", "cdn", "deployment", "email", "enterprise", "migration", "notification", "supervisor",
+             "upgrade", "webhook"),
     "/extension": ("block_pattern", "plugin", "theme", "widget"),
     "/marketing": (
         "ad",

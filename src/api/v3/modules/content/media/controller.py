@@ -272,3 +272,23 @@ async def get_media_file(
     Authorization 头）；私有媒体仅属主可读。返回文件流而非统一响应体。
     """
     return await media_service.stream_file(db, media_id, current_user=current, request=request)
+
+
+@router.get("/{media_id}/variant/{name}", summary="获取图片变体（按 Accept 协商）")
+async def get_media_variant(
+    media_id: int,
+    name: str,
+    request: Request,
+    db: DBSession,
+    current: OptionalUser,
+):
+    """图片变体：``thumb`` / ``small`` / ``medium`` / ``large``。
+
+    同一 URL 按 ``Accept`` 返回 ``avif`` / ``webp`` / 原格式（响应带 ``Vary: Accept``）；
+    首次访问时按需生成，生成动作跑在线程池里（PIL 缩放阻塞，不能占住事件循环），
+    之后直接命中文件。鉴权与 ``/{media_id}/file`` 完全一致：
+    公开媒体匿名可读，私有媒体仅属主可读。
+    """
+    return await media_service.stream_variant(
+        db, media_id, name, current_user=current, request=request
+    )
