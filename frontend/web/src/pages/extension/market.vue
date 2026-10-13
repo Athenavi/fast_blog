@@ -125,11 +125,8 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="space-y-5 p-4">
-    <header>
-      <h1 class="text-lg font-semibold">{{ t('admin.extension.market.title') }}</h1>
-      <p class="mt-1 max-w-2xl text-sm text-fg-subtle">{{ t('admin.extension.market.desc') }}</p>
-    </header>
+  <AdminPage :desc="t('admin.extension.market.desc')" :title="t('admin.extension.market.title')">
+    <div class="space-y-5">
 
     <!-- 搜索 -->
     <div class="flex flex-wrap items-end gap-2">
@@ -277,4 +274,5 @@ onMounted(load)
       </div>
     </div>
   </div>
+  </AdminPage>
 </template>

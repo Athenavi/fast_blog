@@ -160,11 +160,11 @@ onMounted(loadTypes)
 </script>
 
 <template>
-  <div class="space-y-4 p-4">
-    <header>
-      <h1 class="text-lg font-semibold">{{ t('admin.content.customFieldValues.title') }}</h1>
-      <p class="mt-1 max-w-2xl text-sm text-fg-subtle">{{ t('admin.content.customFieldValues.desc') }}</p>
-    </header>
+  <AdminPage
+    :desc="t('admin.content.customFieldValues.desc')"
+    :title="t('admin.content.customFieldValues.title')"
+  >
+    <div class="space-y-4">
 
     <!-- 目标选择 -->
     <div class="flex flex-wrap items-end gap-2">
@@ -261,4 +261,5 @@ onMounted(loadTypes)
       </div>
     </template>
   </div>
+  </AdminPage>
 </template>

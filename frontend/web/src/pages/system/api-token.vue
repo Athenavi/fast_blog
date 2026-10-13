@@ -133,12 +133,8 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="space-y-4 p-4">
-    <header class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h1 class="text-lg font-semibold">{{ t('admin.system.apiToken.title') }}</h1>
-        <p class="mt-1 max-w-2xl text-sm text-fg-subtle">{{ t('admin.system.apiToken.desc') }}</p>
-      </div>
+  <AdminPage :desc="t('admin.system.apiToken.desc')" :title="t('admin.system.apiToken.title')">
+    <template #actions>
       <button
         class="rounded-md bg-primary px-3 py-1.5 text-sm text-white disabled:opacity-50"
         type="button"
@@ -146,7 +142,9 @@ onMounted(load)
       >
         {{ t('admin.system.apiToken.create') }}
       </button>
-    </header>
+    </template>
+
+    <div class="space-y-4">
 
     <div v-if="loading" class="py-8 text-center text-sm text-fg-subtle">
       {{ t('common.loading') }}
@@ -264,4 +262,5 @@ onMounted(load)
       </div>
     </div>
   </div>
+  </AdminPage>
 </template>
