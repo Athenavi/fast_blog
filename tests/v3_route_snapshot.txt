@@ -673,6 +673,7 @@ POST /api/v3/marketing/vip/feature
 POST /api/v3/marketing/vip/plan
 POST /api/v3/marketing/vip/subscription
 POST /api/v3/marketing/vip/subscription/{subscription_id}/cancel
+POST /api/v3/mcp
 POST /api/v3/mobile/article
 POST /api/v3/mobile/article/{article_id}/like
 POST /api/v3/mobile/auth/login

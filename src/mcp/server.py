@@ -17,10 +17,17 @@ from shared.models.media import Media
 from shared.models.system import SystemSettings
 from shared.models.user import User
 from src.mcp.tools import register_all as register_all_tools
-from src.mcp.tools._perms import require_superuser
+from src.mcp.tools._perms import (
+    describe_tool_permissions,
+    ensure_tool_allowed,
+    require_superuser,
+)
 from src.utils.database.unified_manager import db_manager
 
 logger = logging.getLogger('mcp_server')
+
+#: 本服务支持的 MCP 规范版本（握手时优先回显客户端请求的版本，否则用最新的）
+SUPPORTED_PROTOCOL_VERSIONS: tuple = ("2025-06-18", "2025-03-26", "2024-11-05")
 
 
 
@@ -146,12 +153,24 @@ class MCPServer:
     # ─── MCP 请求路由 ───
 
     async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
-        """处理 MCP JSON-RPC 请求"""
+        """处理 MCP JSON-RPC 请求。
+
+        返回 ``None`` 表示这是一条 **notification**（没有 ``id``），传输层不应回写任何内容。
+        """
         method = request.get("method", "")
-        params = request.get("params", {})
+        params = request.get("params") or {}
         req_id = request.get("id")
 
-        if method == "resources/list":
+        # JSON-RPC 通知：无 id ⇒ 不回响应（MCP 的 notifications/initialized 就走这里）
+        if req_id is None and method.startswith("notifications/"):
+            logger.debug("收到 MCP 通知：%s", method)
+            return None
+
+        if method == "initialize":
+            return self._handle_initialize(params, req_id)
+        elif method == "ping":
+            return {"jsonrpc": "2.0", "id": req_id, "result": {}}
+        elif method == "resources/list":
             return await self._handle_resources_list(req_id)
         elif method == "resources/read":
             return await self._handle_resource_read(params, req_id)
@@ -165,6 +184,44 @@ class MCPServer:
             return await self._handle_prompt_get(params, req_id)
         else:
             return self._error_response(req_id, f"Unknown method: {method}")
+
+    def _negotiate_protocol_version(self, requested: Any) -> str:
+        """协议版本协商：客户端请求的版本受支持就回显它，否则回本服务最新支持的版本"""
+        if isinstance(requested, str) and requested in SUPPORTED_PROTOCOL_VERSIONS:
+            return requested
+        return SUPPORTED_PROTOCOL_VERSIONS[0]
+
+    def _handle_initialize(self, params: Dict, request_id: Any) -> Dict:
+        """MCP 握手（必须是客户端的第一个请求）。
+
+        修复前**没有这个方法** —— 标准 MCP 客户端在 `initialize` 收到 "Unknown method" 后
+        会直接放弃连接，这也是本模块此前"存在但连不上"的直接原因之一。
+        """
+        client_info = params.get("clientInfo") if isinstance(params, dict) else None
+        version = self._negotiate_protocol_version(
+            params.get("protocolVersion") if isinstance(params, dict) else None
+        )
+        logger.info(
+            "MCP initialize：client=%s version=%s → 协商 %s",
+            (client_info or {}).get("name") if isinstance(client_info, dict) else None,
+            params.get("protocolVersion") if isinstance(params, dict) else None,
+            version,
+        )
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {
+                "protocolVersion": version,
+                "capabilities": {
+                    "tools": {"listChanged": False},
+                    "resources": {"subscribe": False, "listChanged": False},
+                    "prompts": {"listChanged": False},
+                },
+                "serverInfo": {"name": self.name, "version": self.version},
+                # 非规范字段：把「需要登录」讲清楚，便于客户端给出可读提示
+                "instructions": "调用任何工具都需要通过平台认证，且受该账号的真实权限码约束。",
+            },
+        }
 
     async def _handle_resource_read(self, params: Dict, request_id: Any) -> Dict:
         uri = params.get("uri", "")
@@ -184,6 +241,13 @@ class MCPServer:
         tool = self.tools.get(name)
         if not tool:
             return self._error_response(request_id, f"Tool not found: {name}")
+
+        # **统一防线**：无论工具 handler 内部还做了什么判断，这里先按**真实权限码**拦一次。
+        # 未在 TOOL_PERMISSIONS 里声明的工具会被 fail-closed 拒绝，避免"新增工具忘记声明即放行"。
+        denial = ensure_tool_allowed(name)
+        if denial is not None:
+            return self._error_response(request_id, denial["error"])
+
         try:
             result = await tool["handler"](args)
             text = json.dumps(result if isinstance(result, dict) else {"data": result}, ensure_ascii=False)
@@ -218,8 +282,12 @@ class MCPServer:
         return {"jsonrpc": "2.0", "id": request_id, "result": {"resources": resources}}
 
     async def _handle_tools_list(self, request_id: Any) -> Dict:
+        # 把「所需权限码」随工具一起暴露（放在 `_meta` 里）：客户端可以预先判断，
+        # 而不是每次撞 403 才发现自己没有权限。
+        required = describe_tool_permissions(self.tools.keys())
         tools_list = [{"name": name, "description": info["description"],
-                       "inputSchema": {"type": "object", "properties": self._to_json_schema(info["parameters"])}}
+                       "inputSchema": {"type": "object", "properties": self._to_json_schema(info["parameters"])},
+                       "_meta": {"requiredPermissions": required.get(name, [])}}
                       for name, info in self.tools.items()]
         return {"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools_list}}
 

@@ -13,6 +13,11 @@ from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundE
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes as C
 from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
+from src.api.v3.modules.content.approval.guard import (
+    PAGE_CONTENT_TYPE,
+    ensure_new_content_publish_allowed,
+    ensure_publish_allowed,
+)
 from src.api.v3.modules.content.page.crud import page_crud
 from src.api.v3.modules.content.page.schema import (
     STATUS_DRAFT,
@@ -107,6 +112,10 @@ class PageService:
         if payload.slug and await page_crud.exists(db, slug=payload.slug):
             raise ConflictError(f"页面 slug {payload.slug} 已存在")
 
+        if payload.status == STATUS_PUBLISHED:
+            # 新建即发布同样过闸门（新页面没有 id，不可能已有审批单）
+            await ensure_new_content_publish_allowed(db, content_type=PAGE_CONTENT_TYPE)
+
         now = datetime.now()
         data = payload.model_dump()
         data.update(
@@ -138,6 +147,11 @@ class PageService:
             existing = await page_crud.get_by(db, slug=payload.slug)
             if existing is not None and existing.id != page_id:
                 raise ConflictError(f"页面 slug {payload.slug} 已存在")
+        if "status" in fields_set and payload.status == STATUS_PUBLISHED and page.status != STATUS_PUBLISHED:
+            # 与 POST /{id}/publish 走同一闸门：堵住「编辑接口改状态」这条绕过路径
+            await ensure_publish_allowed(
+                db, content_type=PAGE_CONTENT_TYPE, content_id=page_id
+            )
         if data.get("status") == STATUS_PUBLISHED and page.published_at is None:
             data["published_at"] = datetime.now()
         data["updated_at"] = datetime.now()
@@ -195,6 +209,10 @@ class PageService:
         )
 
         if publish:
+            # 审批闸门（真实查 approval_records 里 content_type='page' 的记录）
+            await ensure_publish_allowed(
+                db, content_type=PAGE_CONTENT_TYPE, content_id=page_id
+            )
             data = {
                 "status": STATUS_PUBLISHED,
                 "published_at": page.published_at or datetime.now(),

@@ -3,11 +3,11 @@ MCP 通知/邮件工具处理器 — 通知管理/邮件发送/订阅
 """
 from sqlalchemy import select, func, desc
 
-from src.mcp.tools._perms import require_superuser, require_role
+from src.mcp.tools._perms import require_permission, require_superuser
 from src.utils.database.unified_manager import db_manager
 
 
-@require_role("user")
+@require_permission("module_ops:notification:view")
 async def list_notifications(arguments: dict) -> dict:
     """获取当前用户的通知列表"""
     user_id = arguments.get("user_id")
@@ -38,7 +38,7 @@ async def list_notifications(arguments: dict) -> dict:
         }}
 
 
-@require_role("user")
+@require_permission("module_ops:notification:edit")
 async def mark_notification_read(arguments: dict) -> dict:
     """标记通知为已读"""
     notification_id = arguments.get("notification_id")

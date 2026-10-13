@@ -3,11 +3,15 @@ MCP 工作流/协作工具处理器 — 审批/协作/发布
 """
 from sqlalchemy import select, func, desc
 
-from src.mcp.tools._perms import require_superuser, require_role
+from src.api.v3.modules.content.approval.guard import (
+    ARTICLE_CONTENT_TYPE,
+    ensure_batch_publish_allowed,
+)
+from src.mcp.tools._perms import require_permission, require_superuser
 from src.utils.database.unified_manager import db_manager
 
 
-@require_role("editor")
+@require_permission("module_content:approval:view")
 async def list_pending_reviews(arguments: dict) -> dict:
     """列出待审批的内容"""
     page = arguments.get("page", 1)
@@ -32,7 +36,7 @@ async def list_pending_reviews(arguments: dict) -> dict:
         }}
 
 
-@require_role("editor")
+@require_permission("module_content:approval:act")
 async def approve_content(arguments: dict) -> dict:
     """审批通过内容"""
     review_id = arguments.get("review_id")
@@ -50,7 +54,7 @@ async def approve_content(arguments: dict) -> dict:
         return {"success": True, "message": f"审批 #{review_id} 已通过"}
 
 
-@require_role("editor")
+@require_permission("module_content:approval:act")
 async def reject_content(arguments: dict) -> dict:
     """驳回内容"""
     review_id = arguments.get("review_id")
@@ -70,7 +74,7 @@ async def reject_content(arguments: dict) -> dict:
         return {"success": True, "message": f"审批 #{review_id} 已驳回"}
 
 
-@require_role("editor")
+@require_permission("module_system:monitor:view")
 async def get_workflow_stats(arguments: dict) -> dict:
     """获取工作流统计"""
     async with db_manager.get_session() as db:
@@ -120,6 +124,9 @@ async def batch_publish_articles(arguments: dict) -> dict:
         from shared.models.article import Article
         from datetime import datetime
         ids = [int(aid) for aid in article_ids]
+        # 与 REST 的 /batch/publish 走**同一**闸门（一次 IN 查询，非 N+1）：
+        # 否则 MCP 就是绕过审批直接发布的后门。定时发布同样要在设置时校验。
+        await ensure_batch_publish_allowed(db, content_type=ARTICLE_CONTENT_TYPE, ids=ids)
         articles = (
             await db.execute(select(Article).where(Article.id.in_(ids)))
         ).scalars().all()

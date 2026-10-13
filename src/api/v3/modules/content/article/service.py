@@ -18,6 +18,12 @@ from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundE
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes as C
 from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
+from src.api.v3.modules.content.approval.guard import (
+    ARTICLE_CONTENT_TYPE,
+    ensure_batch_publish_allowed,
+    ensure_new_content_publish_allowed,
+    ensure_publish_allowed,
+)
 from src.api.v3.modules.content.article.crud import article_crud
 from src.api.v3.modules.content.article.locale import (
     pick_locale,
@@ -269,6 +275,9 @@ class ArticleService:
             }
         )
         if payload.status == STATUS_PUBLISHED:
+            # 新建即发布也要过闸门：新内容没有 id、不可能已有审批单，
+            # 因此这里只看「该类型是否被配置为先审批后发布」
+            await ensure_new_content_publish_allowed(db, content_type=ARTICLE_CONTENT_TYPE)
             data["published_at"] = now
 
         article = await article_crud.create(db, data)
@@ -304,6 +313,11 @@ class ArticleService:
             data["category"] = payload.category_id
         if "tags" in fields_set and payload.tags is not None:
             data["tags_list"] = normalize_tags(payload.tags)
+        if "status" in fields_set and payload.status == STATUS_PUBLISHED and article.status != STATUS_PUBLISHED:
+            # 与 POST /{id}/publish 走**同一个**审批闸门：否则「编辑接口改状态」就是绕过审批的后门
+            await ensure_publish_allowed(
+                db, content_type=ARTICLE_CONTENT_TYPE, content_id=article_id
+            )
         if data.get("status") == STATUS_PUBLISHED and article.published_at is None:
             data["published_at"] = datetime.now()
         data["updated_at"] = datetime.now()
@@ -373,6 +387,11 @@ class ArticleService:
         await self._assert_batch_writable(
             db, ids, scope_user=scope_user, others_code=C.ARTICLE_EDIT_OTHERS
         )
+        if publish:
+            # 批量发布：**一次** IN 查询校验全部（避免 N+1），任一条被拦则整体拒绝并列出全部原因
+            await ensure_batch_publish_allowed(
+                db, content_type=ARTICLE_CONTENT_TYPE, ids=list(ids)
+            )
         count = 0
         for article_id in ids:
             try:
@@ -394,6 +413,10 @@ class ArticleService:
         )
 
         if publish:
+            # 审批闸门：待审 / 被驳回 / 该类型被配置为必须审批但尚未通过 → 拒绝（真实查 approval_records）
+            await ensure_publish_allowed(
+                db, content_type=ARTICLE_CONTENT_TYPE, content_id=article_id
+            )
             data: Dict[str, Any] = {
                 "status": STATUS_PUBLISHED,
                 "published_at": article.published_at or datetime.now(),

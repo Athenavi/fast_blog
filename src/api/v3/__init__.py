@@ -154,6 +154,17 @@ def register_v3_routes(app, *, fail_fast: bool = True) -> dict:
                 unregistered,
             )
 
+    # MCP 端点（单一 POST /api/v3/mcp）：不走 DOMAIN_MODULES 的 /{module} 前缀约定，故单独挂载。
+    # 延迟导入避免与 v3 骨架形成循环依赖；注册失败不影响其余路由。
+    try:
+        from src.mcp.http import router as mcp_router
+
+        root.include_router(mcp_router)
+        summary["mcp"] = True
+    except Exception as exc:  # noqa: BLE001 - MCP 不可用不应拖垮整个 API
+        logger.warning("MCP 端点注册失败（其余路由不受影响）：%s", exc)
+        summary["mcp"] = False
+
     # 启动期冲突检测：只针对 v3 骨架，避免被 v2 的历史冲突牵连
     assert_no_route_conflicts(root, source="API v3")
     # 遮蔽检测：静态路径不得注册在能匹配它的参数路径之后

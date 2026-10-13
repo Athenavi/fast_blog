@@ -3,7 +3,7 @@ MCP 安全管理工具处理器 — 审计日志/敏感词/IP封禁/2FA
 """
 from sqlalchemy import select, func, desc
 
-from src.mcp.tools._perms import require_superuser, require_role
+from src.mcp.tools._perms import require_permission, require_superuser
 from src.utils.database.unified_manager import db_manager
 
 
@@ -121,7 +121,7 @@ async def manage_sensitive_word(arguments: dict) -> dict:
     return {"success": False, "error": f"未知操作: {action}"}
 
 
-@require_role("admin")
+@require_permission("module_system:monitor:manage")
 async def list_rate_limits(arguments: dict) -> dict:
     """查看当前速率限制状态"""
     try:
