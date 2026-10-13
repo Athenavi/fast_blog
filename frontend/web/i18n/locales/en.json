@@ -2395,6 +2395,26 @@
       "viewAll": "View all"
     },
     "content": {
+      "collabEditor": {
+        "title": "Collaborative editor",
+        "desc": "Edit the same body together in real time (Yjs CRDT). Changes merge live; the body is only written when you press \"Save to article\".",
+        "docLabel": "Article ID",
+        "docRequired": "Please enter an article ID first",
+        "join": "Join session",
+        "joining": "Establishing collaborative connection…",
+        "leave": "Leave",
+        "connecting": "Connecting",
+        "connected": "Connected (awaiting sync)",
+        "synced": "Synced",
+        "disconnected": "Disconnected",
+        "rejected": "Rejected",
+        "online": "{count} online",
+        "hint": "Enter an article ID and press Join. You must be the author of that article, or hold a valid collaboration invite (append ?invite=xxx to the URL).",
+        "placeholder": "Type here — edits sync to other collaborators…",
+        "save": "Save to article",
+        "saved": "Saved to the article body",
+        "seedFailed": "Could not read the existing body; starting from an empty document"
+      },
       "customFieldValues": {
         "title": "Custom field values",
         "desc": "Fill in field values according to the content type's field definitions. Saving is a full submit: missing required fields or undefined field names are rejected.",
@@ -3104,8 +3124,8 @@
         "update": "Update",
         "detail": "Details",
         "install": "Install",
-        "installConfirm": "Install {slug}@{version} from the market? The plugin files on this machine will be replaced.",
-        "installed": "Installed {slug}@{version}",
+        "installConfirm": "Install {slug}{'@'}{version} from the market? The plugin files on this machine will be replaced.",
+        "installed": "Installed {slug}{'@'}{version}",
         "versionRequired": "No usable version on this entry — open the details to pick one",
         "empty": "No plugins match your search",
         "unavailableTitle": "Plugin market unavailable",

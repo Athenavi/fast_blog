@@ -2395,6 +2395,26 @@
       "viewAll": "查看全部"
     },
     "content": {
+      "collabEditor": {
+        "title": "协同编辑",
+        "desc": "多人实时共同编辑同一篇正文（Yjs CRDT）。打开后与房间内其他人在同一份文档上编辑，改动实时合并；「保存到文章」才会写入正文。",
+        "docLabel": "文章 ID",
+        "docRequired": "请先填写文章 ID",
+        "join": "加入协同",
+        "joining": "正在建立协同连接…",
+        "leave": "离开",
+        "connecting": "连接中",
+        "connected": "已连接（等待同步）",
+        "synced": "已同步",
+        "disconnected": "已断开",
+        "rejected": "被拒绝",
+        "online": "在线 {count} 人",
+        "hint": "填写文章 ID 后点「加入协同」。需要该文章的作者身份，或持有有效协作邀请码（可在 URL 上带 ?invite=xxx）。",
+        "placeholder": "在这里与其他协作者同步编辑正文…",
+        "save": "保存到文章",
+        "saved": "已保存到文章正文",
+        "seedFailed": "未能读取文章现有正文，本次以空文档开始"
+      },
       "customFieldValues": {
         "title": "自定义字段值",
         "desc": "按内容类型的字段定义填写字段值。保存是全量提交：必填缺失或出现未定义字段名会被拒绝。",
@@ -3104,8 +3124,8 @@
         "update": "更新",
         "detail": "详情",
         "install": "安装",
-        "installConfirm": "从市场安装 {slug}@{version}？会下载并覆盖本机插件文件。",
-        "installed": "已安装 {slug}@{version}",
+        "installConfirm": "从市场安装 {slug}{'@'}{version}？会下载并覆盖本机插件文件。",
+        "installed": "已安装 {slug}{'@'}{version}",
         "versionRequired": "该条目没有可用版本号，请打开详情选择版本",
         "empty": "市场里没有匹配的插件",
         "unavailableTitle": "插件市场不可用",

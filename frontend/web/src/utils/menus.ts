@@ -57,6 +57,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         permission: 'module_content:custom_post_type:view'
       },
       {
+        name: 'CollabEditor',
+        path: '/content/collab-editor',
+        title: '协同编辑',
+        permission: 'module_content:collaboration:view'
+      },
+      {
         name: 'CustomPostTypes',
         path: '/content/custom-post-types',
         title: '内容类型',

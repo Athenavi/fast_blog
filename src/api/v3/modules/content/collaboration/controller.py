@@ -501,7 +501,15 @@ async def yjs_websocket(websocket: WebSocket, document_id: int, db: DBSession) -
                     await websocket.send_bytes(_with_sync_prefix(reply))
                     await room_registry.persist_state(room)
             elif message_type == int(YMessageType.AWARENESS):
-                room.awareness.apply_awareness_update(raw[1:])
+                # pycrdt 的 Awareness 会把 state 段按 **JSON** 解析，而标准 y-protocols 的
+                # awareness update 是**二进制**（CBOR 风格）→ 直接调用必然抛 JSONDecodeError，
+                # 于是**任何真实 yjs 客户端一连上就被断开**（curl 不发 awareness，探测不出）。
+                # awareness 只承载"在线光标/状态"，服务端无需理解它 —— 下面的 broadcast
+                # 会把它原样转发给房间其他人。因此解析失败只记日志，绝不断开连接。
+                try:
+                    room.awareness.apply_awareness_update(raw[1:], client_id)
+                except Exception as exc:  # noqa: BLE001 - 解析失败不影响转发
+                    logger.debug("忽略无法解析的 awareness 帧（仍会转发）：%s", exc)
             else:
                 continue
             # 同一帧广播给房间内其它人（本地扇出 + 跨 worker）
