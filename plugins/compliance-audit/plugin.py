@@ -342,15 +342,24 @@ class ComplianceAuditPlugin(BasePlugin):
             return {"status": "not_audited", "detail": "无法检查管理端点"}
 
     def _check_upload_security(self) -> dict:
-        """检查文件上传安全"""
+        """检查文件上传安全。
+
+        **刻意不导入** ``src.utils.upload.public_upload``：那个模块顶层会 ``import magic``
+        （python-magic），在缺少 libmagic 的环境（如未装 DLL 的 Windows）会**挂起或崩溃**，
+        把"合规审计"变成"卡死"—— 本函数只需要一个白名单常量，不值得冒这个险。
+        改为静态读取 v3 的白名单模块，并把口径从"扩展名"改为更准确的"MIME 类型"。
+        """
         try:
-            from src.utils.upload.public_upload import ALLOWED_EXTENSIONS
-            dangerous = {".html", ".htm", ".xml", ".js", ".css", ".vue"}
-            if dangerous & ALLOWED_EXTENSIONS:
-                return {"status": "non-compliant", "detail": f"允许危险扩展名: {dangerous & ALLOWED_EXTENSIONS}"}
-            return {"status": "compliant", "detail": "文件上传扩展名白名单已限制危险类型"}
-        except Exception:
-            return {"status": "not_audited", "detail": "无法检查上传配置"}
+            from src.api.v3.modules.content.media.allowed_mimes import ALLOWED_MIMES_LIST
+        except ImportError:
+            return {"status": "not_audited", "detail": "无法读取上传白名单"}
+
+        # 可被浏览器内联执行/解析的类型（存储型 XSS 的常见载体）
+        dangerous = {"text/html", "application/xhtml+xml", "text/xml", "application/xml"}
+        hit = dangerous & {str(item).lower() for item in ALLOWED_MIMES_LIST}
+        if hit:
+            return {"status": "non-compliant", "detail": f"允许可内联执行的类型: {sorted(hit)}"}
+        return {"status": "compliant", "detail": "上传白名单已排除可内联执行 / 脚本类型"}
 
     def _check_rate_limiting(self) -> dict:
         """检查限流"""

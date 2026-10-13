@@ -8,6 +8,19 @@ export {authApi} from './modules/auth'
 export type {CurrentUser, LoginParams, TokenData} from './modules/auth'
 
 // ---------------------------------------------------------------- system
+export {apiTokenApi} from './modules/apiToken'
+export type {ApiTokenCreatePayload, ApiTokenCreated, ApiTokenItem} from './modules/apiToken'
+
+export {pluginMarketApi} from './modules/pluginMarket'
+export type {
+  MarketInstallPayload,
+  MarketPluginItem,
+  MarketPluginList,
+  MarketPluginQuery,
+  MarketPluginVersion,
+  MarketUpdateItem,
+} from './modules/pluginMarket'
+
 export {userApi} from './modules/user'
 export type {
   RoleBrief,
@@ -230,7 +243,12 @@ export {blockPatternApi} from './modules/blockPattern'
 export type {BlockPatternItem, BlockPatternPayload} from './modules/blockPattern'
 
 export {customPostTypeApi} from './modules/customPostType'
-export type {CustomPostTypeItem, CustomPostTypePayload} from './modules/customPostType'
+export type {
+  CustomFieldEntry,
+  CustomFieldValues,
+  CustomPostTypeItem,
+  CustomPostTypePayload,
+} from './modules/customPostType'
 
 // ---------------------------------------------------------------- 批次 2
 export {approvalApi} from './modules/approval'

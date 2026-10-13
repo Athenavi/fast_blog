@@ -2300,6 +2300,34 @@
         "exportButton": "Export Markdown",
         "exportStarted": "Download started"
       },
+      "apiToken": {
+        "title": "API Tokens",
+        "desc": "Long-lived credentials for third-party scripts and CI. The plaintext is shown once at creation; a token never exceeds the permissions you currently hold.",
+        "create": "Create token",
+        "colName": "Name",
+        "colPrefix": "Prefix",
+        "colScopes": "Scopes",
+        "colExpires": "Expires",
+        "colLastUsed": "Last used",
+        "colActions": "Actions",
+        "never": "never",
+        "empty": "No tokens yet — create one from the top right.",
+        "nameRequired": "Please enter a token name",
+        "scopesRequired": "Please enter at least one permission code",
+        "namePlaceholder": "e.g. CI publish",
+        "scopesPlaceholder": "module_content:article:view, module_content:article:edit",
+        "scopesHint": "Comma or space separated. Must be a subset of the permission codes you currently hold, otherwise creation is rejected.",
+        "expiresInDays": "Valid for (days)",
+        "neverPlaceholder": "leave empty for no expiry",
+        "revoke": "Revoke",
+        "revokeConfirm": "Revoke token \"{name}\"? Scripts using it will stop working immediately.",
+        "revoked": "Revoked",
+        "plaintextTitle": "Token created",
+        "plaintextWarning": "Copy it now — the plaintext is shown only once and cannot be retrieved later.",
+        "copy": "Copy",
+        "copied": "Copied to clipboard",
+        "copyFailed": "Copy failed — please select and copy manually"
+      },
       "screenOptions": {
         "title": "Screen options",
         "desc": "Per-page UI preferences (columns, page size, ordering, etc.), stored per page and scoped to your own account.",
@@ -2367,6 +2395,21 @@
       "viewAll": "View all"
     },
     "content": {
+      "customFieldValues": {
+        "title": "Custom field values",
+        "desc": "Fill in field values according to the content type's field definitions. Saving is a full submit: missing required fields or undefined field names are rejected.",
+        "typeLabel": "Content type",
+        "contentIdLabel": "Content ID",
+        "load": "Load",
+        "save": "Save values",
+        "saved": "Saved {count} field(s)",
+        "noTypes": "No custom content types yet — create one under \"Content types\" first.",
+        "needLoad": "Pick a content type and enter a content ID, then press Load.",
+        "noFields": "This content type defines no fields yet.",
+        "typeAndContentRequired": "Please pick a content type and enter a content ID first",
+        "selectPlaceholder": "(none)",
+        "multiHint": "Multi-select: separate options with commas"
+      },
       "article": {
         "titleIsRequired": "Title is required",
         "saved": "Saved",
@@ -3049,6 +3092,27 @@
       "publicLabel": "Public"
     },
     "extension": {
+      "market": {
+        "title": "Plugin market",
+        "desc": "Browse a remote plugin catalogue and install from it. The marketplace URL is configured on the backend via PLUGIN_MARKETPLACE_URL.",
+        "keywordPlaceholder": "Search plugins",
+        "categoryPlaceholder": "Category (e.g. seo)",
+        "search": "Search",
+        "checkUpdates": "Check updates",
+        "noUpdates": "All plugins are up to date",
+        "updatesTitle": "{count} plugin(s) can be updated",
+        "update": "Update",
+        "detail": "Details",
+        "install": "Install",
+        "installConfirm": "Install {slug}@{version} from the market? The plugin files on this machine will be replaced.",
+        "installed": "Installed {slug}@{version}",
+        "versionRequired": "No usable version on this entry — open the details to pick one",
+        "empty": "No plugins match your search",
+        "unavailableTitle": "Plugin market unavailable",
+        "unavailableHint": "Set PLUGIN_MARKETPLACE_URL on the backend to point at a marketplace service, then reload this page.",
+        "changelog": "Changelog",
+        "versions": "Versions"
+      },
       "plugin": {
         "plugins": "Plugins",
         "noNewPluginsFound": "No new plugins found",

@@ -2300,6 +2300,34 @@
         "exportButton": "导出 Markdown",
         "exportStarted": "已开始下载"
       },
+      "apiToken": {
+        "title": "API 令牌",
+        "desc": "为第三方脚本 / CI 签发的长期凭据。明文仅在创建时显示一次；令牌权限不会超过你自己当前拥有的权限。",
+        "create": "签发令牌",
+        "colName": "名称",
+        "colPrefix": "前缀",
+        "colScopes": "权限范围",
+        "colExpires": "过期时间",
+        "colLastUsed": "最后使用",
+        "colActions": "操作",
+        "never": "不过期",
+        "empty": "还没有令牌，点右上角签发一个。",
+        "nameRequired": "请填写令牌名称",
+        "scopesRequired": "请至少填写一个权限码",
+        "namePlaceholder": "例如：CI 发布",
+        "scopesPlaceholder": "module_content:article:view, module_content:article:edit",
+        "scopesHint": "逗号或空格分隔。必须是「你当前拥有的权限码」的子集，否则签发会被拒绝。",
+        "expiresInDays": "有效期（天）",
+        "neverPlaceholder": "留空表示不过期",
+        "revoke": "撤销",
+        "revokeConfirm": "撤销令牌「{name}」？使用它的脚本会立刻失效。",
+        "revoked": "已撤销",
+        "plaintextTitle": "令牌已创建",
+        "plaintextWarning": "请立刻复制保存 —— 明文只显示这一次，关闭后无法再次查看。",
+        "copy": "复制",
+        "copied": "已复制到剪贴板",
+        "copyFailed": "复制失败，请手动选中复制"
+      },
       "screenOptions": {
         "title": "屏幕选项",
         "desc": "每页界面的显示偏好（列、每页条数、排序等），按页面分别保存，仅对当前账号生效。",
@@ -2367,6 +2395,21 @@
       "viewAll": "查看全部"
     },
     "content": {
+      "customFieldValues": {
+        "title": "自定义字段值",
+        "desc": "按内容类型的字段定义填写字段值。保存是全量提交：必填缺失或出现未定义字段名会被拒绝。",
+        "typeLabel": "内容类型",
+        "contentIdLabel": "内容 ID",
+        "load": "载入",
+        "save": "保存字段值",
+        "saved": "已保存 {count} 个字段",
+        "noTypes": "还没有自定义内容类型，先去「内容类型」创建。",
+        "needLoad": "请选择内容类型并填写内容 ID，然后点「载入」。",
+        "noFields": "该内容类型尚未定义字段。",
+        "typeAndContentRequired": "请先选择内容类型并填写内容 ID",
+        "selectPlaceholder": "（未选）",
+        "multiHint": "多选：用逗号分隔多个选项"
+      },
       "article": {
         "titleIsRequired": "请填写标题",
         "saved": "已保存",
@@ -3049,6 +3092,27 @@
       "publicLabel": "公开"
     },
     "extension": {
+      "market": {
+        "title": "插件市场",
+        "desc": "浏览远程插件目录并安装。市场地址由后端 PLUGIN_MARKETPLACE_URL 配置（可用仓库内 plugin-market-server/ 自建）。",
+        "keywordPlaceholder": "搜索插件",
+        "categoryPlaceholder": "分类（如 seo）",
+        "search": "搜索",
+        "checkUpdates": "检查更新",
+        "noUpdates": "所有插件都是最新版本",
+        "updatesTitle": "有 {count} 个插件可更新",
+        "update": "更新",
+        "detail": "详情",
+        "install": "安装",
+        "installConfirm": "从市场安装 {slug}@{version}？会下载并覆盖本机插件文件。",
+        "installed": "已安装 {slug}@{version}",
+        "versionRequired": "该条目没有可用版本号，请打开详情选择版本",
+        "empty": "市场里没有匹配的插件",
+        "unavailableTitle": "插件市场不可用",
+        "unavailableHint": "请在后端配置 PLUGIN_MARKETPLACE_URL 指向一个插件市场服务，然后刷新本页。",
+        "changelog": "更新说明",
+        "versions": "可选版本"
+      },
       "plugin": {
         "plugins": "插件",
         "noNewPluginsFound": "没有发现新插件",

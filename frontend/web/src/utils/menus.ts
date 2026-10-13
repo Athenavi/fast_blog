@@ -51,6 +51,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
       {name: 'MediaLibrary', path: '/content/media', title: '媒体库', permission: 'module_content:media:view'},
       {name: 'PageList', path: '/content/page', title: '页面', permission: 'module_content:page:view'},
       {
+        name: 'CustomFieldValues',
+        path: '/content/custom-field-values',
+        title: '字段值',
+        permission: 'module_content:custom_post_type:view'
+      },
+      {
         name: 'CustomPostTypes',
         path: '/content/custom-post-types',
         title: '内容类型',
@@ -202,6 +208,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         title: '屏幕选项',
         permission: 'module_system:setting:view'
       },
+      {
+        name: 'ApiToken',
+        path: '/system/api-token',
+        title: 'API 令牌',
+        permission: 'module_system:api_token:view'
+      },
     ],
   },
   {
@@ -249,6 +261,7 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
     order: 5,
     children: [
       {name: 'PluginList', path: '/extension/plugin', title: '插件', permission: 'module_extension:plugin:view'},
+      {name: 'PluginMarket', path: '/extension/market', title: '插件市场', permission: 'module_extension:plugin:view'},
       {name: 'ThemeList', path: '/extension/theme', title: '主题', permission: 'module_extension:theme:view'},
       {name: 'WidgetList', path: '/extension/widget', title: '小部件', permission: 'module_extension:widget:view'},
       {
