@@ -92,6 +92,14 @@ test('[协同] 两个客户端实时同步同一篇正文', async ({authenticate
     const fromA = `A-${marker}`
     await pageA.locator('textarea').click()
     await pageA.locator('textarea').fill(fromA)
+    await pageA.waitForTimeout(2500)
+    const [valA, valB] = await Promise.all([
+      pageA.locator('textarea').inputValue(),
+      pageB.locator('textarea').inputValue(),
+    ])
+    console.log(`[fill 后] A=${valA.length} 字符 B=${valB.length} 字符`)
+    console.log(`[fill 后 A 内容] ${JSON.stringify(valA).slice(0, 90)}`)
+    console.log(`[fill 后 B 内容] ${JSON.stringify(valB).slice(0, 90)}`)
     await expect(pageB.locator('textarea')).toHaveValue(new RegExp(fromA), {timeout: 15000})
 
     // 4) B 追加 → A 也必须看到（双向，排除"单向广播"的假象）

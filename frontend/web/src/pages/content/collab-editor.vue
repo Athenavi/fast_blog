@@ -15,7 +15,7 @@
  * 协议与鉴权见 provider 的文档注释（帧 = [type][payload]，token 走 query）。
  */
 import * as Y from 'yjs'
-import {computed, nextTick, onBeforeUnmount, ref} from 'vue'
+import {computed, nextTick, onBeforeUnmount, ref, watch} from 'vue'
 
 import {articleApi, yjsApi} from '@/api'
 import {CollabProvider, type CollabStatus} from '@/lib/yjs/collab-provider'
@@ -68,13 +68,22 @@ const statusClass = computed(() =>
 
 /** 用文章现有正文做首次初始化（仅当 CRDT 文档为空时） */
 async function seedFromArticle(id: number): Promise<void> {
-  if (seeded || !yText) return
+  if (seeded || !yText || !doc) return
   seeded = true
   if (yText.length > 0) return // 房间里已有内容（Redis 恢复 / 别人先到）
   try {
     const detail: any = await articleApi.detail(id)
     const content = String(detail?.content ?? detail?.article?.content ?? '')
-    if (content && yText.length === 0) yText.insert(0, content)
+    if (!content) return
+    // 用**文档内的共享标记**保证只初始化一次：两端同时进来都插入正文会让内容翻倍
+    // （实测出现过 "初始正文初始正文"）。标记是 CRDT 的一部分，会同步给另一端；
+    // 并发窗口仍存在，但比无条件插入小得多。两个检查都在事务提交前完成。
+    const meta = doc.getMap<boolean>('meta')
+    if (meta.get('seeded') || yText.length > 0) return
+    doc.transact(() => {
+      meta.set('seeded', true)
+      yText!.insert(0, content)
+    })
   } catch {
     // 取不到正文不阻断协同（空文档也能开始编辑），但如实提示
     ElMessage.warning(t('admin.content.collabEditor.seedFailed'))
@@ -92,10 +101,14 @@ function join(): void {
   doc = new Y.Doc()
   yText = doc.getText('content')
 
-  // Y.Text → 界面（唯一的数据来源，textarea 不参与 v-model 双向绑定，避免回环）
+  // Y.Text → 界面：**直接写 DOM**（非受控）。
+  // 不用 `:value="text"` 受控绑定：用户输入、CRDT 同步、手动光标三者在 Vue 的受控
+  // patch 下会互相覆盖（实测出现「Y.Text 已是 22 字符、DOM 仍为空」）。
   observer = () => {
     const next = yText!.toString()
-    if (next !== text.value) text.value = next
+    const el = textarea.value
+    if (el && el.value !== next) el.value = next
+    text.value = next // 仅供长度/诊断显示，不参与绑定
   }
   yText.observe(observer)
 
@@ -191,6 +204,17 @@ async function save(): Promise<void> {
   }
 }
 
+/** textarea 是 `v-if="joined"` 渲染的：元素一旦重建（重连、条件抖动），DOM 会回到空白
+ *  而 Y.Text 仍有内容 —— 但 observer 只在 Y.Text **变化**时触发，不会再写回来。
+ *  这里在 joined 变为 true（含重建）后主动把 Y.Text 的内容写进 DOM。 */
+watch(joined, async (isJoined) => {
+  if (!isJoined) return
+  await nextTick()
+  const next = yText?.toString() ?? ''
+  const el = textarea.value
+  if (el && el.value !== next) el.value = next
+})
+
 onBeforeUnmount(leave)
 </script>
 
@@ -252,7 +276,6 @@ onBeforeUnmount(leave)
         v-if="joined"
         ref="textarea"
         :placeholder="t('admin.content.collabEditor.placeholder')"
-        :value="text"
         class="h-[60vh] w-full rounded-lg border border-default p-3 font-mono text-sm"
         @input="onInput"
       />
