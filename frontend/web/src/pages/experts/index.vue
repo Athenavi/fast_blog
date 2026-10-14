@@ -13,25 +13,26 @@ const PAGE_SIZE = 12
 const route = useRoute()
 const router = useRouter()
 const {t} = useI18n()
-const site = await useSiteInfo()
-
 const page = computed(() => Number(route.query.page || 1))
 const certType = computed(() => (route.query.type ? String(route.query.type) : undefined))
 
-const {data: pageData, pending, error, refresh: refreshList} = await useAsyncData(
-  () => `experts-${page.value}-${certType.value ?? 'all'}`,
-  () =>
-    apiPage<CertificationItem>('/gamification/certification/experts', {
-      page: page.value,
-      page_size: PAGE_SIZE,
-      cert_type: certType.value,
-    }),
-  {watch: [page, certType]},
-)
-
-const {data: types} = await useAsyncData('certification-types', () =>
-  apiGet<CertTypeItem[]>('/gamification/certification/types'),
-)
+// 站点信息 / 专家列表 / 认证类型三者**并发**（原先一个个 await，串成 3 轮往返）
+const [site, {data: pageData, pending, error, refresh: refreshList}, {data: types}] = await Promise.all([
+  useSiteInfo(),
+  useAsyncData(
+    () => `experts-${page.value}-${certType.value ?? 'all'}`,
+    () =>
+      apiPage<CertificationItem>('/gamification/certification/experts', {
+        page: page.value,
+        page_size: PAGE_SIZE,
+        cert_type: certType.value,
+      }),
+    {watch: [page, certType]},
+  ),
+  useAsyncData('certification-types', () =>
+    apiGet<CertTypeItem[]>('/gamification/certification/types'),
+  ),
+])
 
 const experts = computed(() => pageData.value?.items ?? [])
 

@@ -1,8 +1,18 @@
 <script lang="ts" setup>
-/** 前台布局：顶部导航 + 正文区 + 页脚 */
-const site = await useSiteInfo()
-// 主题槽位（component_slots）：决定文章卡片等组件使用哪个变体
-await initThemeSlots()
+/**
+ * 前台布局：顶部导航 + 正文区 + 页脚
+ *
+ * 三个数据源**并发**取：站点信息、主题槽位、以及预热顶部导航。
+ *
+ * 原先是一个个 `await`，把 3 次后端往返串起来全压在 TTFB 上 —— 而且布局的 setup
+ * 先于页面执行，页面里的取数只能排在它之后，等于每页至少多两轮往返。
+ * 导航在这里预热后，`SiteHeader` 内部那次调用会直接命中 `useSiteNav` 的缓存。
+ */
+const [site] = await Promise.all([
+  useSiteInfo(),
+  initThemeSlots(),
+  useSiteNav(),
+])
 </script>
 
 <template>

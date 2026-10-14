@@ -69,6 +69,35 @@ const {remember: rememberPage} = useRecentPages()
 
 const ready = ref(false)
 
+const {locale, mergeLocaleMessage} = useI18n()
+
+/**
+ * 后台专属文案**按需加载**。
+ *
+ * `admin` 命名空间占全部文案的 77.5%（zh-CN 约 187 KB），而前台访客永远用不到它 ——
+ * 此前它和前台文案一起打包成一份 193 KB 的 messages.json，每个页面加载后都要额外请求一次。
+ * `scripts/split-i18n.mjs` 把它拆到 `public/i18n/admin/<locale>.json`，只在进入后台时取一次。
+ *
+ * 加载与 Element Plus 一起纳入 `ready` 门禁：文案没到位就先不渲染，
+ * 免得整屏先闪一遍 `admin.xxx.yyy` 这样的原始 key。
+ */
+const adminMessagesLoaded = new Set<string>()
+
+async function loadAdminMessages(): Promise<void> {
+  const code = String(locale.value)
+  if (adminMessagesLoaded.has(code)) return
+  try {
+    const messages = await $fetch<Record<string, unknown>>(`/i18n/admin/${code}.json`)
+    mergeLocaleMessage(code, messages)
+    adminMessagesLoaded.add(code)
+  } catch {
+    // 取不到就维持现状（未命中的 key 以原文显示），不阻塞进入后台
+  }
+}
+
+// 后台内切换语言时同样需要补上该语言的 admin 文案
+watch(locale, () => void loadAdminMessages())
+
 /** 与 Element Plus 的 `lg` 断点一致：窄屏走抽屉导航 */
 const isNarrow = useMediaQuery('(max-width: 1023px)')
 
@@ -122,6 +151,8 @@ onMounted(async () => {
     import('element-plus'),
     import('@element-plus/icons-vue'),
     import('element-plus/es/locale/lang/zh-cn'),
+    // 后台专属文案（占全部文案 77.5%）与 Element Plus 并发加载，一起纳入 ready 门禁
+    loadAdminMessages(),
   ])
 
   // 样式按"基础 → 暗色变量 → 后台令牌"顺序串行加载，保证覆盖关系正确

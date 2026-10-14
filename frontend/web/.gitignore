@@ -13,6 +13,11 @@ dist/
 .vscode/*
 !.vscode/extensions.json
 
+# i18n 拆分产物：由 scripts/split-i18n.mjs 从真相源 i18n/locales/ 生成（见该脚本说明）
+i18n/messages/
+i18n/site/
+public/i18n/admin/
+
 # Playwright 运行产物（截图基线 e2e/**-snapshots/ 要入库，这两个不要）
 test-results/
 playwright-report/

@@ -15,7 +15,7 @@
  * `GET /api/v3/content/feed/user/{user_id}`（公开）—— TA 发布的文章 +
  * 通过审核的评论，合成事件流。
  */
-import {contentFeedApi, followApi, mobileApi, type FeedEvent, type MobilePublicProfile} from '@/api'
+import {contentFeedApi, type FeedEvent, followApi, mobileApi, type MobilePublicProfile} from '@/api'
 import {useUserStore} from '@/store/modules/user'
 import type {ArticleItem} from '@/types/content'
 import {formatDate, formatDateTime} from '@/utils/format'
@@ -24,15 +24,19 @@ const PAGE_SIZE = 10
 
 const route = useRoute()
 const {t} = useI18n()
-const site = await useSiteInfo()
-
 const username = computed(() => String(route.params.username))
 const page = computed(() => Math.max(1, Number(route.query.page || 1)))
 
-const {data: profile} = await useAsyncData(
-  () => `home-profile-${username.value}`,
-  () => apiGet<MobilePublicProfile>(`/mobile/user/public/${encodeURIComponent(username.value)}`),
-)
+// 站点信息与用户资料**并发**。
+// ⚠️ 文章列表刻意不并进来：它要用 `profile.id` 过滤，是**真实的数据依赖**，
+// 只能排在资料之后 —— 这里保留串行是依赖使然，不是可以消除的取数浪费。
+const [site, {data: profile}] = await Promise.all([
+  useSiteInfo(),
+  useAsyncData(
+    () => `home-profile-${username.value}`,
+    () => apiGet<MobilePublicProfile>(`/mobile/user/public/${encodeURIComponent(username.value)}`),
+  ),
+])
 
 if (!profile.value) {
   throw createError({statusCode: 404, statusMessage: t('home.notFound')})

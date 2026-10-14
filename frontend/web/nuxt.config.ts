@@ -25,13 +25,27 @@ export default defineNuxtConfig({
   // （前台已有 /articles、/p/{slug} 等 SEO 路径，带前缀会连带影响 sitemap、PWA 与已收录链接）。
   // 切换语言走 `useI18n().setLocale()`，选择由模块记在 cookie 里。
   i18n: {
+    // 文案目录指向**派生**目录：由 scripts/split-i18n.mjs 从真相源 `i18n/locales/*.json`
+    // 生成，只含前台命名空间。后台专属的 `admin`（占全部文案的 77.5%）已拆到
+    // `public/i18n/admin/`，由 layouts/admin.vue 按需加载。
+    langDir: 'i18n/messages',
+
     // `dir` 由 app.vue 写入 `<html dir>`（当前都是 ltr，为将来接 RTL 语言预留）
     //
-    // `cache: true` 让模块把该文件视为**可缓存**，从而不再给请求带上
-    // `Cache-Control: no-cache`（见 runtime 里 `loadMessages`：
-    // `cacheable ? {} : {'Cache-Control': 'no-cache'}`），并自动启用
-    // `experimental.cacheLifetime` 的 1 天缓存。默认状态下这个请求每次都全量重下。
+    // ⚠️ 默认语言 zh-CN 的 `file` 指向一个**空占位**（`i18n/messages/zh-CN.json` = `{}`），
+    // 它的真实前台文案由 `i18n/i18n.config.ts` 直接 import 内联进 bundle。
+    //
+    // 为什么不能干脆不给 zh-CN 配 `file`：模块有硬校验「使用 `langDir` 时每个 locale
+    // 都必须有 `file`/`files`」（`checkLayerOptions`），而客户端的 `loadMessagesFromServer`
+    // 入口是 `if (locale in localeLoaders === false) return` —— 只要有 `file` 就必然发一次
+    // `/_i18n/<hash>/<locale>/messages.json`，**躲不掉**。既然躲不掉，就让默认语言这次
+    // 请求的响应体小到可忽略（空对象 merge 进去无影响）：
+    // 193 KB raw / 66 KB gzip → 约 3 字节。真正的文案走构建期内联。
+    //
+    // `en` 是非默认语言（本站 `detectBrowserLanguage: false`），它的 `file` 是真正的前台文案，
+    // 切到英文时才加载，不给每个访客的 bundle 加体积。
     locales: [
+      // zh-CN 的 file 指向**空占位**（真实文案由 i18n/i18n.config.ts 内联，见上）
       {code: 'zh-CN', language: 'zh-CN', name: '简体中文', file: {path: 'zh-CN.json', cache: true}, dir: 'ltr'},
       {code: 'en', language: 'en-US', name: 'English', file: {path: 'en.json', cache: true}, dir: 'ltr'},
     ],
@@ -40,27 +54,10 @@ export default defineNuxtConfig({
     // 中文站默认不做浏览器语言自动跳转（要开时改成 {alwaysRedirect: true} 之类）
     detectBrowserLanguage: false,
 
-    // ------------------------------------------------------------------ 性能
-    // 背景：文案**不在**任何客户端 chunk 里（构建产物 208 个 js 一个都搜不到），
-    // 而是由 entry 执行后额外发一次请求去取：
-    //     GET /_i18n/<hash>/zh-CN/messages.json   → 193 KB raw / 66 KB gzip
-    // 该响应默认只有 `cache-control: max-age=10`，且请求头带 `no-cache` → 每次访问全量重下。
-    //
-    // ⚠️ 关于 `experimental.preload` + `stripMessagesPayload`（**本项目不要开**）：
-    // 看上去正对症，实测是负收益，原因在模块源码里写死了 ——
-    // `runtime/plugins/preload.js` 的 `mergePayloadMessages`：
-    //     if (ctx.usesRuntimeLoaders(locale)) continue;
-    // 本项目用 `file:` 提供文案，该 locale 就是 runtime loader，于是**内联进 HTML 的那份
-    // 会被客户端直接跳过**，照样重新请求完整文件。实测开启后 HTML 多了 831 字节、
-    // 请求一条没少。只有把文案放进 `i18n.config.ts` 的 `messages`（构建期内联、
-    // 不是 runtime loader）preload 才会真正生效——那属于 B2 的拆分方案。
-    //
-    // 这里只做**不改架构就能拿到**的两件事：
-    //  1. `prerenderMessages: false`：让 Nitro 路由负责下发响应头，
-    //     从而拿到下面 `httpCacheDuration` 的显式 Cache-Control；
-    //     （prerender 成静态文件后这个头会丢，只剩 ETag）
-    //  2. `httpCacheDuration: 86400`：默认 10 秒，等于没缓存。
     experimental: {
+      // `en` 仍走 lazy file（Nitro 路由），给它一个显式长缓存。
+      // 默认只有 10 秒，且模块的 `loadMessages` 会给请求带上 `Cache-Control: no-cache`
+      // （`cacheable ? {} : {...}`）→ 等于每次都全量重下；上面 `cache: true` 关掉那个头。
       httpCacheDuration: 86400,
     },
   },
@@ -202,6 +199,17 @@ export default defineNuxtConfig({
     '/feed': {ssr: false},
     '/chat': {ssr: false},
     '/chat/**': {ssr: false},
+    // 公开内容页做短缓存（swr = stale-while-revalidate：先给旧内容，后台再刷新）
+    //
+    // ⚠️ 前提是响应里**没有 set-cookie**：被缓存的响应若带着某个用户的偏好写回，
+    // 就会污染其他访问者。app.vue 里已把主题/配色 cookie 改成服务端只读（见该文件说明）。
+    '/': {swr: 60},
+    '/about': {swr: 300},
+    '/discover': {swr: 60},
+    '/categories': {swr: 300},
+    '/experts/**': {swr: 60},
+    // 后台「单页管理」发布的固定页，内容变动极少
+    '/p/**': {swr: 300},
     // 首页与文章页做短缓存
     '/articles/**': {swr: 60},
     '/category/**': {swr: 60},

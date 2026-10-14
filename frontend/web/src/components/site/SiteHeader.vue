@@ -1,6 +1,5 @@
 <script lang="ts" setup>
 /** 顶部导航（阅读优先：窄容器、克制的分割线、克制的动效） */
-import {apiGet} from '@/composables/useApi'
 import {useUserStore} from '@/store/modules/user'
 
 const {t} = useI18n()
@@ -9,16 +8,9 @@ const props = defineProps<{ siteName?: string }>()
 
 const userStore = useUserStore()
 
-/** 后台「菜单管理」里 slug=main-nav 的菜单项（未配置时接口 404 → 回退内置导航） */
-interface NavNode {
-  id: number
-  title: string
-  url: string
-}
-
-const {data: navTree} = await useAsyncData('site-main-nav', () =>
-  apiGet<{ items: NavNode[] }>('/system/menu/public/main-nav'),
-)
+// 导航数据走 `useSiteNav`：布局已经在 `Promise.all` 里预热过，这里通常直接命中缓存，
+// 不再多一轮后端往返（原先取数留在组件内，只能排在布局取数之后串行发生）。
+const navTree = await useSiteNav()
 
 /** url → 文案 key：后台沿用同一批 url 时，前台仍按当前语言显示 */
 const NAV_I18N: Record<string, string> = {
@@ -60,7 +52,7 @@ const DEFAULT_MORE_NAV = computed(() => [
 ])
 
 const configuredNav = computed(() =>
-  (navTree.value?.items ?? [])
+  (navTree.value ?? [])
     .filter((node) => Boolean(node.url))
     .map((node) => {
       const i18nKey = NAV_I18N[node.url]

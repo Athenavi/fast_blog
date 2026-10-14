@@ -17,14 +17,16 @@ import {usePreferredReducedMotion} from '@vueuse/core'
 
 import type {ArticleItem, CategoryItem} from '@/types/content'
 
-const site = await useSiteInfo()
-
-const {data: articlePage, error, refresh: refreshList} = await useAsyncData('home-articles', () =>
-  apiPage<ArticleItem>('/content/article/public/list', {page: 1, page_size: 6}),
-)
-const {data: categories} = await useAsyncData('home-categories', () =>
-  apiGet<CategoryItem[]>('/content/category/public'),
-)
+// 站点信息 / 文章列表 / 分类三者**并发**（原先一个个 await，串成 3 轮往返压在 TTFB 上）
+const [site, {data: articlePage, error, refresh: refreshList}, {data: categories}] = await Promise.all([
+  useSiteInfo(),
+  useAsyncData('home-articles', () =>
+    apiPage<ArticleItem>('/content/article/public/list', {page: 1, page_size: 6}),
+  ),
+  useAsyncData('home-categories', () =>
+    apiGet<CategoryItem[]>('/content/category/public'),
+  ),
+])
 
 const articles = computed(() => articlePage.value?.items ?? [])
 

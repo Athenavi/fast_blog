@@ -5,25 +5,26 @@ import type {ArticleItem, CategoryItem} from '@/types/content'
 const route = useRoute()
 const router = useRouter()
 const {t} = useI18n()
-const site = await useSiteInfo()
-
 const page = computed(() => Number(route.query.page || 1))
 const categoryId = computed(() => (route.query.category ? Number(route.query.category) : undefined))
 
-const {data: pageData, pending, error, refresh: refreshList} = await useAsyncData(
-  () => `articles-${page.value}-${categoryId.value ?? 'all'}`,
-  () =>
-    apiPage<ArticleItem>('/content/article/public/list', {
-      page: page.value,
-      page_size: 9,
-      category_id: categoryId.value,
-    }),
-  {watch: [page, categoryId]},
-)
-
-const {data: categories} = await useAsyncData('article-list-categories', () =>
-  apiGet<CategoryItem[]>('/content/category/public'),
-)
+// 站点信息 / 文章列表 / 分类三者**并发**（原先一个个 await，串成 3 轮往返）
+const [site, {data: pageData, pending, error, refresh: refreshList}, {data: categories}] = await Promise.all([
+  useSiteInfo(),
+  useAsyncData(
+    () => `articles-${page.value}-${categoryId.value ?? 'all'}`,
+    () =>
+      apiPage<ArticleItem>('/content/article/public/list', {
+        page: page.value,
+        page_size: 9,
+        category_id: categoryId.value,
+      }),
+    {watch: [page, categoryId]},
+  ),
+  useAsyncData('article-list-categories', () =>
+    apiGet<CategoryItem[]>('/content/category/public'),
+  ),
+])
 
 const articles = computed(() => pageData.value?.items ?? [])
 

@@ -38,8 +38,17 @@ const CAMERA_Z = 7
 
 type Vec3 = [number, number, number]
 
+/**
+ * 3×3 旋转矩阵（行主序）。
+ *
+ * 用**固定长度元组**而不是 `number[]`：项目开了 `noUncheckedIndexedAccess`，
+ * `number[]` 的每个下标访问都会是 `number | undefined`，参与算术就报 TS2532。
+ * 元组长度已知，下标访问才是确定的 `number`。
+ */
+type Mat3 = [number, number, number, number, number, number, number, number, number]
+
 /** 欧拉角 XYZ 顺序的旋转矩阵（three 默认顺序），返回 3×3 行主序 */
-function rotationMatrix(rx: number, ry: number, rz: number): number[] {
+function rotationMatrix(rx: number, ry: number, rz: number): Mat3 {
   const cx = Math.cos(rx), sx = Math.sin(rx)
   const cy = Math.cos(ry), sy = Math.sin(ry)
   const cz = Math.cos(rz), sz = Math.sin(rz)
@@ -52,7 +61,7 @@ function rotationMatrix(rx: number, ry: number, rz: number): number[] {
   ]
 }
 
-function applyMatrix(m: number[], v: Vec3): Vec3 {
+function applyMatrix(m: Mat3, v: Vec3): Vec3 {
   return [
     m[0] * v[0] + m[1] * v[1] + m[2] * v[2],
     m[3] * v[0] + m[4] * v[1] + m[5] * v[2],
@@ -227,7 +236,7 @@ onMounted(() => {
     }
   }
 
-  function strokeEdges(edges: Array<[Vec3, Vec3]>, color: string, alpha: number, group: number[], extra?: number[]): void {
+  function strokeEdges(edges: Array<[Vec3, Vec3]>, color: string, alpha: number, group: Mat3, extra?: Mat3): void {
     ctx.strokeStyle = color
     ctx.globalAlpha = alpha
     ctx.beginPath()
@@ -246,13 +255,14 @@ onMounted(() => {
     ctx.stroke()
   }
 
-  function drawRing(points: Vec3[], rot: [number, number, number], spin: number, scale: number, color: string, alpha: number, group: number[]): void {
+  function drawRing(points: Vec3[], rot: [number, number, number], spin: number, scale: number, color: string, alpha: number, group: Mat3): void {
     const local = rotationMatrix(rot[0], rot[1], rot[2] + spin)
     ctx.strokeStyle = color
     ctx.globalAlpha = alpha
     ctx.beginPath()
     for (let i = 0; i < points.length; i += 1) {
       const p = points[i]
+      if (!p) continue
       const scaled: Vec3 = [p[0] * scale, p[1] * scale, p[2] * scale]
       const projected = project(applyMatrix(group, applyMatrix(local, scaled)))
       if (i === 0) ctx.moveTo(projected.x, projected.y)
@@ -262,7 +272,7 @@ onMounted(() => {
     ctx.stroke()
   }
 
-  function drawStars(group: number[]): void {
+  function drawStars(group: Mat3): void {
     ctx.fillStyle = '#94a3b8'
     ctx.globalAlpha = 0.5
     for (const star of stars) {
