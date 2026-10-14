@@ -28,12 +28,13 @@ const {data: categories} = await useAsyncData('home-categories', () =>
 
 const articles = computed(() => articlePage.value?.items ?? [])
 
-/** three.js 线框背景：跟随系统的「减少动态效果」偏好 */
+/** 线框背景：跟随系统的「减少动态效果」偏好 */
 const prefersReducedMotion = usePreferredReducedMotion()
 const reducedMotion = computed(() => prefersReducedMotion.value === 'reduce')
 
-/** 线框背景按需加载：three 约 600 KB，且只在客户端渲染，不能进首屏包 */
-const WireframeScene = defineAsyncComponent(() => import('@/components/site/WireframeScene.vue'))
+// 线框背景（WireframeScene）由 Nuxt 自动导入，**不再**用 defineAsyncComponent 包一层。
+// 它现在是纯 Canvas 2D 实现（不到 1 KB，见组件注释），单独切一个 chunk 反而多一次请求；
+// 让它进首页自己的 chunk 即可。原来的 three.js 版必须异步加载（184 KB gzip）。
 
 const requestUrl = useRequestURL()
 useWebsiteJsonLd({
@@ -54,9 +55,9 @@ useSeoMeta({
   <div>
     <!-- Hero：留白优先，避免任何装饰性硬编码色 -->
     <section class="relative overflow-hidden border-b border-line">
-      <!-- three.js 线框背景：仅客户端、按需加载，低透明度不抢内容 -->
+      <!-- 线框背景：纯 Canvas 2D，由 Nuxt 自动导入（见 script 里的说明） -->
       <ClientOnly>
-        <component :is="WireframeScene" :reduced-motion="reducedMotion"/>
+        <WireframeScene :reduced-motion="reducedMotion"/>
       </ClientOnly>
 
       <div class="relative mx-auto max-w-wide px-4 py-20 sm:py-28">
