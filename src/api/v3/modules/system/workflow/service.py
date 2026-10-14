@@ -325,6 +325,14 @@ async def _run_http_request(config: Dict[str, Any]) -> Dict[str, Any]:
     url = config.get("url")
     if not isinstance(url, str) or not url.startswith(("http://", "https://")):
         raise BadRequestError("http_request 动作需要一个 http(s) 的 url")
+
+    # SSRF 防护：url 来自**用户配置**的工作流动作，必须过统一出站校验
+    # （默认只允许公网；内网目标需部署者显式开启 ALLOW_PRIVATE_OUTBOUND_ENDPOINTS）
+    from src.utils.security.safe import validate_outbound_url
+
+    valid, err = validate_outbound_url(url)
+    if not valid:
+        raise BadRequestError(f"http_request 动作的 url 不可用：{err}")
     method = str(config.get("method") or "GET").upper()
     headers = config.get("headers") if isinstance(config.get("headers"), dict) else None
     params = config.get("params") if isinstance(config.get("params"), dict) else None

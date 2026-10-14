@@ -125,10 +125,89 @@ def apply_site_scope(stmt: Any, model: Any) -> Any:
     return stmt.where(getattr(model, "site_id") == site_id)
 
 
+def apply_site_scope_to_statement(statement: Any) -> Any:
+    """给 ORM SELECT 语句注入站点条件（不做上下文判定，供事件层与单测复用）
+
+    用 ``with_loader_criteria`` 而不是 ``.where()``：后者只作用于主查询，
+    而前者会**传播到 relationship 的懒加载**（``include_aliases=True`` 还覆盖别名），
+    否则 ``article.category`` 这类关联对象仍会跨站点取到。
+
+    **已知局限**：判定依据是语句的 ``column_descriptions`` 里出现了哪些实体，因此
+    ``select(func.count()).select_from(stmt.subquery())`` 这类"外层全是聚合函数"的语句
+    不会被改写 —— 若其内层子查询来自未过滤的手写 select，计数会偏大。
+    影响仅限**统计数字**，不会泄漏行内容（行的拦截发生在 ``select(Model)`` 主查询上）。
+    需要精确计数时，用 :func:`apply_site_scope` 显式包一层内层查询。
+    """
+    from sqlalchemy.orm import with_loader_criteria
+
+    site_id = get_current_site_id()
+    if site_id is None or is_site_scope_bypassed():
+        return statement
+
+    try:
+        descriptions = statement.column_descriptions
+    except Exception:  # noqa: BLE001 - 拿不到描述就不介入
+        return statement
+
+    entities = {
+        item.get("entity")
+        for item in descriptions
+        if item.get("entity") is not None and is_site_scoped_model(item.get("entity"))
+    }
+    for entity in entities:
+        statement = statement.options(
+            with_loader_criteria(
+                entity,
+                getattr(entity, "site_id") == site_id,
+                include_aliases=True,
+            )
+        )
+    return statement
+
+
+_ORM_SCOPE_INSTALLED = False
+
+
+def install_orm_site_scope() -> bool:
+    """装上 ORM 级的租户隔离兜底；返回是否为本次首装
+
+    为什么需要：``CRUDBase`` 的过滤只覆盖走基类的查询，而各模块里手写的
+    ``select(Article)`` / ``select(Comment)`` 等不经过那里（实测 27 处，且只能是
+    "当时扫到的"）。逐个补既容易漏，也约束不了后续新写的代码。
+
+    这里通过 SQLAlchemy 的 ``do_orm_execute`` 事件在**语句执行前**统一注入，覆盖
+    所有 ORM SELECT（含 relationship 懒加载）。
+
+    生效条件与 :func:`site_filter_value` 保持一致：有站点上下文、未显式跨站点、
+    目标实体带 ``site_id`` 列且不在 ``GLOBAL_TABLES``。**没有站点上下文时完全不介入**
+    （后台任务 / CLI / 迁移脚本因此照常工作）。
+    """
+    global _ORM_SCOPE_INSTALLED
+    if _ORM_SCOPE_INSTALLED:
+        return False
+
+    from sqlalchemy import event
+    from sqlalchemy.orm import Session
+
+    @event.listens_for(Session, "do_orm_execute")
+    def _apply_tenant_scope(execute_state) -> None:  # noqa: ANN001
+        try:
+            if not execute_state.is_select or execute_state.is_column_load:
+                return
+            execute_state.statement = apply_site_scope_to_statement(execute_state.statement)
+        except Exception:  # noqa: BLE001 - 隔离层自身出错不能拖垮查询
+            return
+
+    _ORM_SCOPE_INSTALLED = True
+    return True
+
+
 __all__ = [
     "GLOBAL_TABLES",
     "apply_site_scope",
+    "apply_site_scope_to_statement",
     "get_current_site_id",
+    "install_orm_site_scope",
     "is_site_scope_bypassed",
     "is_site_scoped_model",
     "reset_current_site",

@@ -210,10 +210,19 @@ CRUD / service 层，那里拿不到 `Request`）。
 - **写入时机**：`MultiSiteMiddleware` 必须在 `await call_next()` **之前**调用
   `set_current_site()`。`BaseHTTPMiddleware` 把下游 app 跑在新 task 里，而创建 task 时会复制当前
   context —— 之后再写 contextvar 就传播不到 CRUD 层了。
-- **读路径**：`base_crud._apply_site_scope()` 注入 `site_id = <当前站点>`。三个条件缺一不可：模型有
-  `site_id` 列（未纳入的表自动跳过）、上下文有站点（后台任务 / CLI 无上下文 → 不过滤）、未显式跨站点。
+- **读路径（两层）**：
+    1. **ORM 级兜底**（`install_orm_site_scope()`，在 `lifespan` 里安装）：用 SQLAlchemy 的
+       `do_orm_execute` 事件 + `with_loader_criteria` 在语句执行前统一注入 `site_id`，
+       覆盖**所有** ORM SELECT（包括各模块手写的 `select(Article)` 与 relationship 懒加载）。
+       这是主力机制 —— 逐个改手写查询既会漏，也约束不了以后新写的代码。
+    2. **显式调用**（`base_crud._apply_site_scope()` / `tenancy.apply_site_scope()`）：
+       走 `CRUDBase` 的路径与愿意显式声明的查询各加一道，语义更直白，也作为兜底失效时的保护。
+       两层同时生效只是重复了等价条件（`WHERE site_id = X AND site_id = X`），无副作用。
 - **写路径**：`create` 自动补 `site_id`（入参显式给了就尊重入参）；`update` **忽略** `site_id`，
   避免通用更新接口变成"把记录搬到别的站点"的越权通道。
+- **不生效的情形**（刻意如此）：没有站点上下文（后台任务 / CLI / 迁移脚本）、显式跨站点
+  （超管 + `X-Site-Scope: all`）、实体没有 `site_id` 列、或表在 `GLOBAL_TABLES` 里
+  （账号/权限/系统设置/审计日志等跨站点治理数据）。
 - **跨站点**：只能由 `src/auth/auth_deps._apply_cross_site_privilege()` 开启，条件是超级管理员 +
   请求头 `X-Site-Scope: all`。
 - **纳入新表**：改 `config/tenancy.yaml` 后跑 `python -m scripts.apply_tenant_scope --apply`，它会同步

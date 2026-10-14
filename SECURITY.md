@@ -88,7 +88,35 @@
 - 请求速率限制（应用层 + nginx 双层）
 - 依赖版本锁定（`requirements.txt` 使用 `==`；前端以 `package-lock.json` 为准）
 
+## 出站请求（SSRF）策略
+
+统一入口：`src/utils/security/safe.py::validate_outbound_url`。默认**只允许公网 http/https**，
+且**任何情况下都拒绝链路本地与云元数据地址**（`169.254.0.0/16`，可用于换取实例凭据）。
+
+已接入校验的出口（都是**终端用户**可填写目标地址的）：
+
+| 出口                           | 位置                                |
+|------------------------------|-----------------------------------|
+| AI 端点 `api_url`              | `ai/config/service.py`（创建与更新两处）   |
+| Webhook 目标 URL               | `ops/webhook/service.py`（创建与更新两处） |
+| 工作流 `http_request` 动作的 `url` | `system/workflow/service.py`      |
+| 远程导入源站（WordPress / Halo）     | `shared/services/integrations/`   |
+
+企业自建内网端点（内网 AI 网关、内网 Webhook）需由**部署者**设置
+`ALLOW_PRIVATE_OUTBOUND_ENDPOINTS=true` 显式放行 —— 这个决定属于部署者，不应由终端用户绕过。
+
+**有意不加校验的出口**：CDN 远端操作、Edge 部署目标、翻译 API、告警渠道、OAuth/LDAP provider、
+插件市场。这些目标只由**管理员**配置（插件市场另有"可配置白名单而非硬拦"的设计），
+管理员本就有配置出站的能力；企业若需统一限制，应在网络层（egress 策略 / 出站代理）收敛。
+
 ## 已知偏差（与安全相关的待修项）
 
 - `.pre-commit-config.yaml` 的 `detect-secrets` 依赖 `.secrets.baseline`，仓库中不存在该文件；`model-lifecycle` hook 调用的
   `scripts/model_lifecycle_check.py` 也不存在。
+- 依赖只锁版本、无 `--hash` 校验；`pip-audit` / `npm audit` 已在 CI 阻断（`ci.yml` 的 security job）。
+- `mypy` 在 CI 中仍为**非阻塞**：历史上大量模块缺类型注解，直接阻断会让流水线长期变红；
+  收敛方向是先清零 `src/` 的错误，再移除该例外。
+- CSP 仍放行 `'unsafe-inline'` 与 `cdn.jsdelivr.net`（收紧需同步改前端内联脚本策略）。
+- SAML 未实现（`system/integration` 的 schema 已如实标注）；LDAP 只有配置模型。
+- 多租户隔离的**前端**未提供站点切换 UI（后端已具备 `X-Site-Scope: all` 能力）。
+- 未接入 Prometheus/OpenTelemetry 指标出口（现有可观测性为应用内自建：慢查询、站点健康、Web Vitals）。

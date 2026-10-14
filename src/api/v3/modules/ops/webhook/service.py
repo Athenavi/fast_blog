@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.webhook.webhook import Webhook
 from src.api.v3.common.json_field import dump_json_field, parse_json_field
-from src.api.v3.core.exceptions import NotFoundError
+from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.ops.webhook.crud import webhook_crud
 from src.api.v3.modules.ops.webhook.schema import WebhookCreate, WebhookUpdate
@@ -50,6 +50,20 @@ def to_out(webhook: Webhook) -> dict:
     }
 
 
+def _assert_outbound_url_ok(url: str) -> None:
+    """Webhook 目标地址必须通过 SSRF 校验
+
+    与 AI 端点同一口径（``src/utils/security/safe.validate_outbound_url``）：默认只允许
+    公网地址；企业内网 webhook 需由部署者设置 ``ALLOW_PRIVATE_OUTBOUND_ENDPOINTS=true``。
+    链路本地 / 云元数据地址在任何情况下都拒绝。
+    """
+    from src.utils.security.safe import validate_outbound_url
+
+    valid, err = validate_outbound_url(url)
+    if not valid:
+        raise BadRequestError(f"webhook url 不可用：{err}")
+
+
 class WebhookOpsService:
     """Webhook 订阅管理"""
 
@@ -76,6 +90,7 @@ class WebhookOpsService:
         return to_out(await self._get_row(db, webhook_id))
 
     async def create_webhook(self, db: AsyncSession, payload: WebhookCreate) -> dict:
+        _assert_outbound_url_ok(payload.url)
         webhook = await webhook_crud.create(
             db,
             {
@@ -93,6 +108,8 @@ class WebhookOpsService:
     ) -> dict:
         webhook = await self._get_row(db, webhook_id)
         data = payload.model_dump(exclude_unset=True)
+        if data.get("url"):
+            _assert_outbound_url_ok(data["url"])
         if "events" in data and data["events"] is not None:
             data["events"] = dump_json_field(data["events"])
         if not data.get("secret"):

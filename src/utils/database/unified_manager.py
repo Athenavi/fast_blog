@@ -146,20 +146,25 @@ class UnifiedDatabaseManager:
                 'echo': getattr(settings, 'database_echo', False),
             }
 
-            # Windows + asyncpg: 添加额外的连接参数
-            if sys.platform == 'win32' and 'asyncpg' in async_url:
-                engine_kwargs['connect_args'] = {
-                    'statement_cache_size': 0,  # 禁用语句缓存，避免 prepared statement 问题
-                    'command_timeout': 60,  # 命令超时
-                    'server_settings': {
-                        'jit': 'off',  # 禁用 JIT 编译，提高性能
-                    },
+            # 命令超时对**所有平台**都要设：原实现把它放在 Windows 分支里，
+            # 于是生产（Linux 容器）根本没有超时 —— 一个慢查询或锁等待会永久占住
+            # 连接，池被耗尽后整站 503。
+            # 同时设服务端 statement_timeout（双保险：客户端断开后服务端仍在跑的场景）。
+            # 走 alembic 迁移用的是独立连接，不受此影响。
+            if 'asyncpg' in async_url:
+                connect_args: dict = {
+                    'command_timeout': 60,
+                    'server_settings': {'statement_timeout': '60000'},
                 }
+                if sys.platform == 'win32':
+                    # Windows 专有问题：Proactor 事件循环与被禁用语句缓存
+                    connect_args['statement_cache_size'] = 0
+                    connect_args['server_settings']['jit'] = 'off'
+                engine_kwargs['connect_args'] = connect_args
                 logger.info(
-                    f"Windows + asyncpg detected. Using optimized settings: "
-                    f"pool_size={pool_config['pool_size']}, "
-                    f"max_overflow={pool_config['max_overflow']}, "
-                    f"statement_cache_size=0, jit=off"
+                    "asyncpg connect_args: command_timeout=60s, statement_timeout=60s"
+                    + ("（含 Windows 专属优化：statement_cache_size=0, jit=off）"
+                       if sys.platform == 'win32' else "")
                 )
 
             self._async_engine = create_async_engine(async_url, **engine_kwargs)

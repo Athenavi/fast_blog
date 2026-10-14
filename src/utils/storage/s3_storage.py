@@ -6,6 +6,30 @@ import os
 from pathlib import Path
 from typing import Optional
 
+#: 允许作为存储扩展名的白名单。
+#: 落盘路径是 ``{hash[:2]}/{hash}{ext}``，而 ``ext`` 直接来自用户提供的文件名 ——
+#: 不在白名单内的一律**丢弃扩展名**（宁可没有后缀，也不要可执行或可被浏览器
+#: 内联渲染的后缀）。
+#: ``.svg`` 保留依赖 ``src/utils/upload/svg_sanitizer`` 的清洗（项目已内建）。
+_SAFE_EXTENSIONS = frozenset({
+    # 图片
+    ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp", ".tiff", ".tif", ".avif",
+    ".heic", ".heif", ".ico", ".svg",
+    # 视频 / 音频
+    ".mp4", ".mpeg", ".mpg", ".mov", ".avi", ".webm", ".mkv", ".flv", ".wmv",
+    ".m4v", ".3gp", ".ts", ".mp3", ".wav", ".flac", ".aac", ".ogg", ".oga",
+    ".opus", ".weba", ".m4a", ".wma",
+    # 文档
+    ".pdf", ".txt", ".md", ".csv", ".json", ".doc", ".docx", ".xls", ".xlsx",
+    ".ppt", ".pptx", ".odt", ".ods", ".odp", ".rtf", ".epub",
+    # 压缩包
+    ".zip", ".rar", ".7z", ".gz", ".tar", ".bz2", ".xz", ".zst",
+    # 设计与 3D
+    ".dwg", ".dxf", ".glb", ".gltf", ".obj", ".stl", ".step", ".stp", ".ifc",
+    # 其他受控格式
+    ".ofd", ".typ", ".excalidraw", ".drawio",
+})
+
 
 class S3Storage:
     """本地文件存储（兼容原 S3 接口）"""
@@ -36,12 +60,20 @@ class S3Storage:
         return (self.base_path / key).exists()
 
     def get_file_url(self, key: str) -> str:
-        """获取文件 URL"""
-        return f"/api/v2/assets/storage/{key}"
+        """获取文件 URL（v3：v2 前缀已下线）"""
+        return f"/api/v3/assets/storage/{key}"
 
     def save_file(self, file_hash: str, file_data: bytes, original_filename: str) -> str:
-        """保存文件到存储（同步，兼容 FileProcessor.save_file 调用）"""
+        """保存文件到存储（同步，兼容 FileProcessor.save_file 调用）
+
+        扩展名取自**原始文件名**，因此必须白名单化：否则上传 ``x.html`` /
+        ``x.svg`` 就能让内容寻址目录里出现可被浏览器内联渲染的文件（存储型 XSS），
+        上传 ``x.php`` 一类则是把执行权交给了存储目录。
+        """
         _, ext = os.path.splitext(original_filename)
+        ext = ext.lower()
+        if ext not in _SAFE_EXTENSIONS:
+            ext = ""
         key = f"{file_hash[:2]}/{file_hash}{ext}"
         full_path = self.base_path / key
         full_path.parent.mkdir(parents=True, exist_ok=True)

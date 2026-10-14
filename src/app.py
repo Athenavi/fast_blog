@@ -112,6 +112,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await safe_run_async("数据库管理器", _init_database)
         logger.info(f"[lifespan] 数据库初始化耗时: {_time.monotonic() - step_start:.2f}s")
 
+        # 多租户：装上 ORM 级隔离兜底。位置在数据库初始化之后、任何业务查询之前。
+        # 没有站点上下文时它完全不介入，因此后台任务 / CLI 不受影响。
+        try:
+            from src.api.v3.core.tenancy import install_orm_site_scope
+
+            if install_orm_site_scope():
+                logger.info("[lifespan] 多租户 ORM 隔离已启用（ORM 级 site_id 兜底）")
+        except Exception as exc:  # noqa: BLE001 - 兜底装不上不应阻断启动
+            logger.warning(f"[lifespan] 多租户 ORM 隔离安装失败（已跳过）：{exc}")
+
     # 3. 扩展、调度器
     try:
         from src.extensions import init_extensions
@@ -781,9 +791,13 @@ def create_app(config=None):
         """
         storage_root = _Path(local_storage).resolve()
         target = (storage_root / asset_path).resolve()
-        # 防目录遍历：解析后的路径必须仍位于 storage 根目录内
-        if not str(target).startswith(str(storage_root)):
-            raise HTTPException(status_code=403, detail="非法的文件路径")
+        # 防目录遍历：必须用**路径语义**判断，不能用字符串前缀 ——
+        # `str(target).startswith(str(storage_root))` 会被同前缀的兄弟目录绕过
+        # （storage 根为 /app/storage 时，/app/storage-evil/x 也"以它开头"）。
+        try:
+            target.relative_to(storage_root)
+        except ValueError:
+            raise HTTPException(status_code=403, detail="非法的文件路径") from None
         if not target.is_file():
             raise HTTPException(status_code=404, detail="文件不存在")
 

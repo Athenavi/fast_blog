@@ -313,6 +313,34 @@ catch-all 路由。
    `frontend/web/src/pages/ops/upgrade`。
 2. **CLI**：`python -m cli upgrade`（`cli/commands/upgrade.py`），内部封装 alembic 升级与快照。
 
+### 11.1 升级顺序（务必按此顺序）
+
+**先跑迁移，再换代码**：
+
+```bash
+# 1) 先迁移（此时旧代码仍在跑，新列一律 nullable，旧代码不受影响）
+python -m alembic upgrade head
+# 2) 再更新代码并重启服务
+```
+
+原因：新一轮加的 `site_id` 列会被 `CRUDBase._apply_site_scope()` 自动注入到读路径
+（`WHERE site_id = <当前站点>`）。如果**先换代码、后迁移**，新代码会对着一张还没有该列的
+表发查询，直接 `column does not exist` —— 表现为"升级后全站 500"。
+
+**回滚方向相反、且是安全的**：先回代码，库结构不用动。所有新增列都是 `nullable`，
+旧代码不会去读它们，因此"旧代码 + 新库"可以正常工作。
+
+### 11.2 多租户迁移（`e5f1b8c93a07`）特别注意
+
+该迁移给 102 张站点级表加 `site_id`，并把存量数据**回填到默认站点**
+（`sites.is_default = true`，没有则取最早创建的一个）：
+
+- 若 `sites` 表为空（单站点部署从未配置过多站点），回填是空操作，且此时站点上下文也为空、
+  隔离不生效 —— 可原样升级；
+- 若已有多个站点，存量数据会**全部归到默认站点**。其他站点如需各自的内容，
+  要在升级后手工调整（`UPDATE <表> SET site_id = <目标站点> WHERE id IN (...)`）；
+- 迁移前请务必先做一次完整备份（第 10 节）。
+
 版本元数据在 `version.txt`，格式为 **INI**：
 
 ```ini
