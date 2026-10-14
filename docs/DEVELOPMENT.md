@@ -117,7 +117,7 @@ npm run dev                    # http://localhost:5173，/api 代理到 :9421
 
 ### 4.4 API v3：域 → 模块
 
-路由前缀 `/api/v3/<domain>/<module>`，**11 个域 / 73 个模块**（实测 657 条路由），清单以
+路由前缀 `/api/v3/<domain>/<module>`，**11 个域 / 96 个模块**（实测 897 条路由），清单以
 `src/api/v3/__init__.py::DOMAIN_MODULES` 为唯一事实来源：
 
 | 域               | 模块数 | 模块                                                                                                                                            |
@@ -202,6 +202,25 @@ modules/<domain>/<module>/
   `1006`，业务码传不到客户端。
 - WS 路由没有 `methods`，启动期权限审计会跳过它，**准入逻辑必须写在路由体内**。
 
+### 4.9 多租户隔离
+
+站点上下文在 `src/api/v3/core/tenancy.py`（用 `ContextVar` 而不是 `request.state` —— 隔离要落到
+CRUD / service 层，那里拿不到 `Request`）。
+
+- **写入时机**：`MultiSiteMiddleware` 必须在 `await call_next()` **之前**调用
+  `set_current_site()`。`BaseHTTPMiddleware` 把下游 app 跑在新 task 里，而创建 task 时会复制当前
+  context —— 之后再写 contextvar 就传播不到 CRUD 层了。
+- **读路径**：`base_crud._apply_site_scope()` 注入 `site_id = <当前站点>`。三个条件缺一不可：模型有
+  `site_id` 列（未纳入的表自动跳过）、上下文有站点（后台任务 / CLI 无上下文 → 不过滤）、未显式跨站点。
+- **写路径**：`create` 自动补 `site_id`（入参显式给了就尊重入参）；`update` **忽略** `site_id`，
+  避免通用更新接口变成"把记录搬到别的站点"的越权通道。
+- **跨站点**：只能由 `src/auth/auth_deps._apply_cross_site_privilege()` 开启，条件是超级管理员 +
+  请求头 `X-Site-Scope: all`。
+- **纳入新表**：改 `config/tenancy.yaml` 后跑 `python -m scripts.apply_tenant_scope --apply`，它会同步
+  `models.yaml`、模型文件并生成迁移；`--check` 会列出未分类的表（必须显式归类，不做默认猜测）。
+- **全局表**：账号 / 权限 / 系统设置 / 第三方凭据 / 审计日志等不参与隔离，清单见
+  `tenancy.GLOBAL_TABLES` 与 `config/tenancy.yaml` 的 `excluded_tables`。
+
 ---
 
 ## 5. 前端架构（`frontend/web`）
@@ -277,7 +296,7 @@ modules/<domain>/<module>/
 - **`config/models.yaml` 是数据模型的唯一权威**（237KB）。流程：写 yaml →
   `python -m scripts.generate_routes generate-model --model X` 生成骨架 → 写 Alembic 迁移。**不要重新生成既有模型**
   （会覆盖手工内容，例如加密字段包装）。
-- 迁移目录 `alembic_migrations/versions/` 当前只有 **1 个** baseline：`8b7ecb6d053c_initial_full_schema`（
+- 迁移目录 `alembic_migrations/versions/` 共 **7 个**文件，起点是 baseline `8b7ecb6d053c_initial_full_schema`（
   `down_revision = None`）。
 - 迁移连哪个库由 **`config/.env`（`load_dotenv(..., override=True)`）** 决定；环境变量会被它覆盖。要临时指向别的库请设
   `DATABASE_URL`（优先级最高，且不在 `config/.env` 里）。

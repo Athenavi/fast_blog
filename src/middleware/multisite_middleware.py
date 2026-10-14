@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from shared.models.multisite import Site
+from src.api.v3.core.tenancy import reset_current_site, set_current_site
 
 
 class MultiSiteMiddleware(BaseHTTPMiddleware):
@@ -22,14 +23,15 @@ class MultiSiteMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next):
-        # 跳过静态文件和 API 文档
+        # 跳过静态文件和 API 文档（v3 路径；v2 已下线）
         path = request.url.path
-        if path.startswith('/api/v2/static/') or path in ['/api/v2/docs', '/api/v2/redoc', '/api/v2/openapi.json']:
+        if path.startswith('/api/v3/static/') or path in ['/api/v3/docs', '/api/v3/redoc', '/api/v3/openapi.json']:
             return await call_next(request)
 
         # 获取数据库会话
         from src.utils.database.unified_manager import db_manager
 
+        current_site = None
         try:
             async with db_manager.get_session() as db:
                 current_site = await self._resolve_site(request, db)
@@ -38,8 +40,14 @@ class MultiSiteMiddleware(BaseHTTPMiddleware):
             # 如果无法解析站点，使用默认站点
             request.state.current_site = None
 
-        response = await call_next(request)
-        return response
+        # 写入多租户站点上下文。**必须在 await call_next 之前** ——
+        # BaseHTTPMiddleware 把下游 app 跑在新 task 里，而创建 task 时会复制当前
+        # context，之后再写 contextvar 就传播不到 CRUD 层了。
+        tokens = set_current_site(current_site.id if current_site else None)
+        try:
+            return await call_next(request)
+        finally:
+            reset_current_site(tokens)
 
     async def _resolve_site(self, request: Request, db: AsyncSession) -> Site:
         """

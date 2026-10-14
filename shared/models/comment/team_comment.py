@@ -21,7 +21,7 @@ class TeamComment(Base):
         Index('idx_team_comments_resolved', 'is_resolved'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='团队评论 ID')
 
     content_type = Column(String(50), nullable=True, doc='内容类型（article, page, block 等）')

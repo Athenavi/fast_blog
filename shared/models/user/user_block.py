@@ -20,7 +20,7 @@ class UserBlock(Base):
         Index('idx_user_blocks_blocked', 'blocked_user'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='屏蔽记录ID')
 
     blocker = Column(BigInteger, ForeignKey('users.id'), doc='屏蔽者用户ID')

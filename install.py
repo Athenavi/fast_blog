@@ -6,7 +6,7 @@
   1. 环境自检            —— Python 版本、Docker / Compose、.env、项目依赖、数据库端口
   2. 生成 .env           —— 从 .env.example 复制并写入强随机密钥（SECRET_KEY / JWT_SECRET_KEY /
                             DB_PASSWORD / REDIS_PASSWORD）；已存在时备份并按需补齐缺失项
-  3. 启动服务（可选）    —— docker compose up -d --build（含静态 ffmpeg 包检查），等待 /api/v3/health
+  3. 启动服务（可选）    —— docker compose up -d --build，等待 /api/v3/health
   4. 数据库迁移          —— alembic upgrade head
   5. 种子数据导入        —— RBAC 基础 / 后台菜单与授权 / 成长体系 / 历史批次菜单（可多选）
   6. 创建用户            —— 按内置角色（superadmin / admin / editor / user）创建并绑定角色
@@ -44,8 +44,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent
 ENV_EXAMPLE = PROJECT_ROOT / ".env.example"
 ENV_FILE = PROJECT_ROOT / ".env"
 REQUIREMENTS = PROJECT_ROOT / "requirements.txt"
-FFMPEG_TARBALL = PROJECT_ROOT / "tools" / "ffmpeg" / "ffmpeg-release-amd64-static.tar.xz"
-FFMPEG_URL = "https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz"
 
 #: 必须由安装脚本写入强随机值的键（.env.example 中的占位/空值会被替换）
 SECRET_KEYS = ("SECRET_KEY", "JWT_SECRET_KEY", "DB_PASSWORD", "REDIS_PASSWORD")
@@ -275,7 +273,6 @@ def gather_environment() -> dict[str, object]:
         "env_exists": ENV_FILE.exists(),
         "env_values": values,
         "missing_packages": missing_packages(),
-        "ffmpeg": FFMPEG_TARBALL.exists(),
         "db_ok": db_ok,
         "db_note": db_note,
     }
@@ -289,7 +286,6 @@ def print_environment(env: dict[str, object]) -> None:
     out(f"  .env               : {'已存在' if env['env_exists'] else '尚未生成'}")
     missing = env["missing_packages"]
     out(f"  本地 Python 依赖   : {'齐全' if not missing else '缺少 ' + ', '.join(missing)}")  # type: ignore[arg-type]
-    out(f"  ffmpeg 静态包      : {'已就绪' if env['ffmpeg'] else '缺失（Docker 构建需要）'}")
     out(f"  数据库连接         : {env['db_note']}")
 
 
@@ -354,39 +350,6 @@ def prepare_env_file(env: dict[str, object], *, non_interactive: bool) -> tuple[
 # ---------------------------------------------------------------------------
 # Docker 流程
 # ---------------------------------------------------------------------------
-def ensure_ffmpeg(non_interactive: bool, allow_download: bool) -> bool:
-    if FFMPEG_TARBALL.exists():
-        ok("ffmpeg 静态包已就绪")
-        return True
-    warn(f"缺少 {FFMPEG_TARBALL.relative_to(PROJECT_ROOT)}（后端镜像构建需要，约 40MB）")
-    if not allow_download or non_interactive:
-        out(f"  请手动下载: {FFMPEG_URL}")
-        return False
-    if not ask_yes_no("是否现在下载？", default=True):
-        return False
-    FFMPEG_TARBALL.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        with urllib.request.urlopen(FFMPEG_URL, timeout=60) as response, open(FFMPEG_TARBALL, "wb") as target:
-            total = int(response.headers.get("Content-Length") or 0)
-            downloaded = 0
-            while True:
-                chunk = response.read(1024 * 256)
-                if not chunk:
-                    break
-                target.write(chunk)
-                downloaded += len(chunk)
-                if total:
-                    print(f"\r  下载中 {downloaded * 100 // total}%", end="", flush=True)
-        out("")
-        ok(f"已下载到 {FFMPEG_TARBALL.relative_to(PROJECT_ROOT)}")
-        return True
-    except Exception as exc:  # noqa: BLE001 - 网络问题属可预期失败
-        fail(f"下载失败: {exc}")
-        out(f"  请手动下载并放到该路径: {FFMPEG_URL}")
-        FFMPEG_TARBALL.unlink(missing_ok=True)
-        return False
-
-
 def docker_up(compose_cmd: list[str], compose_file: str) -> bool:
     cmd = [*compose_cmd, "-f", compose_file, "up", "-d", "--build"]
     out(f"  执行: {' '.join(cmd)}")
@@ -577,7 +540,6 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--yes", action="store_true", help="非交互模式，全部采用默认值")
     parser.add_argument("--install-deps", action="store_true",
                         help="缺少依赖时自动执行 pip install -r requirements.txt")
-    parser.add_argument("--no-download", action="store_true", help="不自动下载 ffmpeg 静态包")
     return parser
 
 
@@ -687,9 +649,6 @@ def main(argv: list[str] | None = None) -> int:
     if mode == "docker":
         step(index, steps, "准备并启动容器")
         index += 1
-        if not ensure_ffmpeg(non_interactive=non_interactive, allow_download=not args.no_download):
-            if not non_interactive and not ask_yes_no("ffmpeg 未就绪，仍要继续构建吗？", default=False):
-                return EXIT_FAILED
         compose_cmd = env["compose"] or detect_compose_command()
         if compose_cmd is None:
             fail("Docker Compose 不可用，无法执行 docker 模式；可改用 --mode init")

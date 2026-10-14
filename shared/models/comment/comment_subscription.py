@@ -21,7 +21,7 @@ class CommentSubscription(Base):
         Index('idx_comment_subscriptions_unique', 'article_id', 'email', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
     article_id = Column(BigInteger, index=True, doc='文章 ID')

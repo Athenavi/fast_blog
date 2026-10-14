@@ -33,7 +33,7 @@ class Article(Base):
         Index('idx_articles_user_status_created', 'user', 'status', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='文章 ID')
 
     title = Column(String(255), nullable=True, doc='标题')

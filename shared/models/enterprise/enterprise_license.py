@@ -21,7 +21,7 @@ class EnterpriseLicense(Base):
         Index('idx_license_active', 'is_active'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='许可证 ID')
 
     license_key = Column(String(255), unique=True, nullable=True, doc='许可证密钥')

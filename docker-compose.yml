@@ -9,9 +9,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host
-      additional_contexts:
-        ffmpeg_src: ./tools/ffmpeg
     container_name: fastblog-backend
     restart: unless-stopped
     ports:
@@ -151,8 +148,12 @@ services:
     environment:
       # healthcheck 需要该变量；redis-server 的密码来自下方 command
       - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+    # allkeys-lru 会淘汰包括调度锁、令牌黑名单在内的**任意**键，
+    # 因此改为 volatile-lru（只淘汰带 TTL 的键），并把 maxmemory 压到
+    # 容器 memory limit 之下，避免先被 cgroup OOM-kill。
+    # 相关说明见 docker-compose.prod.yml 中的同名字段与文件末尾注释。
     command: >
-      redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+      redis-server --appendonly yes --maxmemory 192mb --maxmemory-policy volatile-lru
       --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes:
       - fastblog-redis:/data

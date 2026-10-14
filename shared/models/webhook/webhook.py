@@ -18,7 +18,7 @@ class Webhook(Base):
         Index('idx_webhooks_is_active', 'is_active'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='Webhook ID')
 
     name = Column(String(255), nullable=True, doc='Webhook名称')

@@ -20,7 +20,7 @@ class FormSubmission(Base):
         Index('idx_form_submissions_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='提交 ID')
 
     form_id = Column(BigInteger, ForeignKey('forms.id'), doc='所属表单 ID')

@@ -19,6 +19,7 @@ class AuditLog(Base):
         Index('idx_audit_logs_action', 'action'),
         Index('idx_audit_logs_created_at', 'created_at'),
         Index('idx_audit_logs_resource', 'resource_type', 'resource_id'),
+        Index('idx_audit_logs_entry_hash', 'entry_hash'),
     )
 
 
@@ -52,6 +53,14 @@ class AuditLog(Base):
     status = Column(String(20), default='success', doc='操作状态 (success, failure)')
 
     error_message = Column(Text, nullable=True, doc='错误信息')
+
+    before_data = Column(Text, nullable=True, doc='变更前值快照 (JSON)')
+
+    after_data = Column(Text, nullable=True, doc='变更后值快照 (JSON)')
+
+    prev_hash = Column(String(64), nullable=True, doc='前一条审计记录的 entry_hash（哈希链；空表示链首）')
+
+    entry_hash = Column(String(64), nullable=True, doc='本条记录的 sha256 摘要（含 prev_hash，用于篡改检测）')
 
 
     created_at = Column(DateTime, doc='创建时间')

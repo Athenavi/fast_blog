@@ -19,6 +19,7 @@ class Shortcode(Base):
         Index('idx_shortcodes_is_active', 'is_active'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='短代码ID')
 
     code = Column(String(100), nullable=False, doc='短代码标识（如 ad-banner），创建后锁定')

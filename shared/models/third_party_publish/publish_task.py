@@ -26,6 +26,7 @@ class PublishTask(Base):
         Index('idx_publish_tasks_status_created', 'status', 'created_at'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='任务 ID')
 
     article_id = Column(

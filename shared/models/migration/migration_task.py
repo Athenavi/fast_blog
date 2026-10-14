@@ -20,7 +20,7 @@ class MigrationTask(Base):
         Index('idx_migration_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='迁移任务 ID')
 
     task_name = Column(String(255), nullable=True, doc='任务名称')

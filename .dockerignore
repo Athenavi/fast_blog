@@ -86,7 +86,7 @@ nginx
 mobile-app
 
 # Tools (not imported by backend)
-# tools/ excluded — ffmpeg tarball loaded via BuildKit additional_contexts (ffmpeg_src)
+# tools/ excluded（ffmpeg 现由镜像内的 apt 安装，不再是构建上下文的一部分）
 scripts
 tools
 

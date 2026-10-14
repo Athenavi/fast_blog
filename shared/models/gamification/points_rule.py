@@ -17,6 +17,7 @@ class PointsRule(Base):
 
     __table_args__ = (Index('idx_points_rules_action', 'action', unique=True),)
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='规则 ID')
 
     action = Column(String(50), nullable=False, doc='动作标识（唯一，如 daily_checkin）')

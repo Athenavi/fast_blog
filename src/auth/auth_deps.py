@@ -14,7 +14,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config.settings import settings
+from shared.logging import default_logger as logger
 from shared.models.user import User as UserModel
+from src.api.v3.core.tenancy import set_site_bypass
 from src.auth.api_token import Principal
 from src.utils.database.unified_manager import get_db_session as get_async_session
 
@@ -118,7 +120,7 @@ async def _authenticate_user(
         # 无 JWT 时尝试 API 令牌（X-API-Key）：第三方应用 / CI 不需要共享用户密码
         principal = await _authenticate_api_key(request, db)
         if principal is not None:
-            return principal.user
+            return _apply_cross_site_privilege(request, principal.user)
         if required:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -184,10 +186,38 @@ async def _authenticate_user(
 
     # 标记身份来源：权限层据此判断是否需要把权限收窄到 token 的 scopes
     request.state.principal = Principal(user=user, scopes=None, source="jwt")
-    return user
+    return _apply_cross_site_privilege(request, user)
 
 
 # ---------- 依赖：获取当前用户（API 版 / 页面版） ----------
+#: 显式声明"跨站点查看"的请求头；**仅对超级管理员生效**
+CROSS_SITE_HEADER = "X-Site-Scope"
+
+
+def _apply_cross_site_privilege(
+    request: Request, user: Optional[UserModel]
+) -> Optional[UserModel]:
+    """为超级管理员按需开启跨站点视图
+
+    这是"看到所有站点数据"的**唯一入口**，三个条件缺一不可：已认证、是超管、
+    请求显式声明（``X-Site-Scope: all``）。普通用户伪造该头无效 ——
+    ``set_site_bypass`` 只在这里被调用。
+    """
+    if user is None:
+        return None
+    if not getattr(user, "is_superuser", False):
+        return user
+    if (request.headers.get(CROSS_SITE_HEADER) or "").strip().lower() != "all":
+        return user
+
+    set_site_bypass(True)
+    # 跨站点读取属于敏感操作，留一条明确日志（审计表也会记下这次请求本身）
+    logger.info(
+        "跨站点视图已开启：user=%s path=%s", getattr(user, "id", None), request.url.path
+    )
+    return user
+
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_async_session),

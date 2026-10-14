@@ -19,7 +19,7 @@ class AdImpression(Base):
         Index('idx_ad_impressions_displayed_at', 'displayed_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='展示记录 ID')
 
     ad_id = Column(BigInteger, ForeignKey('ads.id'), doc='广告ID')

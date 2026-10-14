@@ -20,7 +20,7 @@ class Task(Base):
         Index('idx_tasks_assigned', 'assigned_to'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='任务 ID')
 
     workspace_id = Column(BigInteger, ForeignKey('workspaces.id'), doc='工作区 ID')

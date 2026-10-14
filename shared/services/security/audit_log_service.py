@@ -7,12 +7,18 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Dict, Any, Optional
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql.functions import func
 
 from shared.models.system.audit_log import AuditLog
 from shared.logging import default_logger as logger
+from shared.utils import audit_chain
+
+#: 审计哈希链串行化用的 advisory lock 键（全实例共用一个固定值）。
+#: 事务结束时由 PostgreSQL 自动释放，不需要显式解锁。
+_AUDIT_CHAIN_LOCK_KEY = 918273645
 
 
 class AuditLogAction(Enum):
@@ -81,7 +87,9 @@ class AuditLogService:
             details: Optional[Dict[str, Any]] = None,
             level: AuditLogLevel = AuditLogLevel.INFO,
             ip_address: Optional[str] = None,
-            user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
+        before: Optional[Dict[str, Any]] = None,
+        after: Optional[Dict[str, Any]] = None,
     ):
         """
         记录审计日志
@@ -98,11 +106,59 @@ class AuditLogService:
             level: 日志级别
             ip_address: IP地址
             user_agent: 用户代理
+            before: 变更前值快照（脱敏后写入 ``before_data``）
+            after: 变更后值快照（脱敏后写入 ``after_data``；未提供时回落到 ``details``）
         """
         if not self.enabled:
             return
 
         try:
+            created_at = datetime.now()
+            resolved_resource_id = (
+                int(resource_id)
+                if resource_id is not None and str(resource_id).isdigit()
+                else (resource_id if resource_id else None)
+            )
+            # 快照一律脱敏后再落库（请求体里常带 password / token）
+            before_data = audit_chain.dump_snapshot(before)
+            after_data = audit_chain.dump_snapshot(after) or audit_chain.dump_snapshot(details)
+            request_data = json.dumps(details, ensure_ascii=False) if details else None
+
+            # 哈希链：本条的 prev_hash 取上一条的 entry_hash。
+            #
+            # 并发保护分两层：
+            #   1) 先取一把**事务级 advisory lock** —— 这是关键。只靠下面的
+            #      ``with_for_update()`` 不够：当"还没有任何带 entry_hash 的行"时，
+            #      SELECT 匹配不到行就**不会加锁**，于是并发的两个事务都会读到
+            #      prev_hash=None，各自算出不同摘要指向同一个前驱 —— 链从此分叉，
+            #      verify_chain 会把正常的并发写入误报成"被篡改"。
+            #   2) 再行锁住那条记录，保证读取与写入之间没有别人插队。
+            await db.execute(text("SELECT pg_advisory_xact_lock(:key)"), {"key": _AUDIT_CHAIN_LOCK_KEY})
+            prev_hash = (
+                await db.execute(
+                    select(AuditLog.entry_hash)
+                    .where(AuditLog.entry_hash.is_not(None))
+                    .order_by(AuditLog.id.desc())
+                    .limit(1)
+                    .with_for_update()
+                )
+            ).scalar()
+
+            entry_hash = audit_chain.compute_entry_hash(
+                prev_hash,
+                user_id=user_id,
+                user_name=user_name,
+                action=action.value,
+                level=level.value,
+                resource_type=resource_type,
+                resource_id=resolved_resource_id,
+                description=description,
+                ip_address=ip_address,
+                before_data=before_data,
+                after_data=after_data,
+                created_at=created_at,
+            )
+
             # 创建审计日志记录
             audit_log = AuditLog(
                 user_id=user_id,
@@ -110,12 +166,16 @@ class AuditLogService:
                 action=action.value,
                 level=level.value,
                 resource_type=resource_type,
-                resource_id=int(resource_id) if resource_id is not None and str(resource_id).isdigit() else (resource_id if resource_id else None),
+                resource_id=resolved_resource_id,
                 ip_address=ip_address,
                 user_agent=user_agent,
                 description=description,
-                request_data=json.dumps(details, ensure_ascii=False) if details else None,
-                created_at=datetime.now()
+                request_data=request_data,
+                before_data=before_data,
+                after_data=after_data,
+                prev_hash=prev_hash,
+                entry_hash=entry_hash,
+                created_at=created_at
             )
 
             # 添加到数据库
@@ -216,6 +276,9 @@ class AuditLogService:
                         'user_agent': log.user_agent,
                         'description': log.description,
                         'details': json.loads(log.request_data) if log.request_data else None,
+                        'before_data': json.loads(log.before_data) if log.before_data else None,
+                        'after_data': json.loads(log.after_data) if log.after_data else None,
+                        'entry_hash': log.entry_hash,
                         'created_at': log.created_at.isoformat()
                     }
                     for log in logs
@@ -352,6 +415,59 @@ class AuditLogService:
         except Exception as e:
             logger.error(f"Failed to clean up old audit logs: {e}")
             await db.rollback()
+
+    async def verify_chain(self, db: AsyncSession, limit: Optional[int] = None) -> Dict[str, Any]:
+        """校验审计日志的哈希链，返回第一个断点
+
+        起点是**现存最早**的、``entry_hash`` 非空的记录：更早的记录可能已被保留策略
+        清理，其 ``prev_hash`` 指向的行确实不存在，不算断裂。从第二条起要求
+        ``prev_hash == 上一条的 entry_hash``，并逐条重算摘要比对内容。
+        """
+        query = (
+            select(AuditLog)
+            .where(AuditLog.entry_hash.is_not(None))
+            .order_by(AuditLog.id.asc())
+        )
+        if limit:
+            query = query.limit(limit)
+        rows = (await db.execute(query)).scalars().all()
+
+        if not rows:
+            return {'valid': True, 'checked': 0, 'reason': '尚无启用哈希链的审计记录'}
+
+        expected_prev = rows[0].prev_hash
+        for index, row in enumerate(rows, start=1):
+            if row.prev_hash != expected_prev:
+                return {
+                    'valid': False,
+                    'checked': index,
+                    'broken_at_id': row.id,
+                    'reason': 'prev_hash 与上一条记录的 entry_hash 不一致（记录被删除或插入）',
+                }
+            recomputed = audit_chain.compute_entry_hash(
+                row.prev_hash,
+                user_id=row.user_id,
+                user_name=row.user_name,
+                action=row.action,
+                level=row.level,
+                resource_type=row.resource_type,
+                resource_id=row.resource_id,
+                description=row.description,
+                ip_address=row.ip_address,
+                before_data=row.before_data,
+                after_data=row.after_data,
+                created_at=row.created_at,
+            )
+            if recomputed != row.entry_hash:
+                return {
+                    'valid': False,
+                    'checked': index,
+                    'broken_at_id': row.id,
+                    'reason': 'entry_hash 与记录内容不匹配（该行内容被修改过）',
+                }
+            expected_prev = row.entry_hash
+
+        return {'valid': True, 'checked': len(rows)}
 
 
 # 全局实例

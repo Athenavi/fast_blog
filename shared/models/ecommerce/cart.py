@@ -19,7 +19,7 @@ class Cart(Base):
         Index('idx_carts_session', 'session_id'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='购物车 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户ID(访客可为空)')

@@ -3,7 +3,7 @@ version = 0.8.26.1013
 build_time = 2026-10-13T21:00:00Z
 
 [DATABASE]
-migration = c8d2e5f7b913
+migration = e5f1b8c93a07
 status = up_to_date
 
 [AUTHOR]

@@ -16,6 +16,7 @@
 """
 
 import asyncio
+import json
 from typing import Callable, Set
 
 from fastapi import Request, Response
@@ -27,6 +28,9 @@ logger = get_logger("operation_log")
 
 #: 防止任务被 GC（asyncio 只持弱引用）
 _BACKGROUND_TASKS: Set[asyncio.Task] = set()
+
+#: 审计快照的最大体积（超出则不记请求体，避免把大 body 写进审计表）
+_MAX_AUDIT_BODY_BYTES = 8 * 1024
 
 _ACTION_BY_METHOD = {
     "POST": "create",
@@ -75,6 +79,24 @@ async def _log_operation(request: Request, route_path: str) -> None:
     resource_type = _resource_of(route_path)
     path_params = getattr(request, "path_params", {}) or {}
 
+    # 统一 IP 解析（与限流 / 防爆破同一口径；直连方不可信时忽略代理头，
+    # 避免审计里的 IP 变成客户端可随意伪造的值）
+    from shared.utils.client_ip import get_client_ip
+
+    audit_ip = get_client_ip(request)
+
+    # 请求体作为 after_data：路由阶段 Pydantic 已读过 body，Starlette 会把它缓存到
+    # request._body，这里通常能直接拿到。拿不到（超大 / 流已释放 / 非 JSON）就不记，
+    # 绝不影响审计本身。**before_data 路由层拿不到** —— 需要"改动前是什么"的场景，
+    # 请在业务层显式调用 log_action(before=..., after=...)。
+    after_payload = None
+    try:
+        raw = await request.body()
+        if raw and len(raw) <= _MAX_AUDIT_BODY_BYTES:
+            after_payload = json.loads(raw.decode("utf-8"))
+    except Exception:  # noqa: BLE001 - 快照是增强信息，取不到就算了
+        after_payload = None
+
     async with db_manager.get_session() as db:
         await audit_log_service.log_action(
             db=db,
@@ -87,8 +109,9 @@ async def _log_operation(request: Request, route_path: str) -> None:
             resource_type=resource_type,
             resource_id=_first_path_param(path_params),
             description=f"{method} {request.url.path}",
-            ip_address=request.client.host if request.client else None,
+            ip_address=None if audit_ip == "unknown" else audit_ip,
             user_agent=request.headers.get("user-agent"),
+            after=after_payload if isinstance(after_payload, dict) else None,
         )
 
 

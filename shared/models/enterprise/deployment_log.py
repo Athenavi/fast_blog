@@ -20,7 +20,7 @@ class DeploymentLog(Base):
         Index('idx_deployment_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='日志 ID')
 
     script_id = Column(BigInteger, ForeignKey('deployment_scripts.id'), doc='脚本 ID')

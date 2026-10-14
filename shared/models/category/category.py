@@ -21,7 +21,7 @@ class Category(Base):
         Index('idx_categories_is_visible', 'is_visible'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='分类 ID')
 
     name = Column(String(100), nullable=False, doc='分类名')

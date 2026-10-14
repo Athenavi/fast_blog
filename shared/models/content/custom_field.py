@@ -13,9 +13,7 @@ class CustomField(Base):
     """自定义字段模型模型"""
     __tablename__ = 'custom_fields'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='字段 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')

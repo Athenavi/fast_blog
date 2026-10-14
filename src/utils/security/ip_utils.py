@@ -1,34 +1,34 @@
-def get_client_ip(req):
-    if 'X-Forwarded-For' in req.headers:
-        ip = req.headers['X-Forwarded-For'].split(',')[0].strip()
-    elif 'X-Real-IP' in req.headers:
-        ip = req.headers['X-Real-IP'].strip()
-    else:
-        # For FastAPI, use req.client.host instead of req.remote_addr
-        ip = getattr(req.client, 'host', '127.0.0.1') if hasattr(req, 'client') and req.client else '127.0.0.1'
+"""兼容层：客户端 IP 解析的权威实现已迁至 ``shared.utils.client_ip``。
 
-    # 验证 IP 格式有效性
-    if not _is_valid_ip(ip):
-        return '127.0.0.1'
+保留本模块只是为了让既有的 ``from src.utils.security.ip_utils import get_client_ip``
+不失效；新代码请直接从 ``shared.utils.client_ip`` 导入 —— 那里有完整的安全说明。
 
-    return ip
+**历史实现已废弃**：它取 ``X-Forwarded-For`` 的**首值**，而该头由 nginx 以
+`$proxy_add_x_forwarded_for` 追加速度写入，首值完全由客户端控制，可被用来绕过
+限流与登录防爆破。
+"""
+
+from shared.utils.client_ip import (  # noqa: F401
+    TRUSTED_PROXY_NETWORKS,
+    get_client_ip,
+    is_trusted_proxy,
+    parse_ip,
+    resolve_client_ip,
+)
+
+__all__ = [
+    "TRUSTED_PROXY_NETWORKS",
+    "anonymize_ip_address",
+    "get_client_ip",
+    "is_trusted_proxy",
+    "parse_ip",
+    "resolve_client_ip",
+]
 
 
-def _is_valid_ip(ip: str) -> bool:
-    """验证 IP 地址格式是否有效"""
-    import ipaddress
-    try:
-        ipaddress.ip_address(ip)
-        return True
-    except ValueError:
-        return False
-
-
-def anonymize_ip_address(ip):
-    # 将 IP 地址分割成四个部分
-    parts = ip.split('.')
+def anonymize_ip_address(ip: str) -> str:
+    """把 IPv4 的后两段打码（GDPR 展示用）；非 IPv4 原样返回"""
+    parts = str(ip).split(".")
     if len(parts) == 4:
-        # 隐藏最后两个部分
-        masked_ip = f"{parts[0]}.{parts[1]}.***.***"
-        return masked_ip
+        return f"{parts[0]}.{parts[1]}.***.***"
     return ip

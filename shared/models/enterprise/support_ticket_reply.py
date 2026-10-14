@@ -19,7 +19,7 @@ class SupportTicketReply(Base):
         Index('idx_reply_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='回复 ID')
 
     ticket_id = Column(BigInteger, ForeignKey('support_tickets.id'), doc='工单 ID')

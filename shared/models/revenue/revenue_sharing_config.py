@@ -18,7 +18,7 @@ class RevenueSharingConfig(Base):
         Index('idx_revenue_sharing_configs_type', 'revenue_type', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
     revenue_type = Column(String(50), unique=True, nullable=True, doc='收益类型')

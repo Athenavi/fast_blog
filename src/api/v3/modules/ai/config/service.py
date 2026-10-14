@@ -80,6 +80,20 @@ def _to_out(row) -> dict:
     }
 
 
+def _assert_outbound_url_ok(url: str) -> None:
+    """AI 端点必须通过 SSRF 校验
+
+    ``api_url`` 是**每个用户**都能填的，默认只允许公网地址。企业若确有内网 AI 网关，
+    应由部署者用 ``ALLOW_PRIVATE_OUTBOUND_ENDPOINTS=true`` 显式放行（见
+    ``src/utils/security/safe.py``）—— 这个决定不能交给终端用户绕过。
+    """
+    from src.utils.security.safe import validate_outbound_url
+
+    valid, err = validate_outbound_url(url)
+    if not valid:
+        raise BadRequestError(f"api_url 不可用：{err}")
+
+
 class AIConfigService:
     """AI 配置管理（ai 域，管理端跨用户）"""
 
@@ -95,6 +109,7 @@ class AIConfigService:
         return [_to_out(r) for r in rows], total
 
     async def create_config(self, db: AsyncSession, payload: AIConfigCreate) -> dict:
+        _assert_outbound_url_ok(payload.api_url)
         if await ai_config_crud.exists(db, user_id=payload.user_id, name=payload.name):
             raise ConflictError(f"该用户下已存在同名配置: {payload.name}")
         password_hash = await self._user_password_hash(db, payload.user_id)
@@ -112,6 +127,8 @@ class AIConfigService:
         if row is None:
             raise NotFoundError("AI 配置不存在")
         data = payload.model_dump(exclude_unset=True)
+        if data.get("api_url"):
+            _assert_outbound_url_ok(data["api_url"])
         if "name" in data and data["name"] and data["name"] != row.name:
             if await ai_config_crud.exists(db, user_id=row.user_id, name=data["name"]):
                 raise ConflictError(f"该用户下已存在同名配置: {data['name']}")

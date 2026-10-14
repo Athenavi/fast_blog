@@ -16,9 +16,7 @@ class UploadTask(Base):
     """上传任务模型模型"""
     __tablename__ = 'upload_tasks'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), doc='任务 ID (UUID)')
 
     user_id = Column(BigInteger, doc='用户 ID')

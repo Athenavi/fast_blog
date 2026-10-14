@@ -364,16 +364,14 @@ rate_limiter = RateLimiter()
 
 
 def _resolve_client_ip(request: Request) -> str:
-    """解析客户端真实 IP（优先信任反向代理设置的 X-Forwarded-For / X-Real-IP）"""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        first = forwarded.split(",")[0].strip()
-        if first and first.lower() not in ("unknown", ""):
-            return first
-    real = request.headers.get("X-Real-IP")
-    if real and real.strip():
-        return real.strip()
-    return request.client.host if request.client else "unknown"
+    """解析客户端真实 IP（统一实现见 ``shared.utils.client_ip``）
+
+    注意：不要退回"取 X-Forwarded-For 首值"的写法 —— 该头由 nginx 追加写入，
+    首值可被客户端伪造，会让 IP 限流形同虚设。
+    """
+    from shared.utils.client_ip import get_client_ip
+
+    return get_client_ip(request)
 
 
 async def rate_limit_middleware(request: Request, call_next):

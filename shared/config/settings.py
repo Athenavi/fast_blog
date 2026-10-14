@@ -139,7 +139,9 @@ class BaseConfig:
     SESSION_COOKIE_NAME = 'zb_session'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=48)
     TEMP_FOLDER = 'temp/upload'
-    AVATAR_SERVER = "https://api.7trees.cn/avatar"
+    #: 头像服务地址。当前**没有任何调用点**（保留常量只为兼容历史配置项）。
+    #: 若将来启用，注意它会把用户标识发给第三方 —— 企业部署应先确认数据出境合规。
+    AVATAR_SERVER = os.environ.get('AVATAR_SERVER') or ""
     ALLOWED_MIMES = [
         # ===== 图片 =====
         'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
@@ -265,7 +267,10 @@ class BaseConfig:
     REMEMBER_COOKIE_DURATION = timedelta(days=30)  # 记住登录状态30天
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     # S3存储配置
-    S3_ENABLED = os.environ.get('S3_ENABLED', 'True').lower() == 'true'
+    #: S3 开关。当前**没有任何调用点** —— 媒体走本地 ``storage/objects``，备份云上传用
+    #: ``ops/backup/cloud.py`` 的独立配置。保留常量只为兼容历史 .env；默认 False，
+    #: 避免"读到 S3_ENABLED=True 却什么都没发生"的误解。
+    S3_ENABLED = os.environ.get('S3_ENABLED', 'False').lower() == 'true'
     S3_ENDPOINT_URL = os.environ.get('S3_ENDPOINT_URL')  # S3服务端点，如使用AWS S3可不设置
     S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')  # S3访问密钥
     S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')  # S3密钥

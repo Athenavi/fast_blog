@@ -19,6 +19,7 @@ class UserBadge(Base):
         Index('idx_user_badges_badge', 'badge_key'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='记录 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户 ID')

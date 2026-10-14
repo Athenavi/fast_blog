@@ -118,18 +118,10 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         if not (normalized.endswith("/auth/login") or normalized.endswith("/auth/register") or "/auth/login" in path or "/auth/register" in path):
             return await call_next(request)
 
-        # 获取客户端真实 IP（支持反向代理）
-        import re as _re
-        forwarded = request.headers.get("X-Forwarded-For")
-        if forwarded:
-            candidate = forwarded.split(",")[0].strip()
-            if _re.match(r'^\d{1,3}(\.\d{1,3}){3}$', candidate) and all(0 <= int(octet) <= 255 for octet in candidate.split('.')):
-                client_ip = candidate
-            else:
-                client_ip = request.client.host if request.client else "unknown"
-        else:
-            real_ip = request.headers.get("X-Real-IP")
-            client_ip = real_ip if real_ip else (request.client.host if request.client else "unknown")
+        # 获取客户端真实 IP（统一实现：仅当直连方属于可信代理网段时才采信代理头）
+        from shared.utils.client_ip import get_client_ip
+
+        client_ip = get_client_ip(request)
 
         # 检查 IP 限制
         ip_key = self._cache_key_ip(client_ip)

@@ -19,7 +19,7 @@ class ArticleSEO(Base):
         Index('idx_article_seo_article_id', 'article_id', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='SEO记录ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='关联的文章ID')

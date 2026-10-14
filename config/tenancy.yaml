@@ -1,0 +1,195 @@
+# 多租户站点隔离：纳入 / 排除的表清单
+#
+# 这是 scripts/apply_tenant_scope.py 的唯一输入。想调整隔离范围，改这里再重跑脚本，
+# 不要在 yaml 和模型文件里各改一遍。
+#
+# 判定原则
+# --------
+# - **站点级（tenant_tables）**：内容与业务数据。同一套部署服务多个站点时，
+#   每个站点只应看到自己的文章、媒体、评论、订单、广告、统计……
+# - **实例级（excluded_tables）**：账号与权限定义（users / roles / capabilities）、
+#   系统与第三方凭据（system_settings / ai_configs / sso_providers）、
+#   以及跨站点治理数据（audit_logs / login_attempts / token_blacklist）。
+#   这些要么天然跨站点（一个账号访问多个站点，见 sites/site_users 关联），
+#   要么必须让超管看到全貌。
+#
+# 出现未分类的表时，`python -m scripts.apply_tenant_scope --check` 会列出来，
+# 必须显式归到两边之一 —— 默认猜测比不猜更危险。
+
+tenant_tables:
+  # ---- 内容核心 ----
+  - articles
+  - article_content
+  - article_annotations
+  - article_likes
+  - article_preview_tokens
+  - article_revision_notes
+  - article_revisions
+  - article_seo
+  - categories
+  - category_subscriptions
+  - comments
+  - comment_subscriptions
+  - comment_votes
+  - custom_fields
+  - custom_post_contents
+  - custom_post_types
+  - media
+  - media_folders
+  - media_optimizations
+  - pages
+  - page_builder
+  - block_patterns
+  - widget_instances
+  - sensitive_words
+
+  # ---- 导航与 SEO ----
+  - menus
+  - menu_items
+  - menu_locations
+  - menu_location_assignments
+  - seo_redirects
+
+  # ---- 表单与营销 ----
+  - forms
+  - form_fields
+  - form_submissions
+  - ads
+  - ad_clicks
+  - ad_impressions
+  - ad_placements
+  - notifications
+  - email_subscriptions
+
+  # ---- 统计与埋点 ----
+  - page_views
+  - search_history
+  - share_stats
+  - user_activities
+  - report_history
+  - scheduled_reports
+  - sla_reports
+
+  # ---- 成长体系 ----
+  - points_rules
+  - points_transactions
+  - user_points
+  - badge_definitions
+  - user_badges
+  - certification_documents
+  - certification_reviews
+  - expert_certifications
+
+  # ---- 社交关系 ----
+  - user_follows
+  - user_blocks
+  - private_messages
+  - chat_groups
+  - chat_group_members
+  - chat_group_invites
+  - chat_messages
+  - team_comments
+  - collaboration_invites
+
+  # ---- 编辑协作 ----
+  - approval_records
+  - approval_steps
+  - download_tasks
+  - upload_tasks
+  - upload_chunks
+  - file_hashs
+
+  # ---- 电商与支付流水 ----
+  - carts
+  - cart_items
+  - orders
+  - order_items
+  - products
+  - payment_transactions
+  - crypto_payments
+  - tips
+  - tip_withdrawals
+  - revenue_records
+  - revenue_sharing_configs
+  - payout_requests
+  - user_revenue_stats
+  - vip_features
+  - vip_payment_orders
+  - vip_plans
+  - vip_subscriptions
+
+  # ---- 发布与运维记录 ----
+  - publish_channels
+  - publish_logs
+  - publish_tasks
+  - migration_logs
+  - migration_tasks
+  - deployment_logs
+
+  # ---- 站点级外观 ----
+  - global_styles
+  - global_style_configs
+
+  # ---- 协作空间 ----
+  - workspaces
+  - workspace_members
+  - enterprise_licenses
+
+  # ---- 其余站点级业务表 ----
+  - shortcodes
+  - tasks
+  - support_tickets
+  - support_ticket_replies
+  - webhooks
+  - webhook_deliveries
+
+# 实例级：不参与站点隔离
+excluded_tables:
+  # 站点自身与关联
+  - sites
+  - site_users
+  - content_mappings
+  # 账号与权限定义
+  - users
+  - user_sessions
+  - user_role_assignments
+  - user_group_members
+  - roles
+  - role_capabilities
+  - role_admin_menus
+  - role_groups
+  - capabilities
+  - permission_groups
+  - field_permissions
+  - permission_audit_logs
+  # 系统设置与后台菜单
+  - system_settings
+  - admin_settings
+  - admin_menus
+  # 第三方与 SSO 凭据
+  - oauth_accounts
+  - sso_providers
+  - saml_configs
+  - ldap_configs
+  - email_service_configs
+  - notification_integrations
+  - payment_gateways
+  - tax_configs
+  - ai_configs
+  - ai_workflows
+  - baidu_analytics_configs
+  - google_analytics_configs
+  # 可观测与治理
+  - monitoring_metrics
+  - monitoring_alerts
+  - audit_logs
+  - login_attempts
+  - token_blacklist
+  - api_tokens
+  - gdpr_consents
+  - data_retention_policies
+  # 全局资产
+  - plugins
+  - themes
+  - search_index
+  - deployment_scripts

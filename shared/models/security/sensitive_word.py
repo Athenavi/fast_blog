@@ -20,7 +20,7 @@ class SensitiveWord(Base):
         Index('idx_sensitive_word_active', 'is_active'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='敏感词 ID')
 
     word = Column(String(100), unique=True, nullable=True, doc='敏感词内容')

@@ -21,7 +21,7 @@ class SupportTicket(Base):
         Index('idx_ticket_priority', 'priority'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='工单 ID')
 
     ticket_number = Column(String(50), unique=True, nullable=True, doc='工单编号')

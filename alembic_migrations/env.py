@@ -21,12 +21,15 @@ env_candidates = [
     project_root / 'config' / '.env',   # config 目录 .env（安装向导写入位置）
 ]
 env_loaded = False
+# 语义与 ``shared/config/settings.py`` **保持一致**：``override=False`` —— 容器里由 compose
+# 注入的 DB_HOST / DB_PASSWORD 必须优先于文件；两个候选位置都加载，先加载者优先。
+# 原实现用 ``override=True`` 且只加载第一个存在的文件，结果是"应用连的库"与"迁移连的库"
+# 在存在 .env 时可能不是同一个，排障时极难定位。
 for env_file in env_candidates:
     if env_file.exists():
-        load_dotenv(env_file, override=True)
-        _alembic_logger.info("Loaded .env from %s", env_file)
+        load_dotenv(env_file, override=False)
+        _alembic_logger.info("Loaded .env from %s（不覆盖已存在的环境变量）", env_file)
         env_loaded = True
-        break
 
 if not env_loaded:
     _alembic_logger.warning(".env file not found. Searched:")

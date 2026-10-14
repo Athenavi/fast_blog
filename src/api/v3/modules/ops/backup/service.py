@@ -178,6 +178,17 @@ class BackupOpsService:
         logger.info("backup 云存储配置已更新：provider=%s", merged.get("provider"))
         return cloud.mask(merged)
 
+    async def is_cloud_configured(self, db: AsyncSession) -> bool:
+        """是否已配置云存储
+
+        供定时任务判断"备份完要不要自动上传"：**未配置**不是错误（跳过即可），
+        但一旦配置了却上传失败，必须显式告警 —— 否则"本地有备份、云端没有"
+        会在灾难场景下静默地等于没有备份。
+        """
+        config = await self._raw_cloud_config(db)
+        provider = str(config.get("provider") or "").strip()
+        return bool(provider) and provider in cloud.SUPPORTED_CLOUD_PROVIDERS
+
     async def upload_to_cloud(self, db: AsyncSession, backup_path: str) -> dict:
         """把某个备份上传到已配置的云存储（**真实调用**；未配置 / 凭据坏掉一律如实报错）"""
         config = await self._raw_cloud_config(db)

@@ -21,7 +21,7 @@ class DownloadTask(Base):
         Index('idx_download_tasks_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='任务ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户ID')

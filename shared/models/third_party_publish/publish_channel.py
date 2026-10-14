@@ -25,6 +25,7 @@ class PublishChannel(Base):
         Index('idx_publish_channels_platform_name', 'platform', 'name', unique=True),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='渠道 ID')
 
     name = Column(String(100), nullable=False, doc='渠道名（如「我的公众号」）')

@@ -45,7 +45,11 @@ router = APIRouter(prefix="/tracking", tags=["analytics-tracking"], route_class=
 
 
 def _client_ip(request: Request) -> Optional[str]:
-    return request.client.host if request.client else None
+    """客户端 IP（统一实现，见 ``shared.utils.client_ip``）"""
+    from shared.utils.client_ip import get_client_ip
+
+    client_ip = get_client_ip(request)
+    return None if client_ip == "unknown" else client_ip
 
 
 # ─────────────────────────── 上报（可选登录）───────────────────────────

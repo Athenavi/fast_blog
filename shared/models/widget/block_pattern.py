@@ -20,7 +20,7 @@ class BlockPattern(Base):
         Index('idx_block_patterns_user_id', 'user_id'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='模式ID')
 
     name = Column(String(100), unique=True, nullable=True, doc='模式名称（唯一标识）')

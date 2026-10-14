@@ -20,7 +20,7 @@ class ScheduledReport(Base):
         Index('idx_scheduled_reports_next_run', 'next_run_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='报表 ID')
 
     name = Column(String(255), nullable=True, doc='报表名称')

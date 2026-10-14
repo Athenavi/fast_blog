@@ -19,7 +19,7 @@ class ChatGroupInvite(Base):
         Index('idx_chat_group_invites_group', 'group'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='邀请 ID')
 
     group = Column(BigInteger, ForeignKey('chat_groups.id'), doc='群聊 ID')

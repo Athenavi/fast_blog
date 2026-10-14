@@ -21,7 +21,7 @@ class ArticleAnnotation(Base):
         Index('idx_article_annotations_resolved', 'is_resolved'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='批注 ID')
 
     article = Column(BigInteger, ForeignKey('articles.id'), doc='文章 ID')

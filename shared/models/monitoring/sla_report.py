@@ -17,6 +17,7 @@ class SLAReport(Base):
         Index('idx_sla_compliant', 'is_compliant'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='报告 ID')
 
     license_id = Column(BigInteger, nullable=False, doc='企业许可证 ID')

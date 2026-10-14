@@ -20,7 +20,7 @@ class ChatGroup(Base):
         Index('idx_chat_groups_is_active', 'is_active'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='群聊 ID')
 
     name = Column(String(255), nullable=True, doc='群聊名称')

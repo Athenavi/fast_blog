@@ -20,7 +20,7 @@ class SearchHistory(Base):
         Index('idx_search_history_keyword', 'keyword'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='搜索历史 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')

@@ -19,7 +19,7 @@ class FormField(Base):
         Index('idx_form_fields_order', 'order_index'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='字段 ID')
 
     form_id = Column(BigInteger, ForeignKey('forms.id'), doc='所属表单 ID')

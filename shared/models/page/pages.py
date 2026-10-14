@@ -22,7 +22,7 @@ class Pages(Base):
         Index('idx_pages_order', 'order_index'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='页面 ID')
 
     title = Column(String(255), nullable=True, doc='标题')

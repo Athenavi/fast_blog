@@ -24,6 +24,7 @@ class ArticlePreviewToken(Base):
         Index('idx_article_preview_tokens_expires', 'expires_at'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='令牌 ID')
 
     article_id = Column(

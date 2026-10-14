@@ -20,7 +20,7 @@ class ApprovalStep(Base):
         Index('idx_approval_steps_level', 'level'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='审批步骤 ID')
 
     record_id = Column(BigInteger, ForeignKey('approval_records.id'), doc='审批记录 ID')

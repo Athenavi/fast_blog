@@ -1,3 +1,7 @@
+import functools
+import os
+import secrets
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
@@ -6,21 +10,109 @@ from shared.services.articles.article_view_stats import article_view_stats
 from shared.services.system.backup_service import backup_service
 from src.unified_logger import default_logger as logger
 
+#: Redis 不可用时使用的哨兵令牌：表示"本次放行、无需（也无法）释放"
+_NO_REDIS_TOKEN = "__no_redis__"
 
-async def _acquire_job_lock(name: str, ttl: int = 600) -> bool:
-    """
-    多 worker 场景下用 Redis 分布式锁保证定时任务全局只执行一次。
+#: 仅在令牌匹配时删除锁 —— 避免"任务超时后锁已易主，却被旧持有者删掉"
+_RELEASE_LOCK_SCRIPT = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+    return redis.call('del', KEYS[1])
+end
+return 0
+"""
 
-    - Redis 可用：只有持有锁的 worker 执行，其余跳过（锁自然过期，不手动释放）。
-    - Redis 不可用：放行执行（单 worker / 降级场景）。
+
+async def _acquire_job_lock(name: str, ttl: int = 600) -> "str | None":
+    """获取定时任务的分布式锁，成功时返回持有令牌，未获得返回 ``None``。
+
+    设计要点：
+
+    - **TTL 必须小于该任务的调度间隔**。否则会出现"上一轮的锁还没过期、
+      这一轮拿不到"的倒挂：例如每 5 分钟跑一次的任务若给 ttl=600，实际会变成
+      每 10 分钟才执行一次。
+    - 任务结束后由 ``_release_job_lock`` 主动释放，正常路径下下一轮立即可获取。
+    - **Redis 不可用时放行**（返回哨兵令牌）：此时限流、缓存、会话都已降级，
+      让幂等的定时任务继续跑比整体停摆更安全；代价是多副本下可能重复执行，
+      因此这里显式告警，不做静默降级。
     """
+    token = secrets.token_urlsafe(16)
     try:
         from src.services.redis_service import redis_service
+
         if redis_service._redis is None:
             await redis_service.connect()
-        return bool(await redis_service.redis.set(f"fb:sched_lock:{name}", "1", nx=True, ex=ttl))
-    except Exception:
-        return True
+        acquired = await redis_service.redis.set(
+            f"fb:sched_lock:{name}", token, nx=True, ex=ttl
+        )
+        return token if acquired else None
+    except Exception as exc:  # noqa: BLE001 - Redis 故障不应让定时任务整体停摆
+        logger.warning(
+            "分布式锁不可用（%s），本次放行执行 %s；多副本部署下可能重复执行",
+            type(exc).__name__,
+            name,
+        )
+        return _NO_REDIS_TOKEN
+
+
+async def _release_job_lock(name: str, token: "str | None") -> None:
+    """释放分布式锁（仅当令牌仍匹配时删除）"""
+    if not token or token == _NO_REDIS_TOKEN:
+        return
+    try:
+        from src.services.redis_service import redis_service
+
+        await redis_service.redis.eval(_RELEASE_LOCK_SCRIPT, 1, f"fb:sched_lock:{name}", token)
+    except Exception as exc:  # noqa: BLE001 - 释放失败交给 TTL 兜底
+        logger.warning("释放分布式锁失败（%s）：%s，将由 TTL 自然过期", type(exc).__name__, name)
+
+
+def _with_job_lock(name: str, ttl: int):
+    """装饰器：给定时任务套上分布式锁（未获得则跳过，结束后释放）"""
+
+    def decorator(func):
+        @functools.wraps(func)
+        async def wrapper():
+            token = await _acquire_job_lock(name, ttl)
+            if token is None:
+                return
+            try:
+                return await func()
+            finally:
+                await _release_job_lock(name, token)
+
+        return wrapper
+
+    return decorator
+
+
+async def _upload_backup_if_configured(*backup_paths: "str | None") -> None:
+    """备份成功后按配置自动上传云存储。
+
+    - **未配置**云存储：静默跳过（不是错误，本地备份仍然有效）。
+    - 已配置但**上传失败**：显式告警 —— 否则会出现"本地有备份、云端没有"，
+      在宿主机损毁的场景下等于没有备份。
+    """
+    paths = [path for path in backup_paths if path]
+    if not paths:
+        return
+    try:
+        from src.api.v3.modules.ops.backup.service import backup_ops_service
+        from src.utils.database.unified_manager import db_manager
+
+        async with db_manager.get_session() as db:
+            if not await backup_ops_service.is_cloud_configured(db):
+                logger.info("未配置云存储，跳过自动上传（本地备份仍已完成）")
+                return
+            for path in paths:
+                try:
+                    result = await backup_ops_service.upload_to_cloud(db, path)
+                    logger.info(f"备份已上传云端：{os.path.basename(path)} → {result.get('location')}")
+                except Exception as exc:  # noqa: BLE001 - 单个失败不应中断其余上传
+                    logger.error(
+                        f"备份上传云端失败：{path}（{exc}）—— 云端缺少该备份，请检查云存储配置"
+                    )
+    except Exception as exc:  # noqa: BLE001 - 自动上传是增强能力，异常不得影响备份任务本身
+        logger.error(f"自动上传备份到云端失败（{exc}）")
 
 
 class SessionScheduler:
@@ -38,10 +130,10 @@ class SessionScheduler:
         """初始化计划任务"""
 
         # 同步文章浏览量到数据库，每 5 分钟执行一次
+        # ttl(240) 必须小于调度间隔(300)：原 ttl=300 贴着间隔，偶发跳过一轮
+        @_with_job_lock("sync_article_views", ttl=240)
         async def sync_article_views_to_db():
             """使用新的 ArticleViewStatsService 同步文章浏览量"""
-            if not await _acquire_job_lock("sync_article_views", ttl=300):
-                return
             try:
                 from src.utils.database.unified_manager import db_manager
 
@@ -75,14 +167,15 @@ class SessionScheduler:
         )
 
         # 每日备份任务（凌晨 2 点）
+        @_with_job_lock("daily_backup", ttl=3600)
         async def daily_backup():
-            if not await _acquire_job_lock("daily_backup", ttl=3600):
-                return
             logger.info("Starting daily database backup...")
             try:
                 result = await backup_service.backup_database(backup_type='full')
                 if result.get('success'):
                     logger.info(f"Daily backup completed: {result.get('backup_path')}")
+                    # 备份只落本地卷不构成灾备：已配置云存储时自动上传
+                    await _upload_backup_if_configured(result.get('backup_path'))
                 else:
                     logger.error(f"Daily backup failed: {result.get('error')}")
             except Exception as e:
@@ -96,9 +189,8 @@ class SessionScheduler:
         )
 
         # 每周完整备份（周日凌晨 3 点）
+        @_with_job_lock("weekly_backup", ttl=3600)
         async def weekly_backup():
-            if not await _acquire_job_lock("weekly_backup", ttl=3600):
-                return
             logger.info("Starting weekly full backup...")
             try:
                 db_result = await backup_service.backup_database(backup_type='full')
@@ -107,6 +199,11 @@ class SessionScheduler:
                     logger.info(f"Weekly backup completed")
                 else:
                     logger.error(f"Weekly backup had issues: db={db_result.get('success')}, files={files_result.get('success')}")
+                # 成功的那部分也要上云（失败的部分自然没有路径）
+                await _upload_backup_if_configured(
+                    db_result.get('backup_path'),
+                    files_result.get('backup_path'),
+                )
             except Exception as e:
                 logger.error(f"Weekly backup failed: {e}")
 
@@ -118,10 +215,10 @@ class SessionScheduler:
         )
 
         # 定时发布到期文章检查（每 5 分钟）
+        # ttl(240) < 间隔(300)：原 ttl=600 让实际检查频率降为每 10 分钟一次
+        @_with_job_lock("publish_due_articles", ttl=240)
         async def check_due_scheduled_articles():
             """检查并发布到期的定时文章"""
-            if not await _acquire_job_lock("publish_due_articles", ttl=600):
-                return
             try:
                 from src.utils.database.unified_manager import db_manager
                 from shared.services.articles.scheduled_publish import create_scheduled_publish_service
@@ -147,10 +244,9 @@ class SessionScheduler:
         )
 
         # VIP 订阅过期检查（每 30 分钟）
+        @_with_job_lock("check_vip_expiry", ttl=900)
         async def check_expired_vip_subscriptions():
             """检查并标记过期的 VIP 订阅"""
-            if not await _acquire_job_lock("check_vip_expiry", ttl=600):
-                return
             try:
                 from src.utils.database.unified_manager import db_manager
                 from shared.services.core.membership import create_membership_service
@@ -168,6 +264,26 @@ class SessionScheduler:
             check_expired_vip_subscriptions,
             trigger=IntervalTrigger(minutes=30),
             id='check_vip_expiry',
+            replace_existing=True
+        )
+
+        # 审计日志保留策略（每日 04:00）。此前 cleanup_old_logs 已实现但无人调用，
+        # audit_logs 会无限增长；保留天数由 AuditLogService.retention_days 决定。
+        @_with_job_lock("cleanup_audit_logs", ttl=3600)
+        async def cleanup_audit_logs():
+            try:
+                from shared.services.security.audit_log_service import audit_log_service
+                from src.utils.database.unified_manager import db_manager
+
+                async with db_manager.get_session() as db:
+                    await audit_log_service.cleanup_old_logs(db)
+            except Exception as e:
+                logger.error(f"审计日志清理失败：{e}")
+
+        self.scheduler.add_job(
+            cleanup_audit_logs,
+            trigger=CronTrigger(hour=4, minute=0),
+            id='cleanup_audit_logs',
             replace_existing=True
         )
 

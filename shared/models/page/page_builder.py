@@ -18,7 +18,7 @@ class PageBuilder(Base):
         Index('idx_page_builder_slug', 'slug', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='页面 ID')
 
     title = Column(String(255), nullable=True, doc='页面标题')

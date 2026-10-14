@@ -18,7 +18,7 @@ class ArticleRevisionNote(Base):
         Index('idx_revision_notes_revision', 'revision_id'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='注释 ID')
 
     revision_id = Column(BigInteger, ForeignKey('article_revisions.id', ondelete='CASCADE'), doc='关联的修订版本 ID')

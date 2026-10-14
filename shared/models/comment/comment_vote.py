@@ -18,7 +18,7 @@ class CommentVote(Base):
         Index('idx_comment_votes_comment_user', 'comment_id', 'user', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='投票 ID')
 
     comment_id = Column(BigInteger, index=True, doc='评论 ID')

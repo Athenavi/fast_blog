@@ -36,6 +36,7 @@ class CollaborationInvite(Base):
         Index('idx_collaboration_invites_active', 'is_active'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='邀请 ID')
 
     invite_code = Column(String(64), nullable=False, doc='邀请码（唯一）')

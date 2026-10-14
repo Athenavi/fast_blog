@@ -13,9 +13,7 @@ class VIPFeature(Base):
     """VIP 功能特权模型模型"""
     __tablename__ = 'vip_features'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='功能 ID')
 
     code = Column(String(50), nullable=True, doc='功能代码')

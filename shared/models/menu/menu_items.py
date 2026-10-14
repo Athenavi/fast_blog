@@ -4,7 +4,7 @@ SQLAlchemy 模型定义 - MenuItems
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Index
+from sqlalchemy import BigInteger, Column, Integer, String, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
@@ -20,7 +20,7 @@ class MenuItems(Base):
         Index('idx_menu_items_order', 'order_index'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(Integer, primary_key=True, autoincrement=True, doc='菜单项 ID')
 
     menu_id = Column(Integer, doc='菜单 ID')

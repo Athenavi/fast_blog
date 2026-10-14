@@ -20,7 +20,7 @@ class ChatGroupMember(Base):
         Index('idx_chat_group_members_unique', 'group', 'user', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='成员关系 ID')
 
     group = Column(BigInteger, ForeignKey('chat_groups.id'), doc='群聊 ID')

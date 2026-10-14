@@ -26,7 +26,7 @@ class Comment(Base):
         Index('idx_comments_spam_score', 'spam_score'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='评论 ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='文章 ID')

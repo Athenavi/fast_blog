@@ -153,6 +153,33 @@ class SessionManagementService:
         except Exception as e:
             logger.debug(f"Redis update session failed: {e}")
 
+    def _enforce_session_limit(self, user_id: int) -> None:
+        """超出 ``max_sessions_per_user`` 时移除创建时间最早的会话
+
+        优先用 Redis 的会话集合（多 worker / 多副本共享）；Redis 不可用时退回本进程
+        内存视图 —— 至少不比改造前更差，此时"未共享"会体现在别处的降级日志里。
+        """
+        limit = self.max_sessions_per_user
+        session_ids = self._get_user_session_ids_redis(user_id)
+        if not session_ids:
+            sessions = self._user_sessions[user_id]
+            if len(sessions) < limit:
+                return
+            oldest = min(sessions, key=lambda item: item['created_at'])
+            self._remove_session(user_id, oldest['session_id'])
+            return
+
+        if len(session_ids) < limit:
+            return
+
+        def _created_at(session_id: str) -> str:
+            data = self._get_session_redis(session_id) or {}
+            created = data.get('created_at')
+            # 统一转字符串比较（同格式 ISO 串可直接排序）；取不到的排最前，优先被移除
+            return str(created) if created is not None else ""
+
+        self._remove_session(user_id, min(session_ids, key=_created_at))
+
     async def create_session(self, user_id: int, device_info: Dict,
                        ip_address: str = None, user_agent: str = None) -> str:
         """
@@ -173,14 +200,10 @@ class SessionManagementService:
         # 检查并清理旧会话
         self._cleanup_old_sessions(user_id)
 
-        # 检查会话数量限制
-        if len(self._user_sessions[user_id]) >= self.max_sessions_per_user:
-            # 移除最旧的会话
-            oldest_session = min(
-                self._user_sessions[user_id],
-                key=lambda s: s['created_at']
-            )
-            self._remove_session(user_id, oldest_session['session_id'])
+        # 会话数量上限：以 **Redis 集合**为准（多 worker / 多副本共享）。
+        # 原先用本进程的内存字典计数，等于每个副本各自放行 max_sessions_per_user 个，
+        # 实际上限被放大成 N 倍。
+        self._enforce_session_limit(user_id)
 
         # 创建会话记录
         now = datetime.now()

@@ -36,10 +36,10 @@ def invalidate_cache() -> None:
 
 
 def _client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else ""
+    """客户端 IP（统一实现，见 ``shared.utils.client_ip``）"""
+    from shared.utils.client_ip import get_client_ip
+
+    return get_client_ip(request)
 
 
 async def _cached_config() -> Dict[str, Any]:

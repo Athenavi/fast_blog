@@ -20,7 +20,7 @@ class ApprovalRecord(Base):
         Index('idx_approval_records_status', 'status'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='审批记录 ID')
 
     content_type = Column(String(50), nullable=True, doc='内容类型')

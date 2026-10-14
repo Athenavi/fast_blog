@@ -26,6 +26,17 @@ from src.api.v3.modules.ai.skill.builtin import CONTENT_ACTIONS, extract_keyword
 from src.api.v3.modules.ai.skill.registry import SkillContext, SkillRegistry, SkillSpec
 from src.api.v3.modules.ai.workflow import tasks
 
+
+@pytest.fixture(autouse=True)
+def _allow_local_ai_endpoint(monkeypatch):
+    """本文件用**本地 HTTP mock** 作为 AI 端点，需要放开出站私网限制
+
+    真实部署默认禁止出站到私网（``safe.validate_outbound_url``）；自建 ollama /
+    内网 AI 网关需由部署者显式设置 ``ALLOW_PRIVATE_OUTBOUND_ENDPOINTS=true``。
+    """
+    monkeypatch.setenv("ALLOW_PRIVATE_OUTBOUND_ENDPOINTS", "true")
+
+
 # ============================================================ 来自 test_v3_ai.py（16 项）
 #: 项目根（跑 alembic 迁移用）
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

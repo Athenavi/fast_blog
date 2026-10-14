@@ -19,6 +19,7 @@ class PublishLog(Base):
         Index('idx_publish_logs_task_created', 'task_id', 'created_at'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='日志 ID')
 
     task_id = Column(

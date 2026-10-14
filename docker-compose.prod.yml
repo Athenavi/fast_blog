@@ -10,11 +10,16 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
-      network: host
-      additional_contexts:
-        ffmpeg_src: ./tools/ffmpeg
     container_name: fastblog-backend
     restart: always
+    # 容器加固 / 优雅停机：
+    #   no-new-privileges —— 禁止通过 setuid 提权（entrypoint 用 gosu 从 root 降权，
+    #   属于"降权"，不受影响）
+    #   stop_grace_period —— uvicorn 排空在途请求、lifespan 里停调度器与下载队列都需要
+    #   时间，Docker 默认 10s 就会 SIGKILL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
     ports:
       - "127.0.0.1:9421:9421"
     environment:
@@ -34,9 +39,12 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env (>=32 random chars)}
       - ENVIRONMENT=production
       - DEBUG=False
-      # 站点对外地址（Cookie 加 Secure 的唯一判定依据）：必须是 https://你的域名。
-      # 缺失/留空会让登录 cookie 不带 Secure，compose 直接报错以避免静默降级。
-      - SITE_URL=${SITE_URL:?SITE_URL must be set in .env (https://your-domain)}
+      # 站点对外地址（Cookie 加 Secure 的唯一判定依据）：
+      #   - HTTP 部署（默认，nginx 只监听 80）：填 http://你的域名，Cookie 不带 Secure
+      #   - HTTPS 部署（启用 nginx/conf.d/fastblog-tls.conf.example）：填 https://你的域名
+      # 两者必须与 nginx 实际监听一致，否则会出现"登录成功但立刻掉线"。
+      # 缺失/留空时 compose 直接报错，避免静默降级。
+      - SITE_URL=${SITE_URL:?SITE_URL must be set in .env (http(s)://your-domain, see comment above)}
       # 多 worker 进程数（>1 时启用；依赖 Redis 共享限流/缓存，调度任务由 Redis 分布式锁保证单次执行）
       - WORKERS=${WORKERS:-2}
       # 内置插件开关：逗号分隔需要关闭的非核心模块名，如 ecommerce,enterprise
@@ -49,6 +57,9 @@ services:
       - fastblog-backups:/app/backups
       - fastblog-plugins-data:/app/plugins_data
       - fastblog-storage:/app/storage
+      # ⚠️ config/ 用命名卷挂载：镜像里 config/ 的内容只在**首次**创建卷时复制进来，
+      #    之后升级镜像不会更新它（含 models.yaml）。需要刷新时请备份后删卷重建，
+      #    或把新版本文件 docker cp 进去 —— 否则会"升级了但配置还是旧的"。
       - fastblog-config:/app/config
       - fastblog-static-generated:/app/static_generated
     depends_on:
@@ -59,6 +70,8 @@ services:
     networks:
       - fastblog-network
     deploy:
+      # limits 在 docker compose（非 swarm）下生效；reservations.cpus 只在 swarm 生效，
+      # 这里保留是为了将来切 swarm 时不必改文件，不作为调度约束。
       resources:
         limits:
           cpus: '2'
@@ -88,6 +101,12 @@ services:
       dockerfile: Dockerfile
     container_name: fastblog-frontend
     restart: always
+    # Node 只监听 3000（>1024），不需要任何 capability
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    stop_grace_period: 15s
     environment:
       - NUXT_PUBLIC_API_BASE_URL=http://backend:9421
     depends_on:
@@ -121,6 +140,10 @@ services:
     image: nginx:1-alpine
     container_name: fastblog-nginx
     restart: always
+    # nginx master 需要绑定 80/443（<1024），保留 capability；只禁止提权
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
     ports:
       - "80:80"
       - "443:443"
@@ -158,6 +181,10 @@ services:
     image: postgres:16-alpine
     container_name: fastblog-postgres
     restart: always
+    security_opt:
+      - no-new-privileges:true
+    # 停机时 postgres 要完成 checkpoint，10s 容易被 SIGKILL
+    stop_grace_period: 60s
     ports:
       - "127.0.0.1:5432:5432"
     environment:
@@ -191,13 +218,25 @@ services:
     image: redis:7-alpine
     container_name: fastblog-redis
     restart: always
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 15s
     ports:
       - "127.0.0.1:6379:6379"
+    # 淘汰策略（重要）：
+    #   本实例同时承载「可丢的缓存」与「不可丢的关键状态」—— 调度分布式锁、
+    #   令牌黑名单、会话、限流计数。原先的 allkeys-lru 会在内存压力下淘汰
+    #   **任意**键，包括锁与黑名单：锁被淘汰会让定时任务重复执行，黑名单被
+    #   淘汰会让已注销的令牌重新可用。
+    #   现改为 volatile-lru，只淘汰设了 TTL 的键；但锁与黑名单自身也带 TTL，
+    #   因此**严格隔离仍需独立实例**（noeviction 配置示例见文件末尾注释）。
+    #   maxmemory 必须小于容器的 memory limit（512M），否则 Redis 会先被
+    #   cgroup OOM-kill，而不是按策略淘汰/拒绝写入。
     command: >
       redis-server
         --appendonly yes
-        --maxmemory 512mb
-        --maxmemory-policy allkeys-lru
+        --maxmemory 400mb
+        --maxmemory-policy volatile-lru
         --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes:
       - fastblog-redis:/data
@@ -245,3 +284,43 @@ volumes:
 networks:
   fastblog-network:
     driver: bridge
+
+# ============================================================================
+# 可选：把「不可丢的关键状态」与「可丢的缓存」拆到两个 Redis 实例
+# ============================================================================
+# 为什么建议拆：maxmemory-policy 是**实例级**的，单实例里无法让缓存可淘汰、
+# 而锁 / 令牌黑名单 / 会话不可淘汰。volatile-lru 只淘汰带 TTL 的键，而锁与
+# 黑名单自身也带 TTL，因此它们仍可能被淘汰。
+#
+# 启用方式：取消下面 `redis-state` 服务的注释，并把后端的 REDIS_* 指向它
+# （或在应用侧把关键状态切到该实例）。两个实例用不同的 maxmemory-policy：
+#
+#   redis-state:
+#     image: redis:7-alpine
+#     container_name: fastblog-redis-state
+#     restart: always
+#     ports:
+#       - "127.0.0.1:6380:6379"
+#     command: >
+#       redis-server
+#         --appendonly yes
+#         --maxmemory 192mb
+#         --maxmemory-policy noeviction
+#         --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+#     volumes:
+#       - fastblog-redis-state:/data
+#     networks:
+#       - fastblog-network
+#     deploy:
+#       resources:
+#         limits:
+#           cpus: '0.5'
+#           memory: 256M
+#     healthcheck:
+#       test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env} ping | grep -q PONG" ]
+#       interval: 10s
+#       timeout: 5s
+#       retries: 5
+#
+# 说明：noeviction 下内存写满会**拒绝写入并报错**（fail-fast），而不是静默
+# 丢弃锁或黑名单 —— 对关键状态这是更安全的失败方式。

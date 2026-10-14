@@ -26,6 +26,7 @@ class TipWithdrawal(Base):
         Index('idx_tip_withdrawals_status', 'status'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='提现 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='申请人 ID')

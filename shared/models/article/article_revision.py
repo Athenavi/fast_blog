@@ -23,7 +23,7 @@ class ArticleRevision(Base):
         Index('idx_article_revisions_hash', 'hash_code'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='修订ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='关联的文章ID')

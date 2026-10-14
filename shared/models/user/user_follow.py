@@ -25,6 +25,7 @@ class UserFollow(Base):
         Index('idx_user_follows_created', 'created_at'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关注 ID')
 
     follower = Column(BigInteger, ForeignKey('users.id'), doc='关注者（发起方）')

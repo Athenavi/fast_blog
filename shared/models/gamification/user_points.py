@@ -19,6 +19,7 @@ class UserPoints(Base):
         Index('idx_user_points_balance', 'balance'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='账户 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户 ID')

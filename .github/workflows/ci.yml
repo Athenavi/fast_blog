@@ -50,6 +50,9 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run type check
+        # 目前**非阻塞**：历史上大量模块没有完整类型注解，直接阻断会让 CI 长期变红。
+        # 正确的收敛方向是"先清零 src/ 的 mypy 错误，再去掉末尾的 || echo"，
+        # 而不是一直挂着这个例外。
         run: |
           python -m mypy src/ --ignore-missing-imports --no-error-summary 2>&1 || echo "mypy found issues (non-blocking)"
 
@@ -314,7 +317,10 @@ jobs:
           pip install pip-audit
 
       - name: Audit Python dependencies
-        run: pip-audit --strict || true
+        # 供应链扫描必须能阻断 CI —— 不要加 `|| true`（加了等于不检查）。
+        # 若确有需要暂时放行的漏洞，请写明 ID 与理由：
+        #   pip-audit --strict --ignore-vuln GHSA-xxxx-xxxx-xxxx
+        run: pip-audit --strict
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -325,7 +331,9 @@ jobs:
 
       - name: Audit frontend dependencies
         working-directory: frontend/web
-        run: npm audit --production || true
+        # 同上：不要加 `|| true`。--audit-level=high 让 high/critical 阻断 CI，
+        # 低危仅打印，避免被无风险的 moderate 噪音长期卡住流水线。
+        run: npm audit --audit-level=high
 
   # ============================================================================
   # Docker Build Test
@@ -342,14 +350,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Prepare static ffmpeg build context
-        run: |
-          mkdir -p tools/ffmpeg
-          if [ ! -f tools/ffmpeg/ffmpeg-release-amd64-static.tar.xz ]; then
-            curl -fL -o tools/ffmpeg/ffmpeg-release-amd64-static.tar.xz \
-              https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-          fi
-
       - name: Build Docker image
         uses: docker/build-push-action@v6
         with:
@@ -358,5 +358,3 @@ jobs:
           tags: fastblog:ci-test
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          build-contexts: |
-            ffmpeg_src=./tools/ffmpeg

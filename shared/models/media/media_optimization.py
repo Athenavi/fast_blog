@@ -19,7 +19,7 @@ class MediaOptimization(Base):
         Index('idx_media_optimization_status', 'optimization_status'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
     media_id = Column(BigInteger, ForeignKey('media.id'), doc='媒体 ID')

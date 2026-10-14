@@ -20,7 +20,7 @@ class PayoutRequest(Base):
         Index('idx_payout_requests_created_at', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='提现申请 ID')
 
     user_id = Column(BigInteger, doc='用户ID')

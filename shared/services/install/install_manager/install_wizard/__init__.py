@@ -16,9 +16,11 @@ class InstallationWizardService:
     """安装向导服务 — 组合各步骤子模块"""
 
     def __init__(self):
-        self.install_lock_file = Path("install.lock")
-        self.install_flag_file = Path("storage/.installation_completed")
+        # 路径一律基于项目根，**不要**用相对路径：相对路径取决于进程 CWD，
+        # 多副本部署时不同容器 / 不同工作目录会指向不同位置，"已安装"判定随之不一致。
         _project_root = Path(__file__).resolve().parent.parent.parent.parent.parent
+        self.install_lock_file = _project_root / "install.lock"
+        self.install_flag_file = _project_root / "storage" / ".installation_completed"
         self.config_dir = _project_root / "config"
 
     @property

@@ -20,7 +20,7 @@ class GlobalStyleConfig(Base):
         Index('idx_global_style_theme_type', 'theme_type'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
     name = Column(String(100), unique=True, nullable=True, doc='配置名称（如 Dark Mode、Minimal、Corporate）')

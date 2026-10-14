@@ -19,7 +19,7 @@ class AdClick(Base):
         Index('idx_ad_clicks_clicked_at', 'clicked_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='点击记录 ID')
 
     ad_id = Column(BigInteger, ForeignKey('ads.id'), doc='广告ID')

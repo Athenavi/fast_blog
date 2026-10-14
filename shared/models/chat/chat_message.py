@@ -24,6 +24,7 @@ class ChatMessage(Base):
         Index('idx_chat_messages_user_created', 'user', 'created_at'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='消息 ID')
 
     group = Column(

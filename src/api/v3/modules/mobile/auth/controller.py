@@ -23,7 +23,10 @@ router = APIRouter(prefix="/auth", tags=["mobile-auth"])
 
 
 def _client_ip(request: Request) -> str:
-    return request.client.host if request.client else "unknown"
+    """客户端 IP（统一实现，见 ``shared.utils.client_ip``）"""
+    from shared.utils.client_ip import get_client_ip
+
+    return get_client_ip(request)
 
 
 @router.post("/login", response_model=ResponseModel, summary="移动端登录")

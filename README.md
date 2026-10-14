@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml)
 [![Release](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml)
-[![Version](https://img.shields.io/badge/version-0.8.26.0921-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.8.26.1013-blue.svg)](CHANGELOG.md)
 [![Python](https://img.shields.io/badge/python-3.14-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.136.3-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Nuxt](https://img.shields.io/badge/Nuxt-4.5-00DC82.svg?logo=nuxt&logoColor=white)](https://nuxt.com/)
@@ -25,7 +25,7 @@
 
 FastBlog 是一套可自托管的博客 / 内容管理系统：
 
-- **后端**：FastAPI + SQLAlchemy 2（async）+ PostgreSQL + Redis，共 **11 个业务域 / 73 个模块 / 657 条 API**，统一挂在
+- **后端**：FastAPI + SQLAlchemy 2（async）+ PostgreSQL + Redis，共 **11 个业务域 / 96 个模块 / 897 条 API**，统一挂在
   `/api/v3` 下；
 - **前端**：Nuxt 4.5 **单工程**同时提供博客前台（SSR，面向 SEO）与管理后台（CSR，Element Plus）；
 - **开箱能力**：权限体系（角色 / 权限码 / 用户组 / 数据范围）、插件与主题、多平台内容发布、备份与在线升级、
@@ -100,7 +100,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 
 ## 项目状态
 
-- 当前版本 **0.8.26.0921**（见 [`version.txt`](version.txt)），数据库迁移 head 为 `8b7ecb6d053c`。
+- 当前版本 **0.8.26.1013**（见 [`version.txt`](version.txt)），数据库迁移 head 为 `e5f1b8c93a07`。
 - 已知待办（详见 [部署文档第 13 节](docs/DEPLOYMENT.md#13-已知偏差代码或脚本与当前架构不一致尚未修复)）：
     - `docs/FastBlog_API.postman_collection.json` 的 Base URL 仍是已删除的 `/api/v1`。
 - API 文档界面在非生产环境下可用：`http://localhost:9421/api/v3/docs`（`ENVIRONMENT=production` 时按设计关闭）。

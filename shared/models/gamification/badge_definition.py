@@ -22,6 +22,7 @@ class BadgeDefinition(Base):
         Index('idx_badge_definitions_category', 'category'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='勋章 ID')
 
     badge_key = Column(String(50), nullable=False, doc='勋章标识（唯一）')

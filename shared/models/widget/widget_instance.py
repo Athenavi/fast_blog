@@ -21,7 +21,7 @@ class WidgetInstance(Base):
         Index('idx_widget_instances_type', 'widget_type'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='Widget实例 ID')
 
     widget_type = Column(String(50), nullable=True, doc='Widget类型（search, recent_posts, categories等）')

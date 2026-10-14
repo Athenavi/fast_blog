@@ -45,10 +45,9 @@ def _invalidate() -> None:
 @router.get("/status", response_model=ResponseModel, summary="维护状态（公开）")
 async def maintenance_status(db: DBSession, request: Request) -> dict:
     """``active`` = （人工开启 或 落在定时窗口内）且不在 IP 白名单"""
-    forwarded = request.headers.get("x-forwarded-for")
-    client_ip = forwarded.split(",")[0].strip() if forwarded else (
-        request.client.host if request.client else None
-    )
+    from shared.utils.client_ip import get_client_ip
+
+    client_ip = get_client_ip(request)
     return resp.success(await maintenance_service.status(db, client_ip=client_ip))
 
 

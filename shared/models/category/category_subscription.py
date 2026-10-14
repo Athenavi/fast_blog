@@ -18,7 +18,7 @@ class CategorySubscription(Base):
         UniqueConstraint('category', 'subscriber', name='uq_category_subscriber'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
     category = Column(BigInteger, ForeignKey('categories.id', ondelete='CASCADE'), nullable=True, doc='分类')

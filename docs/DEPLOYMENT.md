@@ -28,17 +28,9 @@
 ## 2. 前置条件
 
 - Docker 24+（Compose v2，命令为 `docker compose`；旧版 `docker-compose` 亦可）
-- **静态 ffmpeg 包**：`tools/ffmpeg/ffmpeg-release-amd64-static.tar.xz`
-  后端镜像通过 BuildKit 的 `additional_contexts: ffmpeg_src=./tools/ffmpeg` 加载它，不在主构建上下文里（`Dockerfile` 头部注释、
-  `docker-compose.yml`）。
-  该文件已加入 `.dockerignore`，本地首次构建前需自备：
-
-  ```bash
-  mkdir -p tools/ffmpeg
-  curl -fL -o tools/ffmpeg/ffmpeg-release-amd64-static.tar.xz \
-    https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-  ```
-
+- **ffmpeg**：后端镜像在 production 阶段用 `apt-get install ffmpeg` 安装（见 `Dockerfile`），
+  不再需要把静态包放进 `tools/ffmpeg/`，构建上下文里也没有额外的 BuildKit context。
+  构建机需要能访问 Debian 软件源。
 - 前端镜像构建需要 Node 22（`frontend/web/Dockerfile` 用 `node:22-alpine`），**必须**用 `npm ci` 安装并带锁文件（
   `frontend/web/package-lock.json` 是唯一权威依赖快照）。
 
@@ -100,12 +92,12 @@ docker compose -f docker-compose.prod.yml up -d --build
 |--------|--------------------------------|-------------------------------------------------------------------------------|
 | 密钥     | 只强制 `SECRET_KEY`、`DB_PASSWORD` | 额外**强制** `JWT_SECRET_KEY`、`REDIS_PASSWORD`（缺失时 compose 直接报错退出）                |
 | 后端监听   | `0.0.0.0:9421`                 | `127.0.0.1:9421`                                                              |
-| nginx  | 只监听 80                         | 监听 80 + 443（`nginx/ssl/` 只读挂载）                                                |
+| nginx  | 只监听 80                         | 监听 80；443 需启用 `fastblog-tls.conf.example`（证书放 `nginx/ssl/`）                   |
 | Worker | `WORKERS=1`                    | `WORKERS=2`（多进程，依赖 Redis 共享限流/缓存与分布式锁）                                        |
 | 资源限制   | 无                              | backend 2C/2G，frontend 1C/512M，nginx 0.5C/128M，postgres 2C/2G，redis 0.5C/512M |
 | 重启策略   | `unless-stopped`               | `always`                                                                      |
 | 日志     | 默认                             | json-file 轮转 10MB × 3                                                         |
-| Redis  | 无密码、256MB                      | `requirepass` + 512MB                                                         |
+| Redis  | 无密码、192MB、volatile-lru         | `requirepass` + 400MB、volatile-lru（**不要**用 allkeys-lru，见下）                    |
 
 **多 worker 前置条件**：`WORKERS > 1` 时必须以 Redis 为共享后端，否则限流/缓存各进程独立、定时任务重复执行。启动日志会打印
 worker 信息（`src/app.py::_enable_redis_caches`、`main.py`）。
@@ -252,9 +244,16 @@ catch-all 路由。
 - **安全响应头**：X-Frame-Options、X-Content-Type-Options、X-XSS-Protection、Referrer-Policy、Permissions-Policy、CSP（脚本/样式放行
   `cdn.jsdelivr.net`，`connect-src 'self' wss:`）。
 - **HSTS 只在 443 server 块开启**（纯 HTTP 下发 HSTS 无效，配置里有说明）。
+- **登录/注册限流**：`location ~ ^/api/v3/(system|mobile)/auth/(login|register)` 使用 `login` zone（`5r/m`）。nginx 的
+  location 不跨 server 块继承，80 与 443 两处各写一份。
 - `/health` → 反代到 `backend/api/v3/health`，供 nginx 容器健康检查使用。
-- HTTPS：把证书放进 `nginx/ssl/`（该目录以只读方式挂载），并在 443 server 块配置；启用后如需全站跳转 HTTPS，把 80 块的
-  location 换成 `return 301 https://$host$request_uri;`（配置注释中给了示例）。
+- **HTTPS**：默认配置**只监听 80**。启用 TLS 的完整步骤见
+  [`nginx/conf.d/fastblog-tls.conf.example`](../nginx/conf.d/fastblog-tls.conf.example) 头部说明，摘要：证书放进
+  `nginx/ssl/`（`fullchain.pem` + `privkey.pem`）→ 去掉模板的 `.example` 后缀 → 把 `SITE_URL` 改成 `https://…` → 重载
+  nginx。
+
+  ⚠️ `SITE_URL` 必须与 nginx 实际监听一致：只跑 HTTP 却把 `SITE_URL` 写成 `https://` 时，浏览器会拒收带 `Secure` 的
+  Cookie，表现为"登录成功但立刻掉线"。
 
 应用侧还叠了一层安全头与中间件（`src/app.py::register_middleware`）：CSP/Permissions-Policy、Token 黑名单、速率限制、暴力破解防护、HTTP
 缓存、性能监控、多站点、请求性能中间件。
@@ -372,3 +371,41 @@ curl -f http://localhost:4321/health               # 经 nginx（默认形态）
 | `shared/upgrade/`                           | 仅剩 `normalize_article_slugs.py`，目录名已名不副实                                                                        |
 | 两套 CLI 并存                                   | `cli/`（Typer，`python -m cli`）与 `scripts/cli.py`（`Makefile` 的 `cli` 目标）；`create-admin` / `routes` 目标已改用前者        |
 | 后端镜像缺少 pg 客户端                               | 容器内没有 `pg_dump` / `pg_restore`（详见第 10 节），备份与恢复需在宿主机执行或补装 `postgresql-client`                                    |
+
+---
+
+## 14. 多租户与站点隔离
+
+同一套部署可以服务多个站点（多域名 / 多品牌），站点级数据按 `site_id` 隔离。
+
+**隔离范围**由 [`config/tenancy.yaml`](../config/tenancy.yaml) 单一清单决定：站点级表 102 张（内容、媒体、
+评论、订单、广告、统计…）；账号与权限、系统设置、第三方凭据、审计日志属**实例级**，不隔离。
+
+### 隔离如何生效
+
+1. `MultiSiteMiddleware` 按「完整域名 → 子域名 → 路径前缀 → 默认站点」解析当前站点，写入
+   `ContextVar`（`src/api/v3/core/tenancy.py`）；
+2. `CRUDBase` 在读路径（`_build_query` / `get` / `count` / `bulk_remove`）自动注入
+   `site_id = <当前站点>`；新建记录自动归属当前站点；
+3. 只有「表有 `site_id` 列 + 上下文有站点 + 未显式跨站点」三条**同时**成立才收窄 —— 后台任务与
+   CLI 没有请求上下文，因此仍能看到全部数据。
+
+### 跨站点查看（仅超级管理员）
+
+请求头 `X-Site-Scope: all`，且调用者必须是超级管理员。普通用户带这个头**无效**
+（`set_site_bypass` 只在 `src/auth/auth_deps.py` 一处被调用），每次开启都会在日志与审计中留痕。
+
+### 升级注意
+
+迁移 `e5f1b8c93a07` 给 102 张表加 `site_id` 并**把存量数据回填到默认站点**
+（`sites.is_default = true`，没有则取最早的一条）。`sites` 表为空时回填退化为空操作，此时也没有
+站点上下文、隔离不生效 —— 单站点部署可原样升级。
+
+### 调整隔离范围
+
+```bash
+python -m scripts.apply_tenant_scope --check   # 看将会改动什么，并列出未分类的表
+python -m scripts.apply_tenant_scope --apply   # 落地（幂等，可重复执行）
+```
+
+脚本会同步 `config/models.yaml`、模型文件并生成 Alembic 迁移 —— **不要**手改其中一处。

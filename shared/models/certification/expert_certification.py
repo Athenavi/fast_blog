@@ -25,6 +25,7 @@ class ExpertCertification(Base):
         Index('idx_expert_certifications_type', 'cert_type'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='认证 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='申请人 ID')

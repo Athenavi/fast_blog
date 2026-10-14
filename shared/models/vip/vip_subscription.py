@@ -13,9 +13,7 @@ class VIPSubscription(Base):
     """VIP 订阅模型模型"""
     __tablename__ = 'vip_subscriptions'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), index=True, doc='用户')

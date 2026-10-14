@@ -22,5 +22,15 @@ router = APIRouter(prefix="/install", tags=["system-install"])
 
 @router.get("/status", response_model=ResponseModel, summary="安装状态自检")
 async def install_status() -> dict:
-    """数据库连通性 / 迁移是否就位 / 是否已有超管 / 实时协同依赖是否可用"""
-    return resp.success(await install_service.status())
+    """数据库连通性 / 迁移是否就位 / 是否已有超管 / 实时协同依赖是否可用
+
+    **已安装 + 生产环境时只回 ``{"installed": true}``**：迁移版本、数据库错误类型、
+    超管存在性都属于未授权侦察面（攻击者可据此推断已知漏洞与账号情况），
+    而安装完成后运维已有别的渠道查看这些信息。
+    """
+    data = await install_service.status()
+    import os
+
+    if data.get("installed") and os.environ.get("ENVIRONMENT", "").lower() == "production":
+        return resp.success({"installed": True})
+    return resp.success(data)

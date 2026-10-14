@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 
 from shared.logging import default_logger as logger
+from shared.utils import backup_crypto
 
 
 class BackupService:
@@ -60,6 +61,9 @@ class BackupService:
             'auto_backup_enabled': True,
             'auto_backup_schedule': 'daily',
             'compress_backups': True,
+            #: 备份内含整库数据（用户表 / 密文凭据 / 私信 / 订单），默认加密落盘。
+            #: 密钥由 SECRET_KEY 派生 —— 轮换 SECRET_KEY 前请先归档旧备份。
+            'encrypt_backups': True,
             'backup_database': True,
             'backup_files': True,
         }
@@ -143,7 +147,12 @@ class BackupService:
                 os.remove(backup_path)
                 backup_path = compressed_path
 
-            # 记录备份元数据
+            # 加密（默认开启）：备份内含整库数据，明文落盘或上云不符合企业要求
+            encrypted = self._encrypt_if_configured(backup_path)
+            if encrypted:
+                backup_path = encrypted
+
+            # 记录备份元数据（checksum 对**最终文件**计算，加密后依然有效）
             backup_size = os.path.getsize(backup_path)
             # 表指纹：增量 / 差异备份据此判断"哪些表变了"；拿不到时如实记下原因（不影响本次全量）
             fingerprints: Dict[str, str] = {}
@@ -162,6 +171,7 @@ class BackupService:
                 'size_human': self._format_size(backup_size),
                 'created_at': datetime.now().isoformat(),
                 'database': db_config['database'],
+                'encrypted': bool(encrypted),
                 'checksum': self._sha256_file(backup_path),
                 'table_fingerprints': fingerprints,
                 'table_fingerprint_error': fingerprint_error,
@@ -229,6 +239,11 @@ class BackupService:
             if result.returncode != 0:
                 raise Exception(f"tar failed: {result.stderr}")
 
+            # 加密（默认开启），与数据库备份同一口径
+            encrypted = self._encrypt_if_configured(backup_path)
+            if encrypted:
+                backup_path = encrypted
+
             # 记录备份元数据
             backup_size = os.path.getsize(backup_path)
             metadata = {
@@ -239,6 +254,7 @@ class BackupService:
                 'size_human': self._format_size(backup_size),
                 'created_at': datetime.now().isoformat(),
                 'directories': files_to_backup,
+                'encrypted': bool(encrypted),
                 'checksum': self._sha256_file(backup_path),
                 'verify_status': 'unverified',
                 'status': 'completed'
@@ -437,12 +453,16 @@ class BackupService:
             # 解压并恢复到**项目根**：打包时用的是 cwd 下的相对路径（./media、./static、./themes…），
             # 解到别的目录会"恢复成功但文件落在错误位置"（旧实现解到 shared/services/system/）。
             restore_base = os.getcwd()
-            cmd = ['tar', '-xzf', resolved, '-C', restore_base]
-
-            result = await self._run_subprocess(cmd, timeout=600)
-
-            if result.returncode != 0:
-                raise Exception(f"tar restore failed: {result.stderr}")
+            # 加密备份先解成明文临时文件（tar 读不了密文）
+            source, temp_path = self._materialize(resolved)
+            try:
+                cmd = ['tar', '-xzf', source, '-C', restore_base]
+                result = await self._run_subprocess(cmd, timeout=600)
+                if result.returncode != 0:
+                    raise Exception(f"tar restore failed: {result.stderr}")
+            finally:
+                if temp_path and os.path.exists(temp_path):
+                    os.remove(temp_path)
 
             logger.info("Files restore completed successfully")
 
@@ -474,7 +494,7 @@ class BackupService:
         # 扫描数据库备份
         if not backup_type or backup_type == 'database':
             for filename in os.listdir(self.database_backup_dir):
-                if filename.endswith('.sql') or filename.endswith('.gz'):
+                if filename.endswith(('.sql', '.gz', '.enc')):
                     filepath = os.path.join(self.database_backup_dir, filename)
                     metadata = self._load_metadata(filepath)
                     if metadata:
@@ -483,7 +503,7 @@ class BackupService:
         # 扫描文件备份
         if not backup_type or backup_type == 'files':
             for filename in os.listdir(self.files_backup_dir):
-                if filename.endswith('.tar.gz'):
+                if filename.endswith(('.tar.gz', '.enc')):
                     filepath = os.path.join(self.files_backup_dir, filename)
                     metadata = self._load_metadata(filepath)
                     if metadata:
@@ -503,7 +523,7 @@ class BackupService:
         # 扫描增量 / 差异备份（同一个目录，靠 metadata.type 区分）
         if not backup_type or backup_type in ('incremental', 'differential'):
             for filename in os.listdir(self.incremental_backup_dir):
-                if not filename.endswith('.dump'):
+                if not filename.endswith(('.dump', '.enc')):
                     continue
                 filepath = os.path.join(self.incremental_backup_dir, filename)
                 metadata = self._load_metadata(filepath)
@@ -676,6 +696,38 @@ class BackupService:
 
         return compressed_path
 
+    # ==================== 加密（备份内含整库数据，默认加密落盘） ====================
+    def _encrypt_if_configured(self, file_path: str) -> Optional[str]:
+        """按配置就地加密备份文件；返回密文路径，未启用时返回 ``None``"""
+        if not self.config.get('encrypt_backups', True):
+            return None
+        encrypted_path = file_path + '.enc'
+        backup_crypto.encrypt_file(file_path, encrypted_path, backup_crypto.backup_key_material())
+        os.remove(file_path)
+        return encrypted_path
+
+    @staticmethod
+    def _is_encrypted(path: str) -> bool:
+        """按魔数判断（比扩展名可靠：改名后仍可识别）"""
+        return backup_crypto.is_encrypted(path)
+
+    def _materialize(self, backup_path: str) -> tuple:
+        """把可能被加密的备份解成明文临时文件；返回 ``(可读路径, 临时文件或 None)``
+
+        ⚠️ 返回的临时文件是**明文**的整库 dump，调用方用完必须删除。
+        """
+        if not self._is_encrypted(backup_path):
+            return backup_path, None
+        fd, temp = tempfile.mkstemp(suffix='.plain')
+        os.close(fd)
+        try:
+            backup_crypto.decrypt_file(backup_path, temp, backup_crypto.backup_key_material())
+        except Exception:
+            if os.path.exists(temp):
+                os.remove(temp)
+            raise
+        return temp, temp
+
     def _format_size(self, size_bytes: int) -> str:
         """格式化文件大小"""
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
@@ -745,12 +797,25 @@ class BackupService:
         ``pg_restore --list`` **不能直接读 gz**（旧实现直接把 .gz 交给 pg_restore，
         恢复必然失败）。调用方用完要删掉临时文件。
         """
-        if not backup_path.endswith('.gz'):
-            return backup_path, None
+        working, plain_temp = self._materialize(backup_path)
+        # 扩展名判断必须用**加密前**的名字（解密产物统一是 .plain 后缀）
+        base = backup_path[:-4] if backup_path.endswith('.enc') else backup_path
+        if not base.endswith('.gz'):
+            return working, plain_temp
+
         temp = tempfile.NamedTemporaryFile(delete=False, suffix='.dump')
         temp.close()
-        with gzip.open(backup_path, 'rb') as src, open(temp.name, 'wb') as dst:
-            shutil.copyfileobj(src, dst)
+        try:
+            with gzip.open(working, 'rb') as src, open(temp.name, 'wb') as dst:
+                shutil.copyfileobj(src, dst)
+        except Exception:
+            for leftover in (temp.name, plain_temp):
+                if leftover and os.path.exists(leftover):
+                    os.remove(leftover)
+            raise
+        if plain_temp and os.path.exists(plain_temp):
+            # 已解压到 temp，明文中间产物立即清掉
+            os.remove(plain_temp)
         return temp.name, temp.name
 
     # ==================== 表指纹 / 变更检测（增量备份的基础） ====================
@@ -1106,10 +1171,13 @@ class BackupService:
         else:
             record('checksum', True, '该备份创建时未记录 sha256（跳过比对）')
 
-        if resolved.endswith('.tar.gz'):
+        # 分类要用**加密前**的名字：加密备份是 *.tar.gz.enc / *.sql.gz.enc，
+        # 直接对原文件名 endswith('.gz') 会漏判，导致加密备份"跳过内容校验"。
+        verify_target = resolved[:-4] if resolved.endswith('.enc') else resolved
+        if verify_target.endswith('.tar.gz'):
             ok, detail = await self._run_tar_list(resolved)
             record('archive', ok, detail)
-        elif resolved.endswith('.gz') or resolved.endswith('.dump'):
+        elif verify_target.endswith(('.gz', '.dump')):
             ok, detail = await self._run_pg_restore_list(resolved)
             record('pg_restore_list', ok, detail)
 
@@ -1124,11 +1192,18 @@ class BackupService:
             return json.load(f)
 
     async def _run_tar_list(self, path: str) -> tuple:
-        """``tar -tzf`` 能否列出内容（归档可读）"""
+        """``tar -tzf`` 能否列出内容（归档可读；加密备份先解密）"""
         try:
-            result = await self._run_subprocess(['tar', '-tzf', path], timeout=120)
+            source, temp_path = self._materialize(path)
+        except Exception as exc:
+            return False, f'备份解密失败（SECRET_KEY 变更或文件损坏？）：{exc}'
+        try:
+            result = await self._run_subprocess(['tar', '-tzf', source], timeout=120)
         except Exception as exc:
             return False, f'tar 无法读取该归档：{exc}'
+        finally:
+            if temp_path and os.path.exists(temp_path):
+                os.remove(temp_path)
         entries = result.stdout.decode('utf-8', errors='replace').strip().splitlines()
         return True, f'归档可读，{len(entries)} 个条目'
 

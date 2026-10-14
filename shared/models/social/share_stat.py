@@ -20,7 +20,7 @@ class ShareStat(Base):
         Index('idx_share_stats_article_created', 'article_id', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='统计 ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='文章 ID')

@@ -20,6 +20,7 @@ class SeoRedirect(Base):
         Index('idx_seo_redirects_active', 'is_active'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='规则 ID')
 
     from_path = Column(String(500), nullable=False, doc='源路径（站点相对路径，如 /old-post；导入时按源站 URL 归一）')

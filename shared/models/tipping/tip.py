@@ -26,6 +26,7 @@ class Tip(Base):
         Index('idx_tips_user_created', 'user_id', 'created_at'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='打赏 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='打赏者 ID')

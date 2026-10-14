@@ -28,6 +28,10 @@ from src.utils.upload.svg_sanitizer import sanitize_svg_bytes
 from src.unified_logger import default_logger as logger
 from shared.config.settings import app_config
 
+#: 分片上传的临时目录（**绝对路径**）。相对路径取决于进程 CWD，多副本部署时各容器
+#: 会写到不同位置，表现为"分片找不到"。生产环境应把它放在共享卷上。
+_UPLOAD_CHUNK_ROOT = Path(__file__).resolve().parents[3] / "upload_chunks"
+
 # 视频后处理并发上限：限制同时进行的 ffmpeg 任务数（subprocess.run 阻塞最长可达 60s）
 _video_process_semaphore = asyncio.Semaphore(3)
 
@@ -586,7 +590,7 @@ class ChunkedUploadProcessor:
     def __init__(self, user_id: int, chunk_size: int = 5 * 1024 * 1024):
         self.user_id = user_id
         self.chunk_size = chunk_size
-        self.temp_dir = "upload_chunks"
+        self.temp_dir = str(_UPLOAD_CHUNK_ROOT)
         os.makedirs(self.temp_dir, exist_ok=True)
 
     async def init_upload(self, filename: str, total_size: int, total_chunks: int,

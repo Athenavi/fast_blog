@@ -13,9 +13,7 @@ class ArticleContent(Base):
     """文章内容模型模型"""
     __tablename__ = 'article_content'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='ID')
 
     article = Column(BigInteger, ForeignKey('articles.id'), doc='文章')

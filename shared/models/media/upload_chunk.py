@@ -15,9 +15,7 @@ class UploadChunk(Base):
     """上传分块模型模型"""
     __tablename__ = 'upload_chunks'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='分块 ID')
 
     upload_id = Column(String(36), nullable=True, doc='上传任务 ID')

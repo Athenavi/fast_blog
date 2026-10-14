@@ -20,7 +20,7 @@ class MenuLocationAssignment(Base):
         Index('idx_menu_location_unique', 'menu_id', 'location_id', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')
 
     menu_id = Column(BigInteger, ForeignKey('menus.id'), doc='菜单 ID')

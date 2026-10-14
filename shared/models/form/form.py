@@ -19,7 +19,7 @@ class Form(Base):
         Index('idx_forms_status', 'status'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='表单 ID')
 
     title = Column(String(255), nullable=True, doc='表单标题')

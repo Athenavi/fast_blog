@@ -21,9 +21,7 @@ class PageView(Base):
         Index('idx_page_views_session', 'session_id'),
     )
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='浏览 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户')

@@ -22,7 +22,7 @@ class PrivateMessage(Base):
         Index('idx_private_messages_is_read', 'is_read'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='消息ID')
 
     sender = Column(BigInteger, ForeignKey('users.id'), doc='发送者')

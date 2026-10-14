@@ -21,7 +21,7 @@ class RevenueRecord(Base):
         Index('idx_revenue_records_created_at', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='收益记录 ID')
 
     user_id = Column(BigInteger, doc='用户ID (创作者)')

@@ -13,9 +13,7 @@ class GlobalStyle(Base):
     """全局样式配置模型模型"""
     __tablename__ = 'global_styles'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
     theme_name = Column(String(100), unique=True, nullable=True, doc='主题/方案名称')

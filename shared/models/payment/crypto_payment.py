@@ -21,7 +21,7 @@ class CryptoPayment(Base):
         Index('idx_crypto_payment_status', 'status'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='加密支付 ID')
 
     transaction = Column(BigInteger, ForeignKey('payment_transactions.id'), doc='关联的交易记录')

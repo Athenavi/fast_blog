@@ -13,9 +13,7 @@ class FileHash(Base):
     """文件哈希模型模型"""
     __tablename__ = 'file_hashs'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='哈希 ID')
 
     hash = Column(String(64), nullable=True, doc='文件哈希')

@@ -19,7 +19,7 @@ class Workspace(Base):
         Index('idx_workspaces_owner', 'owner_id'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='工作区 ID')
 
     name = Column(String(255), nullable=True, doc='工作区名称')

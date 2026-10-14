@@ -20,7 +20,7 @@ class Notification(Base):
         Index('idx_notifications_unread', 'recipient', 'is_read'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='通知 ID')
 
     recipient = Column(BigInteger, ForeignKey('users.id'), doc='接收者')

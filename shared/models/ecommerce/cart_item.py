@@ -20,7 +20,7 @@ class CartItem(Base):
         Index('idx_cart_items_unique', 'cart_id', 'product_id', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='购物车项 ID')
 
     cart_id = Column(BigInteger, ForeignKey('carts.id'), doc='购物车ID')

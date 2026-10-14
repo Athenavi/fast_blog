@@ -71,6 +71,24 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             return stmt.where(column != self.soft_delete_value)
         return stmt
 
+    def _apply_site_scope(self, stmt: Select) -> Select:
+        """多租户隔离：按当前站点过滤（见 ``src/api/v3/core/tenancy``）
+
+        仅当三条**同时**成立才注入条件：
+
+        1. 模型有 ``site_id`` 列（未纳入隔离的表自动跳过，便于分批迁移）；
+        2. 上下文里有站点（后台任务 / CLI 没有请求上下文 → 保持全局视角）；
+        3. 未显式跨站点（超管专用，只能由鉴权层开启）。
+
+        这样"忘记加过滤"不会导致越权：只要表加了列、且有站点上下文，读路径默认收窄。
+        """
+        from src.api.v3.core.tenancy import site_filter_value
+
+        site_id = site_filter_value(self.model)
+        if site_id is None:
+            return stmt
+        return stmt.where(getattr(self.model, "site_id") == site_id)
+
     def _apply_filters(self, stmt: Select, filters: Optional[Mapping[str, Any]]) -> Select:
         """按「列名 -> 值」过滤；值为 None 的条件忽略，非法列名直接忽略（不抛错、不注入）"""
         if not filters:
@@ -116,6 +134,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     ) -> Select:
         stmt = select(self.model)
         stmt = self._apply_soft_delete(stmt)
+        stmt = self._apply_site_scope(stmt)
         stmt = self._apply_filters(stmt, filters)
         stmt = self._apply_keyword(stmt, keyword)
         return stmt
@@ -136,8 +155,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
     # ------------------------------------------------------------------ 读
     async def get(self, db: AsyncSession, pk: Any) -> Optional[ModelType]:
-        """按主键取单条（软删除记录视为不存在）"""
-        stmt = self._apply_soft_delete(select(self.model).where(getattr(self.model, self.primary_key) == pk))
+        """按主键取单条（软删除记录视为不存在；跨站点的记录同样视为不存在）"""
+        stmt = select(self.model).where(getattr(self.model, self.primary_key) == pk)
+        stmt = self._apply_soft_delete(stmt)
+        stmt = self._apply_site_scope(stmt)
         return (await db.execute(stmt)).scalars().first()
 
     async def get_by(self, db: AsyncSession, **filters: Any) -> Optional[ModelType]:
@@ -156,6 +177,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         keyword = filters.pop("keyword", None)
         stmt = select(func.count()).select_from(self.model)
         stmt = self._apply_soft_delete(stmt)
+        stmt = self._apply_site_scope(stmt)
         stmt = self._apply_filters(stmt, filters)
         stmt = self._apply_keyword(stmt, keyword)
         stmt = await self._apply_scope(stmt, db, scope_user)
@@ -200,16 +222,35 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return dict(obj_in or {})
 
     async def create(self, db: AsyncSession, obj_in: Any) -> ModelType:
-        """新建并提交，返回带主键的实例"""
-        obj = self.model(**self._to_dict(obj_in))
+        """新建并提交，返回带主键的实例
+
+        多租户：参与隔离的模型自动归属**当前站点**；入参显式给了 ``site_id`` 时
+        尊重入参（例如后台的跨站点导入）。
+        """
+        obj = self.model(**self._with_site_id(self._to_dict(obj_in)))
         db.add(obj)
         await db.commit()
         await db.refresh(obj)
         return obj
 
+    def _with_site_id(self, data: dict) -> dict:
+        """给待创建的数据补上当前站点（不参与隔离的模型原样返回）"""
+        from src.api.v3.core.tenancy import get_current_site_id, is_site_scoped_model
+
+        if not is_site_scoped_model(self.model) or data.get("site_id") is not None:
+            return data
+        site_id = get_current_site_id()
+        return {**data, "site_id": site_id} if site_id is not None else data
+
     async def update(self, db: AsyncSession, db_obj: ModelType, obj_in: Any) -> ModelType:
-        """按传入字段局部更新并提交"""
-        for key, value in self._to_dict(obj_in).items():
+        """按传入字段局部更新并提交
+
+        多租户：**忽略** ``site_id`` —— 否则通用更新接口就成了"把记录搬到别的站点"
+        的越权通道（跨站迁移应由专门端点显式完成并留审计）。
+        """
+        data = self._to_dict(obj_in)
+        data.pop("site_id", None)
+        for key, value in data.items():
             if hasattr(db_obj, key):
                 setattr(db_obj, key, value)
         db.add(db_obj)
@@ -261,6 +302,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         if not pk_list:
             return 0
         pk_column = getattr(self.model, self.primary_key)
-        stmt = self._apply_soft_delete(select(self.model).where(pk_column.in_(pk_list)))
+        stmt = select(self.model).where(pk_column.in_(pk_list))
+        stmt = self._apply_soft_delete(stmt)
+        stmt = self._apply_site_scope(stmt)
         objs = (await db.execute(stmt)).scalars().unique().all()
         return await self.remove_many(db, objs)

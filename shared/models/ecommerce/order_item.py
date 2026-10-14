@@ -19,7 +19,7 @@ class OrderItem(Base):
         Index('idx_order_item_product', 'product_id'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订单项 ID')
 
     order = Column(BigInteger, ForeignKey('orders.id'), doc='订单')

@@ -19,7 +19,7 @@ class CustomPostType(Base):
         Index('idx_cpt_is_active', 'is_active'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='内容类型ID')
 
     name = Column(String(100), nullable=True, doc='内容类型名称')

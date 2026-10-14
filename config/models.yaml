@@ -61,6 +61,24 @@ models:
         type: text
         nullable: true
         description: 错误信息
+      before_data:
+        type: text
+        nullable: true
+        description: 变更前值快照 (JSON)
+      after_data:
+        type: text
+        nullable: true
+        description: 变更后值快照 (JSON)
+      prev_hash:
+        type: string
+        nullable: true
+        maxLength: 64
+        description: 前一条审计记录的 entry_hash（哈希链；空表示链首）
+      entry_hash:
+        type: string
+        nullable: true
+        maxLength: 64
+        description: 本条记录的 sha256 摘要（含 prev_hash，用于篡改检测）
       created_at:
         type: string
         format: date-time
@@ -87,6 +105,10 @@ models:
           - resource_type
           - resource_id
         comment: 资源操作追踪索引
+      - name: idx_audit_logs_entry_hash
+        columns:
+          - entry_hash
+        comment: 哈希链校验索引
   AIWorkflow:
     description: AI 智能工作流记录模型
     status: active
@@ -158,6 +180,10 @@ models:
     status: active
     frontend_page: /admin/page-builder
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 页面 ID
@@ -204,6 +230,10 @@ models:
     status: active
     frontend_page: /admin/theme-marketplace
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 配置 ID
@@ -491,6 +521,10 @@ models:
     status: active
     frontend_page: /admin/articles
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 文章 ID
@@ -690,6 +724,10 @@ models:
     status: active
     frontend_page: /admin/categories
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 分类 ID
@@ -764,6 +802,10 @@ models:
     status: active
     frontend_page: /admin/categories
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 订阅 ID
@@ -795,6 +837,10 @@ models:
     status: active
     frontend_page: /admin/media
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 媒体 ID
@@ -934,6 +980,10 @@ models:
     status: active
     frontend_page: /admin/media
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 文件夹 ID
@@ -996,6 +1046,10 @@ models:
     status: active
     frontend_page: /admin/search-media
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 配置 ID
@@ -1047,6 +1101,10 @@ models:
     status: active
     frontend_page: /admin/content-ext
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 注释 ID
@@ -1149,6 +1207,10 @@ models:
     status: active
     frontend_page: /admin/articles
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: ID
@@ -1183,6 +1245,10 @@ models:
     status: active
     frontend_page: /admin/articles
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 点赞 ID
@@ -1206,6 +1272,10 @@ models:
     status: active
     frontend_page: /admin/media
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 哈希 ID
@@ -1246,6 +1316,10 @@ models:
     status: active
     frontend_page: /admin/settings
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: integer
         description: 菜单 ID
@@ -1289,6 +1363,10 @@ models:
     status: active
     frontend_page: /admin/settings
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: integer
         description: 菜单项 ID
@@ -1341,6 +1419,10 @@ models:
     status: active
     frontend_page: /admin/content-ext
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: integer
         description: 位置 ID
@@ -1382,6 +1464,10 @@ models:
     status: active
     frontend_page: /admin/content-ext
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 关联 ID
@@ -1504,6 +1590,10 @@ models:
     status: active
     frontend_page: /admin/media
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: string
         maxLength: 36
@@ -1557,6 +1647,10 @@ models:
     status: active
     frontend_page: /admin/media
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 分块 ID
@@ -1591,6 +1685,10 @@ models:
     status: active
     frontend_page: /admin/media
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 任务ID
@@ -1707,6 +1805,10 @@ models:
     status: active
     frontend_page: /admin/notifications
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 通知 ID
@@ -1764,6 +1866,10 @@ models:
     status: active
     frontend_page: /admin/chat-groups
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 消息ID
@@ -1853,6 +1959,10 @@ models:
     status: active
     frontend_page: /admin/users
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 屏蔽记录ID
@@ -1898,6 +2008,10 @@ models:
     status: active
     frontend_page: /admin/seo
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 搜索历史 ID
@@ -1991,6 +2105,10 @@ models:
     status: active
     frontend_page: /admin/analytics
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 浏览 ID
@@ -2065,6 +2183,10 @@ models:
     status: active
     frontend_page: /admin/analytics
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 活动 ID
@@ -2109,6 +2231,10 @@ models:
     status: active
     frontend_page: /admin/vip
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 套餐 ID
@@ -2158,6 +2284,10 @@ models:
     status: active
     frontend_page: /admin/vip
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 订阅 ID
@@ -2269,6 +2399,10 @@ models:
     status: active
     frontend_page: /admin/vip
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 功能 ID
@@ -2304,6 +2438,10 @@ models:
     status: active
     frontend_page: /admin/integrations
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 字段 ID
@@ -2335,6 +2473,10 @@ models:
     status: active
     frontend_page: /admin/user-security
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 订阅 ID
@@ -2358,6 +2500,10 @@ models:
     status: active
     frontend_page: /admin/articles
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 修订ID
@@ -2632,6 +2778,10 @@ models:
     status: active
     frontend_page: null
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 表单 ID
@@ -2697,6 +2847,10 @@ models:
     status: active
     frontend_page: null
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 字段 ID
@@ -2768,6 +2922,10 @@ models:
     status: active
     frontend_page: /admin/forms
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 提交 ID
@@ -2818,6 +2976,10 @@ models:
     status: active
     frontend_page: /admin/widgets
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: Widget实例 ID
@@ -2875,6 +3037,10 @@ models:
     status: active
     frontend_page: /admin/page-builder
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 模式ID
@@ -2956,6 +3122,10 @@ models:
     status: active
     frontend_page: /admin/content-ext
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 内容类型ID
@@ -3021,6 +3191,10 @@ models:
     status: active
     frontend_page: /admin/comments
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 投票 ID
@@ -3062,6 +3236,10 @@ models:
     status: active
     frontend_page: /admin/comments
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 订阅 ID
@@ -3131,6 +3309,10 @@ models:
     status: active
     frontend_page: /admin/comments
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 评论 ID
@@ -3311,6 +3493,10 @@ models:
     status: active
     frontend_page: /admin/seo
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: SEO记录ID
@@ -3417,6 +3603,10 @@ models:
     status: active
     frontend_page: /admin/seo
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 统计 ID
@@ -3475,6 +3665,10 @@ models:
     status: active
     frontend_page: /admin/ecommerce
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 商品 ID
@@ -3572,6 +3766,10 @@ models:
     status: active
     frontend_page: /admin/ecommerce
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 购物车 ID
@@ -3612,6 +3810,10 @@ models:
     status: active
     frontend_page: /admin/ecommerce
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 购物车项 ID
@@ -3663,6 +3865,10 @@ models:
     status: active
     frontend_page: /admin/ecommerce
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 订单 ID
@@ -3805,6 +4011,10 @@ models:
     status: active
     frontend_page: /admin/sensitive-words
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 敏感词 ID
@@ -4113,6 +4323,10 @@ models:
     status: active
     frontend_page: /admin/content/article
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 令牌 ID
@@ -4175,6 +4389,10 @@ models:
     status: active
     frontend_page: /admin/ads
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 广告位 ID
@@ -4233,6 +4451,10 @@ models:
     status: active
     frontend_page: /admin/ads
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 广告 ID
@@ -4357,6 +4579,10 @@ models:
     status: active
     frontend_page: /admin/ads
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 点击记录 ID
@@ -4404,6 +4630,10 @@ models:
     status: active
     frontend_page: /admin/ads
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 展示记录 ID
@@ -4451,6 +4681,10 @@ models:
     status: active
     frontend_page: /admin/revenue
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 收益记录 ID
@@ -4524,6 +4758,10 @@ models:
     status: active
     frontend_page: /admin/revenue
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 配置 ID
@@ -4574,6 +4812,10 @@ models:
     status: active
     frontend_page: /admin/revenue
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 提现申请 ID
@@ -4644,6 +4886,10 @@ models:
     status: active
     frontend_page: /admin/revenue
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 统计 ID
@@ -4690,6 +4936,10 @@ models:
     status: active
     frontend_page: /admin/chat-groups
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 群聊 ID
@@ -4753,6 +5003,10 @@ models:
     status: active
     frontend_page: /admin/chat-groups
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 成员关系 ID
@@ -4867,6 +5121,10 @@ models:
     status: active
     frontend_page: /admin/chat-groups
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 邀请 ID
@@ -4924,6 +5182,10 @@ models:
     status: active
     frontend_page: /admin/security
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 报表 ID
@@ -4991,6 +5253,10 @@ models:
     status: active
     frontend_page: /admin/security
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 记录 ID
@@ -5036,6 +5302,10 @@ models:
     status: active
     frontend_page: /admin/articles
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 批注 ID
@@ -5101,6 +5371,10 @@ models:
     status: active
     frontend_page: /admin/webhooks
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: Webhook ID
@@ -5146,6 +5420,10 @@ models:
     status: active
     frontend_page: /admin/webhooks
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 投递记录ID
@@ -5741,6 +6019,10 @@ models:
     status: active
     frontend_page: /admin/collaboration
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 工作区 ID
@@ -5796,6 +6078,10 @@ models:
     status: active
     frontend_page: /admin/collaboration
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 成员 ID
@@ -5845,6 +6131,10 @@ models:
     status: active
     frontend_page: null
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 任务 ID
@@ -5921,6 +6211,10 @@ models:
     status: active
     frontend_page: /admin/approval
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 审批记录 ID
@@ -5985,6 +6279,10 @@ models:
     status: active
     frontend_page: /admin/approval
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 审批步骤 ID
@@ -6846,6 +7144,10 @@ models:
     status: active
     frontend_page: /admin/payment
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 交易 ID
@@ -6928,6 +7230,10 @@ models:
     status: active
     frontend_page: /admin/payment
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 加密支付 ID
@@ -7091,6 +7397,10 @@ models:
     status: active
     frontend_page: /admin/ecommerce
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 订单项 ID
@@ -7145,6 +7455,10 @@ models:
     status: planned
     frontend_page: /admin/enterprise
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 许可证 ID
@@ -7239,6 +7553,10 @@ models:
     status: planned
     frontend_page: /admin/enterprise
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 工单 ID
@@ -7341,6 +7659,10 @@ models:
     status: planned
     frontend_page: /admin/enterprise
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 回复 ID
@@ -7453,6 +7775,10 @@ models:
     status: planned
     frontend_page: /admin/enterprise
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 日志 ID
@@ -7708,6 +8034,10 @@ models:
     orm: true
     table: sla_reports
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 报告 ID
@@ -7763,6 +8093,10 @@ models:
     status: active
     frontend_page: /admin/migration
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 迁移任务 ID
@@ -7855,6 +8189,10 @@ models:
     status: active
     frontend_page: /admin/migration
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 日志 ID
@@ -7911,6 +8249,10 @@ models:
     status: active
     frontend_page: /admin/theme-marketplace
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 配置 ID
@@ -8004,6 +8346,10 @@ models:
     status: active
     frontend_page: null
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: "团队评论 ID"
@@ -8080,6 +8426,10 @@ models:
     status: active
     frontend_page: /admin/custom-post-types
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: "内容 ID"
@@ -8309,6 +8659,10 @@ models:
     status: active
     frontend_page: /content/collaboration
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 邀请 ID
@@ -8382,6 +8736,10 @@ models:
     status: active
     frontend_page: /fans
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 关注 ID
@@ -8422,6 +8780,10 @@ models:
     status: active
     frontend_page: /points
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 账户 ID
@@ -8470,6 +8832,10 @@ models:
     status: active
     frontend_page: /points
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 流水 ID
@@ -8527,6 +8893,10 @@ models:
     status: active
     frontend_page: /points
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 规则 ID
@@ -8577,6 +8947,10 @@ models:
     status: active
     frontend_page: /badges
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 勋章 ID
@@ -8655,6 +9029,10 @@ models:
     status: active
     frontend_page: /badges
     properties:
+      site_id:
+        type: bigint
+        nullable: true
+        description: 所属站点 ID（多租户隔离键）
       id:
         type: bigint
         description: 记录 ID

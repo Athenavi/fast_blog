@@ -18,6 +18,7 @@ from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundE
 from src.api.v3.core.logger import get_logger
 from src.api.v3.core.permission import codes as C
 from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
+from src.api.v3.core.tenancy import apply_site_scope
 from src.api.v3.modules.content.approval.guard import (
     ARTICLE_CONTENT_TYPE,
     ensure_batch_publish_allowed,
@@ -453,7 +454,7 @@ class ArticleService:
     # ------------------------------------------------------------------ 公开读
     def _published_stmt(self):
         now = datetime.now()
-        return select(Article).where(
+        stmt = select(Article).where(
             Article.status == STATUS_PUBLISHED,
             Article.hidden.is_(False),
             or_(
@@ -461,6 +462,9 @@ class ArticleService:
                 Article.scheduled_publish_at <= now,
             ),
         )
+        # 前台公开读同样按站点收窄：这里是**手写查询**，不走 CRUDBase，
+        # 不显式注入就会出现"列表能看到别站文章、点进详情却是 404"。
+        return apply_site_scope(stmt, Article)
 
     async def public_list(
         self,
