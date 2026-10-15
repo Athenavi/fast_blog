@@ -2,12 +2,10 @@ import type {Extensions} from '@tiptap/core'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import Highlight from '@tiptap/extension-highlight'
 import ImageExt from '@tiptap/extension-image'
-import LinkExt from '@tiptap/extension-link'
-import {TaskItem, TaskList} from '@tiptap/extension-list'
+import {OrderedList, TaskItem, TaskList} from '@tiptap/extension-list'
 import {Table, TableCell, TableHeader, TableRow} from '@tiptap/extension-table'
 import TextAlign from '@tiptap/extension-text-align'
 import Typography from '@tiptap/extension-typography'
-import Underline from '@tiptap/extension-underline'
 import {Placeholder} from '@tiptap/extensions'
 import StarterKit from '@tiptap/starter-kit'
 
@@ -45,6 +43,23 @@ export interface EditorExtensionOptions {
   callouts?: boolean
 }
 
+/**
+ * 有序列表：**保留工具栏与快捷键，只关掉"输入数字自动变列表"**。
+ *
+ * 为什么：Tiptap 内置的 input rule 是 `/^(\d+)\.\s$/` —— **任何**「数字 + 点 + 空格」
+ * 都会把当前段落直接变成有序列表。中文正文里「2024. 年度总结」「1. 背景」是常见写法，
+ * 作者并不想要列表，却会被强制转换（实测输入 `2024. ` 得到 `<ol start="2024">`），
+ * 而且一旦成为列表，之后每次回车都会继续编号 —— 用户描述为"不停加序号"。
+ *
+ * 关掉的是**自动转换**这一条路径：工具栏的「有序列表」按钮与 `Ctrl+Shift+7`
+ * 仍然可用，想建列表照样能建。
+ */
+const OrderedListNoAutoInput = OrderedList.extend({
+  addInputRules() {
+    return []
+  },
+})
+
 export function createEditorExtensions(options: EditorExtensionOptions = {}): Extensions {
   const {
     placeholder = '',
@@ -61,11 +76,22 @@ export function createEditorExtensions(options: EditorExtensionOptions = {}): Ex
   const resolvePlaceholder = () => (typeof placeholder === 'function' ? placeholder() : placeholder)
 
   const extensions: Extensions = [
-    // 关掉 StarterKit 自带的 codeBlock，改用带语法高亮的 lowlight 版本
-    StarterKit.configure({codeBlock: false, heading: {levels: headingLevels}}),
+    // **只在这里配置，不再单独 push Underline / Link**。
+    //
+    // Tiptap v3 的 StarterKit 已经内置 link / underline / 列表（含 ListKeymap），
+    // 再 push 一份同名扩展会让它的 `inputRules` 与 `keymap` **注册两遍** ——
+    // 表现就是"输入 `1. ` 反复触发有序列表、序号停不下来"。
+    // v3 的正解是把配置交给 StarterKit 的同名选项。
+    StarterKit.configure({
+      // 关掉 StarterKit 自带的 codeBlock，改用带语法高亮的 lowlight 版本
+      codeBlock: false,
+      heading: {levels: headingLevels},
+      link: {openOnClick: false, autolink: true},
+      // 内置的 orderedList 换成下面那版（关掉"输入数字自动变列表"，见其注释）
+      orderedList: false,
+    }),
+    OrderedListNoAutoInput,
     Placeholder.configure({placeholder: resolvePlaceholder}),
-    Underline,
-    LinkExt.configure({openOnClick: false, autolink: true}),
   ]
 
   if (codeHighlight) extensions.push(CodeBlockLowlight.configure({lowlight}))

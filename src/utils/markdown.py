@@ -37,7 +37,11 @@ import re
 from typing import Any
 
 from markdown_it import MarkdownIt
+from mdit_py_plugins.deflist import deflist_plugin
+from mdit_py_plugins.footnote import footnote_plugin
 from mdit_py_plugins.tasklists import tasklists_plugin
+
+from src.utils.html_sanitizer import sanitize_html
 
 #: 命中这些标签就认为内容已经是 HTML。
 #:
@@ -89,8 +93,10 @@ def _build_renderer() -> MarkdownIt:
     md = MarkdownIt(
         "commonmark",
         {
-            # 关键安全项：Markdown 中的原始 HTML 一律转义
-            "html": False,
+            # 允许原始 HTML 通过 —— 作者会用 `<table>` / `<img width>` 排版。
+            # **安全性不靠这里**：渲染结果会整体过一遍白名单净化
+            # （见 render_markdown_fragment），那一步才是 XSS 的防线。
+            "html": True,
             # 不把单个换行当 <br>：Markdown 的段落语义就是这样，也避免正文被切碎
             "breaks": False,
             "linkify": False,
@@ -98,7 +104,12 @@ def _build_renderer() -> MarkdownIt:
         },
     )
     md.enable("table")
+    # GFM 删除线 `~~…~~`：commonmark 预设不含，必须显式启用
+    md.enable("strikethrough")
     md.use(tasklists_plugin, enabled=True, label=True)
+    # 脚注 `[^x]` 与定义型列表（`名词` 换行 `: 定义`）：作者文档里的常见写法
+    md.use(footnote_plugin)
+    md.use(deflist_plugin)
     md.core.ruler.push("demote_headings", _demote_headings)
     return md
 
@@ -115,21 +126,29 @@ def _get_renderer() -> MarkdownIt:
 
 
 def render_markdown_fragment(text: str) -> str:
-    """Markdown → HTML 片段（不含 `<style>` 与容器包裹）。"""
+    """Markdown → HTML 片段（不含 `<style>` 与容器包裹）。
+
+    渲染结果会过一遍 `html_sanitizer`：Markdown 里可以写任意 HTML，
+    而正文最终经 `v-html` 注入页面，**净化这一步是 XSS 的唯一防线**。
+    """
     if not text:
         return ""
-    return _get_renderer().render(text)
+    return sanitize_html(_get_renderer().render(text))
 
 
 def render_content_for_display(content: str | None) -> str | None:
     """把正文规整成"可直接放进页面的 HTML"。
 
-    - 已是 HTML（富文本编辑器产出）→ 原样返回，**不做任何改动**；
-    - 看起来是 Markdown → 转成 HTML 片段；
+    - 已是 HTML（富文本编辑器产出）→ 净化后返回；
+    - 看起来是 Markdown → 转成 HTML 片段（同样净化）；
     - 空值 → 原样返回（`None`/`""`），让调用方走自己的空态分支。
+
+    **HTML 分支也要净化**：后端写入正文时并没有做任何清洗（`content/article/` 里
+    搜不到 `sanitize`/`escape_html`），而正文还能经 API 直接写入 —— 不能因为
+    "它是富文本产出的"就假定它安全。
     """
     if not content:
         return content
     if looks_like_html(content):
-        return content
+        return sanitize_html(content)
     return render_markdown_fragment(content)
