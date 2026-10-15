@@ -49,17 +49,26 @@ const DEFAULT_TOTAL_KB = 1520
  * **单页完整 gzip 传输**预算（KB，含 JS/CSS/JSON/字体/图片）。
  * 这是用户真正付的钱，基线见文件末尾的实测记录。
  *
- * 现值 360 是**P0 收口后的实测**（前台首页 254 / 后台仪表盘 262，见文件末尾），
- * 留了约 35% 余量给会随内容变化的图片与媒体。
+ * ⚠️ **这个口径必须带后台凭据测**（`.env.e2e` 或 E2E_ADMIN_USER/E2E_ADMIN_PASS）。
+ * 匿名跑时后台那一路会被 middleware 重定向到 `/login`，采到的是登录页的资源图 ——
+ * 脚本会打 WARN，但数值看着"很小、很正常"，极易被当成真值用。
  *
- * 历史：曾长期挂在 600，因为后台仪表盘一进入就下载 **266 KB 的整包 ECharts**。
- * 那件事已经在 `components/admin/DonutChart.vue` 落地 —— 改成只 `import('echarts/core')`
- * + `PieChart` + `CanvasRenderer` 按需引入，且整块是动态 import。所以这里按当初
- * 约定的「B4 落地后收到 360 以内」收紧了阈值，避免它再次被无声撑大。
+ * 现值 620 是**已登录态实测**（前台首页 267 / 后台仪表盘 528，见文件末尾），留约 17% 余量。
+ *
+ * 曾经踩过的坑（2026-10-15 更正）：上一版把这里收紧到 360，依据的是**匿名态**测出的
+ * 后台 262KB，并顺手把差额归因成"整包 ECharts"。两处都错了：
+ *   - 262KB 是未登录的假值；带上凭据再测就是 528KB，于是阈值必然失败；
+ *   - 那 266KB 的大 chunk 是 **Element Plus 全量**（`layouts/admin.vue` 里
+ *     `import('element-plus')` 整包动态引入），与 ECharts 无关 ——
+ *     `components/admin/DonutChart.vue` 早已改成只 `import('echarts/core')` + PieChart 按需。
+ *
+ * 真正尚未解决的性能问题就是那 266KB 的 Element Plus 整包：进后台任何一页都要下载它。
+ * 要压下来得给 Element Plus 配按需引入（unplugin-vue-components 的 resolver），
+ * 那是一次横跨所有后台页面的改动，不在本次范围。
  */
-const DEFAULT_PAGE_KB = 360
+const DEFAULT_PAGE_KB = 620
 /** **单页请求数**上限 —— 首屏请求数失控同样拖慢可交互时间。 */
-const DEFAULT_REQUESTS = 80
+const DEFAULT_REQUESTS = 90
 
 /** 被测路由：前台是 SSR、后台是 CSR（routeRules），两者的资源图都要量。 */
 const ROUTES = [
@@ -506,6 +515,24 @@ process.exitCode = await main()
 //
 //   注意：单页完整资源图只降了 2KB，因为真实浏览器里 axios 仍会被 NuxtLink 的
 //   路由预取带下来（不占首屏关键路径）。要继续压需要关掉非关键链接的 prefetch。
+//
+// ⚠️ 同日更正：上面那两个「单页完整资源图」数字（前台 254 / 后台 262）是**匿名态**测的，
+//   作废。当次跑 check:bundle 时没有后台凭据（脚本打了 WARN），后台那一路被 middleware
+//   重定向到 `/login`，采到的是**登录页**的资源图 —— 后台"262KB"因此是个偏小的假值，
+//   而我据此把单页预算从 600 收到 360，只要带上凭据就必然失败。
+//
+//   带凭据（`.env.e2e`）重测的真实值：
+//     首屏关键路径 前台首页 166KB / 后台仪表盘 139KB（此口径解析 SSR HTML，与登录态无关）
+//     全量 JS 1453KB / 203 个 chunk（同上，与登录态无关）
+//     单页完整资源图 前台首页 267KB / 70 个请求；后台仪表盘 **528KB** / 59 个请求
+//   阈值随之更正：单页 360→620、请求数 80→90（首屏 180 与全量 1520 不动）。
+//
+//   后台多出来的那 266KB 是**一个** chunk：Element Plus 全量（`layouts/admin.vue` 里的
+//   `import('element-plus')`）。匿名态下它永远加载不到（进不了后台主页），所以这条
+//   口径不测已登录态，就等于没测。
+//
+//   教训：**口径 2 的数字必须连同登录态一起记**。只写 KB、不写「带凭据 / 匿名」，
+//   下一次就会拿假值去改阈值 —— 这次就是这么踩进去的。
 //
 // 两道口径都要盯：只看首屏关键路径时，three.js（异步 chunk，184KB gzip）与
 // i18n 文案（运行时 fetch 的 JSON，66KB gzip）都是隐形的 —— 这正是口径 2 存在的原因。

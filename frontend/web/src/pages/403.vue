@@ -6,7 +6,10 @@ const {t} = useI18n()
  * 用前台风格渲染：本页可能在未加载 Element Plus 的情况下打开
  * （例如直接访问 /403），因此不依赖 el-* 组件。
  */
-definePageMeta({layout: false, title: 'error.forbiddenTitle', robots: 'noindex'})
+// noindex 由 routeRules 的 `X-Robots-Tag` 响应头负责（见 nuxt.config.ts）：
+// `definePageMeta({robots: ...})` 并不是 Nuxt 支持的字段 —— PageMeta 类型里没有它
+// （只被 `[key: string]: unknown` 兜住），项目里也没有模块处理，所以它从不生成 meta 标签。
+definePageMeta({layout: false, title: 'error.forbiddenTitle'})
 </script>
 
 <template>

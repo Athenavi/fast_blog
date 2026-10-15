@@ -176,24 +176,43 @@ export default defineNuxtConfig({
     '/analytics/**': {ssr: false},
     '/extension/**': {ssr: false},
     '/ops/**': {ssr: false},
-    '/403': {ssr: false},
+    // 这三个域此前**漏配**，导致 10 个后台页仍在服务端渲染。
+    // 判据是实测出来的：这些页面都是 `layout: 'admin'` + `permission` 的后台页
+    // （见各自 definePageMeta），且同一个 `/commerce` 域下的 tipping 被单独配过
+    // —— 属于按功能域逐个列举时的遗漏，不是有意为之。
+    //
+    // 漏配的实际后果（读 middleware/auth.ts 确认）：它首行是 `if (import.meta.server) return`，
+    // 所以**不会**误跳登录页；但服务端会白白渲染一遍（这 10 个页面的首屏 CPU），
+    // 并输出「未登录态」的 HTML，等客户端水合后中间件才把状态修正回来。
+    '/ai/**': {ssr: false},
+    '/commerce/**': {ssr: false},
+    '/marketing/**': {ssr: false},
+    // 403 与下面这几个页面都是「不该被索引」的：错误页，以及登录后才有内容的页面。
+    //
+    // 这里用**服务端响应头**，而不是页面里的 meta：这些页面全是纯 CSR，
+    // meta 标签要等 JS 执行才插入，对不执行 JS 的爬虫无效；响应头则一定生效。
+    //
+    // ⚠️ 顺带修一个既有 bug：`definePageMeta({robots: 'noindex'})` 是**无效写法** ——
+    // Nuxt 的 PageMeta 类型里没有 `robots`（只被 `[key: string]: unknown` 兜住），
+    // 本项目也没有任何模块/插件处理它，因此它从不生成 meta 标签。
+    // `pages/403.vue` 原先正是这样写的，等于一直没有设 noindex。
+    '/403': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
     // 用户中心与投稿依赖登录态（存于本地存储），关闭 SSR
     '/profile': {ssr: false},
-    '/media': {ssr: false},
+    '/media': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
     '/my/**': {ssr: false},
     // 站内信依赖登录态，同样关闭 SSR
-    '/messages': {ssr: false},
+    '/messages': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
     // 关注 / 粉丝同样依赖登录态（存于本地存储），关闭 SSR
-    '/fans': {ssr: false},
+    '/fans': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
     // 积分 / 勋章中心：内容依赖登录态与实时统计，同样走 SPA
-    '/points': {ssr: false},
-    '/badges': {ssr: false},
+    '/points': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
+    '/badges': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
     // 专家认证（我的认证）与打赏收益同样依赖登录态
-    '/certification': {ssr: false},
-    '/tipping': {ssr: false},
+    '/certification': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
+    '/tipping': {ssr: false, headers: {'X-Robots-Tag': 'noindex'}},
     // 后台新增：用户成长（积分 / 勋章 / 认证审核）与打赏提现审核
     '/gamification/**': {ssr: false},
-    '/commerce/tipping': {ssr: false},
     // 关注流与群聊（批次 17）：依赖登录态 / 实时连接，统一走 SPA
     '/feed': {ssr: false},
     '/chat': {ssr: false},
