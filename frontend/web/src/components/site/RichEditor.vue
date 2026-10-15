@@ -80,23 +80,22 @@ const editor = useEditor({
     handlePaste: (_view, event) => {
       const clipboard = event.clipboardData
       if (!clipboard) return false
-      // 有富文本就交给默认处理，避免破坏从网页复制来的排版
-      if (clipboard.getData('text/html')) return false
       const text = clipboard.getData('text/plain')
       if (!text.trim()) return false
-      // 剪贴板带 HTML 时（从网页或富文本编辑器复制），只有纯文本**明显是
-      // Markdown 源码**才按 Markdown 解析，否则保留原有富文本格式。
-      // 这一条很关键：真实用户粘贴时剪贴板通常**同时**带 text/html，
-      // 若一律 `return false` 就会退回 Tiptap 默认处理 ——
-      // 那正是"粘贴后正文里出现字面序号（1. / 2.）"的来源。
+      // 剪贴板带 HTML 时（从网页或富文本编辑器复制，**真实粘贴通常如此**），
+      // 只有纯文本明显是 Markdown 源码才按 Markdown 解析，否则保留原有富文本格式。
+      //
+      // 注意顺序：**不能**在这之前写 `if (getData('text/html')) return false`。
+      // 那样带 HTML 的粘贴会一律退回 Tiptap 默认处理，正文里就会留下字面的
+      // 列表序号（`1.` / `2.`）—— 用户报的"粘贴 md 自动加行号"正是它。
       if (clipboard.getData('text/html') && !looksLikeMarkdown(text)) return false
-      // 先解析成 HTML 再插入：Tiptap 用 `parseHTML` 处理，**不依赖**各扩展的
+      // 解析成 HTML 再插入：Tiptap 用 `parseHTML` 处理，**不依赖**各扩展的
       // markdown 规范。曾试过 `@tiptap/markdown`，但当前版本里 orderedList /
       // bulletList 没有 markdown 规范，`#` 会落到强调的 fallback（变成斜体）、
       // 整篇还会被塞进一个大 `<ol>` —— 比不解析更糟，已弃用。
       const html = marked.parse(text, {async: false})
       editor.value?.chain().focus().insertContent(html).run()
-      return true // 已处理，阻止默认的纯文本插入
+      return true // 已处理，阻止默认的粘贴
     },
   },
   onUpdate: ({editor: instance}) => emit('update:modelValue', instance.getHTML()),
