@@ -108,7 +108,7 @@ const to = computed(() =>
       {{ props.article.summary }}
     </p>
 
-    <div class="mt-2.5 flex items-center gap-4 text-xs text-fg-subtle">
+    <div class="mt-2.5 flex items-center gap-4 text-xs text-fg-muted">
       <span class="inline-flex items-center gap-1">
         <Icon class="h-3.5 w-3.5" name="calendar-days"/>
         {{ formatDate(props.article.published_at || props.article.created_at) }}

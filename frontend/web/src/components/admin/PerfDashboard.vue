@@ -30,7 +30,8 @@ const heap = ref<{ used: number; limit: number } | null>(null)
 const RATING_COLORS: Record<string, string> = {
   good: '#10b981',
   'needs-improvement': '#f59e0b',
-  poor: '#ef4444',
+  // 提亮一档：`#ef4444` 在面板的 `#28323f` 底上只有 3.44:1，`#f87171` 约 5.5:1
+  poor: '#f87171',
 }
 
 /** 每项指标只保留最新一次采样 */
@@ -336,7 +337,9 @@ onBeforeUnmount(() => {
 }
 
 .perf-panel__label--muted {
-  color: #6b7280;
+  /* 面板是固定的终端风深底（#1f2937）：#6b7280 在其上只有 3.03:1，
+   * 提亮到与同级 label 相同的 #9ca3af（约 5.6:1）。 */
+  color: #9ca3af;
 }
 
 .perf-panel__slow ul {

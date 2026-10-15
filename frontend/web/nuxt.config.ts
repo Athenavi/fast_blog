@@ -17,7 +17,7 @@ export default defineNuxtConfig({
   ssr: true,
 
   devtools: {enabled: true},
-  modules: ['@pinia/nuxt', '@nuxt/image', '@nuxt/scripts', '@vite-pwa/nuxt', '@nuxtjs/i18n'],
+  modules: ['@pinia/nuxt', '@nuxt/scripts', '@vite-pwa/nuxt', '@nuxtjs/i18n'],
 
   // i18n：文案在 i18n/locales/*.json（这两个文件是从迁移前的 frontend-astro 取回的）
   //
@@ -28,7 +28,10 @@ export default defineNuxtConfig({
     // 文案目录指向**派生**目录：由 scripts/split-i18n.mjs 从真相源 `i18n/locales/*.json`
     // 生成，只含前台命名空间。后台专属的 `admin`（占全部文案的 77.5%）已拆到
     // `public/i18n/admin/`，由 layouts/admin.vue 按需加载。
-    langDir: 'i18n/messages',
+    //
+    // ⚠️ 这个路径是相对 `restructureDir`（默认 `i18n`）解析的，**不是**相对项目根 ——
+    // 写成 'i18n/messages' 会被解析成 `<root>/i18n/i18n/messages`（实测报 ENOENT）。
+    langDir: 'messages',
 
     // `dir` 由 app.vue 写入 `<html dir>`（当前都是 ltr，为将来接 RTL 语言预留）
     //
@@ -62,17 +65,11 @@ export default defineNuxtConfig({
     },
   },
 
-  // 图片：使用本地 ipx 处理（自动 srcset / 格式转换），前台用 <NuxtImg>/<NuxtPicture>
-  image: {
-    format: ['webp', 'avif'],
-    screens: {
-      xs: 320,
-      sm: 640,
-      md: 768,
-      lg: 1024,
-      xl: 1280,
-    },
-  },
+  // 说明：**不再使用 `@nuxt/image`**（该模块与曾经的 `image` 配置已移除）。
+  // 全仓 `NuxtImg` / `NuxtPicture` 使用数为 0 —— 图片走的是
+  // `components/site/ResponsiveImage.vue`，直接手写 `srcset` 对接后端的变体端点
+  // （自带 200/480/800/1600 四档、`Accept` 协商 avif→webp→原格式、内容寻址落盘懒生成），
+  // 比再套一层 ipx 更快也更可控。留着这个模块只会让构建无谓地带进 sharp。
 
   // 三方脚本：用 useScript() 管理加载时机与隐私（默认不加载第三方）
   scripts: {

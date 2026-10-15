@@ -1,0 +1,13 @@
+/**
+ * 后台样式入口：把三份 CSS 的**顺序**固化进一个文件。
+ *
+ * 为什么不是三次 `await import()`：Vite 对动态 CSS import 会各插入一个 `<style>`，
+ * 最终顺序取决于 promise 的完成顺序 —— 并发加载时「基础（EP 全量）→ 暗色变量 →
+ * 后台令牌」的覆盖关系就不再有保证（`styles/admin.css` 依赖它排最后才能覆盖 EP）。
+ * 合成一个入口后只需一次 import，顺序由下面这三行 `@import` 自上而下决定。
+ *
+ * 与 `layouts/admin.vue` 的注释保持一致：这是唯一一处引入后台样式的地方。
+ */
+@import 'element-plus/dist/index.css';
+@import 'element-plus/theme-chalk/dark/css-vars.css';
+@import './admin.css';

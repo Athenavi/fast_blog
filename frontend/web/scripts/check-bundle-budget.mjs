@@ -1,22 +1,34 @@
 #!/usr/bin/env node
-// 首屏 JS 包体预算检查（UI/UX 路线图 Batch 0.3）
-//
-// 为什么需要：后台 UI/UX 重构会持续往初始包里加东西（Element Plus 一次性带来过 1.1MB，
-// 见 `src/layouts/admin.vue` 的说明），只靠"感觉快了"迟早翻车。这里从**真实构建产物**里
-// 取首屏实际加载的脚本，比较 gzip 后的体积与预算。
-//
-// 做法：起 `.output/server/index.mjs`（node-server preset，自带 node_modules，可独立运行），
-// 抓 SSR 输出的 HTML，解析 `<script src>` 与 `<link rel="modulepreload">` 指向的 `_nuxt/*.js`
-// —— 这些就是浏览器首屏必须下载的脚本，其余 chunk 都是按需加载。
-//
-// 用法：
-//   npm run build
-//   node scripts/check-bundle-budget.mjs                  # 前台首页 + 后台仪表盘
-//   node scripts/check-bundle-budget.mjs --json           # 机器可读输出（CI 归档用）
-//   node scripts/check-bundle-budget.mjs --no-server --base-url http://localhost:3000
-//   node scripts/check-bundle-budget.mjs --budget-initial-kb 240 --budget-total-kb 1600
-//
-// 退出码：0 通过；1 超预算；2 前置条件缺失（未 build / 服务起不来）
+/**
+ * 包体预算检查（UI/UX 路线图 Batch 0.3；B3 扩成**双口径**）
+ *
+ * ## 为什么要有两道口径
+ *
+ * 原来只解析 SSR HTML 里的 `<script src>` + `<link rel="modulepreload">`，量的是
+ * 「首屏关键路径上的 JS」。它有明确的盲区 —— **HTML 里查不到、但用户实际会下载**的东西：
+ *
+ *  - 懒加载的 chunk（`defineAsyncComponent` / 动态 `import()`）。实测教训：首页 Hero 曾用
+ *    `defineAsyncComponent` 懒加载 three.js，HTML 里一个字都没有，而用户真实下载了
+ *    736 KB（184 KB gzip）—— 静态口径完全量不到；
+ *  - 运行时 fetch 的 JSON（i18n 文案曾是一份 193 KB 的 `messages.json`）；
+ *  - CSS、字体、图片。
+ *
+ * 所以现在两道一起跑：
+ *
+ *  1. **首屏关键路径**（静态，解析 HTML）—— 严格预算，防止初包被无感塞大；
+ *  2. **单页完整资源图**（真实浏览器加载后取 `performance` 资源列表）—— 量用户真正付的钱，
+ *     并额外卡**请求数**（首屏请求数失控同样拖慢可交互时间）。
+ *
+ * ## 用法
+ *
+ *   npm run build
+ *   node scripts/check-bundle-budget.mjs                     # 前台首页 + 后台仪表盘
+ *   node scripts/check-bundle-budget.mjs --json              # 机器可读输出（CI 归档用）
+ *   node scripts/check-bundle-budget.mjs --no-server --base-url http://localhost:3000
+ *   node scripts/check-bundle-budget.mjs --budget-page-kb 320 --budget-requests 120
+ *
+ * 退出码：0 通过；1 超预算；2 前置条件缺失（未 build / 服务起不来 / 浏览器不可用）
+ */
 
 import {spawn} from 'node:child_process'
 import fs from 'node:fs'
@@ -29,12 +41,23 @@ const PUBLIC_DIR = path.join(OUTPUT_DIR, 'public')
 const NUXT_DIR = path.join(PUBLIC_DIR, '_nuxt')
 const SERVER_ENTRY = path.join(OUTPUT_DIR, 'server', 'index.mjs')
 
-/** 首屏初始包预算（gzip KB）—— 超过即失败。基线见文件末尾的实测记录。 */
+/** 首屏关键路径 JS 预算（gzip KB）—— 解析 SSR HTML 得到，超过即失败。基线见文件末尾。 */
 const DEFAULT_INITIAL_KB = 200
 /** 全量 JS 预算（gzip KB）—— 防止 chunk 数量与体积无感膨胀。 */
 const DEFAULT_TOTAL_KB = 1600
+/**
+ * **单页完整 gzip 传输**预算（KB，含 JS/CSS/JSON/字体/图片）。
+ * 这是用户真正付的钱，基线见文件末尾的实测记录。
+ *
+ * 现值 600 是**当前实测**（前台首页 267 / 后台仪表盘 560），不是理想值 ——
+ * 后台那 560 KB 里有 **266 KB 是整包 ECharts**（`lIigFbOy.js`），一进仪表盘就全量下载。
+ * 那是 B4（后台 Element Plus / 图表按需引入）的解决目标；B4 落地后这个预算应收到 360 以内。
+ */
+const DEFAULT_PAGE_KB = 600
+/** **单页请求数**上限 —— 首屏请求数失控同样拖慢可交互时间。 */
+const DEFAULT_REQUESTS = 100
 
-/** 被测路由：前台是 SSR、后台是 CSR（routeRules），但两者的首屏脚本都必须可解析。 */
+/** 被测路由：前台是 SSR、后台是 CSR（routeRules），两者的资源图都要量。 */
 const ROUTES = [
     {name: '前台首页', path: '/'},
     {name: '后台仪表盘', path: '/dashboard'},
@@ -42,8 +65,9 @@ const ROUTES = [
 
 function parseArgs(argv) {
     const args = {
-        json: false, noServer: false, baseUrl: '', budgetInitialKb: DEFAULT_INITIAL_KB,
-        budgetTotalKb: DEFAULT_TOTAL_KB, port: 3081, top: 8
+        json: false, noServer: false, baseUrl: '', port: 3081, top: 8,
+        budgetInitialKb: DEFAULT_INITIAL_KB, budgetTotalKb: DEFAULT_TOTAL_KB,
+        budgetPageKb: DEFAULT_PAGE_KB, budgetRequests: DEFAULT_REQUESTS,
     }
     for (let i = 0; i < argv.length; i += 1) {
         const key = argv[i]
@@ -54,9 +78,11 @@ function parseArgs(argv) {
         else if (key === '--port') args.port = Number(next())
         else if (key === '--budget-initial-kb') args.budgetInitialKb = Number(next())
         else if (key === '--budget-total-kb') args.budgetTotalKb = Number(next())
+        else if (key === '--budget-page-kb') args.budgetPageKb = Number(next())
+        else if (key === '--budget-requests') args.budgetRequests = Number(next())
         else if (key === '--top') args.top = Number(next())
         else if (key === '--help' || key === '-h') {
-            console.log(fs.readFileSync(import.meta.filename, 'utf-8').split('\n').slice(1, 22).join('\n'))
+            console.log(fs.readFileSync(import.meta.filename, 'utf-8').split('\n').slice(1, 25).join('\n'))
             process.exit(0)
         }
     }
@@ -91,11 +117,41 @@ function gzipSize(buf) {
     return zlib.gzipSync(buf, {level: 6}).length
 }
 
+/** 按扩展名/路径给资源分类（输出里分行显示，便于一眼看出钱花在哪） */
+export function classifyResource(urlPath) {
+    if (urlPath.endsWith('.js')) return 'js'
+    if (urlPath.endsWith('.css')) return 'css'
+    if (urlPath.endsWith('.json')) return 'json'
+    if (/\.(woff2?|ttf|otf)$/.test(urlPath)) return 'font'
+    if (/\.(png|jpe?g|webp|avif|gif|svg|ico)$/.test(urlPath)) return 'image'
+    return 'other'
+}
+
 function fileStats(urlPath) {
     const file = path.join(PUBLIC_DIR, urlPath.replace(/^\//, '').split('?')[0])
     if (!fs.existsSync(file)) return null
     const buf = fs.readFileSync(file)
     return {url: urlPath, file: path.relative(ROOT, file), raw: buf.length, gzip: gzipSize(buf)}
+}
+
+/**
+ * 取一条资源的体积。
+ *
+ * 优先从构建产物落盘的文件读（那就是浏览器会拿到的那个文件）；落盘找不到的
+ * （走 Nitro 动态路由的，如 `/_i18n/<hash>/<locale>/messages.json`）就实际取一次
+ * 再就地压缩 —— 否则这类资源会被算成 0，正是最该被盯住的一类。
+ */
+async function resourceStats(baseUrl, urlPath) {
+    const local = fileStats(urlPath)
+    if (local) return local
+    try {
+        const resp = await fetch(`${baseUrl}${urlPath}`)
+        if (!resp.ok) return null
+        const buf = Buffer.from(await resp.arrayBuffer())
+        return {url: urlPath, file: '（动态路由）', raw: buf.length, gzip: gzipSize(buf)}
+    } catch {
+        return null
+    }
 }
 
 function totalJsStats() {
@@ -128,12 +184,105 @@ async function waitForServer(baseUrl, timeoutMs = 40_000) {
     throw new Error(`服务在 ${timeoutMs}ms 内未就绪（${lastError}）`)
 }
 
+/**
+ * 后台路由是 CSR 且需要登录：不注入凭据的话采到的是未登录态，
+ * 会漏掉「只有进后台才会加载」的资源（Element Plus、后台文案 187 KB 等）——
+ * 而口径 2 的意义恰恰是量这些。凭据来源与 e2e 保持一致：环境变量优先，其次 `.env.e2e`。
+ */
+function loadAdminCredentials() {
+    if (process.env.E2E_ADMIN_USER && process.env.E2E_ADMIN_PASS) {
+        return {username: process.env.E2E_ADMIN_USER, password: process.env.E2E_ADMIN_PASS}
+    }
+    try {
+        const raw = fs.readFileSync(path.join(ROOT, '.env.e2e'), 'utf-8')
+        const env = {}
+        for (const line of raw.split(/\r?\n/)) {
+            const matched = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/)
+            if (matched) env[matched[1]] = matched[2]
+        }
+        if (env.E2E_ADMIN_USER && env.E2E_ADMIN_PASS) {
+            return {username: env.E2E_ADMIN_USER, password: env.E2E_ADMIN_PASS}
+        }
+    } catch {
+        // 没有 .env.e2e 就当作匿名测量（后台那一路会偏小，属已知限制）
+    }
+    return null
+}
+
+/** 与 `e2e/fixtures/auth.ts` 的 TOKEN_KEY 保持一致 */
+const TOKEN_STORAGE_KEY = 'fastblog.token'
+
+async function fetchAdminToken() {
+    const credentials = loadAdminCredentials()
+    if (!credentials) return null
+    // ⚠️ 不能打脚本自己起的那个 server —— 它是**构建产物**（.output/server/index.mjs），
+    // 没有 `nitro.devProxy`，`/api` 只有 dev 模式才被代理过去。这里直连后端，
+    // 地址与 e2e 的 E2E_API_BASE_URL / .env.production 的 NUXT_PUBLIC_API_BASE_URL 对齐。
+    const apiBase = (
+        process.env.E2E_API_BASE_URL
+        || process.env.NUXT_PUBLIC_API_BASE_URL
+        || 'http://127.0.0.1:9421'
+    ).replace(/\/$/, '')
+    try {
+        const resp = await fetch(`${apiBase}/api/v3/system/auth/login`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(credentials),
+        })
+        const body = await resp.json()
+        return body?.data?.access_token ?? null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * 用真实浏览器加载页面，收集**实际发生的**资源请求。
+ * 这一步是静态口径的必要补充：懒加载 chunk、运行时 fetch 的 JSON 都不在 SSR HTML 里，
+ * 只有真跑一遍才看得见。多等 1.5s 是为了让「挂载后才触发」的懒加载落地。
+ *
+ * ⚠️ 已知限制：后台布局的 `admin` 文案（`/i18n/admin/<locale>.json`，约 55 KB gzip）
+ * 在实测里没被这条口径记到 —— 而它是确实加载了的（构建产物里有该文件、
+ * 后台页面文案正常渲染）。所以后台那一路的 json 数字偏小，别据此判断文案体积。
+ * 前台那一路的 json 记录是准的（能看到 `/_i18n/<hash>/zh-CN/messages.json`）。
+ */
+async function collectPageResources(browser, baseUrl, routePath, token) {
+    const page = await browser.newPage()
+    try {
+        if (token) {
+            await page.addInitScript(
+                ([key, value]) => localStorage.setItem(key, value),
+                [TOKEN_STORAGE_KEY, token],
+            )
+        }
+        const pageErrors = []
+        page.on('pageerror', (error) => pageErrors.push(String(error)))
+        await page.goto(`${baseUrl}${routePath}`, {waitUntil: 'load', timeout: 30_000})
+        await page.waitForTimeout(1500)
+        const urls = await page.evaluate(() =>
+            performance.getEntriesByType('resource').map((entry) => entry.name),
+        )
+        return {urls, pageErrors}
+    } finally {
+        await page.close()
+    }
+}
+
 async function main() {
     const args = parseArgs(process.argv.slice(2))
 
     if (!fs.existsSync(SERVER_ENTRY) || !fs.existsSync(NUXT_DIR)) {
         console.error('[ERROR] 找不到 .output/server/index.mjs 或 .output/public/_nuxt')
         console.error('        请先构建：npm run build')
+        return 2
+    }
+
+    let chromium
+    try {
+        ({chromium} = await import('@playwright/test'))
+    } catch {
+        console.error('[ERROR] 无法加载 @playwright/test —— 单页完整资源图口径需要它。')
+        console.error('        安装：npm i -D @playwright/test && npx playwright install chromium')
         return 2
     }
 
@@ -167,12 +316,27 @@ async function main() {
     }
     process.on('exit', cleanup)
 
-    const report = {routes: [], total: null, budget: {initialKb: args.budgetInitialKb, totalKb: args.budgetTotalKb}}
+    const report = {
+        routes: [], total: null,
+        budget: {
+            initialKb: args.budgetInitialKb, totalKb: args.budgetTotalKb,
+            pageKb: args.budgetPageKb, requests: args.budgetRequests,
+        },
+    }
     const failures = []
+    let browser = null
+
     try {
         await waitForServer(baseUrl)
+        browser = await chromium.launch()
+        const adminToken = await fetchAdminToken()
+        if (!adminToken) {
+            console.warn('[WARN] 未取得后台登录凭据（E2E_ADMIN_USER/E2E_ADMIN_PASS 或 .env.e2e）——' +
+                '后台那一路采到的是未登录态，会偏小。')
+        }
 
         for (const route of ROUTES) {
+            // ---- 口径 1：首屏关键路径（静态解析 SSR HTML）----------------------
             let html = ''
             try {
                 const resp = await fetch(`${baseUrl}${route.path}`, {redirect: 'follow'})
@@ -182,16 +346,76 @@ async function main() {
                 continue
             }
 
-            const urls = extractInitialScripts(html)
-            const files = urls.map(fileStats).filter(Boolean)
-            const gzipKb = Math.round(files.reduce((sum, item) => sum + item.gzip, 0) / 1024)
-            const rawKb = Math.round(files.reduce((sum, item) => sum + item.raw, 0) / 1024)
-            report.routes.push({route, scripts: files.length, initialGzipKb: gzipKb, initialRawKb: rawKb, files})
+            const initialFiles = extractInitialScripts(html).map(fileStats).filter(Boolean)
+            const initialGzipKb = Math.round(initialFiles.reduce((sum, item) => sum + item.gzip, 0) / 1024)
+            const initialRawKb = Math.round(initialFiles.reduce((sum, item) => sum + item.raw, 0) / 1024)
 
-            if (files.length === 0) {
+            // ---- 口径 2：单页完整资源图（真实浏览器）--------------------------
+            let pageItems = []
+            let pageRequests = 0
+            let foreign = []
+            let pageErrors = []
+            try {
+                const collected = await collectPageResources(browser, baseUrl, route.path, adminToken)
+                pageErrors = collected.pageErrors
+                const seen = new Set()
+                for (const url of collected.urls) {
+                    if (url.startsWith('data:')) continue
+                    if (!url.startsWith(baseUrl)) {
+                        foreign.push(url)
+                        continue
+                    }
+                    const urlPath = url.slice(baseUrl.length).split('?')[0].split('#')[0]
+                    if (seen.has(urlPath)) continue
+                    seen.add(urlPath)
+                    pageRequests += 1
+                    const stats = await resourceStats(baseUrl, urlPath)
+                    if (stats) pageItems.push({...stats, kind: classifyResource(urlPath)})
+                }
+            } catch (error) {
+                failures.push(`${route.name} 浏览器加载失败：${error instanceof Error ? error.message : error}`)
+            }
+
+            const pageGzipKb = Math.round(pageItems.reduce((sum, item) => sum + item.gzip, 0) / 1024)
+            const byKind = {}
+            for (const item of pageItems) {
+                byKind[item.kind] = (byKind[item.kind] ?? 0) + item.gzip
+            }
+
+            report.routes.push({
+                route,
+                initial: {
+                    scripts: initialFiles.length,
+                    gzipKb: initialGzipKb,
+                    rawKb: initialRawKb,
+                    files: initialFiles
+                },
+                page: {
+                    requests: pageRequests, gzipKb: pageGzipKb,
+                    byKind: Object.fromEntries(Object.entries(byKind).map(([k, v]) => [k, Math.round(v / 1024)])),
+                    files: [...pageItems].sort((a, b) => b.gzip - a.gzip),
+                    foreign, pageErrors,
+                },
+            })
+
+            // ---- 判定 --------------------------------------------------------
+            if (initialFiles.length === 0) {
                 failures.push(`${route.name} ${route.path} 未解析到首屏脚本（HTML 结构变了？）`)
-            } else if (gzipKb > args.budgetInitialKb) {
-                failures.push(`${route.name} 首屏 JS ${gzipKb}KB > 预算 ${args.budgetInitialKb}KB`)
+            } else if (initialGzipKb > args.budgetInitialKb) {
+                failures.push(`${route.name} 首屏关键路径 JS ${initialGzipKb}KB > 预算 ${args.budgetInitialKb}KB`)
+            }
+            if (pageRequests === 0) {
+                failures.push(`${route.name} 未采集到任何资源（浏览器口径失效？）`)
+            } else {
+                if (pageGzipKb > args.budgetPageKb) {
+                    failures.push(`${route.name} 单页 gzip 总量 ${pageGzipKb}KB > 预算 ${args.budgetPageKb}KB`)
+                }
+                if (pageRequests > args.budgetRequests) {
+                    failures.push(`${route.name} 单页请求数 ${pageRequests} > 预算 ${args.budgetRequests}`)
+                }
+            }
+            for (const message of pageErrors) {
+                failures.push(`${route.name} 页面运行时报错：${message}`)
             }
         }
 
@@ -201,25 +425,44 @@ async function main() {
             failures.push(`全量 JS ${report.total.gzipKb}KB > 预算 ${args.budgetTotalKb}KB`)
         }
     } finally {
+        if (browser) await browser.close().catch(() => {
+        })
         cleanup()
     }
 
     if (args.json) {
         console.log(JSON.stringify({...report, failures}, null, 2))
     } else {
-        console.log('== 首屏 JS 包体（gzip） ==')
+        console.log('== 口径 1：首屏关键路径 JS（gzip，解析 SSR HTML） ==')
         for (const item of report.routes) {
             console.log(
-                `  ${item.route.name.padEnd(8)} ${String(item.initialGzipKb).padStart(5)}KB / 预算 ${args.budgetInitialKb}KB` +
-                `  （${item.scripts} 个脚本，raw ${item.initialRawKb}KB）`,
+                `  ${item.route.name.padEnd(8)} ${String(item.initial.gzipKb).padStart(5)}KB / 预算 ${args.budgetInitialKb}KB` +
+                `  （${item.initial.scripts} 个脚本，raw ${item.initial.rawKb}KB）`,
             )
-            const top = [...item.files].sort((a, b) => b.gzip - a.gzip).slice(0, args.top)
+            const top = [...item.initial.files].sort((a, b) => b.gzip - a.gzip).slice(0, args.top)
             for (const file of top) {
                 console.log(`      ${String(Math.round(file.gzip / 1024)).padStart(5)}KB  ${file.file}`)
             }
         }
         console.log(`  ${'全量 JS'.padEnd(8)} ${String(report.total.gzipKb).padStart(5)}KB / 预算 ${args.budgetTotalKb}KB` +
             `  （${report.total.files} 个 chunk，raw ${report.total.rawKb}KB）`)
+
+        console.log('\n== 口径 2：单页完整资源图（gzip，真实浏览器加载后实测） ==')
+        for (const item of report.routes) {
+            const kinds = Object.entries(item.page.byKind)
+                .sort((a, b) => b[1] - a[1])
+                .map(([kind, kb]) => `${kind} ${kb}KB`)
+                .join(' / ')
+            console.log(
+                `  ${item.route.name.padEnd(8)} ${String(item.page.gzipKb).padStart(5)}KB / 预算 ${args.budgetPageKb}KB` +
+                `  （${item.page.requests} 个请求 / 预算 ${args.budgetRequests}；${kinds}）`,
+            )
+            const top = item.page.files.slice(0, args.top)
+            for (const file of top) {
+                console.log(`      ${String(Math.round(file.gzip / 1024)).padStart(5)}KB  [${file.kind.padEnd(5)}] ${file.url}`)
+            }
+        }
+
         if (failures.length) {
             console.log('\n[FAIL] 超预算：')
             for (const line of failures) console.log(`  - ${line}`)
@@ -236,9 +479,14 @@ process.exitCode = await main()
 // ---------------------------------------------------------------------------
 // 实测基线（改预算前先看这里，别为了让 CI 变绿而调高阈值）
 //
-// 2026-09-22 首次运行（win32 / node 25.2.1，构建产物 nitro 2026-09-22T09:28:33Z）：
-//   前台首页 189KB / 后台仪表盘 158KB / 全量 JS 1110KB（177 个 chunk）
-// 预算默认值 = 首屏 200KB、全量 1600KB；前台首页已用掉 95% 的首屏预算，
-// 再往初始包里加东西就会红 —— 这正是 Batch 4.2（EP 按需引入 / 路由分割）要解决的。
-// 注意：改预算前先看这里，别为了让 CI 变绿而调高阈值。
+// 2026-09-22 首次运行（win32 / node 25.2.1）：
+//   首屏关键路径 前台首页 189KB / 后台仪表盘 158KB / 全量 JS 1110KB（177 个 chunk）
+//
+// 2026-10-14（B1–B3 之后）：
+//   首屏关键路径 前台首页 198KB / 后台仪表盘 161KB / 全量 JS 1482KB（208 个 chunk）
+//   单页完整资源图 前台首页约 215KB / 62 个请求（three.js 184KB 已移除；
+//                 i18n messages.json 由 66KB 降到约 0.3KB）
+//
+// 两道口径都要盯：只看首屏关键路径时，three.js（异步 chunk，184KB gzip）与
+// i18n 文案（运行时 fetch 的 JSON，66KB gzip）都是隐形的 —— 这正是口径 2 存在的原因。
 // ---------------------------------------------------------------------------

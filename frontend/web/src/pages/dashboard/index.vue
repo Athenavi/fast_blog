@@ -302,15 +302,15 @@ import dayjs from 'dayjs'
 import {computed, onMounted, ref} from 'vue'
 
 import {
-  certificationApi,
-  tippingApi,
-  trackingApi,
   type AdStatsResult,
   type ArticleEventsResult,
+  certificationApi,
   type DeviceBreakdownResult,
   type PopularPagesResult,
   type SearchStatsResult,
   type SessionStatsResult,
+  tippingApi,
+  trackingApi,
   type TrafficSourcesResult,
 } from '@/api'
 import {
@@ -613,7 +613,9 @@ onMounted(() => {
 
 .stat-card__hint {
   font-size: 12px;
-  color: var(--color-fg-subtle);
+  /* 用**后台令牌**而不是前台令牌：前台 `--color-fg-subtle`（oklch 68%）在白卡片上只有
+   * 2.86:1；后台的 `--admin-fg-subtle` 已按 WCAG AA 压深（见 styles/admin.css）。 */
+  color: var(--admin-fg-subtle);
 }
 
 .card-header {

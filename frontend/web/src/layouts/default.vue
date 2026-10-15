@@ -17,8 +17,12 @@ const [site] = await Promise.all([
 
 <template>
   <div class="flex min-h-dvh flex-col bg-canvas pb-16 md:pb-0">
+    <!-- 跳过导航直达正文：键盘用户按第一下 Tab 就能越过整条导航（WCAG 2.4.1）。
+         平时移出视口，获得焦点时滑入 —— 见 styles/index.css 的 .skip-link。 -->
+    <a class="skip-link" href="#main-content">{{ $t('site.skipToContent') }}</a>
+
     <SiteHeader :site-name="site.site_name"/>
-    <main class="flex-1">
+    <main id="main-content" class="flex-1">
       <slot/>
     </main>
     <SiteFooter :footer="site.site_footer" :icp="site.icp" :site-name="site.site_name"/>

@@ -13,8 +13,15 @@
  *   - 自选配色通过 `html[data-accent='...']` 切换主色系（与前台一致）。
  * ========================================================================== */
 
-/* ---------------------------------------------------------------- 浅色令牌 */
-html {
+/* ---------------------------------------------------------------- 浅色令牌
+ * ⚠️ 选择器必须是 `html:root`，不能只写 `html`：
+ * Element Plus 把 `--el-*` 定义在 `:root`（优先级 0,1,0），而 `html` 只有 (0,0,1) ——
+ * 只写 `html` 的话，下面**整个元素级变量覆盖块都会被 EP 的默认值压过去**。
+ * 实测症状：primary 仍是 EP 的 `#409eff`、placeholder 仍是 `#a8abb2`、danger tag 仍是
+ * `#f56c6c`，后台因此积压 117 条 color-contrast 违规（改令牌值本身怎么调都不动）。
+ * `html:root`（同一元素、优先级 0,1,1）能稳定压过 EP 的 `:root`。
+ */
+html:root {
   color-scheme: light;
 
   /* ---- 语义色 ----
@@ -28,17 +35,27 @@ html {
   --admin-surface-soft: var(--color-surface-soft);
   --admin-surface-hover: oklch(96.4% 0.004 250); /* 后台专属：前台没有 hover 底色令牌 */
   --admin-fg: var(--color-fg);
-  --admin-fg-muted: var(--color-fg-muted);
-  --admin-fg-subtle: var(--color-fg-subtle);
+  /* 后台专属：把两个弱化文字色**加深到 WCAG AA 达标**，不沿用前台令牌。
+   * axe 的 color-contrast 违规绝大多数落在它们身上 —— EP 的 `secondary` /
+   * `placeholder`、表格表头文字都映射到这两个（见下面 `--el-text-color-*`）：
+   *   --color-fg-muted  oklch(50%) 在白底约 4.1:1（差一点点）
+   *   --color-fg-subtle oklch(68%) 在白底约 2.3:1（远不达标）
+   * 前台保留原令牌：那是阅读端的观感取舍；后台以「表格与表单读得清」为先。 */
+  --admin-fg-muted: oklch(44% 0.015 260);
+  --admin-fg-subtle: oklch(50% 0.012 260);
   --admin-line: var(--color-line);
   --admin-line-strong: var(--color-line-strong);
   --admin-primary: var(--color-primary);
   --admin-primary-hover: var(--color-primary-hover);
   --admin-primary-soft: var(--color-primary-soft);
-  --admin-success: var(--color-success);
-  --admin-warning: var(--color-warning);
-  --admin-danger: var(--color-danger);
-  --admin-info: oklch(58% 0.02 260); /* 后台专属：Element Plus 的 info 语义色 */
+  /* 第二轮（对比度）：后台的语义色**不沿用前台的较浅取值**。EP 的 `el-tag` 与各类状态
+   * 文字直接把 `--el-color-{type}` 当**文字色**用（底色是 light-9 那种浅底），而前台
+   * 的取值在白底上只有 2.4~4.0:1（danger 最低、warning 最浅）。这里统一压深到 4.5:1 以上，
+   * 只影响后台（前台令牌不动）。 */
+  --admin-success: oklch(46% 0.13 155);
+  --admin-warning: oklch(50% 0.14 75);
+  --admin-danger: oklch(48% 0.19 25);
+  --admin-info: oklch(44% 0.02 260); /* 后台专属：Element Plus 的 info 语义色 */
 
   /* 侧边栏（后台是深色导航，与内容区形成层次） */
   --admin-sidebar-bg: oklch(24% 0.02 260);
@@ -73,6 +90,8 @@ html {
   --el-text-color-regular: var(--admin-fg-muted);
   --el-text-color-secondary: var(--admin-fg-subtle);
   --el-text-color-placeholder: var(--admin-fg-subtle);
+  /* EP 默认的 #a8abb2 在白底只有 ≈2.2:1 —— 禁用态也不该浅到「看不清」 */
+  --el-text-color-disabled: oklch(52% 0.012 260);
   --el-border-color: var(--admin-line);
   --el-border-color-light: var(--admin-line);
   --el-border-color-lighter: var(--admin-line);

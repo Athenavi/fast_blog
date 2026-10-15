@@ -114,14 +114,33 @@ export function useTheme() {
     }
   }
 
+  /**
+   * 主题/配色切换时的过渡只在**切换瞬间**生效。
+   *
+   * 颜色过渡本身由 `.theme-transitioning` 授给全文档（见 styles/index.css 的说明），
+   * 常态下不挂这个类 —— 原先 CSS 用 `body *` 常驻通配，等于给每个元素都挂一份
+   * transition 计算：常态下任何颜色变化都被拖慢 150ms，切主题时还会触发全文档的
+   * 样式失效与大面积重绘。
+   */
+  function withTransition(mutate: () => void): void {
+    if (!import.meta.client || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      mutate()
+      return
+    }
+    const root = document.documentElement
+    root.classList.add('theme-transitioning')
+    mutate()
+    window.setTimeout(() => root.classList.remove('theme-transitioning'), 200)
+  }
+
   function setTheme(mode: ThemeMode): void {
     theme.value = mode
-    applyDom()
+    withTransition(applyDom)
   }
 
   function setAccent(name: AccentName): void {
     accent.value = name
-    applyDom()
+    withTransition(applyDom)
   }
 
   /** 在浅色/深色之间快速切换（system 视为其解析结果的反面） */

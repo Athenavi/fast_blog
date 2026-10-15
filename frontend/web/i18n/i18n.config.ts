@@ -24,5 +24,9 @@ import zhCN from './site/zh-CN.json'
 export default defineI18nConfig(() => ({
   messages: {
     'zh-CN': zhCN,
+    // 模块按 `locales` 生成了 `messages` 的强类型，要求列出**每个** locale（TS2741）。
+    // `en` 的前台文案走 lazy file（`i18n/messages/en.json`），切到英文时才加载，
+    // 这里用空对象占位即可 —— 它不覆盖后续 merge 进来的内容。
+    en: {},
   },
 }))

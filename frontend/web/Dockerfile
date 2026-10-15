@@ -17,7 +17,7 @@ WORKDIR /app
 
 # 依赖清单先拷贝，单独成层便于缓存
 COPY package.json package-lock.json ./
-# 与仓库 CI 保持一致：锁定版本安装（不跳过 optional 依赖，@nuxt/image 的 sharp 需要）
+# 与仓库 CI 保持一致：锁定版本安装
 RUN npm ci
 
 # 源码 + .env.production（nuxt build 会以 --dotenv .env.production 读取）

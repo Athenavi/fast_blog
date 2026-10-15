@@ -93,6 +93,10 @@ async function audit(page: Page, target: PageTarget): Promise<void> {
 
   const results = await new AxeBuilder({page})
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    // Nuxt DevTools 是 **dev 模式专属**的注入 UI（生产构建里没有它）——
+    // 它自己的低对比度配色不该污染这份基线（实测它固定贡献 1 条）。
+    .exclude('nuxt-devtools-frame')
+    .exclude('nuxt-devtools-label-secondary')
     .analyze()
 
   const current = summarize(results.violations)

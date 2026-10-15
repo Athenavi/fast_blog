@@ -58,6 +58,12 @@ useHead({
     lang: computed(() => String(locale.value)),
     dir: currentDir,
   },
+  meta: [
+    // 移动端浏览器 UI 的配色。**写成两个媒体查询分支，而不是跟随用户 cookie** ——
+    // 静态值才能与 swr 边缘缓存共存（理由见本文件头部关于主题的说明）。
+    {name: 'theme-color', media: '(prefers-color-scheme: light)', content: '#ffffff'},
+    {name: 'theme-color', media: '(prefers-color-scheme: dark)', content: '#1f2937'},
+  ],
   script: [
     {
       innerHTML: THEME_BOOTSTRAP,
