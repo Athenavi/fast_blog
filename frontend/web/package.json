@@ -13,7 +13,7 @@
     "build:check": "npm run prescan && nuxt typecheck && nuxt build --dotenv .env.production",
     "generate": "nuxt generate --dotenv .env.production",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
+    "postinstall": "npm run prescan && nuxt prepare",
     "type-check": "npm run prescan && nuxt typecheck",
     "check:i18n": "node scripts/check-i18n.mjs",
     "check:bundle": "node scripts/check-bundle-budget.mjs",
