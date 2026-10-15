@@ -24,6 +24,16 @@ onMounted(() => {
 })
 
 const requestUrl = useRequestURL()
+const site = await useSiteInfo()
+
+/**
+ * 分享卡片配图：优先文章封面，没有封面时回退站点 Logo
+ * （两者都可能是后端下发的相对路径，必须补成绝对 URL —— 否则抓取器会整张丢弃，
+ * 分享出去就是空卡片。见 utils/seo.ts）
+ */
+const shareImage = computed(() =>
+  absoluteAssetUrl(article.value?.cover_image || site.value.site_logo, requestUrl.origin),
+)
 
 const breadcrumbs = computed(() => [
   {label: t('common.home'), to: '/'},
@@ -51,8 +61,10 @@ useSeoMeta({
   description: () => article.value?.summary || '',
   ogTitle: () => article.value?.title || '',
   ogDescription: () => article.value?.summary || '',
-  ogImage: () => article.value?.cover_image || undefined,
+  ogImage: () => shareImage.value,
   ogType: 'article',
+  twitterCard: 'summary_large_image',
+  twitterImage: () => shareImage.value,
 })
 </script>
 

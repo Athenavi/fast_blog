@@ -36,7 +36,13 @@ const emit = defineEmits<{ (e: 'change', page: number): void; (e: 'retry'): void
     </div>
 
     <div v-else-if="props.articles.length" class="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
-      <ThemeArticleCard v-for="article in props.articles" :key="article.id" :article="article"/>
+      <!-- 前两张是首屏可见的 LCP 候选：跳过懒加载并给高优先级（见 ResponsiveImage） -->
+      <ThemeArticleCard
+        v-for="(article, index) in props.articles"
+        :key="article.id"
+        :article="article"
+        :eager="index < 2"
+      />
     </div>
 
     <ErrorState v-else-if="props.error" :description="props.errorDescription" @retry="emit('retry')"/>

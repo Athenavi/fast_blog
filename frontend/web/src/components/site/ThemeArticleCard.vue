@@ -19,8 +19,10 @@ const props = withDefaults(
     article: ArticleItem
     layout?: 'grid' | 'list'
     index?: number
+    /** 首屏（LCP）卡片：跳过懒加载并给高优先级，见 ResponsiveImage 的说明 */
+    eager?: boolean
   }>(),
-  {layout: 'grid', index: 0},
+  {layout: 'grid', index: 0, eager: false},
 )
 
 const {slot} = useThemeSlots()
@@ -37,12 +39,14 @@ const to = computed(() =>
   <article v-if="variant === 'compact'" class="group relative">
     <NuxtLink :to="to"
               class="flex items-center gap-3 rounded-card border border-line bg-surface p-3 transition-colors hover:border-line-strong">
-      <DeferredImage
+      <ResponsiveImage
         v-if="props.article.cover_image"
         :alt="props.article.title"
+        :eager="props.eager"
         :src="props.article.cover_image"
         aspect="4/3"
         class="w-20 flex-shrink-0 rounded-control"
+        sizes="80px"
       />
       <div v-else class="flex h-16 w-20 flex-shrink-0 items-center justify-center rounded-control bg-surface-soft">
         <Icon class="h-5 w-5 text-fg-subtle" name="file-text"/>
@@ -65,12 +69,14 @@ const to = computed(() =>
   <!-- 标准变体 · 横向条目 -->
   <article v-else-if="props.layout === 'list'" class="group">
     <NuxtLink :to="to" class="flex gap-4">
-      <DeferredImage
+      <ResponsiveImage
         v-if="props.article.cover_image"
         :alt="props.article.title"
+        :eager="props.eager"
         :src="props.article.cover_image"
         aspect="16/9"
         class="w-40 flex-shrink-0 rounded-card"
+        sizes="160px"
       />
       <div class="min-w-0 flex-1">
         <h3 class="text-base font-semibold leading-snug text-fg transition-colors group-hover:text-primary">
@@ -93,11 +99,13 @@ const to = computed(() =>
   <!-- 标准变体 · 竖向卡片（默认） -->
   <article v-else class="group">
     <NuxtLink :to="to" class="block">
-      <DeferredImage
+      <ResponsiveImage
         v-if="props.article.cover_image"
         :alt="props.article.title"
+        :eager="props.eager"
         :src="props.article.cover_image"
         class="mb-3 rounded-card"
+        sizes="xs:100vw sm:50vw lg:33vw"
       />
       <h3 class="text-base font-semibold leading-snug text-fg transition-colors group-hover:text-primary">
         {{ props.article.title }}

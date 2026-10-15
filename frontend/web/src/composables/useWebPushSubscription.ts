@@ -25,7 +25,7 @@
  */
 import {onMounted, ref, type Ref} from 'vue'
 
-import {webPushApi, type WebPushSubscriptionIn} from '@/api'
+import {webPushApi, type WebPushSubscriptionIn} from '@/api/public'
 
 /** 启用推送失败的**如实**原因（页面据此选文案） */
 export type WebPushFailReason =

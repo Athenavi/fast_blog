@@ -109,6 +109,19 @@ const dimensions = computed(() => {
 const extraAttrs = computed<Record<string, string>>(() => ({
   fetchpriority: props.eager ? 'high' : 'auto',
 }))
+
+/**
+ * 首屏图（`eager`）**不做淡入**。
+ *
+ * 淡入的实现方式是 `opacity-0` → 加载完成 → `opacity-100`，而 LCP 只统计
+ * 「已经绘制出来」的元素：opacity 为 0 的图片不计入，于是那 300ms 过渡会被整段
+ * 加到 LCP 上。首屏图本来就该"一出现就是最终样子"，淡入只留给懒加载图。
+ */
+const imgClass = computed(() =>
+  props.eager
+    ? 'h-full w-full object-cover'
+    : `h-full w-full object-cover transition-opacity duration-300 ${loaded.value ? 'opacity-100' : 'opacity-0'}`,
+)
 </script>
 
 <template>
@@ -119,7 +132,7 @@ const extraAttrs = computed<Record<string, string>>(() => ({
     <!-- 媒体库图片：多档变体 + Accept 协商格式（外链图片不带 srcset，原样输出） -->
     <img
       v-if="props.src && !failed"
-      :class="[loaded ? 'opacity-100' : 'opacity-0', 'h-full w-full object-cover transition-opacity duration-300']"
+      :class="imgClass"
       :alt="props.alt"
       :decoding="props.eager ? 'sync' : 'async'"
       :height="isRemote ? undefined : dimensions.height"

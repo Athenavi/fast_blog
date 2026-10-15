@@ -42,20 +42,24 @@ const NUXT_DIR = path.join(PUBLIC_DIR, '_nuxt')
 const SERVER_ENTRY = path.join(OUTPUT_DIR, 'server', 'index.mjs')
 
 /** 首屏关键路径 JS 预算（gzip KB）—— 解析 SSR HTML 得到，超过即失败。基线见文件末尾。 */
-const DEFAULT_INITIAL_KB = 200
+const DEFAULT_INITIAL_KB = 180
 /** 全量 JS 预算（gzip KB）—— 防止 chunk 数量与体积无感膨胀。 */
-const DEFAULT_TOTAL_KB = 1600
+const DEFAULT_TOTAL_KB = 1520
 /**
  * **单页完整 gzip 传输**预算（KB，含 JS/CSS/JSON/字体/图片）。
  * 这是用户真正付的钱，基线见文件末尾的实测记录。
  *
- * 现值 600 是**当前实测**（前台首页 267 / 后台仪表盘 560），不是理想值 ——
- * 后台那 560 KB 里有 **266 KB 是整包 ECharts**（`lIigFbOy.js`），一进仪表盘就全量下载。
- * 那是 B4（后台 Element Plus / 图表按需引入）的解决目标；B4 落地后这个预算应收到 360 以内。
+ * 现值 360 是**P0 收口后的实测**（前台首页 254 / 后台仪表盘 262，见文件末尾），
+ * 留了约 35% 余量给会随内容变化的图片与媒体。
+ *
+ * 历史：曾长期挂在 600，因为后台仪表盘一进入就下载 **266 KB 的整包 ECharts**。
+ * 那件事已经在 `components/admin/DonutChart.vue` 落地 —— 改成只 `import('echarts/core')`
+ * + `PieChart` + `CanvasRenderer` 按需引入，且整块是动态 import。所以这里按当初
+ * 约定的「B4 落地后收到 360 以内」收紧了阈值，避免它再次被无声撑大。
  */
-const DEFAULT_PAGE_KB = 600
+const DEFAULT_PAGE_KB = 360
 /** **单页请求数**上限 —— 首屏请求数失控同样拖慢可交互时间。 */
-const DEFAULT_REQUESTS = 100
+const DEFAULT_REQUESTS = 80
 
 /** 被测路由：前台是 SSR、后台是 CSR（routeRules），两者的资源图都要量。 */
 const ROUTES = [
@@ -486,6 +490,22 @@ process.exitCode = await main()
 //   首屏关键路径 前台首页 198KB / 后台仪表盘 161KB / 全量 JS 1482KB（208 个 chunk）
 //   单页完整资源图 前台首页约 215KB / 62 个请求（three.js 184KB 已移除；
 //                 i18n messages.json 由 66KB 降到约 0.3KB）
+//
+// 2026-10-15（P0 收口后，预算随之收紧）：
+//   首屏关键路径 前台首页 166KB / 25 个脚本；后台仪表盘 139KB / 6 个脚本
+//   全量 JS 1452KB（203 个 chunk）
+//   单页完整资源图 前台首页 254KB / 63 个请求；后台仪表盘 262KB / 56 个请求
+//   阈值：首屏 200→180、全量 1600→1520、单页 600→360、请求数 100→80
+//
+//   首屏掉下来的 33KB / 13 个脚本来自两处，都不是"少写代码"换来的：
+//     a) 封面接回 `ResponsiveImage`（此前全站 0 引用，走的是 `DeferredImage` 直接拉原图；
+//        现在有 200/480/800/1600 四档 + avif→webp 协商，且首屏图带 fetchpriority=high）；
+//     b) `store/modules/user.ts` 不再静态 import `@/api/modules/auth` ——
+//        该 store 被全局指令插件与 SiteHeader 引用，那一行曾让 **axios（约 20KB gzip）
+//        出现在每个页面（含匿名访客）的首屏**，改为 action 内动态 import 后消失。
+//
+//   注意：单页完整资源图只降了 2KB，因为真实浏览器里 axios 仍会被 NuxtLink 的
+//   路由预取带下来（不占首屏关键路径）。要继续压需要关掉非关键链接的 prefetch。
 //
 // 两道口径都要盯：只看首屏关键路径时，three.js（异步 chunk，184KB gzip）与
 // i18n 文案（运行时 fetch 的 JSON，66KB gzip）都是隐形的 —— 这正是口径 2 存在的原因。

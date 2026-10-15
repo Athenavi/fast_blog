@@ -33,6 +33,17 @@ const saving = ref(false)
 const hasApiToken = ref(false)
 
 /**
+ * 配置加载失败标记。
+ *
+ * 为什么必须有：下面 `load()` 此前是 `try { … } finally { … }` —— **没有 catch**。
+ * 取配置失败时 Promise 直接拒绝（未处理的 rejection，控制台一条红字），而 `form`
+ * 仍是初始默认值，页面照常渲染出一张**空白表单**。用户看到的不是"加载失败"而是
+ * "配置是空的"，此时一旦点保存，就会拿这一堆默认值**覆盖掉线上真实的 CDN 配置**。
+ * 所以失败时不但要提示，还要**不渲染表单**。
+ */
+const loadFailed = ref(false)
+
+/**
  * 厂商非敏感标识的存放位置：`settings`。
  * 敏感密钥统一走 `api_token` 单槽（按 provider 语义不同：Cloudflare API Token /
  * AWS Secret Access Key / 阿里云 AccessKey Secret / 腾讯云 SecretKey），落库前加密。
@@ -87,6 +98,7 @@ const regionPlaceholder = computed(() =>
 
 async function load(): Promise<void> {
   loading.value = true
+  loadFailed.value = false
   try {
     const config: CdnConfig = await cdnApi.getConfig()
     hasApiToken.value = config.has_api_token
@@ -105,6 +117,9 @@ async function load(): Promise<void> {
     for (const key of VENDOR_SETTING_KEYS) delete settings[key]
     form.settings_text = Object.keys(settings).length ? JSON.stringify(settings, null, 2) : ''
     form.is_active = config.is_active
+  } catch {
+    // 失败不能"静默降级成默认表单"（那会让保存变成覆盖线上配置），显式进入失败态
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -216,7 +231,11 @@ async function runPreheat(): Promise<void> {
         <span>{{ $t('admin.ops.cdn.title') }}</span>
       </template>
 
-      <el-form :model="form" label-width="130px" style="max-width: 640px">
+      <AdminEmpty v-if="loadFailed" :desc="$t('admin.common.loadFailed')" variant="error">
+        <el-button @click="load">{{ $t('admin.common.retry') }}</el-button>
+      </AdminEmpty>
+
+      <el-form v-if="!loadFailed" :model="form" label-width="130px" style="max-width: 640px">
         <el-form-item :label="$t('admin.ops.cdn.provider')" required>
           <el-select v-model="form.provider" style="width: 100%">
             <el-option label="Cloudflare" value="cloudflare"/>
@@ -281,8 +300,9 @@ async function runPreheat(): Promise<void> {
       </el-form>
     </el-card>
 
-    <!-- 远端动作：真实调用厂商接口；未接入/未配置时后端会带原因拒绝 -->
-    <el-card class="remote-card" shadow="never">
+    <!-- 远端动作：真实调用厂商接口；未接入/未配置时后端会带原因拒绝。
+         配置没读出来时不放行这些动作：后端用的是库里的配置，而当前界面对它一无所知 -->
+    <el-card v-if="!loadFailed" class="remote-card" shadow="never">
       <template #header>
         <span>{{ $t('admin.ops.cdn.remote.title') }}</span>
       </template>

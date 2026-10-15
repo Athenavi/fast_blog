@@ -2,17 +2,16 @@
 /**
  * 前台布局：顶部导航 + 正文区 + 页脚
  *
- * 三个数据源**并发**取：站点信息、主题槽位、以及预热顶部导航。
+ * 站点信息 / 主题槽位 / 顶部导航由**一个聚合接口**一次取回并做服务端缓存
+ * （`server/routes/__site/bootstrap.get.ts`，前端入口见 `composables/useSiteBootstrap.ts`），
+ * 所以这里 `await` 一次就够了 —— `SiteHeader` 的 `useSiteNav()` 与
+ * `ThemeArticleCard` 的 `slot()` 读的都是同一份 `useState`，不会再多发请求。
  *
- * 原先是一个个 `await`，把 3 次后端往返串起来全压在 TTFB 上 —— 而且布局的 setup
- * 先于页面执行，页面里的取数只能排在它之后，等于每页至少多两轮往返。
- * 导航在这里预热后，`SiteHeader` 内部那次调用会直接命中 `useSiteNav` 的缓存。
+ * 历史：这三者原先是三个后端请求（后来改成并发，只占一轮往返），但那一轮往返
+ * **串在页面自己取数的前面**（布局 setup 先于页面 setup），等于每页两轮往返。
+ * 现在布局只等一次**同进程的 Nitro 调用**，后端只在缓存未命中时才被问一次。
  */
-const [site] = await Promise.all([
-  useSiteInfo(),
-  initThemeSlots(),
-  useSiteNav(),
-])
+const site = await useSiteInfo()
 </script>
 
 <template>

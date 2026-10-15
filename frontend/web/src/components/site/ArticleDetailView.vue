@@ -15,9 +15,8 @@
  */
 import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 
-import {mobileApi} from '@/api'
-import type {ArticleItem} from '@/types/content'
-import type {ArticleDetail} from '@/types/content'
+import {mobileApi} from '@/api/public'
+import type {ArticleDetail, ArticleItem} from '@/types/content'
 import {useReadingPrefs} from '@/composables/useReadingPrefs'
 import {useUserStore} from '@/store/modules/user'
 import {formatDate} from '@/utils/format'
@@ -174,34 +173,94 @@ function onContentClick(event: MouseEvent): void {
 /**
  * SSR 出来的 `<pre><code class="language-xxx">` 是纯文本，挂载后按语言着色；
  * 同时给每个代码块挂一个"复制"按钮（此前只能手动选中）。
+ *
+ * ## 为什么高亮要**等代码块进入视口**才做
+ *
+ * 原先挂载时对**全文所有** `<pre>` 逐个 `hljs.highlightElement()`。博客正文里
+ * 十几个代码块是常态，每个都要重新切词、构建 DOM 片段并把整段 innerHTML 换掉 ——
+ * 这是一串**同步的长任务**，全部压在首屏水合之后，正好落在 Interaction to Next Paint
+ * 的采样窗口里：读者点开文章想滚动/点按钮时会感到明显卡顿，而这十几个代码块里
+ * 往往只有第一个是可见的。
+ *
+ * 现在：复制按钮照旧立刻挂（纯 DOM 追加，代价可忽略，用户随时可能去点），
+ * 高亮交给 `IntersectionObserver`，提前 400px 预热 —— 滚动到之前就已经着色完毕，
+ * 看不到"先黑后彩"的闪烁。
+ *
+ * 顺带把 highlight.js 的下载时机也推迟了：没有代码块进入视口，这一包就永远不下载。
  */
-async function enhanceCodeBlocks(): Promise<void> {
-  if (!import.meta.client) return
-  const blocks = document.querySelectorAll<HTMLElement>('.prose-content pre')
-  if (!blocks.length) return
+type Highlighter = { highlightElement: (el: HTMLElement) => void }
 
-  const {hljs} = await import('@/lib/highlight')
+/** highlight.js 只下载一次（动态 import 本身有缓存，这里再兜一层避免并发重复） */
+let highlighterPromise: Promise<Highlighter> | null = null
+
+function loadHighlighter(): Promise<Highlighter> {
+  highlighterPromise ??= import('@/lib/highlight').then((mod) => mod.hljs as Highlighter)
+  return highlighterPromise
+}
+
+/** 视口观察器：进入视口的代码块交给 highlight.js，之后不再观察 */
+let blockObserver: IntersectionObserver | null = null
+
+async function highlightBlocks(blocks: HTMLElement[]): Promise<void> {
+  const hljs = await loadHighlighter()
   blocks.forEach((pre) => {
     pre.querySelectorAll<HTMLElement>('code').forEach((node) => {
       if (node.dataset.highlighted !== 'yes') hljs.highlightElement(node)
     })
-    if (pre.dataset.copyAttached === 'yes') return
-    pre.dataset.copyAttached = 'yes'
-    const button = document.createElement('button')
-    button.type = 'button'
-    button.className = 'code-copy'
-    button.textContent = t('article.copyCode')
-    button.addEventListener('click', () => {
-      const code = pre.querySelector('code')?.textContent ?? ''
-      void navigator.clipboard.writeText(code).then(() => {
-        button.textContent = t('article.codeCopied')
-        window.setTimeout(() => {
-          button.textContent = t('article.copyCode')
-        }, 1800)
-      })
-    })
-    pre.appendChild(button)
   })
+}
+
+/** 给代码块挂"复制"按钮（幂等：重复调用不会挂第二个） */
+function attachCopyButton(pre: HTMLElement): void {
+  if (pre.dataset.copyAttached === 'yes') return
+  pre.dataset.copyAttached = 'yes'
+
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = 'code-copy'
+  button.textContent = t('article.copyCode')
+  button.addEventListener('click', () => {
+    const code = pre.querySelector('code')?.textContent ?? ''
+    void navigator.clipboard.writeText(code).then(() => {
+      button.textContent = t('article.codeCopied')
+      window.setTimeout(() => {
+        button.textContent = t('article.copyCode')
+      }, 1800)
+    })
+  })
+  pre.appendChild(button)
+}
+
+async function enhanceCodeBlocks(): Promise<void> {
+  if (!import.meta.client) return
+  const blocks = Array.from(document.querySelectorAll<HTMLElement>('.prose-content pre'))
+  if (!blocks.length) return
+
+  blocks.forEach(attachCopyButton)
+
+  const pending = blocks.filter((pre) => pre.querySelector('code[data-highlighted="yes"]') === null)
+  if (!pending.length) return
+
+  // 环境不支持 IntersectionObserver（或 SSR 预渲染的极简浏览器）：退回一次性高亮
+  if (typeof IntersectionObserver === 'undefined') {
+    await highlightBlocks(pending)
+    return
+  }
+
+  blockObserver?.disconnect()
+  blockObserver = new IntersectionObserver(
+    (entries) => {
+      const entered = entries
+        .filter((entry) => entry.isIntersecting)
+        .map((entry) => entry.target as HTMLElement)
+      if (!entered.length) return
+      entered.forEach((pre) => blockObserver?.unobserve(pre))
+      void highlightBlocks(entered)
+    },
+    // 提前 400px 预热：滚到之前就着色完，避免"先黑后彩"
+    {rootMargin: '400px 0px'},
+  )
+  pending.forEach((pre) => blockObserver?.observe(pre))
 }
 
 // ---------------------------------------------------------------- 相关文章
@@ -232,6 +291,8 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   if (import.meta.client) window.removeEventListener('scroll', onScroll)
+  blockObserver?.disconnect()
+  blockObserver = null
 })
 
 watch(content, () => void nextTick(enhanceCodeBlocks))
@@ -324,12 +385,15 @@ watch(content, () => void nextTick(enhanceCodeBlocks))
         </div>
       </header>
 
-      <img
+      <!-- 正文封面就是本文的 LCP 元素：走变体 + 高优先级，不做淡入（见 ResponsiveImage） -->
+      <ResponsiveImage
         v-if="props.article.cover_image"
         :alt="props.article.title"
         :src="props.article.cover_image"
-        class="mt-7 w-full rounded-card object-cover" decoding="async"
-      >
+        class="mt-7 w-full rounded-card"
+        eager
+        sizes="xs:100vw md:736px"
+      ></ResponsiveImage>
 
       <!-- 需要 VIP：正文未下发 -->
       <section

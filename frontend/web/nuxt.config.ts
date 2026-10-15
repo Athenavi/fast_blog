@@ -98,7 +98,9 @@ export default defineNuxtConfig({
       // 只预缓存静态资源；页面走网络优先，避免内容站拿到过期 HTML
       globPatterns: ['**/*.{js,css,html,svg,ico,woff2}'],
       navigateFallback: '/',
-      navigateFallbackDenylist: [/^\/api\//, /^\/admin\//, /^\/system\//],
+      // `/__site/` 是内部聚合接口（见 server/routes/__site/bootstrap.get.ts），
+      // 不是页面：必须排除，否则 SW 会把它的请求回退成 HTML
+      navigateFallbackDenylist: [/^\/api\//, /^\/admin\//, /^\/system\//, /^\/__site\//],
       runtimeCaching: [
         {
           // 媒体文件：缓存优先，方便离线查看已浏览过的图片

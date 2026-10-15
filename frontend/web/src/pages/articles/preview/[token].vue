@@ -108,12 +108,14 @@ useSeoMeta({
         </span>
       </div>
 
-      <img
+      <ResponsiveImage
         v-if="article.cover_image"
         :alt="article.title || ''"
         :src="article.cover_image"
-        class="mt-7 w-full rounded-card object-cover" decoding="async"
-      >
+        class="mt-7 w-full rounded-card"
+        eager
+        sizes="xs:100vw md:736px"
+      ></ResponsiveImage>
 
       <p v-if="article.excerpt" class="mt-5 text-base leading-relaxed text-fg-muted">
         {{ article.excerpt }}

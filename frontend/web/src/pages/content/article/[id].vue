@@ -1,32 +1,23 @@
 <script lang="ts" setup>
 import {ArrowDown, ArrowLeft, Check, Picture, View} from '@element-plus/icons-vue'
 import {onBeforeRouteLeave} from 'vue-router'
-import {computed, reactive, ref, watch} from 'vue'
+import {computed, ref} from 'vue'
 
-import {
-  articleApi,
-  recommendApi,
-  type ArticlePreviewToken,
-  type ArticlePreviewTokenCreatePayload,
-  type RecommendArticleItem,
-  type RecommendPopularItem,
-  type RecommendRelatedItem,
-  type RecommendScoredItem,
-  type RecommendTagSuggestion,
-  type RecommendTrendingTag,
-} from '@/api'
+import ArticleAssistPanel from '@/components/admin/ArticleAssistPanel.vue'
+import ArticlePreviewTokenPanel from '@/components/admin/ArticlePreviewTokenPanel.vue'
 import RichEditor from '@/components/site/RichEditor.vue'
 import {useArticleForm} from '@/composables/useArticleForm'
 import {useCategoryOptions} from '@/composables/useCategoryOptions'
 import {useSaveShortcut} from '@/composables/useSaveShortcut'
 import {ElMessage, ElMessageBox} from '@/utils/feedback'
-import {articleStatusKey, articleStatusTag, formatDate, formatDateTime, localTimeZone} from '@/utils/format'
+import {articleStatusKey, articleStatusTag, formatDateTime, localTimeZone} from '@/utils/format'
 
 /**
  * 文章编辑（独立页面）
  *
  * 路由：`/content/article/new` 新建，`/content/article/{id}` 编辑。
- * 左侧是内容主体（标题 / 摘要 / 别名 / 富文本正文），右侧是发布设置与元信息，
+ * 左侧只放标题与正文；发布设置、摘要与别名，以及已各自独立成组件的
+ * `ArticleAssistPanel` / `ArticlePreviewTokenPanel` 都在右栏。
  * 顶部固定操作条（返回 / 预览 / 保存 / 发布 ▾）。
  *
  * 正文用 Tiptap 富文本（复用 `components/site/RichEditor.vue`，与前台投稿同一套编辑器）。
@@ -123,11 +114,26 @@ async function onPublishCommand(command: string): Promise<void> {
 // ---------------------------------------------------------------- 预览
 /** 右栏在"设置 / 并排预览"之间切换 */
 const sidePanel = ref<'settings' | 'preview'>('settings')
+/**
+ * 全屏预览：把整个内容区让给 iframe。
+ *
+ * 并排预览在半屏宽度下几乎读不出排版效果（正文被压到 300px 上下），
+ * 校稿时需要"就是前台那个样子"的宽度 —— 所以给一个不离开本页的全屏开关。
+ */
+const previewFullscreen = ref(false)
 /** 定时发布时间是"本机时区"的墙上时间，界面要标出来 */
 const timeZone = localTimeZone()
 /** 自增即强制 iframe 重建，用来"刷新预览" */
 const previewToken = ref(0)
 const coverPickerOpen = ref(false)
+
+/**
+ * 正文字数。
+ *
+ * `form.content` 是 Tiptap 产出的 HTML，这里剥掉标签再统计**非空白字符数** ——
+ * 中文写作里这就是"字数"，也正是编辑时唯一有用的一档量级（不需要词/字分别统计）。
+ */
+const wordCount = computed(() => String(form.content ?? '').replace(/<[^>]*>/g, '').replace(/\s+/g, '').length)
 
 const previewUrl = computed(() =>
   articleId.value === null ? 'about:blank' : `/articles/id/${articleId.value}`,
@@ -138,7 +144,12 @@ function togglePreview(): void {
     ElMessage.warning(t('admin.content.article.saveBeforePreview'))
     return
   }
-  sidePanel.value = sidePanel.value === 'preview' ? 'settings' : 'preview'
+  if (sidePanel.value === 'preview') {
+    sidePanel.value = 'settings'
+    previewFullscreen.value = false
+    return
+  }
+  sidePanel.value = 'preview'
 }
 
 function refreshPreview(): void {
@@ -176,218 +187,22 @@ onMounted(() => {
   void load()
 })
 
-// ---------------------------------------------------------------- 内容助手（推荐 /content/recommend）
-/** 右栏「内容助手」当前标签页 */
-const assistTab = ref<'tags' | 'related' | 'popular' | 'trending' | 'forMe'>('tags')
-
-/** 标签建议（service.tag_suggestions / suggest） */
-const tagSuggestions = ref<RecommendTagSuggestion[]>([])
-/** 相关文章（service.related） */
-const relatedItems = ref<RecommendRelatedItem[]>([])
-/** 热门文章（service.popular） */
-const popularItems = ref<RecommendPopularItem[]>([])
-/** 热门文章口径说明（后端原样文案） */
-const popularSource = ref('')
-/** 热门标签（service.trending_tags） */
-const trendingItems = ref<RecommendTrendingTag[]>([])
-/** 个性化推荐（service.for_user） */
-const forMeItems = ref<RecommendScoredItem[]>([])
-/** 个性化推荐冷启动标记（无行为样本） */
-const forMeColdStart = ref(false)
-
-/** 文章站内链接：有 slug 用 slug，否则回退到 id 路由（与前台卡片一致） */
-function articleLink(item: RecommendArticleItem): string {
-  return item.slug ? `/articles/${item.slug}` : `/articles/id/${item.id}`
-}
-
-/** 采纳建议标签：写入表单并标记未保存（无权限时按钮已由 v-auth 隐藏） */
+// ---------------------------------------------------------------- 内容助手
+/**
+ * 采纳建议标签：写入表单并标记未保存（无权限时按钮已由 v-auth 隐藏）。
+ *
+ * 面板本体（5 个标签页、各自的加载/失败/空三态、列表样式）在
+ * `components/admin/ArticleAssistPanel.vue`；这里只留下与**表单状态**相关的那一件事。
+ */
 function adoptTag(tag: string): void {
   if (!tag || form.tags.includes(tag)) return
   form.tags = [...form.tags, tag]
   markDirty()
 }
 
-async function loadTagSuggestions(): Promise<void> {
-  if (articleId.value === null) {
-    tagSuggestions.value = []
-    return
-  }
-  try {
-    const result = await recommendApi.tagSuggestions(articleId.value, 10)
-    tagSuggestions.value = result.suggestions ?? []
-  } catch {
-    tagSuggestions.value = []
-  }
-}
-
-async function loadRelated(): Promise<void> {
-  if (articleId.value === null) {
-    relatedItems.value = []
-    return
-  }
-  try {
-    const result = await recommendApi.related(articleId.value, 8)
-    relatedItems.value = result.items ?? []
-  } catch {
-    relatedItems.value = []
-  }
-}
-
-async function loadPopular(): Promise<void> {
-  try {
-    const result = await recommendApi.popular(undefined, 10)
-    popularItems.value = result.items ?? []
-    popularSource.value = result.source ?? ''
-  } catch {
-    popularItems.value = []
-    popularSource.value = ''
-  }
-}
-
-async function loadTrendingTags(): Promise<void> {
-  try {
-    const result = await recommendApi.trendingTags(30, 20)
-    trendingItems.value = result.items ?? []
-  } catch {
-    trendingItems.value = []
-  }
-}
-
-async function loadForMe(): Promise<void> {
-  try {
-    const result = await recommendApi.forMe(10)
-    forMeItems.value = result.items ?? []
-    forMeColdStart.value = Boolean(result.cold_start)
-  } catch {
-    forMeItems.value = []
-    forMeColdStart.value = false
-  }
-}
-
-/** 保存/发布后拿到文章 id：补齐依赖 article_id 的两项推荐 */
-// ---------------------------------------------------------------- 草稿预览令牌
-/** 该文章已签发的预览令牌（GET /content/article/{id}/preview-tokens） */
-const previewTokens = ref<ArticlePreviewToken[]>([])
-const previewTokensLoading = ref(false)
-/** 生成令牌入参：有效期 / 可选口令 / 可选访问上限 */
-const tokenForm = reactive<ArticlePreviewTokenCreatePayload>({
-  expires_hours: 24,
-  password: '',
-  max_views: undefined,
-})
-const tokenCreating = ref(false)
-/** 最近一次生成的令牌：明文只在生成响应里出现，提示用户立即复制 */
-const latestToken = ref<ArticlePreviewToken | null>(null)
-
-/** 令牌对应的公开预览地址（前台页面 `/articles/preview/{token}`，无须登录） */
-function tokenPreviewUrl(value: string): string {
-  const origin = import.meta.client ? window.location.origin : ''
-  return `${origin}/articles/preview/${value}`
-}
-
-/** 最近生成的令牌预览地址（模板里避免直接解引用可空 ref） */
-const latestTokenUrl = computed(() =>
-  latestToken.value ? tokenPreviewUrl(latestToken.value.token) : '',
-)
-
-async function loadPreviewTokens(): Promise<void> {
-  if (articleId.value === null) {
-    previewTokens.value = []
-    return
-  }
-  previewTokensLoading.value = true
-  try {
-    previewTokens.value = await articleApi.listPreviewTokens(articleId.value)
-  } catch {
-    previewTokens.value = []
-  } finally {
-    previewTokensLoading.value = false
-  }
-}
-
-async function copyText(text: string): Promise<void> {
-  if (!text) return
-  try {
-    await navigator.clipboard.writeText(text)
-    ElMessage.success(t('admin.content.article.previewToken.copied'))
-  } catch {
-    ElMessage.warning(text)
-  }
-}
-
-function copyTokenLink(value: string): void {
-  void copyText(tokenPreviewUrl(value))
-}
-
-async function createPreviewToken(): Promise<void> {
-  if (articleId.value === null) {
-    ElMessage.warning(t('admin.content.article.saveBeforePreview'))
-    return
-  }
-  tokenCreating.value = true
-  try {
-    const payload: ArticlePreviewTokenCreatePayload = {expires_hours: tokenForm.expires_hours ?? 24}
-    if (tokenForm.password) payload.password = tokenForm.password
-    if (tokenForm.max_views) payload.max_views = tokenForm.max_views
-    latestToken.value = await articleApi.createPreviewToken(articleId.value, payload)
-    tokenForm.password = ''
-    tokenForm.max_views = undefined
-    ElMessage.success(t('admin.content.article.previewToken.created'))
-    await loadPreviewTokens()
-  } catch {
-    /* 失败提示由 http 拦截器统一给出 */
-  } finally {
-    tokenCreating.value = false
-  }
-}
-
-async function revokeToken(row: ArticlePreviewToken): Promise<void> {
-  try {
-    await ElMessageBox.confirm(
-      t('admin.content.article.previewToken.revokeConfirm'),
-      t('admin.common.notice'),
-      {type: 'warning'},
-    )
-  } catch {
-    return
-  }
-  try {
-    await articleApi.revokePreviewToken(row.id)
-    if (latestToken.value?.id === row.id) latestToken.value = null
-    ElMessage.success(t('admin.content.article.previewToken.revoked'))
-    await loadPreviewTokens()
-  } catch {
-    /* 失败提示由 http 拦截器统一给出 */
-  }
-}
-
-async function cleanupTokens(): Promise<void> {
-  try {
-    const result = await articleApi.cleanupPreviewTokens()
-    ElMessage.success(t('admin.content.article.previewToken.cleanupDone', {n: result.removed}))
-    await loadPreviewTokens()
-  } catch {
-    /* 失败提示由 http 拦截器统一给出 */
-  }
-}
-
-/** 保存/发布后拿到文章 id：补齐依赖 article_id 的推荐与令牌列表 */
-watch(articleId, (id) => {
-  if (id !== null) {
-    void loadTagSuggestions()
-    void loadRelated()
-    void loadPreviewTokens()
-  }
-})
-
-onMounted(() => {
-  void loadPopular()
-  void loadTrendingTags()
-  void loadForMe()
-  void loadTagSuggestions()
-  void loadRelated()
-  void loadPreviewTokens()
-})
+// 内容助手与草稿预览令牌各自整块搬进了 `components/admin/*Panel.vue`：
+// 它们只依赖 `articleId`，在组件内部自行挂载加载并监听 id 变化，
+// 页面不再需要为它们保留状态、函数或生命周期钩子。
 </script>
 
 <template>
@@ -459,53 +274,62 @@ onMounted(() => {
       </div>
     </el-alert>
 
-    <el-skeleton v-if="loading" :rows="8" animated/>
+    <!-- 加载骨架按编辑器的真实形状给：标题 + 工具栏 + 正文块。
+         原来是 `:rows="8"` 的通用灰条，看起来像要加载一个列表，与编辑器的形态不符 -->
+    <el-skeleton v-if="loading" animated class="editor-skeleton admin-card">
+      <template #template>
+        <el-skeleton-item class="editor-skeleton__title" variant="h1"/>
+        <div class="editor-skeleton__toolbar">
+          <el-skeleton-item v-for="n in 10" :key="n" class="editor-skeleton__tool" variant="text"/>
+        </div>
+        <div class="editor-skeleton__body">
+          <el-skeleton-item v-for="n in 7" :key="n" class="editor-skeleton__line" variant="text"/>
+        </div>
+      </template>
+    </el-skeleton>
 
     <AdminEmpty v-else-if="notFound" :desc="$t('admin.content.article.notFound')" variant="error">
       <el-button @click="goBack">{{ $t('admin.content.article.backToList') }}</el-button>
     </AdminEmpty>
 
-    <div v-else :class="['admin-split', {'admin-split--preview': sidePanel === 'preview'}]">
-      <!-- 左：内容主体 -->
-      <div class="editor-main admin-card admin-card--pad">
-        <el-input
-          v-model="form.title"
-          :placeholder="$t('admin.content.article.articleTitle')"
-          class="editor-title"
-          maxlength="200"
-          @input="markDirty()"
-        />
+    <div
+      v-else
+      :class="[
+        'admin-split',
+        {
+          'admin-split--preview': sidePanel === 'preview',
+        },
+      ]"
+    >
+      <!-- 左：写作主体。**只放标题与正文** —— 别名/摘要这类元信息全部归右栏，
+           不再插在标题与正文之间打断写作动线（此前它们挡在正文上方，改一段正文
+           要先滚过两个表单字段） -->
+      <section class="editor-main admin-card">
+        <header class="editor-main__head">
+          <el-input
+            v-model="form.title"
+            :aria-label="$t('admin.content.article.articleTitle')"
+            :placeholder="$t('admin.content.article.articleTitle')"
+            class="editor-title"
+            maxlength="200"
+            @input="markDirty()"
+          />
+          <div class="editor-main__meta">
+            <span>{{ $t('admin.content.article.wordCount', {n: wordCount}) }}</span>
+            <span v-if="form.slug" class="editor-main__permalink">/{{ form.slug }}</span>
+          </div>
+        </header>
 
-        <el-form label-position="top">
-          <el-form-item :label="$t('admin.content.article.alias')">
-            <el-input
-              v-model="form.slug"
-              :placeholder="$t('admin.content.article.urlAliasLeaveBlankToGenerate')"
-              @input="markDirty()"
-            >
-              <template #prepend>/</template>
-            </el-input>
-          </el-form-item>
-
-          <el-form-item :label="$t('admin.content.article.summary')">
-            <el-input
-              v-model="form.excerpt"
-              :maxlength="255"
-              :rows="2"
-              show-word-limit
-              type="textarea"
-              @input="markDirty()"
-            />
-          </el-form-item>
-
-          <el-form-item :label="$t('admin.content.article.content')">
-            <div class="editor-body">
-              <RichEditor v-model="form.content" :placeholder="$t('admin.content.article.content')"
-                          @update:model-value="markDirty()"/>
-            </div>
-          </el-form-item>
-        </el-form>
-      </div>
+        <!-- 正文：**不再套 el-form-item** —— 那只是把它当布局容器用，
+             而 el-form-item 会带上标签与下边距，把编辑器往下压一截 -->
+        <div class="editor-body">
+          <RichEditor
+            v-model="form.content"
+            :placeholder="$t('admin.content.article.content')"
+            @update:model-value="markDirty()"
+          />
+        </div>
+      </section>
 
       <!-- 右：发布设置与元信息（切到预览时替换为并排预览） -->
       <div v-if="sidePanel === 'settings'" class="editor-side">
@@ -598,221 +422,66 @@ onMounted(() => {
           </el-form>
         </el-card>
 
+        <!-- 摘要与别名：**从左侧正文区移过来**。它们是"写作时瞥一眼、发布前调一次"的字段，
+             此前夹在标题与正文之间，改一段正文要先滚过两个表单字段 -->
         <el-card shadow="never">
-          <template #header>{{ $t('admin.content.article.recommend.title') }}</template>
-
-          <el-tabs v-model="assistTab">
-            <!-- 标签建议（GET /content/recommend/tags/{article_id}） -->
-            <el-tab-pane :label="$t('admin.content.article.recommend.tabTags')" name="tags">
-              <p v-if="articleId === null" class="assist-hint">
-                {{ $t('admin.content.article.recommend.saveFirst') }}
-              </p>
-              <p v-else-if="!tagSuggestions.length" class="assist-hint">
-                {{ $t('admin.content.article.recommend.emptyTags') }}
-              </p>
-              <ul v-else class="assist-list">
-                <li v-for="item in tagSuggestions" :key="item.tag" class="assist-row">
-                  <span class="assist-row__main">
-                    <span class="assist-row__title">{{ item.tag }}</span>
-                    <span class="assist-row__meta">
-                      <el-tag v-if="item.already_on_article" size="small" type="success">
-                        {{ $t('admin.content.article.recommend.onArticle') }}
-                      </el-tag>
-                      <el-tag v-else-if="item.in_use" size="small" type="info">
-                        {{ $t('admin.content.article.recommend.inLibrary') }}
-                      </el-tag>
-                      <span>{{ item.count }}</span>
-                    </span>
-                  </span>
-                  <el-button
-                    v-auth="'module_content:article:edit'"
-                    :disabled="item.already_on_article"
-                    link
-                    size="small"
-                    @click="adoptTag(item.tag)"
-                  >
-                    {{ $t('admin.content.article.recommend.adopt') }}
-                  </el-button>
-                </li>
-              </ul>
-            </el-tab-pane>
-
-            <!-- 相关文章（GET /content/recommend/related/{article_id}） -->
-            <el-tab-pane :label="$t('admin.content.article.recommend.tabRelated')" name="related">
-              <p v-if="articleId === null" class="assist-hint">
-                {{ $t('admin.content.article.recommend.saveFirst') }}
-              </p>
-              <p v-else-if="!relatedItems.length" class="assist-hint">
-                {{ $t('admin.content.article.recommend.emptyRelated') }}
-              </p>
-              <ul v-else class="assist-list">
-                <li v-for="item in relatedItems" :key="item.id" class="assist-row">
-                  <a :href="articleLink(item)" class="assist-row__link" rel="noopener" target="_blank">{{
-                      item.title
-                    }}</a>
-                  <span class="assist-row__meta">
-                    {{ formatDate(item.published_at) }} · {{ item.views }}
-                  </span>
-                </li>
-              </ul>
-            </el-tab-pane>
-
-            <!-- 热门文章（GET /content/recommend/popular） -->
-            <el-tab-pane :label="$t('admin.content.article.recommend.tabPopular')" name="popular">
-              <p v-if="popularSource" class="assist-hint">{{ popularSource }}</p>
-              <p v-if="!popularItems.length" class="assist-hint">
-                {{ $t('admin.content.article.recommend.emptyPopular') }}
-              </p>
-              <ul v-else class="assist-list">
-                <li v-for="item in popularItems" :key="item.id" class="assist-row">
-                  <a :href="articleLink(item)" class="assist-row__link" rel="noopener" target="_blank">{{
-                      item.title
-                    }}</a>
-                  <span class="assist-row__meta">
-                    {{ item.views }}
-                    <template v-if="item.window_views">
-                      · {{ $t('admin.content.article.recommend.windowViews', {n: item.window_views}) }}
-                    </template>
-                  </span>
-                </li>
-              </ul>
-            </el-tab-pane>
-
-            <!-- 热门标签（GET /content/recommend/trending-tags） -->
-            <el-tab-pane :label="$t('admin.content.article.recommend.tabTrending')" name="trending">
-              <p v-if="!trendingItems.length" class="assist-hint">
-                {{ $t('admin.content.article.recommend.emptyTrending') }}
-              </p>
-              <ul v-else class="assist-list">
-                <li v-for="item in trendingItems" :key="item.tag" class="assist-row">
-                  <span class="assist-row__main">
-                    <span class="assist-row__title">{{ item.tag }}</span>
-                    <span class="assist-row__meta">{{ item.count }}</span>
-                  </span>
-                  <el-button
-                    v-auth="'module_content:article:edit'"
-                    link
-                    size="small"
-                    @click="adoptTag(item.tag)"
-                  >
-                    {{ $t('admin.content.article.recommend.adopt') }}
-                  </el-button>
-                </li>
-              </ul>
-            </el-tab-pane>
-
-            <!-- 为你推荐（GET /content/recommend/for-me） -->
-            <el-tab-pane :label="$t('admin.content.article.recommend.tabForMe')" name="forMe">
-              <p v-if="forMeColdStart" class="assist-hint">
-                {{ $t('admin.content.article.recommend.coldStart') }}
-              </p>
-              <p v-if="!forMeItems.length" class="assist-hint">
-                {{ $t('admin.content.article.recommend.emptyForMe') }}
-              </p>
-              <ul v-else class="assist-list">
-                <li v-for="item in forMeItems" :key="item.id" class="assist-row">
-                  <a :href="articleLink(item)" class="assist-row__link" rel="noopener" target="_blank">{{
-                      item.title
-                    }}</a>
-                  <span class="assist-row__meta">{{ item.score }}</span>
-                </li>
-              </ul>
-            </el-tab-pane>
-          </el-tabs>
-        </el-card>
-
-        <el-card shadow="never">
-          <template #header>{{ $t('admin.content.article.previewToken.title') }}</template>
-
-          <p class="assist-hint">{{ $t('admin.content.article.previewToken.desc') }}</p>
+          <template #header>{{ $t('admin.content.article.summaryAndSeo') }}</template>
 
           <el-form label-position="top">
-            <el-form-item :label="$t('admin.content.article.previewToken.expiresHours')">
-              <el-input-number v-model="tokenForm.expires_hours" :max="720" :min="1" style="width: 100%"/>
-            </el-form-item>
-            <el-form-item :label="$t('admin.content.article.previewToken.password')">
+            <el-form-item :label="$t('admin.content.article.summary')">
               <el-input
-                v-model="tokenForm.password"
-                :placeholder="$t('admin.content.article.previewToken.passwordPlaceholder')"
-                show-password
-                type="password"
+                v-model="form.excerpt"
+                :maxlength="255"
+                :rows="3"
+                show-word-limit
+                type="textarea"
+                @input="markDirty()"
               />
             </el-form-item>
-            <el-form-item :label="$t('admin.content.article.previewToken.maxViews')">
-              <el-input-number v-model="tokenForm.max_views" :max="10000" :min="1" style="width: 100%"/>
+
+            <el-form-item :label="$t('admin.content.article.alias')">
+              <el-input
+                v-model="form.slug"
+                :placeholder="$t('admin.content.article.urlAliasLeaveBlankToGenerate')"
+                @input="markDirty()"
+              >
+                <template #prepend>/</template>
+              </el-input>
+              <p class="form-hint">{{ $t('admin.content.article.aliasHint') }}</p>
             </el-form-item>
           </el-form>
-
-          <el-button
-            :disabled="articleId === null"
-            :loading="tokenCreating"
-            type="primary"
-            @click="createPreviewToken"
-          >
-            {{ $t('admin.content.article.previewToken.create') }}
-          </el-button>
-
-          <div v-if="latestToken" class="token-new">
-            <span class="token-new__hint">{{ $t('admin.content.article.previewToken.newTokenHint') }}</span>
-            <el-input :model-value="latestTokenUrl" readonly>
-              <template #append>
-                <el-button @click="copyText(latestTokenUrl)">
-                  {{ $t('admin.content.article.previewToken.copyLink') }}
-                </el-button>
-              </template>
-            </el-input>
-          </div>
-
-          <div class="token-list__head">
-            <span>{{ $t('admin.content.article.previewToken.list') }}</span>
-            <el-button link size="small" @click="cleanupTokens">
-              {{ $t('admin.content.article.previewToken.cleanup') }}
-            </el-button>
-          </div>
-
-          <p v-if="!previewTokens.length" class="assist-hint">
-            {{ $t('admin.content.article.previewToken.empty') }}
-          </p>
-          <ul v-else v-loading="previewTokensLoading" class="assist-list">
-            <li v-for="row in previewTokens" :key="row.id" class="assist-row">
-              <span class="assist-row__main">
-                <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
-                  {{
-                    row.is_active
-                      ? $t('admin.content.article.previewToken.active')
-                      : $t('admin.content.article.previewToken.inactive')
-                  }}
-                </el-tag>
-                <el-tag v-if="row.has_password" size="small" type="warning">
-                  {{ $t('admin.content.article.previewToken.hasPassword') }}
-                </el-tag>
-                <span class="assist-row__meta">
-                  {{ $t('admin.content.article.previewToken.viewCount') }}
-                  {{ row.view_count }}/
-                  {{ row.max_views ?? $t('admin.content.article.previewToken.unlimited') }}
-                </span>
-              </span>
-              <span class="assist-row__meta">
-                {{ formatDateTime(row.expires_at) }}
-                <el-button link size="small" @click="copyTokenLink(row.token)">
-                  {{ $t('admin.content.article.previewToken.copyLink') }}
-                </el-button>
-                <el-button v-if="row.is_active" link size="small" type="danger" @click="revokeToken(row)">
-                  {{ $t('admin.content.article.previewToken.revoke') }}
-                </el-button>
-              </span>
-            </li>
-          </ul>
         </el-card>
+
+        <!-- 内容助手：自带 5 个标签页以及各自的「加载中 / 加载失败可重试 / 暂无数据」
+             三态，与页面主体没有耦合，独立成组件（此前它连加载态都没有） -->
+        <ArticleAssistPanel :article-id="articleId" @adopt="adoptTag"/>
+
+        <!-- 草稿预览令牌：生成/复制/撤销/清理自成一体，独立成组件 -->
+        <ArticlePreviewTokenPanel :article-id="articleId"/>
       </div>
 
       <!-- 右：并排预览（iframe 直接加载前台详情页，所见即所得） -->
-      <div v-else class="editor-preview admin-card">
+      <div
+        v-else
+        :class="['editor-preview', 'admin-card', {'editor-preview--full': previewFullscreen}]"
+      >
         <div class="editor-preview__bar">
           <span class="editor-preview__title">{{ $t('admin.content.article.preview') }}</span>
-          <span class="editor-preview__hint">{{ $t('admin.content.article.previewHint') }}</span>
+          <!-- 预览读的是**已保存**的版本：存在未保存修改时把同一句提示加粗强调，
+               否则用户会以为"我的改动没生效" -->
+          <span :class="['editor-preview__hint', {'editor-preview__hint--warn': dirty}]">
+            {{ $t('admin.content.article.previewHint') }}
+          </span>
           <span class="editor-preview__spacer"/>
           <el-button link @click="refreshPreview">{{ $t('admin.common.refresh') }}</el-button>
+          <!-- 并排预览只有半屏宽，正文被压到 300px 上下 —— 校稿要的是"前台那个宽度" -->
+          <el-button link @click="previewFullscreen = !previewFullscreen">
+            {{
+              previewFullscreen
+                ? $t('admin.content.article.previewExitFullscreen')
+                : $t('admin.content.article.previewFullscreen')
+            }}
+          </el-button>
           <el-button link @click="openPreviewNewTab">
             {{ $t('admin.content.article.openInNewTab') }}
           </el-button>
@@ -834,6 +503,7 @@ onMounted(() => {
 <style scoped>
 .editor-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--admin-gap-sm);
   padding: var(--admin-gap-sm) var(--admin-gap);
@@ -870,23 +540,148 @@ onMounted(() => {
   margin-top: var(--admin-gap-xs);
 }
 
+/* ---------------------------------------------------------------- 写作主体 */
 .editor-main {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  padding: var(--admin-gap-lg);
 }
 
+.editor-main__head {
+  flex: 0 0 auto;
+}
+
+/* 标题：不画四边描边（22px 的大标题套表单框很丑），改用**下划线**表达"可编辑"，
+   并让它成为唯一的焦点指示。
+   原先这里是 `box-shadow: none; padding-left: 0` —— 而 Element Plus 画输入框边框与
+   焦点环的**唯一手段就是 box-shadow**，抹掉之后标题看起来是一段静态文字，
+   键盘用户也完全看不到焦点在哪。 */
 .editor-title :deep(.el-input__wrapper) {
   box-shadow: none;
+  padding-right: 0;
   padding-left: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  transition: border-color 0.15s ease;
+}
+
+.editor-title :deep(.el-input__wrapper:hover) {
+  border-bottom-color: var(--admin-line-strong);
+}
+
+.editor-title :deep(.el-input__wrapper:focus-within) {
+  border-bottom-color: var(--admin-primary);
 }
 
 .editor-title :deep(.el-input__inner) {
+  height: 44px;
   font-size: 22px;
   font-weight: 600;
-  height: 44px;
 }
 
+/* 标题下方的量级信息：正文字数与最终 URL 前缀（一眼看到 slug 长什么样） */
+.editor-main__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-gap-sm);
+  align-items: center;
+  margin-top: var(--admin-gap-xs);
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
+}
+
+.editor-main__permalink {
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 编辑器：给出确定的可写高度，并让**滚动发生在编辑器内部** ——
+   这样工具栏不会被正文滚出视野（此前滚动属于页面，长文时工具栏一路滚走）。
+   用 min-height 而不是"算视口剩余高度"：后者要跟着顶栏高度走，太脆。 */
 .editor-body {
-  width: 100%;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: clamp(420px, 62vh, 760px);
+  margin-top: var(--admin-gap-sm);
+}
+
+/* 接管 RichEditor 的高度。它自身只设了 overflow/border/border-radius/background，
+   不设 display/flex，且 `.rich-editor__body` 在它那边没有任何规则 ——
+   所以这两条不会与它的 scoped 样式争特异性，不依赖加载顺序。 */
+.editor-body :deep(.rich-editor) {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.editor-body :deep(.rich-editor__body) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* 表单提示文字。此前模板里已经用了 `class="form-hint"`（定时发布的时区提示），
+   但全项目没有任何地方定义它 —— 那些提示一直是裸文本。 */
+.form-hint {
+  margin: var(--admin-gap-xs) 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--admin-fg-subtle);
+}
+
+/* ---------------------------------------------------------------- 加载骨架 */
+.editor-skeleton {
+  padding: var(--admin-gap-lg);
+}
+
+.editor-skeleton__title {
+  width: 62%;
+  height: 32px;
+}
+
+.editor-skeleton__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--admin-gap-xs);
+  align-items: center;
+  margin-top: var(--admin-gap);
+  padding: var(--admin-gap-sm);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius);
+}
+
+.editor-skeleton__tool {
+  width: 28px;
+  height: 28px;
+}
+
+.editor-skeleton__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap-sm);
+  margin-top: var(--admin-gap);
+}
+
+/* 正文行按真实段落的长度分布给宽度，比每行等宽更像"一篇文章" */
+.editor-skeleton__line {
+  height: 14px;
+}
+
+.editor-skeleton__line:nth-child(odd) {
+  width: 96%;
+}
+
+.editor-skeleton__line:nth-child(even) {
+  width: 88%;
+}
+
+.editor-skeleton__line:last-child {
+  width: 54%;
 }
 
 .editor-side {
@@ -913,62 +708,6 @@ onMounted(() => {
   width: 100%;
 }
 
-/* 内容助手：推荐列表 */
-.assist-hint {
-  margin: 0 0 var(--admin-gap-xs);
-  font-size: 12px;
-  color: var(--admin-fg-subtle);
-}
-
-.assist-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--admin-gap-xs);
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.assist-row {
-  display: flex;
-  gap: var(--admin-gap-sm);
-  align-items: center;
-  justify-content: space-between;
-}
-
-.assist-row__main {
-  display: flex;
-  gap: var(--admin-gap-xs);
-  align-items: center;
-  min-width: 0;
-}
-
-.assist-row__title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--admin-fg);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.assist-row__link {
-  font-size: 13px;
-  color: var(--admin-primary, var(--admin-fg));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.assist-row__meta {
-  display: inline-flex;
-  gap: var(--admin-gap-xs);
-  align-items: center;
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--admin-fg-subtle);
-}
-
 /* 并排预览：把右栏（或整行）让给 iframe */
 .admin-split--preview {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -989,6 +728,22 @@ onMounted(() => {
   overflow: hidden;
 }
 
+/* 全屏预览：铺满视口。
+   刻意用 position: fixed 而不是"在 grid 里把左栏藏起来" —— 左栏用 display:none 会让
+   ProseMirror 在不可见状态下测量异常，用 v-if 卸载又会丢撤销历史。 */
+.editor-preview--full {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.editor-preview--full .editor-preview__frame {
+  min-height: 0;
+}
+
 .editor-preview__bar {
   display: flex;
   gap: var(--admin-gap-sm);
@@ -1005,6 +760,14 @@ onMounted(() => {
 .editor-preview__hint {
   font-size: 12px;
   color: var(--admin-fg-subtle);
+}
+
+/* 有未保存修改时，"预览显示的是已保存版本"这句要更醒目。
+   不用 warning 色：12px 小字上它的对比度不够（a11y 基线里已有 color-contrast 违规，
+   不值得再添一处） */
+.editor-preview__hint--warn {
+  font-weight: 500;
+  color: var(--admin-fg);
 }
 
 .editor-preview__spacer {
@@ -1025,28 +788,5 @@ onMounted(() => {
   border: 1px solid var(--admin-line);
   border-radius: var(--admin-radius-sm);
   object-fit: cover;
-}
-
-/* 草稿预览令牌 */
-.token-new {
-  display: flex;
-  flex-direction: column;
-  gap: var(--admin-gap-xs);
-  margin-top: var(--admin-gap-sm);
-}
-
-.token-new__hint {
-  font-size: 12px;
-  color: var(--admin-fg-subtle);
-}
-
-.token-list__head {
-  display: flex;
-  gap: var(--admin-gap-sm);
-  align-items: center;
-  justify-content: space-between;
-  margin: var(--admin-gap) 0 var(--admin-gap-xs);
-  font-weight: 600;
-  color: var(--admin-fg);
 }
 </style>

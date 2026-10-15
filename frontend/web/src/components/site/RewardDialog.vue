@@ -9,7 +9,7 @@
  * **刻意不做「假装已支付」**：打赏只有在网关回调经插件验签后才变成 `paid`，
  * 所以这里只如实展示订单号与支付入口，成功文案也是「订单已创建，完成支付后到账」。
  */
-import {type PaymentLaunchInfo, type TipConfig, type TipItem, tippingApi} from '@/api'
+import {type PaymentLaunchInfo, type TipConfig, type TipItem, tippingApi} from '@/api/public'
 import {useUserStore} from '@/store/modules/user'
 
 const props = defineProps<{

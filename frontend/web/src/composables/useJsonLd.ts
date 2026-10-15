@@ -70,7 +70,9 @@ export function useArticleJsonLd(
   useJsonLd('Article', () => ({
     headline: input.headline || undefined,
     description: input.description || undefined,
-    image: input.image || undefined,
+    // `image` 必须是绝对 URL，否则富媒体结果不会带图（封面是后端下发的相对路径，
+    // 用 `url` 的 origin 补全 —— 见 utils/seo.ts 的说明）
+    image: absoluteAssetUrl(input.image, originOf(input.url)),
     datePublished: input.datePublished || undefined,
     dateModified: input.dateModified || input.datePublished || undefined,
     mainEntityOfPage: {'@type': 'WebPage', '@id': input.url},
@@ -78,6 +80,12 @@ export function useArticleJsonLd(
     keywords: options?.keywords?.length ? options.keywords.join(', ') : undefined,
     articleSection: options?.section || undefined,
   }))
+}
+
+/** 取一个绝对 URL 的 origin（`https://a.com/x` → `https://a.com`）；不是绝对地址时返回空串 */
+function originOf(url: string): string {
+  const matched = /^(https?:\/\/[^/]+)/i.exec(url ?? '')
+  return matched?.[1] ?? ''
 }
 
 /** 面包屑（与 Breadcrumbs 组件配套） */

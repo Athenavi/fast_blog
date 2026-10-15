@@ -10,7 +10,7 @@
 
 import {onMounted, ref} from 'vue'
 
-import {categoryApi, type CategoryItem} from '@/api'
+import {categoryApi, type CategoryItem} from '@/api/public'
 
 export function useCategoryOptions() {
   const categories = ref<CategoryItem[]>([])

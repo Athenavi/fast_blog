@@ -263,7 +263,12 @@ useSeoMeta({
         <EmptyState v-else-if="!articles.length" :title="$t('home.emptyPosts')"/>
 
         <div v-else class="mt-4 grid gap-8 sm:grid-cols-2">
-          <ThemeArticleCard v-for="article in articles" :key="article.id" :article="article"/>
+          <ThemeArticleCard
+            v-for="(article, index) in articles"
+            :key="article.id"
+            :article="article"
+            :eager="index < 2"
+          />
         </div>
 
         <PaginationBar

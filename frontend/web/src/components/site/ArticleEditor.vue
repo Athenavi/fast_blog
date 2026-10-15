@@ -10,7 +10,7 @@
  * 本组件只保留前台特有的渲染（Tailwind + `components/ui/*`）。
  */
 
-import {categoryApi, type CategoryItem, mobileApi} from '@/api'
+import {categoryApi, type CategoryItem, mobileApi} from '@/api/public'
 import {useArticleForm} from '@/composables/useArticleForm'
 import {useSaveShortcut} from '@/composables/useSaveShortcut'
 import {formatDateTime} from '@/utils/format'

@@ -2,9 +2,31 @@
 
 import {defineStore} from 'pinia'
 
-import {authApi, type CurrentUser, type LoginParams} from '@/api/modules/auth'
+import type {CurrentUser, LoginParams} from '@/api/modules/auth'
 import {STORAGE_REFRESH_TOKEN, STORAGE_TOKEN, STORAGE_USER} from '@/constants'
 import {storage} from '@/utils/storage'
+
+/**
+ * 延迟加载鉴权接口模块。
+ *
+ * ## 为什么不是文件顶部 `import {authApi} from '@/api/modules/auth'`
+ *
+ * `api/modules/auth.ts` 用的是 axios 客户端（`../request`），而**本 store 被全局代码引用**：
+ * `plugins/directives.client.ts`（`v-auth` / `v-role` 指令，每个页面都装）与
+ * `SiteHeader`（前台顶栏）都会 `useUserStore()`。于是那一行静态 import 把
+ * **axios（约 20 KB gzip）钉在了所有页面（含匿名访客的公开页）的首屏关键路径上** ——
+ * 实测它正是前台首页那 29 个 `<script>` 之一的来源。
+ *
+ * 改成动态 `import()` 之后：axios 只在**真的发生鉴权请求**时才下载 ——
+ * 也就是登录、登出，以及 `middleware/auth.ts` 在受保护路由上调 `fetchUserInfo()` 时。
+ * 匿名读者访问文章页/首页不再付这份代价。
+ *
+ * 类型仍用 `import type` 静态引入：它在编译期被完全擦除，不会把模块带回依赖图。
+ */
+async function loadAuthApi() {
+  const {authApi} = await import('@/api/modules/auth')
+  return authApi
+}
 
 interface UserState {
   token: string
@@ -31,6 +53,7 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     async login(params: LoginParams): Promise<{ requires2fa: boolean; tempToken?: string }> {
+      const authApi = await loadAuthApi()
       const data = await authApi.login(params)
 
       if (data.requires_2fa) {
@@ -51,6 +74,7 @@ export const useUserStore = defineStore('user', {
     },
 
     async fetchUserInfo(): Promise<CurrentUser> {
+      const authApi = await loadAuthApi()
       const info = await authApi.me()
       this.userInfo = info
       storage.set(STORAGE_USER, info)
@@ -82,7 +106,10 @@ export const useUserStore = defineStore('user', {
 
     async logout(): Promise<void> {
       try {
-        if (this.token) await authApi.logout()
+        if (this.token) {
+          const authApi = await loadAuthApi()
+          await authApi.logout()
+        }
       } catch {
         // 登出失败也要清本地状态
       } finally {

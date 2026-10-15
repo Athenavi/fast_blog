@@ -4,7 +4,14 @@
 import type {ArticleItem} from '@/types/content'
 import {formatDate} from '@/utils/format'
 
-const props = defineProps<{ article: ArticleItem }>()
+const props = withDefaults(
+  defineProps<{
+    article: ArticleItem
+    /** 首屏（LCP）卡片：跳过懒加载并给高优先级，见 ResponsiveImage 的说明 */
+    eager?: boolean
+  }>(),
+  {eager: false},
+)
 
 const to = computed(() =>
   props.article.slug ? `/articles/${props.article.slug}` : `/articles/id/${props.article.id}`,
@@ -14,11 +21,13 @@ const to = computed(() =>
 <template>
   <article class="group">
     <NuxtLink :to="to" class="block">
-      <DeferredImage
+      <ResponsiveImage
         v-if="props.article.cover_image"
         :alt="props.article.title"
+        :eager="props.eager"
         :src="props.article.cover_image"
         class="mb-3 rounded-card"
+        sizes="xs:100vw sm:50vw lg:33vw"
       />
       <h3 class="text-base font-semibold leading-snug text-fg transition-colors group-hover:text-primary">
         {{ props.article.title }}

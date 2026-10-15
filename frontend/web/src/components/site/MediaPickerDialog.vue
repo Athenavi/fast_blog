@@ -10,7 +10,7 @@ const {t} = useI18n()
  * 后台管理员的媒体管理在 `/content/media`，与本组件无关。
  * 弹窗内容由父组件用 v-if 控制，打开后才拉数据。
  */
-import {mobileApi, type MobileMediaItem} from '@/api'
+import {mobileApi, type MobileMediaItem} from '@/api/public'
 import {useUserStore} from '@/store/modules/user'
 
 const props = defineProps<{ modelValue: boolean }>()

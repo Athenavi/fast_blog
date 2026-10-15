@@ -15,7 +15,7 @@
  */
 import {computed, onMounted, ref} from 'vue'
 
-import {mobileApi, type MobileCommentItem} from '@/api'
+import {mobileApi, type MobileCommentItem} from '@/api/public'
 import {formatDateTime} from '@/utils/format'
 import {useUserStore} from '@/store/modules/user'
 

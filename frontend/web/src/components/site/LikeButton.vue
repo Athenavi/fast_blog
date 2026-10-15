@@ -14,7 +14,7 @@
  */
 import {storeToRefs} from 'pinia'
 
-import {mobileApi} from '@/api'
+import {mobileApi} from '@/api/public'
 import {useUserStore} from '@/store/modules/user'
 
 const props = defineProps<{

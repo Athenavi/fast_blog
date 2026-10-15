@@ -1,4 +1,19 @@
-/** API 聚合入口：页面统一从这里导入（值 + 类型） */
+/**
+ * API 聚合入口（**后台 / 账号区页面**统一从这里导入，值 + 类型）
+ *
+ * ⚠️ **前台公开站点不要 import 这个文件** —— 用 `@/api/public`。
+ *
+ * 这里是全量聚合出口（178 项，含 admin / ai / ops / commerce / system 各模块，
+ * 以及 `export {default as http} from './request'` 带进来的 axios）。
+ * `layouts/*` 与 `components/site/*` 是每个公开页面都会加载的，从本文件取任何一个 api，
+ * 都会把整套后台接口层拖进前台首屏。
+ *
+ * 实测代价：`composables/useThemeSlots.ts` 里一行 `import {themeApi} from '@/api'`
+ * 就让首页的 38 个 `<script>` 里多出 axios（约 20 KB gzip）与后台 API 模块
+ * （约 11 KB gzip）—— 见 `src/api/public.ts` 的说明。
+ *
+ * 判据很简单：**这个文件被 `layouts/default.vue` 或前台页面用到 → 就不该走这里**。
+ */
 
 export * from './types'
 export {default as http, clearTokens, setUnauthorizedHandler} from './request'
