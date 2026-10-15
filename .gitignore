@@ -63,7 +63,12 @@ yarn-error.log*
 
 # Frontend build artifacts
 .vite/
-cache/
+# 注意：这里**不能**写裸 `cache/`。它没有路径前缀，会匹配任意层级的 cache 目录，
+# 把源码目录 `src/api/v3/modules/system/cache/` 一并忽略掉 —— 那个目录是真实的
+# API 模块（/api/v3/system/cache/*），被忽略后 CI 的干净检出里没有它，直接导致
+# `ModuleNotFoundError: No module named 'src.api.v3.modules.system.cache'`，
+# 而本地因为文件一直在磁盘上所以完全看不出来。只忽略点号形式的缓存目录即可。
+**/.cache/
 frontend/dist/
 
 # Nuxt锛坒rontend/web锛夛細鏋勫缓浜х墿涓庢湰鍦扮敓鎴愮墿

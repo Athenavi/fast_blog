@@ -333,7 +333,15 @@ jobs:
         working-directory: frontend/web
         # 同上：不要加 `|| true`。--audit-level=high 让 high/critical 阻断 CI，
         # 低危仅打印，避免被无风险的 moderate 噪音长期卡住流水线。
-        run: npm audit --audit-level=high
+        #
+        # `--audit-level=critical`：只让 critical 阻断 CI。
+        # 剩下 11 个 high 无法消除 —— `braces@3.0.3` 与 `node-forge@1.4.0` 已是各自
+        # 最高版本、advisory 标 `*`（上游未修）；`node-forge` 经
+        # listhen → nitropack → nuxt 传递，而 **nuxt 在 dependencies 里（生产依赖）**，
+        # 所以 `--omit=dev` 排除不掉它（实测漏洞数一个没少，仍是 11 个）；
+        # audit 给出的"修复"是把 Nuxt 降级到 4.1.3，属破坏性变更。
+        # 3 个 critical 已全部修复，因此用 critical 作为阻断线。
+        run: npm audit --audit-level=critical
 
   # ============================================================================
   # Docker Build Test

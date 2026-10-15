@@ -74,6 +74,9 @@
     "vite": "^8.2.0",
     "vue-tsc": "^3.2.9"
   },
+  "overrides": {
+    "devalue": "^5.9.3"
+  },
   "engines": {
     "node": ">=20.19.0"
   }
