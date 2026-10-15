@@ -69,6 +69,7 @@ DELETE /api/v3/system/group/{group_id}
 DELETE /api/v3/system/group/{group_id}/members/{user_id}
 DELETE /api/v3/system/help/topic/{page_key}
 DELETE /api/v3/system/integration/ldap/{config_id}
+DELETE /api/v3/system/integration/saml/{config_id}
 DELETE /api/v3/system/integration/sso/{provider_id}
 DELETE /api/v3/system/maintenance/whitelist/{ip}
 DELETE /api/v3/system/menu/items/{item_id}
@@ -437,6 +438,8 @@ GET /api/v3/system/help/topics
 GET /api/v3/system/help/videos
 GET /api/v3/system/install/status
 GET /api/v3/system/integration/ldap
+GET /api/v3/system/integration/saml
+GET /api/v3/system/integration/saml/{config_id}/metadata
 GET /api/v3/system/integration/sso
 GET /api/v3/system/log/audit
 GET /api/v3/system/log/audit/export
@@ -745,6 +748,8 @@ POST /api/v3/system/group/{group_id}/members
 POST /api/v3/system/health/web-vitals
 POST /api/v3/system/help/topic
 POST /api/v3/system/integration/ldap
+POST /api/v3/system/integration/saml
+POST /api/v3/system/integration/saml/{config_id}/acs
 POST /api/v3/system/integration/sso
 POST /api/v3/system/log/audit/cleanup
 POST /api/v3/system/maintenance/disable
@@ -867,6 +872,7 @@ PUT /api/v3/system/group/update/{group_id}
 PUT /api/v3/system/group/{group_id}
 PUT /api/v3/system/group/{group_id}/roles
 PUT /api/v3/system/integration/ldap/{config_id}
+PUT /api/v3/system/integration/saml/{config_id}
 PUT /api/v3/system/integration/sso/{provider_id}
 PUT /api/v3/system/maintenance/config
 PUT /api/v3/system/maintenance/message

@@ -1,6 +1,6 @@
 """integration 模块的数据访问层（唯一 DB 访问点）"""
 
-from shared.models.integration import LDAPConfig, SSOProvider
+from shared.models.integration import LDAPConfig, SAMLConfig, SSOProvider
 from src.api.v3.core.base_crud import CRUDBase
 
 
@@ -16,5 +16,12 @@ class LDAPConfigCRUD(CRUDBase[LDAPConfig, dict, dict]):
     default_order_by = "id"
 
 
+class SAMLConfigCRUD(CRUDBase[SAMLConfig, dict, dict]):
+    model = SAMLConfig
+    keyword_fields = ("entity_id", "idp_entity_id")
+    default_order_by = "id"
+
+
 sso_provider_crud = SSOProviderCRUD()
 ldap_config_crud = LDAPConfigCRUD()
+saml_config_crud = SAMLConfigCRUD()

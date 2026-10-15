@@ -1044,3 +1044,18 @@ export type {
   OAuthProviderItem,
   OAuthUnbindResult,
 } from './modules/oauth'
+
+// ---------------------------------------------------------------- GraphQL（读 + 少量写）
+// 与 REST 同源鉴权：同一套权限码，API 令牌同样按 scopes 收窄。
+// 注意字段名是 camelCase（strawberry 的 auto_camel_case），详见 modules/graphql.ts 的注释。
+export {graphqlApi} from './modules/graphql'
+export type {
+  GqlArticle,
+  GqlArticleConnection,
+  GqlArticleInput,
+  GqlArticlesQuery,
+  GqlCategory,
+  GqlPublicArticlesQuery,
+  GqlTag,
+  GqlViewer,
+} from './modules/graphql'

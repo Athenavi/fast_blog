@@ -119,3 +119,76 @@ class LDAPConfigOut(SchemaBase):
     is_active: bool = True
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+# ---------------------------------------------------------------- SAML 2.0 (SP 侧)
+
+
+class SAMLConfigCreate(SchemaBase):
+    """SAML 2.0 的 SP 侧配置。
+
+    `idp_certificate` 是**验签用的公钥证书**，按本模块惯例只写不读
+    （响应里只给 `has_idp_certificate`）；`sp_private_key` 同理。
+    """
+
+    entity_id: str = Field(max_length=255, description="本 SP 的 Entity ID")
+    acs_url: str = Field(
+        max_length=500, description="Assertion Consumer Service URL（IdP 断言回跳到这里）"
+    )
+    slo_url: Optional[str] = Field(default=None, max_length=500)
+    idp_entity_id: str = Field(
+        max_length=255, description="IdP 的 Entity ID，用于校验断言里的 Issuer"
+    )
+    idp_sso_url: Optional[str] = Field(default=None, max_length=500)
+    idp_slo_url: Optional[str] = Field(default=None, max_length=500)
+    idp_certificate: str = Field(description="IdP X.509 证书（PEM），断言签名用它验证")
+    sp_private_key: Optional[str] = Field(
+        default=None, description="本 SP 私钥（PEM），仅当需要 SP 签名请求时使用"
+    )
+    sp_certificate: Optional[str] = Field(default=None, description="本 SP 证书（PEM）")
+    attribute_mapping: Optional[str] = Field(
+        default=None,
+        description='属性映射 JSON，如 {"email": "mail", "username": "uid"}；不填则按常见属性名猜',
+    )
+    enable_slo: bool = False
+    auto_provision_users: bool = Field(
+        default=True, description="断言通过但本地无同名用户时，是否自动建号"
+    )
+    default_role: Optional[str] = Field(default="subscriber", max_length=50)
+    is_active: bool = False
+
+
+class SAMLConfigUpdate(SchemaBase):
+    entity_id: Optional[str] = Field(default=None, max_length=255)
+    acs_url: Optional[str] = Field(default=None, max_length=500)
+    slo_url: Optional[str] = Field(default=None, max_length=500)
+    idp_entity_id: Optional[str] = Field(default=None, max_length=255)
+    idp_sso_url: Optional[str] = Field(default=None, max_length=500)
+    idp_slo_url: Optional[str] = Field(default=None, max_length=500)
+    idp_certificate: Optional[str] = Field(default=None, description="留空保持原值")
+    sp_private_key: Optional[str] = Field(default=None, description="留空保持原值")
+    sp_certificate: Optional[str] = Field(default=None, description="留空保持原值")
+    attribute_mapping: Optional[str] = None
+    enable_slo: Optional[bool] = None
+    auto_provision_users: Optional[bool] = None
+    default_role: Optional[str] = Field(default=None, max_length=50)
+    is_active: Optional[bool] = None
+
+
+class SAMLConfigOut(SchemaBase):
+    id: int
+    entity_id: Optional[str] = None
+    acs_url: Optional[str] = None
+    slo_url: Optional[str] = None
+    idp_entity_id: Optional[str] = None
+    idp_sso_url: Optional[str] = None
+    idp_slo_url: Optional[str] = None
+    attribute_mapping: Optional[str] = None
+    enable_slo: bool = False
+    auto_provision_users: bool = True
+    default_role: Optional[str] = None
+    is_active: bool = False
+    has_idp_certificate: bool = False
+    has_sp_private_key: bool = False
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None

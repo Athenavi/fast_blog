@@ -48,3 +48,18 @@ export type {PaymentLaunchInfo, TipConfig, TipItem} from './modules/tipping'
 // ---------------------------------------------------------------- 浏览器推送
 export {webPushApi} from './modules/webPush'
 export type {WebPushSubscriptionIn} from './modules/webPush'
+
+// ---------------------------------------------------------------- GraphQL（公开查询）
+// GraphQL 端点与 REST 同源鉴权，其中 `publicArticles` / `publicArticle` /
+// `categories` / `tags` 是**公开查询**（无需登录），属于前台能力；受保护的管理端
+// 查询（`articles` / `article` / 两个写接口）要求登录与权限码，前台正常用不到。
+// 与其他模块一样：只有真正 import 它的路由才会加载到 axios，不会被钉在首屏。
+export {graphqlApi} from './modules/graphql'
+export type {
+  GqlArticle,
+  GqlArticleConnection,
+  GqlCategory,
+  GqlPublicArticlesQuery,
+  GqlTag,
+  GqlViewer,
+} from './modules/graphql'

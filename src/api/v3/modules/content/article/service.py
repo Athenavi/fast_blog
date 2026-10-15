@@ -37,6 +37,7 @@ from src.api.v3.modules.content.article.schema import (
     ArticleCreate,
     ArticleUpdate,
 )
+from src.utils.markdown import render_content_for_display
 
 logger = get_logger("article")
 
@@ -532,7 +533,8 @@ class ArticleService:
         ):
             raise NotFoundError("文章不存在或未发布")
         data = await self.get_article(db, article_id, language_code=language_code)
-        return await self.apply_vip_gate(db, data, viewer)
+        data = await self.apply_vip_gate(db, data, viewer)
+        return self._render_content_for_display(data)
 
     async def public_detail_by_slug(
         self,
@@ -551,7 +553,24 @@ class ArticleService:
         ):
             raise NotFoundError("文章不存在或未发布")
         data = await self.get_article(db, article.id, language_code=language_code)
-        return await self.apply_vip_gate(db, data, viewer)
+        data = await self.apply_vip_gate(db, data, viewer)
+        return self._render_content_for_display(data)
+
+    @staticmethod
+    def _render_content_for_display(data: dict) -> dict:
+        """把正文规整成"可直接放进页面的 HTML"：Markdown 转 HTML，HTML 原样保留。
+
+        投稿编辑器的【源码】模式允许写 Markdown，而详情页只做 `v-html`，
+        于是 Markdown 标记会原样显示（标题层级丢失、内链不可爬、图片 alt 丢失、
+        目录抽取拿不到 h2/h3）。前台是 SSR，必须在服务端就产出正确 HTML ——
+        详见 `utils/markdown.py` 的模块注释。
+
+        **只在面向渲染的出口调用**（公开详情、VIP 正文端点）。不要放进 `get_article`：
+        管理端编辑页需要拿到作者原样的源码，否则源码模式里写的 Markdown 会被
+        转换后的 HTML 顶替，作者下次打开看到的内容与他写的不一致。
+        """
+        data["content"] = render_content_for_display(data.get("content"))
+        return data
 
     async def apply_vip_gate(self, db: AsyncSession, data: dict, viewer: Optional[Any]) -> dict:
         """VIP 内容闸门：**未授权者拿不到正文**（只给摘要 + ``locked`` 标记）
