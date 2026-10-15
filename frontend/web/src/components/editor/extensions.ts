@@ -2,7 +2,7 @@ import type {Extensions} from '@tiptap/core'
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight'
 import Highlight from '@tiptap/extension-highlight'
 import ImageExt from '@tiptap/extension-image'
-import {OrderedList, TaskItem, TaskList} from '@tiptap/extension-list'
+import {BulletList, OrderedList, TaskItem, TaskList} from '@tiptap/extension-list'
 import {Table, TableCell, TableHeader, TableRow} from '@tiptap/extension-table'
 import TextAlign from '@tiptap/extension-text-align'
 import Typography from '@tiptap/extension-typography'
@@ -60,6 +60,17 @@ const OrderedListNoAutoInput = OrderedList.extend({
   },
 })
 
+/**
+ * 无序列表同理：Tiptap 会在输入 `- ` / `* ` / `+ ` 时把当前段落变成无序列表。
+ * 中文正文里「- 说明」「* 注」同样常见（实测输入 `- ` 得到 `<ul><li>`）。
+ * 与有序列表保持一致，一并关掉自动转换；工具栏按钮与 `Ctrl+Shift+8` 不受影响。
+ */
+const BulletListNoAutoInput = BulletList.extend({
+  addInputRules() {
+    return []
+  },
+})
+
 export function createEditorExtensions(options: EditorExtensionOptions = {}): Extensions {
   const {
     placeholder = '',
@@ -87,10 +98,13 @@ export function createEditorExtensions(options: EditorExtensionOptions = {}): Ex
       codeBlock: false,
       heading: {levels: headingLevels},
       link: {openOnClick: false, autolink: true},
-      // 内置的 orderedList 换成下面那版（关掉"输入数字自动变列表"，见其注释）
+      // 内置的 orderedList / bulletList 换成下面那版
+      // （关掉"输入数字或符号自动变列表"，见其注释）
       orderedList: false,
+      bulletList: false,
     }),
     OrderedListNoAutoInput,
+    BulletListNoAutoInput,
     Placeholder.configure({placeholder: resolvePlaceholder}),
   ]
 

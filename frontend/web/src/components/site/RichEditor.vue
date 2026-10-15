@@ -1,9 +1,10 @@
 <script lang="ts" setup>
 import {EditorContent, useEditor} from '@tiptap/vue-3'
+import {marked} from 'marked'
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 
 import {createEditorExtensions} from '@/components/editor/extensions'
-import {EDITOR_SHORTCUTS, buildToolbarGroups} from '@/components/editor/tools'
+import {buildToolbarGroups, EDITOR_SHORTCUTS} from '@/components/editor/tools'
 
 /**
  * 富文本编辑器（Tiptap）
@@ -44,6 +45,35 @@ const editor = useEditor({
   extensions: createEditorExtensions({
     placeholder: () => props.placeholder || t('editor.placeholder'),
   }),
+  editorProps: {
+    /**
+     * 粘贴：**纯文本按 Markdown 解析**。
+     *
+     * 为什么需要：Tiptap 默认把纯文本按"每行一个段落"插入，于是 Markdown 标记
+     * （`## 标题`、`1. 列表`、`- 列表`）会**原样留在正文里** —— 作者从源码模式或
+     * 别处粘回自己写的 Markdown 时，看到的是一串字面符号（用户描述为"粘贴 md 会
+     * 自动加行号"，实际是列表序号被当文本留下了）。手动输入之所以正常，是因为
+     * 它走的是 input rule 那条路径，与粘贴不是同一个入口。
+     *
+     * **带 `text/html` 的粘贴仍走默认处理**：从网页或其它编辑器复制时保留原格式，
+     * 不强行套 Markdown 解析。
+     */
+    handlePaste: (_view, event) => {
+      const clipboard = event.clipboardData
+      if (!clipboard) return false
+      // 有富文本就交给默认处理，避免破坏从网页复制来的排版
+      if (clipboard.getData('text/html')) return false
+      const text = clipboard.getData('text/plain')
+      if (!text.trim()) return false
+      // 先解析成 HTML 再插入：Tiptap 用 `parseHTML` 处理，**不依赖**各扩展的
+      // markdown 规范。曾试过 `@tiptap/markdown`，但当前版本里 orderedList /
+      // bulletList 没有 markdown 规范，`#` 会落到强调的 fallback（变成斜体）、
+      // 整篇还会被塞进一个大 `<ol>` —— 比不解析更糟，已弃用。
+      const html = marked.parse(text, {async: false})
+      editor.value?.chain().focus().insertContent(html).run()
+      return true // 已处理，阻止默认的纯文本插入
+    },
+  },
   onUpdate: ({editor: instance}) => emit('update:modelValue', instance.getHTML()),
 })
 

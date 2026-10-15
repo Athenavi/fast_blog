@@ -51,6 +51,7 @@
     "highlight.js": "^11.12.0",
     "lib0": "^0.2.119",
     "lowlight": "^3.3.0",
+    "marked": "^18.1.1",
     "nprogress": "^0.2.0",
     "nuxt": "^4.5.2",
     "pinia": "^4.0.3",
