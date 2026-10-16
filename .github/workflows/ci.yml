@@ -176,7 +176,7 @@ jobs:
         # 不动 node_modules），再用 npm ci 做严格安装：既不降低严格性，也不依赖
         # 本地 Linux 环境。vite 已在 package.json 中精确钉为 8.3.0，不会被重新解析抬高。
         run: |
-          npm install --package-lock-only --no-audit --no-fund
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           npm ci --no-audit --no-fund
 
       - name: Production build
@@ -301,7 +301,7 @@ jobs:
         working-directory: frontend/web
         # 同 test-frontend：先在目标平台补全 lock 再严格安装（原因见该步骤的注释）
         run: |
-          npm install --package-lock-only --no-audit --no-fund
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           npm ci --no-audit --no-fund
 
       - name: Build frontend
