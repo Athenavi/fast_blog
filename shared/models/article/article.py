@@ -4,11 +4,10 @@ SQLAlchemy 模型定义 - Article
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index, JSON
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, ForeignKey, Index, JSON
 from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class Article(Base):
@@ -34,7 +33,7 @@ class Article(Base):
         Index('idx_articles_user_status_created', 'user', 'status', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='文章 ID')
 
     title = Column(String(255), nullable=True, doc='标题')

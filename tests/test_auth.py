@@ -9,7 +9,6 @@ Covers:
   - get_current_user: authenticated user retrieval
   - admin_required: superuser check
   - jwt_optional_dependency: optional auth
-  - require_permission / require_role: permission/role checkers
 
 WHY these tests exist:
   The auth layer protects every API endpoint. A regression here can
@@ -30,8 +29,6 @@ from src.auth.auth_deps import (
     get_current_user,
     admin_required,
     jwt_optional_dependency,
-    require_permission,
-    require_role,
 )
 
 
@@ -459,59 +456,3 @@ class TestJWTOptional:
         mock_auth.return_value = None
         user = await jwt_optional_dependency(mock_request, db=mock_db)
         assert user is None
-
-
-# ============================================================================
-# require_permission / require_role / require_vip
-# ============================================================================
-
-class TestRequirePermission:
-    pytestmark = pytest.mark.asyncio
-
-    """Permission checker factory."""
-
-    async def test_user_with_permission_passes(self, mock_db, active_user):
-        """User with the required permission passes."""
-        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
-            mock_rbac.has_capability = AsyncMock(return_value=True)
-            checker = require_permission("articles.create")
-            user = await checker(user=active_user, db=mock_db)
-            assert user is active_user
-            mock_rbac.has_capability.assert_called_once_with(
-                mock_db, active_user.id, "articles.create"
-            )
-
-    async def test_user_without_permission_raises_403(self, mock_db, active_user):
-        """User without permission raises 403."""
-        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
-            mock_rbac.has_capability = AsyncMock(return_value=False)
-            checker = require_permission("articles.delete")
-            with pytest.raises(HTTPException) as exc:
-                await checker(user=active_user, db=mock_db)
-            assert exc.value.status_code == 403
-
-
-class TestRequireRole:
-    pytestmark = pytest.mark.asyncio
-
-    """Role checker factory."""
-
-    async def test_user_with_role_passes(self, mock_db, active_user):
-        """User with the required role passes."""
-        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
-            mock_rbac.user_has_role = AsyncMock(return_value=True)
-            checker = require_role("editor")
-            user = await checker(user=active_user, db=mock_db)
-            assert user is active_user
-            mock_rbac.user_has_role.assert_called_once_with(
-                mock_db, active_user.id, "editor"
-            )
-
-    async def test_user_without_role_raises_403(self, mock_db, active_user):
-        """User without role raises 403."""
-        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
-            mock_rbac.user_has_role = AsyncMock(return_value=False)
-            checker = require_role("admin")
-            with pytest.raises(HTTPException) as exc:
-                await checker(user=active_user, db=mock_db)
-            assert exc.value.status_code == 403

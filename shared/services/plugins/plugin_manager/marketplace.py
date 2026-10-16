@@ -4,8 +4,13 @@
 """
 
 import json
+import logging
+import os
+from collections import Counter
 from pathlib import Path
 from typing import List, Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class PluginMarketService:
@@ -26,13 +31,20 @@ class PluginMarketService:
         self.plugins_dir = Path(plugins_dir)
         self.plugins_dir.mkdir(parents=True, exist_ok=True)
 
-        # 远程市场URL
-        self.marketplace_url = "https://plugins.fastblog.com/api/v1"
+        # 远程市场地址：由站点自建（实现见 plugin-market-server/，契约见其 API.md）。
+        # 留空 = 未启用远程市场。此前这里硬编码的 plugins.fastblog.com 从未被任何代码请求，
+        # 且域名无法解析 —— 不再让"看起来有远程市场"。
+        self.marketplace_url = (os.environ.get("PLUGIN_MARKETPLACE_URL") or "").rstrip("/")
 
         # 缓存
         self._cached_plugins = None
         self._cache_timestamp = None
         self._cache_ttl = 3600  # 1小时
+
+    @property
+    def remote_enabled(self) -> bool:
+        """是否配置了远程市场地址（未配置时不得假装能浏览远程插件）"""
+        return bool(self.marketplace_url)
 
     def discover_plugins(self) -> List[Dict[str, Any]]:
         """扫描插件目录，发现所有可用插件（带缓存）"""
@@ -83,7 +95,7 @@ class PluginMarketService:
 
                     discovered.append(metadata)
             except Exception as e:
-                print(f"读取插件元数据失败 {plugin_dir.name}: {e}")
+                logger.error("读取插件元数据失败 %s: %s", plugin_dir.name, e)
 
         # 更新缓存
         from datetime import datetime, timezone
@@ -155,10 +167,7 @@ class PluginMarketService:
         plugins = self.discover_plugins()
 
         # 统计每个分类的插件数量
-        category_count = {}
-        for plugin in plugins:
-            category = plugin.get('category', 'uncategorized')
-            category_count[category] = category_count.get(category, 0) + 1
+        category_count = Counter(plugin.get('category', 'uncategorized') for plugin in plugins)
 
         # 转换为列表格式
         categories = [
@@ -229,7 +238,7 @@ class PluginMarketService:
             return metadata
 
         except Exception as e:
-            print(f"读取插件详情失败 {plugin_slug}: {e}")
+            logger.error("读取插件详情失败 %s: %s", plugin_slug, e)
             return None
 
     def _get_category_name(self, category_slug: str) -> str:

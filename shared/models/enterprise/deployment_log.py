@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - DeploymentLog
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class DeploymentLog(Base):
@@ -21,7 +20,7 @@ class DeploymentLog(Base):
         Index('idx_deployment_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='日志 ID')
 
     script_id = Column(BigInteger, ForeignKey('deployment_scripts.id'), doc='脚本 ID')

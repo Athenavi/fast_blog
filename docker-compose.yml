@@ -9,25 +9,28 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      network: host
-      additional_contexts:
-        ffmpeg_src: ./tools/ffmpeg
     container_name: fastblog-backend
     restart: unless-stopped
     ports:
-      - "${BACKEND_PORT:-9421}:9421"
+      # 仅绑定回环：外部流量统一经 nginx 入口转发（nginx 走容器网络），
+      # 开发机仍可直连 127.0.0.1:9421 调试。与 docker-compose.prod.yml 保持一致。
+      - "127.0.0.1:${BACKEND_PORT:-9421}:9421"
     environment:
       # --- 数据库配置（Docker 内部网络，host 使用服务名） ---
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-fastblog_secret}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       - DB_NAME=${DB_NAME:-fast_blog}
       # --- Redis 配置 ---
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+      # --- 站点对外地址（Cookie Secure 判定依据；生产填 https://你的域名） ---
+      - SITE_URL=${SITE_URL:-}
       # --- 应用配置 ---
-      - SECRET_KEY=${SECRET_KEY:-}
+      # SECRET_KEY 生成示例：python -c "import secrets; print(secrets.token_urlsafe(32))"
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env (>=32 random chars)}
       - ENVIRONMENT=production
       - DEBUG=False
     # 注意：不设置 user，Dockerfile 无 USER 指令，默认 root
@@ -50,29 +53,63 @@ services:
     networks:
       - fastblog-network
     healthcheck:
-      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9421/api/v2/health')" ]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9421/api/v3/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
 
   # ============================================================================
-  # Frontend (Astro static files + Nginx reverse proxy — unified)
+  # Frontend (Nuxt 4 — 前台 SSR + 后台 CSR 同一工程，Node 运行时)
   # ============================================================================
-  # This container serves both the frontend static files AND reverse-proxies
-  # API/media requests to the backend, replacing the standalone nginx container.
+  # 只在内网暴露 3000，不直接对外；外部流量统一由下方 nginx 服务入口转发。
+  # SSR 期间服务端请求后端走容器网络绝对地址（见 NUXT_PUBLIC_API_BASE_URL）；
+  # 浏览器侧走同源 /api，由 nginx 反代到 backend。
   frontend:
     build:
-      context: ./frontend-astro
+      context: ./frontend/web
       dockerfile: Dockerfile
     container_name: fastblog-frontend
     restart: unless-stopped
-    ports:
-      - "${FRONTEND_PORT:-4321}:80"
+    environment:
+      - NUXT_PUBLIC_API_BASE_URL=http://backend:9421
     depends_on:
       - backend
     networks:
       - fastblog-network
+    healthcheck:
+      test: [ "CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ============================================================================
+  # Nginx (统一入口：TLS / 安全头 / 限流 / 缓存 + /api、/media 反代)
+  # ============================================================================
+  # 配置在 nginx/ 目录（nginx.conf + conf.d/fastblog.conf），只读挂载。
+  nginx:
+    image: nginx:1-alpine
+    container_name: fastblog-nginx
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-4321}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - fastblog-logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - fastblog-network
+    healthcheck:
+      test: [ "CMD", "wget", "-q", "--spider", "http://127.0.0.1/health" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # ============================================================================
   # PostgreSQL Database
@@ -82,10 +119,11 @@ services:
     container_name: fastblog-postgres
     restart: unless-stopped
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      # 仅绑定回环：数据库只需被容器网络内的 backend 访问，不对外暴露。
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-fastblog_secret}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env}
       POSTGRES_DB: ${DB_NAME:-fast_blog}
     volumes:
       - fastblog-postgres:/var/lib/postgresql/data
@@ -105,14 +143,24 @@ services:
     container_name: fastblog-redis
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+      # 仅绑定回环：Redis 只应被容器网络内的服务访问（与 docker-compose.prod.yml 一致）。
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    environment:
+      # healthcheck 需要该变量；redis-server 的密码来自下方 command
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
+    # allkeys-lru 会淘汰包括调度锁、令牌黑名单在内的**任意**键，
+    # 因此改为 volatile-lru（只淘汰带 TTL 的键），并把 maxmemory 压到
+    # 容器 memory limit 之下，避免先被 cgroup OOM-kill。
+    # 相关说明见 docker-compose.prod.yml 中的同名字段与文件末尾注释。
+    command: >
+      redis-server --appendonly yes --maxmemory 192mb --maxmemory-policy volatile-lru
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env}
     volumes:
       - fastblog-redis:/data
     networks:
       - fastblog-network
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5

@@ -8,10 +8,6 @@ from shared.utils.auto_update_checker import (
     auto_update_checker,
     check_updates_now
 )
-from shared.utils.backup_manager import (
-    BackupManager,
-    backup_manager
-)
 from shared.utils.update_history import (
     UpdateHistoryManager,
     update_history_manager,
@@ -31,10 +27,6 @@ __all__ = [
     'UpdateHistoryManager',
     'update_history_manager',
     'add_update_history',
-    
-    # Backup Manager
-    'BackupManager',
-    'backup_manager',
     
     # Auto Update Checker
     'AutoUpdateChecker',

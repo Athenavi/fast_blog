@@ -31,6 +31,7 @@ def configure_site_settings(project_root: Path, settings: Dict[str, str]) -> Dic
     try:
         from src.utils.database.main import get_async_session_context
         from shared.models.system import SystemSettings
+        from sqlalchemy import select
         import asyncio
 
         async def _save():
@@ -42,7 +43,7 @@ def configure_site_settings(project_root: Path, settings: Dict[str, str]) -> Dic
                     ("default_language", lang),
                 ]
                 for key, value in pairs:
-                    query = __import__("sqlalchemy").select(SystemSettings).where(SystemSettings.setting_key == key)
+                    query = select(SystemSettings).where(SystemSettings.setting_key == key)
                     result = await db.execute(query)
                     setting = result.scalar_one_or_none()
                     if setting:

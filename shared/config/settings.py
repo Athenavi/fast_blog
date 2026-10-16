@@ -45,9 +45,8 @@ def get_sqlalchemy_uri(db_config):
 
     # 检查必要配置
     if not all([db_host, db_user, db_port, db_name]):
-        print(
-            'The database connection configuration is incomplete. Please check the .env file or environment variables.')
-        print('This is normal during installation wizard - configuration will be set up through the installer.')
+        logger.error('数据库连接配置不完整，请检查 .env 文件或环境变量。')
+        logger.error('如果在安装向导中，请通过安装程序进行配置。')
         return None
 
     # 对于IPv6地址，需要使用方括号包围主机地址
@@ -70,8 +69,8 @@ def get_sqlalchemy_uri(db_config):
     env_key = f"DB_INFO_PRINTED_{os.getpid()}"
 
     if not os.environ.get(env_key):
-        print(f"{worker_info} 数据库引擎：PostgreSQL")
-        print(f"{worker_info} SQLAlchemy URI: {safe_uri}")
+        logger.info("%s 数据库引擎：PostgreSQL", worker_info)
+        logger.info("%s SQLAlchemy URI: %s", worker_info, safe_uri)
         os.environ[env_key] = "1"  # 标记为已打印
 
     return sqlalchemy_uri
@@ -83,13 +82,18 @@ class BaseConfig:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     SECRET_KEY = os.environ.get('SECRET_KEY')
     if not SECRET_KEY:
+        if os.environ.get('ENVIRONMENT', '').lower() == 'production':
+            raise RuntimeError(
+                "SECRET_KEY 未设置！生产环境必须设置 SECRET_KEY 环境变量。\n"
+                "  生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
         import secrets
         SECRET_KEY = secrets.token_urlsafe(32)
         logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
     elif SECRET_KEY.startswith('change-this-to') or SECRET_KEY in ('your-secret-key-here', 'changeme'):
         raise RuntimeError(
             "SECRET_KEY 仍为占位值！请在环境变量中设置一个真实的密钥。\n"
-            f"  当前值: {SECRET_KEY[:20]}...\n"
+            "  当前值已被日志记录，请检查后修改。\n"
             "  生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
         )
 
@@ -118,11 +122,26 @@ class BaseConfig:
     # 添加数据库回显选项，用于调试
     database_echo = os.getenv('DATABASE_ECHO', 'False').lower() == 'true'
 
+    # Redis（限流 / 缓存 / token 黑名单 / 会话共享）
+    # 此前只在各处 os.environ.get('REDIS_PASSWORD') 就地读取，settings 上缺这几个属性，
+    # 导致依赖 getattr(settings, 'REDIS_PASSWORD') 的调用方（如 rate_limiter）拿不到密码，
+    # 在启用 Redis 认证后会静默降级为内存实现。
+    REDIS_HOST = os.environ.get('REDIS_HOST') or 'localhost'
+    REDIS_PORT = int(os.environ.get('REDIS_PORT') or 6379)
+    REDIS_DB = int(os.environ.get('REDIS_DB') or 0)
+    REDIS_PASSWORD = os.environ.get('REDIS_PASSWORD') or None
+
+    # 站点对外地址：Cookie 是否加 Secure 的判定依据（需以 https:// 开头）。
+    # 未设置时 cookie 不带 Secure（仅适合本地 http 调试），生产必须在 .env 中显式配置。
+    SITE_URL = os.environ.get('SITE_URL') or (os.environ.get('DOMAIN') or '')
+
     CACHE_TYPE = 'simple'
     SESSION_COOKIE_NAME = 'zb_session'
     PERMANENT_SESSION_LIFETIME = timedelta(hours=48)
     TEMP_FOLDER = 'temp/upload'
-    AVATAR_SERVER = "https://api.7trees.cn/avatar"
+    #: 头像服务地址。当前**没有任何调用点**（保留常量只为兼容历史配置项）。
+    #: 若将来启用，注意它会把用户标识发给第三方 —— 企业部署应先确认数据出境合规。
+    AVATAR_SERVER = os.environ.get('AVATAR_SERVER') or ""
     ALLOWED_MIMES = [
         # ===== 图片 =====
         'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
@@ -224,14 +243,34 @@ class BaseConfig:
     JWT_ACCESS_COOKIE_NAME = 'access_token'
     JWT_REFRESH_COOKIE_NAME = 'refresh_token'
     JWT_TOKEN_LOCATION = ['cookies']
-    JWT_COOKIE_SECURE = False
+    # Cookie 安全：非开发环境（生产/其余）默认强制 Secure（仅经 HTTPS 传输），
+    # 开发环境(ENVIRONMENT=development)保持 False 便于本地 http 调试。
+    _cookie_secure = os.environ.get('ENVIRONMENT', '').lower() != 'development'
+    JWT_COOKIE_SECURE = _cookie_secure
+    # CSRF 防护策略：
+    # 本框架（FastAPI + JWT Bearer，前后端分离）未实现 JWT_COOKIE_CSRF_PROTECT 后端校验，
+    # 且既有侵入式安全头 csrf 端点亦标记废弃（JWT + SameSite=Lax 已天然缓解 CSRF），
+    # 故保持 False。
+    #
+    # 生产环境 CSRF 缓解依赖以下多层防护：
+    # 1. JWT_COOKIE_SECURE=True（仅 HTTPS 传输 Cookie）
+    # 2. JWT_COOKIE_SAMESITE='Lax'（同站策略，阻止跨站 POST/PUT/DELETE 携带 Cookie）
+    # 3. 所有状态变更端点（POST/PUT/DELETE）依赖 JWT Bearer Token（Authorization 头）
+    #    而非仅 Cookie 认证，因此即使 Cookie 被跨站携带，缺少 Bearer Token 仍无法操作
+    # 4. OAuth 流程使用 state 参数（服务端存储和验证）防止 CSRF 授权码劫持
+    #
+    # 注意：JWT_COOKIE_SAMESITE='Lax' 仅阻止跨站顶级 POST 请求携带 Cookie，
+    # 但不阻止 GET 请求。所有敏感操作应使用 POST/PUT/DELETE 方法。
     JWT_COOKIE_CSRF_PROTECT = False
-    JWT_COOKIE_SAMESITE = 'Lax'  # 添加SameSite属性以防范CSRF攻击
+    JWT_COOKIE_SAMESITE = 'Lax'  # SameSite 属性以防范 CSRF 攻击
     JWT_SESSION_COOKIE = False
     REMEMBER_COOKIE_DURATION = timedelta(days=30)  # 记住登录状态30天
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     # S3存储配置
-    S3_ENABLED = os.environ.get('S3_ENABLED', 'True').lower() == 'true'
+    #: S3 开关。当前**没有任何调用点** —— 媒体走本地 ``storage/objects``，备份云上传用
+    #: ``ops/backup/cloud.py`` 的独立配置。保留常量只为兼容历史 .env；默认 False，
+    #: 避免"读到 S3_ENABLED=True 却什么都没发生"的误解。
+    S3_ENABLED = os.environ.get('S3_ENABLED', 'False').lower() == 'true'
     S3_ENDPOINT_URL = os.environ.get('S3_ENDPOINT_URL')  # S3服务端点，如使用AWS S3可不设置
     S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY')  # S3访问密钥
     S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY')  # S3密钥
@@ -241,9 +280,10 @@ class BaseConfig:
     S3_SIGNATURE_VERSION = os.environ.get('S3_SIGNATURE_VERSION', 's3v4')  # 签名版本
 
     # 安全头配置（Talisman）
+    # 注意：生产部署时请根据实际使用的 CDN 域名修改 script-src 中的白名单
     TALISMAN_CONTENT_SECURITY_POLICY = {
         'default-src': "'self'",
-        'script-src': ["'self'", "cdn.example.com"],
+        'script-src': ["'self'"],
         'style-src': ["'self'", "'unsafe-inline'"]
     }
 
@@ -253,25 +293,26 @@ class AppConfig(BaseConfig):
 
     def __init__(self):
         super().__init__()
+        self.db_engine = os.environ.get('DB_ENGINE') or os.getenv('DB_ENGINE', 'postgresql')
+        self.db_host = os.environ.get('DB_HOST') or os.getenv('DATABASE_HOST', 'localhost')
+        self.db_user = os.environ.get('DB_USER') or os.getenv('DATABASE_USER', 'postgres')
+        self.db_name = os.environ.get('DB_NAME') or os.getenv('DATABASE_NAME')
+        self.db_password = os.environ.get('DB_PASSWORD') or os.getenv('DATABASE_PASSWORD')
+        db_port_env = os.environ.get('DB_PORT') or os.getenv('DATABASE_PORT')
+        self.db_port = int(db_port_env) if db_port_env is not None else 5432
+        db_pool_size_env = os.environ.get('DB_POOL_SIZE') or os.getenv('DATABASE_POOL_SIZE')
+        self.db_pool_size = int(db_pool_size_env) if db_pool_size_env is not None else 20
+        db_pool_overflow_env = os.environ.get('DB_POOL_OVERFLOW') or os.getenv('DATABASE_POOL_OVERFLOW')
+        self.db_pool_overflow = int(db_pool_overflow_env) if db_pool_overflow_env is not None else 30
+        db_pool_timeout_env = os.environ.get('DB_POOL_TIMEOUT') or os.getenv('DATABASE_POOL_TIMEOUT')
+        self.db_pool_timeout = int(db_pool_timeout_env) if db_pool_timeout_env is not None else 60
+        db_pool_recycle_env = os.environ.get('DB_POOL_RECYCLE') or os.getenv('DATABASE_POOL_RECYCLE')
+        self.db_pool_recycle = int(db_pool_recycle_env) if db_pool_recycle_env is not None else 1200
+        self.db_table_prefix = os.environ.get('DB_TABLE_PREFIX') or os.getenv('DB_TABLE_PREFIX', '')
         # 初始化数据库URI（可能为 None，如果配置不完整）
         self.database_url = self._get_database_uri()
         # 为SQLAlchemy设置数据库URI
         self.SQLALCHEMY_DATABASE_URI = self.database_url
-
-    db_engine = os.environ.get('DB_ENGINE') or os.getenv('DB_ENGINE', 'postgresql')
-    db_host = os.environ.get('DB_HOST') or os.getenv('DATABASE_HOST', 'localhost')
-    db_user = os.environ.get('DB_USER') or os.getenv('DATABASE_USER', 'postgres')
-    db_name = os.environ.get('DB_NAME') or os.getenv('DATABASE_NAME')
-    db_password = os.environ.get('DB_PASSWORD') or os.getenv('DATABASE_PASSWORD')
-    db_port_env = os.environ.get('DB_PORT') or os.getenv('DATABASE_PORT')
-    db_port = int(db_port_env) if db_port_env is not None else 5432
-    db_pool_size_env = os.environ.get('DB_POOL_SIZE') or os.getenv('DATABASE_POOL_SIZE')
-    db_pool_size = int(db_pool_size_env) if db_pool_size_env is not None else 50
-    db_pool_overflow_env = os.environ.get('DB_POOL_OVERFLOW') or os.getenv('DATABASE_POOL_OVERFLOW')
-    db_pool_overflow = int(db_pool_overflow_env) if db_pool_overflow_env is not None else 100
-    db_pool_timeout_env = os.environ.get('DB_POOL_TIMEOUT') or os.getenv('DATABASE_POOL_TIMEOUT')
-    db_pool_timeout = int(db_pool_timeout_env) if db_pool_timeout_env is not None else 60
-    db_table_prefix = os.environ.get('DB_TABLE_PREFIX') or os.getenv('DB_TABLE_PREFIX', '')
 
     def _get_database_uri(self):
         """获取数据库URI"""
@@ -300,30 +341,21 @@ class AppConfig(BaseConfig):
         return self.db_pool_timeout
 
     @property
+    def database_pool_recycle(self):
+        """动态获取连接池回收时间"""
+        return self.db_pool_recycle
+
+    @property
     def pool_config(self):
         """动态获取连接池配置（PostgreSQL）"""
         return {
             "pool_size": int(self.db_pool_size),
             "max_overflow": int(self.db_pool_overflow),
             "pool_timeout": int(self.db_pool_timeout),
-            "pool_recycle": 1200,
+            "pool_recycle": int(self.db_pool_recycle),
             "pool_pre_ping": True,
         }
 
-    # RedisConfig = {
-    #    "host": os.environ.get('REDIS_HOST') or os.getenv('REDIS_HOST', 'localhost'),
-    #    "port": os.environ.get('REDIS_PORT') or os.getenv('REDIS_PORT', 6379),
-    #    "db": os.environ.get('REDIS_DB') or os.getenv('REDIS_DB', 0),
-    #    "password": os.environ.get('REDIS_PASSWORD') or os.getenv('REDIS_PASSWORD') or None,
-    #    "decode_responses": True,
-    #    "socket_connect_timeout": 3,  # 连接超时3秒
-    #    "socket_timeout": 3,  # 读写超时3秒
-    #    "retry_on_timeout": True,  # 超时重试
-    #    "max_connections": 10  # 连接池大小
-    # }
-
-
-#
 
 def get_app_config():
     # 使用密码学安全的 secrets 模块生成密钥
@@ -331,6 +363,12 @@ def get_app_config():
     # 更新 BaseConfig 中的 SECRET_KEY
     secret_key = os.environ.get('SECRET_KEY')
     if not secret_key:
+        # 在生产环境必须强制设置 SECRET_KEY
+        if os.environ.get('ENVIRONMENT', '').lower() == 'production':
+            raise RuntimeError(
+                "SECRET_KEY 未设置！生产环境必须设置 SECRET_KEY 环境变量。\n"
+                "生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+            )
         # 未配置环境变量时，生成强随机密钥并警告用户
         secret_key = secrets.token_urlsafe(32)
         logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
@@ -379,31 +417,24 @@ class ProductionConfig(AppConfig):
             missing.append('DB_USER')
 
         if missing:
-            print("=" * 70)
-            print("⚠️  警告：以下数据库环境变量未设置，应用将以安装向导模式启动")
-            print("=" * 70)
-            print(f"   未设置的变量: {', '.join(missing)}")
-            print()
-            print("   请通过以下任一方式配置：")
-            print("   1. 创建 .env 文件（参考 .env.example）")
-            print("   2. 在 docker-compose.yml 的 environment 中设置")
-            print("   3. 直接设置系统环境变量")
-            print()
-            print("   示例 docker-compose.yml 配置：")
-            print("     environment:")
-            print("       - DB_HOST=postgres")
-            print("       - DB_PORT=5432")
-            print("       - DB_USER=postgres")
-            print("       - DB_PASSWORD=your_password")
-            print("       - DB_NAME=fast_blog")
-            print("       - SECRET_KEY=your-secret-key-at-least-32-chars")
-            print("=" * 70)
-            print("   应用将继续启动，请通过 /install 页面完成数据库配置。")
-            print("=" * 70)
+            logger.warning("以下数据库环境变量未设置，应用将以安装向导模式启动")
+            logger.warning("未设置的变量: %s", ', '.join(missing))
+            logger.warning("请通过以下任一方式配置：")
+            logger.warning("1. 创建 .env 文件（参考 .env.example）")
+            logger.warning("2. 在 docker-compose.yml 的 environment 中设置")
+            logger.warning("3. 直接设置系统环境变量")
+            logger.warning("示例配置：")
+            logger.warning("  - DB_HOST=postgres")
+            logger.warning("  - DB_PORT=5432")
+            logger.warning("  - DB_USER=postgres")
+            logger.warning("  - DB_PASSWORD=your_password")
+            logger.warning("  - DB_NAME=fast_blog")
+            logger.warning("  - SECRET_KEY=your-secret-key-at-least-32-chars")
+            logger.warning("应用将继续启动，请通过 /install 页面完成数据库配置。")
         else:
             # 警告：未设置密码（允许，但提示安全风险）
             if not self.db_password:
-                print("⚠️  警告：未设置 DB_PASSWORD，数据库将使用空密码连接")
+                logger.warning("警告：未设置 DB_PASSWORD，数据库将使用空密码连接")
 
 
 class DevelopmentConfig(AppConfig):

@@ -7,13 +7,38 @@
 3. 订阅管理
 4. 权限检查
 """
-from datetime import datetime, timedelta, timezone
+import logging
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
+
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 
 class MembershipService:
+
+    # 审计事件名称常量
+    EVENT_SUB_CREATED = "vip.subscription.created"
+    EVENT_SUB_CANCELLED = "vip.subscription.cancelled"
+    EVENT_SUB_EXPIRED = "vip.subscription.expired"
+    EVENT_SUB_RENEWED = "vip.subscription.renewed"
+
+    #: 订阅状态：**0=进行中 / 1=已过期 / 2=已取消**
+    #:
+    #: 与 `marketing/vip`（`SUB_ACTIVE, SUB_EXPIRED, SUB_CANCELLED = 0, 1, 2`）、
+    #: 前端展示（`status === 0` 才算进行中）以及 `models.yaml` 的默认值一致。
+    #:
+    #: 历史坑（2026-09-20 修正）：本服务早期沿用 v2 的写法，把 **1** 当作"有效"
+    #: （`get_user_vip_status` 查 `status == 1`、`create_subscription` 写 `status=1`、
+    #: `check_expired_subscriptions` 把过期写成 0），而 `marketing/vip` 写的是 0。
+    #: 结果是两条开通路径（本服务 / 管理端手动开通）互相认为对方的订阅"已失效"，
+    #: 且定时任务会把刚开通的订阅立即过期掉。现在统一走下面的常量。
+    SUB_ACTIVE = 0
+    SUB_EXPIRED = 1
+    SUB_CANCELLED = 2
+
     """
     会员订阅服务
     """
@@ -24,10 +49,10 @@ class MembershipService:
     async def get_user_vip_status(self, user_id: int) -> Dict:
         """
         获取用户 VIP 状态
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             VIP 状态信息
         """
@@ -35,12 +60,13 @@ class MembershipService:
         from shared.models.vip.vip_plan import VIPPlan
 
         # 查询当前有效的订阅
-        now = datetime.now(timezone.utc)
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
         stmt = select(VIPSubscription, VIPPlan).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
             VIPSubscription.user == user_id,
-            VIPSubscription.status == 1,
+            VIPSubscription.status == self.SUB_ACTIVE,
             VIPSubscription.expires_at > now
         ).order_by(
             VIPSubscription.expires_at.desc()
@@ -74,12 +100,12 @@ class MembershipService:
     ) -> Dict:
         """
         检查用户是否有权限访问内容
-        
+
         Args:
             user_id: 用户ID
             article_id: 文章ID
             required_level: 所需VIP等级（0表示无需VIP）
-            
+
         Returns:
             访问权限结果
         """
@@ -121,13 +147,13 @@ class MembershipService:
     ) -> Dict:
         """
         创建订阅
-        
+
         Args:
             user_id: 用户ID
             plan_id: 套餐ID
             payment_amount: 支付金额
             transaction_id: 交易ID
-            
+
         Returns:
             订阅结果
         """
@@ -144,11 +170,12 @@ class MembershipService:
             return {'success': False, 'message': '套餐已停用'}
 
         # 创建订阅
-        now = datetime.now(timezone.utc)
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
         expires_at = now + timedelta(days=plan.duration_days)
 
-        # 验证支付金额（仅当 price > 0 时检查）
-        if plan.price and plan.price > 0 and (not payment_amount or payment_amount < float(plan.price)):
+        # 验证支付金额（仅当 price > 0 时检查不足支付）
+        if plan.price is not None and float(plan.price) > 0 and (not payment_amount or float(payment_amount) < float(plan.price)):
             return {'success': False, 'message': '支付金额不足'}
 
         subscription = VIPSubscription(
@@ -156,7 +183,7 @@ class MembershipService:
             plan=plan_id,
             starts_at=now,
             expires_at=expires_at,
-            status=1,
+            status=self.SUB_ACTIVE,
             payment_amount=payment_amount,
             transaction_id=transaction_id,
             created_at=now,
@@ -166,12 +193,31 @@ class MembershipService:
         await self.db.commit()
         await self.db.refresh(subscription)
 
-        # 同步 VIP 信息到 User 模型
+        # 同步 VIP 信息到 User 模型（不降级，只升级）
         user = await self.db.get(User, user_id)
         if user:
-            user.vip_level = plan.level
-            user.vip_expires_at = expires_at
+            # 仅当新套餐等级高于当前等级时才升级，防止低等级覆盖高等级
+            if plan.level > user.vip_level:
+                user.vip_level = plan.level
+            # 延长过期时间：新过期时间比现有时间长才更新
+            if not user.vip_expires_at or expires_at > user.vip_expires_at:
+                user.vip_expires_at = expires_at
             await self.db.commit()
+
+        # 发送审计事件
+        try:
+            from shared.services.plugins.event_bus import event_bus
+            await event_bus.emit(self.EVENT_SUB_CREATED, {
+                'user_id': user_id,
+                'plan_id': plan_id,
+                'plan_name': plan.name,
+                'level': plan.level,
+                'subscription_id': subscription.id,
+                'payment_amount': payment_amount,
+                'expires_at': expires_at.isoformat(),
+            })
+        except Exception:
+            pass  # 审计日志失败不影响主流程
 
         return {
             'success': True,
@@ -184,15 +230,16 @@ class MembershipService:
     async def cancel_subscription(self, subscription_id: int, user_id: int) -> Dict:
         """
         取消订阅
-        
+
         Args:
             subscription_id: 订阅ID
             user_id: 用户ID
-            
+
         Returns:
             操作结果
         """
         from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.user import User
 
         subscription = await self.db.get(VIPSubscription, subscription_id)
 
@@ -202,14 +249,49 @@ class MembershipService:
         if subscription.user != user_id:
             return {'success': False, 'message': '无权操作此订阅'}
 
-        subscription.status = 0
-        await self.db.commit()
+        subscription.status = self.SUB_CANCELLED
 
-        # 取消订阅后重置用户 VIP 等级
+        # 取消订阅后检查用户是否有其他有效订阅
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
+        other_stmt = select(VIPSubscription).where(
+            VIPSubscription.user == user_id,
+            VIPSubscription.status == self.SUB_ACTIVE,
+            VIPSubscription.expires_at > now,
+            VIPSubscription.id != subscription_id
+        ).order_by(VIPSubscription.expires_at.desc()).limit(1)
+        other_result = await self.db.execute(other_stmt)
+        other_active = other_result.scalar_one_or_none()
+
         user = await self.db.get(User, user_id)
         if user:
-            user.vip_level = 0
-            await self.db.commit()
+            if other_active:
+                # 有其他有效订阅，沿用最高等级
+                from shared.models.vip.vip_plan import VIPPlan
+                other_plan = await self.db.get(VIPPlan, other_active.plan)
+                if other_plan:
+                    user.vip_level = other_plan.level
+                    user.vip_expires_at = other_active.expires_at
+                else:
+                    user.vip_level = 0
+                    user.vip_expires_at = None
+            else:
+                # 没有其他有效订阅，重置 VIP 等级
+                user.vip_level = 0
+                user.vip_expires_at = None
+
+        await self.db.commit()
+
+        # 发送审计事件
+        try:
+            from shared.services.plugins.event_bus import event_bus
+            await event_bus.emit(self.EVENT_SUB_CANCELLED, {
+                'user_id': user_id,
+                'subscription_id': subscription_id,
+                'plan_id': subscription.plan,
+            })
+        except Exception:
+            pass
 
         return {
             'success': True,
@@ -219,12 +301,11 @@ class MembershipService:
     async def get_available_plans(self) -> List[Dict]:
         """
         获取可用套餐列表
-        
+
         Returns:
             套餐列表
         """
         from shared.models.vip.vip_plan import VIPPlan
-        from sqlalchemy import select
 
         stmt = select(VIPPlan).where(
             VIPPlan.is_active == True
@@ -236,6 +317,7 @@ class MembershipService:
         result = await self.db.execute(stmt)
         plans = result.scalars().all()
 
+        import json
         return [
             {
                 'id': plan.id,
@@ -245,24 +327,61 @@ class MembershipService:
                 'original_price': plan.original_price,
                 'duration_days': plan.duration_days,
                 'level': plan.level,
-                'features': plan.features,
+                'features': json.loads(plan.features) if isinstance(plan.features, str) else (plan.features or []),
+                'is_active': plan.is_active,
+                'created_at': plan.created_at.isoformat() if plan.created_at else None,
+                'updated_at': plan.updated_at.isoformat() if plan.updated_at else None,
             }
             for plan in plans
         ]
 
+    async def get_all_features(self) -> List[Dict]:
+        """
+        获取所有 VIP 功能特权列表
+
+        Returns:
+            功能特权列表
+        """
+        from shared.models.vip.vip_feature import VIPFeature
+
+        stmt = select(VIPFeature).where(
+            VIPFeature.is_active == True
+        ).order_by(
+            VIPFeature.required_level.asc(),
+            VIPFeature.id.asc()
+        )
+
+        result = await self.db.execute(stmt)
+        features = result.scalars().all()
+
+        return [f.to_dict() for f in features]
+
+    async def get_features_by_level(self) -> Dict[int, List[Dict]]:
+        """
+        按等级分组的 VIP 功能特权
+
+        Returns:
+            {level: [feature_dict, ...]}
+        """
+        features = await self.get_all_features()
+        grouped: Dict[int, List[Dict]] = {}
+        for f in features:
+            level = f.get('required_level', 1)
+            grouped.setdefault(level, []).append(f)
+        return grouped
+
     async def get_user_subscriptions(self, user_id: int) -> List[Dict]:
         """
         获取用户订阅历史
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             订阅列表
         """
         from shared.models.vip.vip_subscription import VIPSubscription
         from shared.models.vip.vip_plan import VIPPlan
-        from sqlalchemy import select
 
         stmt = select(VIPSubscription, VIPPlan).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
@@ -278,16 +397,219 @@ class MembershipService:
         return [
             {
                 'id': sub.id,
+                'user_id': sub.user,
+                'plan_id': sub.plan,
                 'plan_name': plan.name,
                 'level': plan.level,
-                'starts_at': sub.starts_at.isoformat(),
-                'expires_at': sub.expires_at.isoformat(),
+                'starts_at': sub.starts_at.isoformat() if sub.starts_at else None,
+                'expires_at': sub.expires_at.isoformat() if sub.expires_at else None,
                 'status': sub.status,
                 'payment_amount': sub.payment_amount,
-                'created_at': sub.created_at.isoformat(),
+                'transaction_id': sub.transaction_id,
+                'created_at': sub.created_at.isoformat() if sub.created_at else None,
             }
             for sub, plan in rows
         ]
+
+    async def get_premium_content(self, user_id: int, page: int = 1, page_size: int = 20) -> Dict:
+        """
+        获取需要 VIP 访问的文章列表
+
+        Args:
+            user_id: 用户ID
+            page: 页码
+            page_size: 每页数量
+
+        Returns:
+            VIP 文章列表及当前用户 VIP 状态
+        """
+        from shared.models.article import Article
+
+        # 获取用户 VIP 状态
+        vip_status = await self.get_user_vip_status(user_id)
+        user_level = vip_status.get('level', 0) if vip_status.get('is_vip') else 0
+
+        # 查询所有需要 VIP 的文章
+        conditions = [
+            Article.is_vip_only == True,
+            Article.status == 1,
+        ]
+
+        # 标记用户可访问的文章（等级 <= 用户等级）
+        # 一次性返回所有 VIP 文章，前端可区分可访问/不可访问
+        stmt = select(Article).where(
+            *conditions
+        ).order_by(
+            Article.created_at.desc()
+        )
+
+        # 总数量
+        count_stmt = select(func.count()).select_from(
+            select(Article).where(*conditions).subquery()
+        )
+        total = (await self.db.execute(count_stmt)).scalar() or 0
+
+        # 分页
+        offset = (page - 1) * page_size
+        stmt = stmt.offset(offset).limit(page_size)
+        result = await self.db.execute(stmt)
+        articles = result.scalars().all()
+
+        return {
+            'active_status': vip_status,
+            'current_vip_level': vip_status.get('level', 0),
+            'user_level': user_level,
+            'articles': [
+                {
+                    'id': a.id,
+                    'title': a.title,
+                    'slug': a.slug,
+                    'excerpt': a.excerpt,
+                    'cover_image': a.cover_image,
+                    'views': a.views,
+                    'likes': a.likes,
+                    'required_vip_level': a.required_vip_level,
+                    'accessible': user_level >= (a.required_vip_level or 0),
+                    'created_at': a.created_at.isoformat() if a.created_at else None,
+                    'updated_at': a.updated_at.isoformat() if a.updated_at else None,
+                    'user_id': a.user,
+                    'category_id': a.category,
+                }
+                for a in articles
+            ],
+            'total': total,
+            'page': page,
+            'page_size': page_size,
+        }
+
+    async def renew_subscription(self, user_id: int, plan_id: int) -> Dict:
+        """
+        续费订阅（延长有效期）
+
+        Args:
+            user_id: 用户ID
+            plan_id: 套餐ID
+
+        Returns:
+            续费结果
+        """
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_plan import VIPPlan
+        from shared.models.user import User
+
+        # 获取套餐
+        plan = await self.db.get(VIPPlan, plan_id)
+        if not plan or not plan.is_active:
+            return {'success': False, 'message': '套餐不存在或已停用'}
+
+        # 查找当前有效订阅
+        stmt = select(VIPSubscription).where(
+            VIPSubscription.user == user_id,
+            VIPSubscription.status == self.SUB_ACTIVE,
+        ).order_by(VIPSubscription.expires_at.desc()).limit(1)
+
+        result = await self.db.execute(stmt)
+        existing = result.scalar_one_or_none()
+
+        if existing:
+            # 延长有效期（从当前到期日往后加）
+            new_expires = existing.expires_at + timedelta(days=plan.duration_days)
+            existing.expires_at = new_expires
+            await self.db.commit()
+            await self.db.refresh(existing)
+
+            # 更新用户 VIP 信息
+            user = await self.db.get(User, user_id)
+            if user:
+                user.vip_level = plan.level
+                user.vip_expires_at = new_expires
+                await self.db.commit()
+
+            # 发送续费审计事件
+            try:
+                from shared.services.plugins.event_bus import event_bus
+                await event_bus.emit(self.EVENT_SUB_RENEWED, {
+                    'user_id': user_id,
+                    'plan_id': plan_id,
+                    'plan_name': plan.name,
+                    'level': plan.level,
+                    'subscription_id': existing.id,
+                    'expires_at': new_expires.isoformat(),
+                })
+            except Exception:
+                pass
+
+            return {
+                'success': True,
+                'subscription_id': existing.id,
+                'expires_at': new_expires.isoformat(),
+                'plan_name': plan.name,
+                'level': plan.level,
+            }
+        else:
+            # 无有效订阅，直接创建新订阅
+            return await self.create_subscription(user_id, plan_id, float(plan.price) if plan.price else 0)
+
+    async def check_expired_subscriptions(self) -> int:
+        """
+        检查并处理所有过期订阅（定时任务用）
+
+        Returns:
+            处理的过期订阅数量
+        """
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.user import User
+
+        # Database column is TIMESTAMP WITHOUT TIME ZONE, so use naive datetime
+        now = datetime.now()
+        stmt = select(VIPSubscription).where(
+            VIPSubscription.status == self.SUB_ACTIVE,
+            VIPSubscription.expires_at <= now
+        )
+        result = await self.db.execute(stmt)
+        expired = result.scalars().all()
+
+        count = 0
+        expired_users = set()
+        for sub in expired:
+            sub.status = self.SUB_EXPIRED  # 标记为过期
+            expired_users.add(sub.user)
+            # 检查用户是否有其他有效订阅
+            other_stmt = select(VIPSubscription).where(
+                VIPSubscription.user == sub.user,
+                VIPSubscription.status == self.SUB_ACTIVE,
+                VIPSubscription.expires_at > now,
+                VIPSubscription.id != sub.id
+            )
+            other_result = await self.db.execute(other_stmt)
+            other_active = other_result.scalar_one_or_none()
+
+            if not other_active:
+                # 没有其他有效订阅，重置用户 VIP 等级
+                user = await self.db.get(User, sub.user)
+                if user:
+                    user.vip_level = 0
+                    user.vip_expires_at = None
+
+            count += 1
+
+        if count > 0:
+            await self.db.commit()
+
+            # 发送审计事件（每个用户一条）
+            try:
+                from shared.services.plugins.event_bus import event_bus
+                for uid in expired_users:
+                    await event_bus.emit(self.EVENT_SUB_EXPIRED, {
+                        'user_id': uid,
+                        'count': 1,
+                    })
+            except Exception as exc:
+                # 事件派发失败不应影响"清理到期订阅"这一主流程，但必须留痕，
+                # 否则会员到期事件静默丢失时无从排查
+                logger.warning(f"会员到期事件派发失败：{exc}")
+
+        return count
 
 
 def create_membership_service(db: AsyncSession) -> MembershipService:

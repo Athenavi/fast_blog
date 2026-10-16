@@ -1,0 +1,577 @@
+/* ============================================================================
+ * 后台设计令牌与骨架样式
+ *
+ * **按需加载**：只由 `layouts/admin.vue` 动态引入（见那里的说明），
+ * 绝不进前台初始包。
+ *
+ * 与前台共用同一套语义色（oklch 值取自 `styles/index.css`），并**映射到
+ * Element Plus 变量**——这样 el-* 组件自动跟随令牌，页面里不再出现硬编码色值。
+ *
+ * 约定：
+ *   - 页面/组件只用 `--admin-*` 与 `--el-*` 变量，不写死颜色；
+ *   - 深浅色通过 `html.dark` / `html[data-theme='dark']` 切换（`useTheme()` 会同时置两者）；
+ *   - 自选配色通过 `html[data-accent='...']` 切换主色系（与前台一致）。
+ * ========================================================================== */
+
+/* ---------------------------------------------------------------- 浅色令牌
+ * ⚠️ 选择器必须是 `html:root`，不能只写 `html`：
+ * Element Plus 把 `--el-*` 定义在 `:root`（优先级 0,1,0），而 `html` 只有 (0,0,1) ——
+ * 只写 `html` 的话，下面**整个元素级变量覆盖块都会被 EP 的默认值压过去**。
+ * 实测症状：primary 仍是 EP 的 `#409eff`、placeholder 仍是 `#a8abb2`、danger tag 仍是
+ * `#f56c6c`，后台因此积压 117 条 color-contrast 违规（改令牌值本身怎么调都不动）。
+ * `html:root`（同一元素、优先级 0,1,1）能稳定压过 EP 的 `:root`。
+ */
+html:root {
+  color-scheme: light;
+
+  /* ---- 语义色 ----
+   * 统一到前台同一套令牌（`styles/index.css` 的 `@theme`）：除下面**显式标注的有意差异**外，
+   * 一律别名到 `--color-*`。此前两套色值各自维护，已经出现漂移
+   * （canvas 97.4% vs 99%、fg-muted 50% 与深色 74% vs 72% 等）。
+   * 别名化之后，自选主色（`data-accent`）也不再需要在后台重复声明一遍。
+   */
+  --admin-canvas: oklch(97.4% 0.003 250); /* 有意差异：比前台更灰，让白色卡片浮起来 */
+  --admin-surface: var(--color-surface);
+  --admin-surface-soft: var(--color-surface-soft);
+  --admin-surface-hover: oklch(96.4% 0.004 250); /* 后台专属：前台没有 hover 底色令牌 */
+  --admin-fg: var(--color-fg);
+  /* 后台专属：把两个弱化文字色**加深到 WCAG AA 达标**，不沿用前台令牌。
+   * axe 的 color-contrast 违规绝大多数落在它们身上 —— EP 的 `secondary` /
+   * `placeholder`、表格表头文字都映射到这两个（见下面 `--el-text-color-*`）：
+   *   --color-fg-muted  oklch(50%) 在白底约 4.1:1（差一点点）
+   *   --color-fg-subtle oklch(68%) 在白底约 2.3:1（远不达标）
+   * 前台保留原令牌：那是阅读端的观感取舍；后台以「表格与表单读得清」为先。 */
+  --admin-fg-muted: oklch(44% 0.015 260);
+  --admin-fg-subtle: oklch(50% 0.012 260);
+  --admin-line: var(--color-line);
+  --admin-line-strong: var(--color-line-strong);
+  --admin-primary: var(--color-primary);
+  --admin-primary-hover: var(--color-primary-hover);
+  --admin-primary-soft: var(--color-primary-soft);
+  /* 第二轮（对比度）：后台的语义色**不沿用前台的较浅取值**。EP 的 `el-tag` 与各类状态
+   * 文字直接把 `--el-color-{type}` 当**文字色**用（底色是 light-9 那种浅底），而前台
+   * 的取值在白底上只有 2.4~4.0:1（danger 最低、warning 最浅）。这里统一压深到 4.5:1 以上，
+   * 只影响后台（前台令牌不动）。 */
+  --admin-success: oklch(46% 0.13 155);
+  --admin-warning: oklch(50% 0.14 75);
+  --admin-danger: oklch(48% 0.19 25);
+  --admin-info: oklch(44% 0.02 260); /* 后台专属：Element Plus 的 info 语义色 */
+
+  /* 侧边栏（后台是深色导航，与内容区形成层次） */
+  --admin-sidebar-bg: oklch(24% 0.02 260);
+  --admin-sidebar-fg: oklch(84% 0.012 260);
+  --admin-sidebar-fg-active: oklch(100% 0 0);
+  --admin-sidebar-line: oklch(32% 0.02 260);
+
+  /* 间距 / 圆角 / 阴影 / 字号 */
+  --admin-gap-xs: 4px;
+  --admin-gap-sm: 8px;
+  --admin-gap: 16px;
+  --admin-gap-lg: 24px;
+  --admin-radius-sm: 6px;
+  --admin-radius: 10px;
+  --admin-radius-lg: 14px;
+  --admin-font-sm: 13px;
+  --admin-shadow-card: 0 1px 2px rgb(15 23 42 / 4%), 0 1px 3px rgb(15 23 42 / 6%);
+  --admin-shadow-pop: 0 10px 30px rgb(15 23 42 / 12%);
+
+  /* ---- Element Plus 变量映射 ---- */
+  --el-color-primary: var(--admin-primary);
+  --el-color-success: var(--admin-success);
+  --el-color-warning: var(--admin-warning);
+  --el-color-danger: var(--admin-danger);
+  --el-color-error: var(--admin-danger);
+  --el-color-info: var(--admin-info);
+
+  --el-bg-color: var(--admin-surface);
+  --el-bg-color-page: var(--admin-canvas);
+  --el-bg-color-overlay: var(--admin-surface);
+  --el-text-color-primary: var(--admin-fg);
+  --el-text-color-regular: var(--admin-fg-muted);
+  --el-text-color-secondary: var(--admin-fg-subtle);
+  --el-text-color-placeholder: var(--admin-fg-subtle);
+  /* EP 默认的 #a8abb2 在白底只有 ≈2.2:1 —— 禁用态也不该浅到「看不清」 */
+  --el-text-color-disabled: oklch(52% 0.012 260);
+  --el-border-color: var(--admin-line);
+  --el-border-color-light: var(--admin-line);
+  --el-border-color-lighter: var(--admin-line);
+  --el-border-color-extra-light: var(--admin-line);
+  --el-fill-color-blank: var(--admin-surface);
+  --el-fill-color-light: var(--admin-surface-soft);
+  --el-fill-color-lighter: var(--admin-surface-soft);
+  --el-fill-color: var(--admin-surface-hover);
+  --el-mask-color: rgb(255 255 255 / 70%);
+  --el-box-shadow-light: var(--admin-shadow-card);
+
+  --el-border-radius-base: 8px;
+  --el-border-radius-small: var(--admin-radius-sm);
+  --el-border-radius-round: 999px;
+
+  /* ---- 主色/语义色的浅色变体（EP 用它们做 hover/禁用/浅底） ---- */
+  --el-color-primary-light-3: color-mix(in oklab, var(--admin-primary) 70%, white);
+  --el-color-primary-light-5: color-mix(in oklab, var(--admin-primary) 50%, white);
+  --el-color-primary-light-7: color-mix(in oklab, var(--admin-primary) 30%, white);
+  --el-color-primary-light-8: color-mix(in oklab, var(--admin-primary) 20%, white);
+  --el-color-primary-light-9: color-mix(in oklab, var(--admin-primary) 10%, white);
+  --el-color-primary-dark-2: color-mix(in oklab, var(--admin-primary) 80%, black);
+  --el-color-success-light-3: color-mix(in oklab, var(--admin-success) 70%, white);
+  --el-color-success-light-5: color-mix(in oklab, var(--admin-success) 50%, white);
+  --el-color-success-light-9: color-mix(in oklab, var(--admin-success) 10%, white);
+  --el-color-warning-light-3: color-mix(in oklab, var(--admin-warning) 70%, white);
+  --el-color-warning-light-5: color-mix(in oklab, var(--admin-warning) 50%, white);
+  --el-color-warning-light-9: color-mix(in oklab, var(--admin-warning) 10%, white);
+  --el-color-danger-light-3: color-mix(in oklab, var(--admin-danger) 70%, white);
+  --el-color-danger-light-5: color-mix(in oklab, var(--admin-danger) 50%, white);
+  --el-color-danger-light-9: color-mix(in oklab, var(--admin-danger) 10%, white);
+  --el-color-error-light-3: color-mix(in oklab, var(--admin-danger) 70%, white);
+  --el-color-info-light-3: color-mix(in oklab, var(--admin-info) 70%, white);
+  --el-color-info-light-9: color-mix(in oklab, var(--admin-info) 10%, white);
+}
+
+/* ---------------------------------------------------------------- 深色令牌 */
+html.dark,
+html[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* 深色下同样跟随前台的深色令牌，只覆盖后台专属与有意差异的项 */
+  --admin-canvas: var(--color-canvas);
+  --admin-surface-hover: oklch(29% 0.015 260);
+
+  --admin-sidebar-bg: oklch(17% 0.015 260);
+  --admin-sidebar-fg: oklch(76% 0.012 260);
+  --admin-sidebar-line: oklch(27% 0.02 260);
+
+  --admin-shadow-card: 0 1px 2px rgb(0 0 0 / 30%), 0 1px 3px rgb(0 0 0 / 24%);
+  --admin-shadow-pop: 0 12px 32px rgb(0 0 0 / 45%);
+
+  --el-mask-color: rgb(0 0 0 / 70%);
+
+  /* 深色下 EP 的浅色变体要往黑色方向混，否则 hover 会发白 */
+  --el-color-primary-light-3: color-mix(in oklab, var(--admin-primary) 70%, black);
+  --el-color-primary-light-5: color-mix(in oklab, var(--admin-primary) 50%, black);
+  --el-color-primary-light-7: color-mix(in oklab, var(--admin-primary) 30%, black);
+  --el-color-primary-light-8: color-mix(in oklab, var(--admin-primary) 20%, black);
+  --el-color-primary-light-9: color-mix(in oklab, var(--admin-primary) 12%, black);
+  --el-color-primary-dark-2: color-mix(in oklab, var(--admin-primary) 80%, white);
+  --el-color-success-light-3: color-mix(in oklab, var(--admin-success) 70%, black);
+  --el-color-success-light-5: color-mix(in oklab, var(--admin-success) 50%, black);
+  --el-color-success-light-9: color-mix(in oklab, var(--admin-success) 12%, black);
+  --el-color-warning-light-3: color-mix(in oklab, var(--admin-warning) 70%, black);
+  --el-color-warning-light-5: color-mix(in oklab, var(--admin-warning) 50%, black);
+  --el-color-warning-light-9: color-mix(in oklab, var(--admin-warning) 12%, black);
+  --el-color-danger-light-3: color-mix(in oklab, var(--admin-danger) 70%, black);
+  --el-color-danger-light-5: color-mix(in oklab, var(--admin-danger) 50%, black);
+  --el-color-danger-light-9: color-mix(in oklab, var(--admin-danger) 12%, black);
+  --el-color-error-light-3: color-mix(in oklab, var(--admin-danger) 70%, black);
+  --el-color-info-light-3: color-mix(in oklab, var(--admin-info) 70%, black);
+  --el-color-info-light-9: color-mix(in oklab, var(--admin-info) 12%, black);
+}
+
+/* ---------------------------------------------------------------- 自选配色
+ * 不再需要在后台重复声明一遍：`--admin-primary*` 已别名到 `--color-primary*`，
+ * 配色覆盖本身定义在前台令牌层（`styles/index.css` 的 `[data-accent=…]`，含深色下的 primary-soft），
+ * 后台因此自动跟随用户选的主色，也不必再为 4 种配色各写一遍深色分支。
+ */
+
+/* ---------------------------------------------------------------- EP 观感收敛
+ * 注意：**不要**在这里给 `.el-card` 设 `box-shadow`（尤其带 `!important`）——
+ * 那会让页面上的 `<el-card shadow="never">` / `shadow="hover"` 全部失效
+ * （此前正是如此：仪表盘统计卡的 hover 反馈被静默吃掉）。
+ * 卡片外观交给页面自身的 `shadow` 属性；需要统一描边风格的用 `.admin-card`。
+ */
+.el-card {
+  border-color: var(--admin-line);
+  border-radius: var(--admin-radius-lg);
+}
+
+.el-card__header {
+  padding: var(--admin-gap) var(--admin-gap-lg);
+  border-bottom-color: var(--admin-line);
+  font-weight: 600;
+}
+
+.el-card__body {
+  padding: var(--admin-gap-lg);
+}
+
+.el-table {
+  --el-table-border-color: var(--admin-line);
+  --el-table-header-bg-color: var(--admin-surface-soft);
+  --el-table-header-text-color: var(--admin-fg-muted);
+  --el-table-row-hover-bg-color: var(--admin-surface-hover);
+  font-size: 13.5px;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+}
+
+.el-table .cell {
+  word-break: break-word;
+}
+
+.el-dialog,
+.el-drawer {
+  --el-dialog-border-radius: var(--admin-radius-lg);
+  border-radius: var(--admin-radius-lg);
+}
+
+/**
+ * 视口约束：页面里普遍把抽屉/弹窗写死为 460~720px（如 `:size="600"`），
+ * 在平板/手机上会溢出屏幕。EP 用的是内联 `width`，`max-width` 能稳定压住它，
+ * 因此在这里统一收口，新页面无需再逐处响应式化。
+ */
+.el-drawer {
+  max-width: 100vw;
+}
+
+.el-dialog {
+  max-width: calc(100vw - 2 * var(--admin-gap));
+}
+
+/* 窄屏导航抽屉：完整菜单铺满整个抽屉，去掉默认内边距 */
+.layout__mobile-nav .el-drawer__body {
+  height: 100%;
+  padding: 0;
+  overflow-y: auto;
+}
+
+/* 命令面板：不要标题栏，搜索框自己占据顶部（见 components/admin/CommandPalette.vue） */
+.cmdk .el-dialog__header {
+  display: none;
+}
+
+.cmdk .el-dialog__body {
+  padding: 0;
+}
+
+.el-dialog__header,
+.el-drawer__header {
+  margin-right: 0;
+  padding: var(--admin-gap) var(--admin-gap-lg);
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--admin-line);
+  font-weight: 600;
+}
+
+.el-dialog__body,
+.el-drawer__body {
+  padding: var(--admin-gap-lg);
+}
+
+.el-dialog__footer {
+  padding: var(--admin-gap-sm) var(--admin-gap-lg) var(--admin-gap);
+  border-top: 1px solid var(--admin-line);
+}
+
+.el-button {
+  font-weight: 500;
+}
+
+.el-tag {
+  border-radius: var(--admin-radius-sm);
+}
+
+.el-pagination {
+  --el-pagination-button-bg-color: transparent;
+  font-weight: 500;
+}
+
+.el-form-item__label {
+  color: var(--admin-fg-muted);
+  font-weight: 500;
+}
+
+.el-alert {
+  border-radius: var(--admin-radius);
+}
+
+.el-empty {
+  --el-empty-padding: var(--admin-gap-lg) 0;
+}
+
+/* ---------------------------------------------------------------- 骨架类 */
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap);
+  padding: var(--admin-gap);
+}
+
+.admin-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--admin-gap);
+  flex-wrap: wrap;
+}
+
+.admin-page__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--admin-fg);
+}
+
+.admin-page__desc {
+  margin: var(--admin-gap-xs) 0 0;
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+.admin-page__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  flex-wrap: wrap;
+}
+
+.admin-card {
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-surface);
+  box-shadow: var(--admin-shadow-card);
+}
+
+.admin-card--pad {
+  padding: var(--admin-gap-lg);
+}
+
+.admin-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--admin-gap);
+}
+
+.admin-toolbar__spacer {
+  flex: 1 1 auto;
+}
+
+.admin-toolbar__total {
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+/* 权限不足的控件：保留在布局里、显示禁用视觉并说明原因（见 plugins/directives.client.ts） */
+.admin-auth-disabled,
+.admin-auth-disabled:hover,
+.admin-auth-disabled * {
+  cursor: not-allowed;
+}
+
+.admin-filter .el-form-item {
+  margin-right: var(--admin-gap);
+  margin-bottom: var(--admin-gap-sm);
+}
+
+.admin-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--admin-gap);
+}
+
+/* 选中若干行后浮出的批量操作条 */
+.admin-selection-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  margin-bottom: var(--admin-gap-sm);
+  padding: var(--admin-gap-sm) var(--admin-gap);
+  border: 1px solid color-mix(in oklab, var(--admin-primary) 30%, var(--admin-line));
+  border-radius: var(--admin-radius);
+  background: var(--admin-primary-soft);
+}
+
+.admin-selection-bar__count {
+  font-size: var(--admin-font-sm);
+  font-weight: 600;
+  color: var(--admin-fg);
+}
+
+.admin-selection-bar__spacer {
+  flex: 1 1 auto;
+}
+
+/* 表格里的主副标题单元格 / 缩略图 */
+.admin-cell-title {
+  font-weight: 500;
+  color: var(--admin-fg);
+}
+
+.admin-cell-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--admin-fg-subtle);
+}
+
+.admin-thumb {
+  width: 48px;
+  height: 36px;
+  border-radius: var(--admin-radius-sm);
+  object-fit: cover;
+  background: var(--admin-surface-soft);
+  border: 1px solid var(--admin-line);
+}
+
+/* 编辑页分栏：左侧主表单 + 右侧设置栏 */
+.admin-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: var(--admin-gap);
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .admin-split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 骨架屏 */
+.admin-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap-sm);
+  padding: var(--admin-gap) 0;
+}
+
+/* 空状态 */
+.admin-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  padding: 48px var(--admin-gap);
+  text-align: center;
+}
+
+.admin-empty__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--admin-fg);
+}
+
+.admin-empty__desc {
+  max-width: 420px;
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+.admin-empty__actions {
+  display: flex;
+  gap: var(--admin-gap-sm);
+  margin-top: var(--admin-gap-sm);
+}
+
+/* ---------------------------------------------------------------- 旧页面兼容
+ * 早期页面用的是 `.page-container` / `.table-toolbar` / `.table-pagination` 这些局部类名。
+ * 这里给出与新骨架等价的全局定义，让尚未迁移的页面也跟随令牌（深浅色 + 自选配色）保持一致；
+ * 页面迁移到 AdminPage / AdminListShell 之后可以删掉各自的 scoped 样式。
+ */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-gap);
+  padding: var(--admin-gap);
+}
+
+.page-card {
+  padding: var(--admin-gap-lg);
+  border: 1px solid var(--admin-line);
+  border-radius: var(--admin-radius-lg);
+  background: var(--admin-surface);
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--admin-gap-sm);
+  flex-wrap: wrap;
+  margin-bottom: var(--admin-gap);
+}
+
+.table-toolbar__total {
+  font-size: var(--admin-font-sm);
+  color: var(--admin-fg-subtle);
+}
+
+.table-toolbar__title {
+  font-size: var(--admin-font-sm);
+  font-weight: 600;
+  color: var(--admin-fg-muted);
+}
+
+.table-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--admin-gap);
+}
+
+/* 网格卡片（媒体库等） */
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--admin-gap);
+}
+
+/* ---------------------------------------------------------------- 打印
+ * 后台页面此前没有打印样式：打印会把侧边栏、顶栏、工具栏、分页、按钮全部打进纸里。
+ * 这里统一收口：只保留主内容区，去掉阴影与交互控件。
+ */
+@media print {
+  :root,
+  html {
+    background: #fff !important;
+  }
+
+  .layout__aside,
+  .layout__header,
+  .admin-toolbar,
+  .admin-pagination,
+  .admin-selection-bar,
+  .admin-list__filters,
+  .admin-page__actions,
+  .el-pagination,
+  .el-button,
+  .editor-bar__spacer,
+  .draft-alert {
+    display: none !important;
+  }
+
+  .layout,
+  .layout__main,
+  .admin-page,
+  .admin-card,
+  .el-card {
+    display: block !important;
+    height: auto !important;
+    width: auto !important;
+    padding: 0 !important;
+    margin: 0 0 12px !important;
+    overflow: visible !important;
+    background: #fff !important;
+    border-color: #999 !important;
+    box-shadow: none !important;
+  }
+
+  .admin-split,
+  .admin-grid,
+  .media-layout {
+    display: block !important;
+  }
+
+  /* 表格：露出所有列，允许跨页断行 */
+  .el-table,
+  .el-table__inner-wrapper {
+    overflow: visible !important;
+  }
+
+  .el-table th,
+  .el-table td {
+    color: #000 !important;
+    background: #fff !important;
+  }
+}

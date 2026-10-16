@@ -6,13 +6,14 @@
 
 import json
 import logging
+from collections import Counter
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 
-class AuditActionType(str, Enum):
+class AuditActionType(StrEnum):
     """审计动作类型"""
     # 数据访问
     DATA_READ = "data_read"
@@ -49,7 +50,7 @@ class AuditActionType(str, Enum):
     CUSTOM = "custom"
 
 
-class AuditStatus(str, Enum):
+class AuditStatus(StrEnum):
     """审计状态"""
     SUCCESS = "success"
     FAILURE = "failure"
@@ -72,10 +73,10 @@ class AuditLogger:
             storage_backend: 存储后端类型 (file, database)
             log_dir: 日志文件目录（当使用 file 后端时）
         """
-        print(f"[AuditLogger] Initialized with {storage_backend} backend")
+        self.logger = logging.getLogger(f"audit_logger_{storage_backend}")
         self.storage_backend = storage_backend
         self.log_dir = Path(log_dir) if log_dir else None
-        self.logger = logging.getLogger(f"audit_logger_{storage_backend}")
+        self.logger.info(f"[AuditLogger] Initialized with {storage_backend} backend")
 
     def log(
             self,
@@ -113,9 +114,9 @@ class AuditLogger:
         log_method = getattr(self.logger, severity, self.logger.info)
         log_method(json.dumps(log_entry, ensure_ascii=False))
 
-        # 如果是 denied 或 failure，额外输出到控制台
+        # 如果是 denied 或 failure，额外输出告警日志
         if status in [AuditStatus.DENIED, AuditStatus.FAILURE]:
-            print(f"[AUDIT ALERT] {plugin_slug}: {action_type} on {resource} - {status}")
+            self.logger.warning(f"[AUDIT ALERT] {plugin_slug}: {action_type} on {resource} - {status}")
 
         return log_entry
 
@@ -235,7 +236,7 @@ class AuditLogger:
                         except json.JSONDecodeError:
                             continue
             except Exception as e:
-                print(f"[AuditLogger] Error reading {log_file}: {e}")
+                self.logger.error(f"Error reading audit log file {log_file}: {e}")
 
         return logs
 
@@ -258,16 +259,10 @@ class AuditLogger:
         failure_count = sum(1 for log in logs if log.get('status') == 'failure')
 
         # 按动作类型统计
-        action_stats = {}
-        for log in logs:
-            action = log.get('action_type', 'unknown')
-            action_stats[action] = action_stats.get(action, 0) + 1
+        action_stats = Counter(log.get('action_type', 'unknown') for log in logs)
 
         # 按严重级别统计
-        severity_stats = {}
-        for log in logs:
-            severity = log.get('severity', 'info')
-            severity_stats[severity] = severity_stats.get(severity, 0) + 1
+        severity_stats = Counter(log.get('severity', 'info') for log in logs)
 
         report = {
             "plugin_slug": plugin_slug,

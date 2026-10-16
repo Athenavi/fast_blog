@@ -10,6 +10,7 @@
 
 from typing import Optional, Dict, Any, List
 
+import asyncio
 import aiohttp
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -305,12 +306,13 @@ class EmailServiceIntegration:
             text_content: Optional[str] = None,
             from_name: Optional[str] = None,
     ) -> bool:
-        """通过 SMTP 发送邮件"""
-        import smtplib
-        from email.mime.multipart import MIMEMultipart
-        from email.mime.text import MIMEText
+        """通过 SMTP 发送邮件（smtplib 是阻塞 IO，放线程池执行，避免卡住事件循环）"""
 
-        try:
+        def _send_blocking() -> None:
+            import smtplib
+            from email.mime.multipart import MIMEMultipart
+            from email.mime.text import MIMEText
+
             msg = MIMEMultipart('alternative')
             msg['From'] = f"{from_name or config.from_name or 'FastBlog'} <{config.from_email}>"
             msg['To'] = to_email
@@ -322,12 +324,16 @@ class EmailServiceIntegration:
             msg.attach(MIMEText(html_content, 'html'))
 
             server = smtplib.SMTP(config.smtp_host, config.smtp_port)
-            server.ehlo()
-            server.starttls()
-            server.login(config.smtp_username, config.smtp_password)
-            server.sendmail(config.from_email, to_email, msg.as_string())
-            server.quit()
+            try:
+                server.ehlo()
+                server.starttls()
+                server.login(config.smtp_username, config.smtp_password)
+                server.sendmail(config.from_email, to_email, msg.as_string())
+            finally:
+                server.quit()
 
+        try:
+            await asyncio.to_thread(_send_blocking)
             logger.info(f"Email sent via SMTP to {to_email}")
             return True
         except Exception as e:

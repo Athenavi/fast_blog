@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - MonitoringMetric
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class MonitoringMetric(Base):

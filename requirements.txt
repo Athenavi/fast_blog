@@ -1,7 +1,7 @@
 # ============================================================================
 # FastBlog Python Dependencies
 # ============================================================================
-# Pin major versions for stability; use >= for flexibility
+# Pin exact versions with == for supply chain security and reproducibility
 
 # Web Framework
 fastapi==0.136.3
@@ -27,19 +27,25 @@ psycopg2-binary==2.9.12
 # Authentication & Security
 pyjwt==2.13.0
 httpx-oauth==0.17.0
-fastapi-users[sqlalchemy]
+fastapi-users[sqlalchemy]==15.0.5
 argon2-cffi==25.1.0
 pyotp==2.9.0
-qrcode[pil]
+qrcode[pil]==8.1.0
 
 # Caching
 redis==8.0.0
 cachetools==7.1.4
 
+# Realtime collaboration（CRDT：服务端真实合并 y-protocols 更新）
+pycrdt==0.14.5
+
 # HTTP Client
 httpx==0.28.1
 
 # Rate Limiting
+slowapi==0.1.9
+
+# JavaScript Minification (for static assets)
 slimit==0.7.4
 
 # Environment & Configuration
@@ -81,10 +87,22 @@ aiofiles==25.1.0
 aiohttp==3.14.0
 aioboto3==15.5.0
 
-# Type checking
-mypy>=1.0
-types-requests
-types-redis
-types-PyYAML
+# GraphQL（读 + 少量写；与 REST 共享鉴权，见 src/api/v3/graphql/）
+strawberry-graphql[fastapi]==0.315.4
 
-cryptography>=42.0.0
+#   graphql-core 必须显式钉住：它是 strawberry 的**间接**依赖，3.3 起移除了
+#   `graphql.execution.ExecutionContext`，而 strawberry 0.315.4 仍在导入它。
+#   不钉版本时 CI 会解析到 3.3+，表现为 test_v3_graphql.py 在**收集期**就
+#   ImportError（本地装的是 3.2.8 所以测不出来）。升 strawberry 时请一并复核。
+graphql-core==3.2.8
+
+# XML 解析与富文本净化
+#   lxml：src/utils/html_sanitizer.py（白名单重建式净化）+ SAML 断言解析
+lxml==6.1.3
+
+# SAML 2.0 断言签名校验（src/api/v3/modules/system/integration/saml.py）
+#   xmlsec 底层需要 libxmlsec1；PyPI 的 manylinux wheel 已静态打包，无需系统包。
+#   注意：它必须与 cryptography 兼容，改动 cryptography 版本时请一并回归 test_v3_saml.py
+xmlsec==1.3.17
+
+cryptography==44.0.0

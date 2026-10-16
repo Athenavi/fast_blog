@@ -1,0 +1,48 @@
+{
+  "name": "Compliance Audit",
+  "slug": "compliance-audit",
+  "version": "1.0.0",
+  "description": "合规审计插件 — 执行真实 PCI DSS / GDPR 合规检查，读取系统配置和安全开关输出审计结论，替代硬编码'合规'。",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "category": "integration",
+  "icon": "🛡️",
+  "license": "MIT",
+  "tags": [
+    "compliance",
+    "pci",
+    "gdpr",
+    "security",
+    "audit"
+  ],
+  "requires": {
+    "fastblog": ">=1.0.0",
+    "python": ">=3.8"
+  },
+  "capabilities": [
+    "read:custom:compliance"
+  ],
+  "settings_schema": {
+    "strict_mode": {
+      "type": "boolean",
+      "label": "严格模式",
+      "default": false,
+      "help": "严格模式下任何未审计项都导致整体不合规"
+    },
+    "check_ssl_cert": {
+      "type": "boolean",
+      "label": "检查 SSL 证书",
+      "default": true
+    },
+    "check_data_encryption": {
+      "type": "boolean",
+      "label": "检查数据加密",
+      "default": true
+    },
+    "check_access_control": {
+      "type": "boolean",
+      "label": "检查访问控制",
+      "default": true
+    }
+  }
+}

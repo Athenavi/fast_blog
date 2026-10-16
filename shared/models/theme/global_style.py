@@ -4,19 +4,16 @@ SQLAlchemy 模型定义 - GlobalStyle
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class GlobalStyle(Base):
     """全局样式配置模型模型"""
     __tablename__ = 'global_styles'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
     theme_name = Column(String(100), unique=True, nullable=True, doc='主题/方案名称')

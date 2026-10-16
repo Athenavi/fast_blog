@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - PageBuilder
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class PageBuilder(Base):
@@ -19,7 +18,7 @@ class PageBuilder(Base):
         Index('idx_page_builder_slug', 'slug', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='页面 ID')
 
     title = Column(String(255), nullable=True, doc='页面标题')

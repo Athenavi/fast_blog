@@ -4,19 +4,24 @@ SQLAlchemy 模型定义 - PageView
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class PageView(Base):
     """页面浏览模型模型"""
     __tablename__ = 'page_views'
+    # 手工补充的索引：page_views 是「每次访问写一行」的热表，分析查询基本都按
+    # created_at / user 过滤与聚合，无索引会退化为全表扫描。
+    # （模型由生成器产出，若重新生成请同步 config/models.yaml 的 indexes 段。）
+    __table_args__ = (
+        Index('idx_page_views_created_at', 'created_at'),
+        Index('idx_page_views_user_created', 'user', 'created_at'),
+        Index('idx_page_views_session', 'session_id'),
+    )
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='浏览 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户')

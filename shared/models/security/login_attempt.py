@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - LoginAttempt
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class LoginAttempt(Base):

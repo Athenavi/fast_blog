@@ -158,12 +158,15 @@ class PagePerformanceTracker:
         # 按URL分组
         pages = set(r['url'] for r in all_records)
 
-        # 计算平均指标
+        # 计算平均指标（毫秒口径，与前端 web-vitals 采集保持一致）
         avg_load_time = self._calculate_average(all_records, 'metrics.loadTime')
         avg_fcp = self._calculate_average(all_records, 'core_web_vitals.fcp')
         avg_lcp = self._calculate_average(all_records, 'core_web_vitals.lcp')
-        avg_fid = self._calculate_average(all_records, 'core_web_vitals.fid')
         avg_cls = self._calculate_average(all_records, 'core_web_vitals.cls')
+        # INP 是 FID 的继任指标：优先读 inp，兼容更早写入的 fid
+        avg_inp = self._calculate_average(all_records, 'core_web_vitals.inp') or \
+            self._calculate_average(all_records, 'core_web_vitals.fid')
+        avg_ttfb = self._calculate_average(all_records, 'core_web_vitals.ttfb')
 
         # Core Web Vitals达标率
         cwv_pass_rate = self._calculate_cwv_pass_rate(all_records)
@@ -175,7 +178,10 @@ class PagePerformanceTracker:
             'avg_load_time': round(avg_load_time, 2) if avg_load_time else 0,
             'avg_first_contentful_paint': round(avg_fcp, 2) if avg_fcp else 0,
             'avg_largest_contentful_paint': round(avg_lcp, 2) if avg_lcp else 0,
-            'avg_first_input_delay': round(avg_fid, 2) if avg_fid else 0,
+            'avg_interaction_to_next_paint': round(avg_inp, 2) if avg_inp else 0,
+            # 兼容旧字段名（历史面板/脚本读的是它）
+            'avg_first_input_delay': round(avg_inp, 2) if avg_inp else 0,
+            'avg_time_to_first_byte': round(avg_ttfb, 2) if avg_ttfb else 0,
             'avg_cumulative_layout_shift': round(avg_cls, 4) if avg_cls else 0,
             'cwv_pass_rate': round(cwv_pass_rate, 2),
         }
@@ -385,21 +391,29 @@ class PagePerformanceTracker:
         if not records:
             return 0.0
 
+        # 阈值与前端 web-vitals 的评级界限一致（**毫秒**口径）：
+        #   FCP ≤ 1800ms、LCP ≤ 2500ms、INP ≤ 200ms（旧数据用 FID ≤ 100ms）、CLS ≤ 0.1
+        # 只对「实际采集到的指标」判定：缺失的指标不参与，避免把只上报 LCP 的样本算通过。
+        thresholds = {'fcp': 1800, 'lcp': 2500, 'inp': 200, 'fid': 100, 'cls': 0.1}
+
+        judged = 0
         passed = 0
-
         for record in records:
-            cwv = record.get('core_web_vitals', {})
+            cwv = record.get('core_web_vitals', {}) or {}
+            present = {key: value for key, value in cwv.items() if key in thresholds and value}
+            if not present:
+                continue
 
-            fcp = cwv.get('fcp', 0)
-            lcp = cwv.get('lcp', 0)
-            fid = cwv.get('fid', 0)
-            cls = cwv.get('cls', 0)
-
-            # 检查是否所有指标都达标
-            if fcp < 1.8 and lcp < 2.5 and fid < 100 and cls < 0.1:
+            judged += 1
+            # INP 优先于 FID（两者同时存在时只按 INP 判定）
+            if 'inp' in present:
+                present.pop('fid', None)
+            if all(value <= thresholds[key] for key, value in present.items()):
                 passed += 1
 
-        return (passed / len(records)) * 100
+        if not judged:
+            return 0.0
+        return (passed / judged) * 100
 
 
 # 全局实例

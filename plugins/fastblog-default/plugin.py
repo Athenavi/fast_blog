@@ -4,6 +4,7 @@ FastBlog Default Theme
 """
 
 from shared.services.plugins.plugin_manager.theme_plugin import ThemePlugin
+from shared.logging import default_logger as logger
 
 
 class DefaultTheme(ThemePlugin):
@@ -28,7 +29,7 @@ class DefaultTheme(ThemePlugin):
 
     def on_theme_activated(self, payload: dict):
         """当此主题被激活时的处理"""
-        print(f"[DefaultTheme] 默认主题已激活: {payload}")
+        logger.info(f"[DefaultTheme] 默认主题已激活: {payload}")
 
 
 # 模块级实例（插件系统通过此变量发现）

@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - TeamComment
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class TeamComment(Base):
@@ -22,7 +21,7 @@ class TeamComment(Base):
         Index('idx_team_comments_resolved', 'is_resolved'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='团队评论 ID')
 
     content_type = Column(String(50), nullable=True, doc='内容类型（article, page, block 等）')

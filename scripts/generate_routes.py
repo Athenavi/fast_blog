@@ -110,7 +110,7 @@ class RouteGenerator:
 
         # 导入 settings 以获取表前缀
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
             table_prefix = getattr(settings, 'db_table_prefix', '')
         except ImportError:
             table_prefix = ''
@@ -136,7 +136,7 @@ class RouteGenerator:
 
         # 导入 settings 以获取表前缀
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
         except ImportError:
             settings = type('Settings', (), {'db_table_prefix': ''})()
 
@@ -253,10 +253,13 @@ class RouteGenerator:
         # 为每个使用的子模块创建 __init__.py
         self._create_module_init_files(output_base, used_modules)
 
-        # 全部生成成功后才更新 __init__.py
+        # 更新 __init__.py
+        # 注意：_update_shared_models_init_from_orm 会**重建整个文件**的懒加载表，
+        # 因此必须传全量 ORM 模型；传“本次生成的子集”会把其它模型入口抹掉（历史缺陷）。
         if success_models:
-            successful_orm_config = {k: v for k, v in orm_models.items() if k in success_models}
-            self._update_shared_models_init_from_orm(successful_orm_config)
+            self._update_shared_models_init_from_orm(
+                {k: v for k, v in orm_models.items() if v.get('orm')}
+            )
 
         print(f"  ✅ 共生成 {generated_count} 个模型文件")
 
@@ -269,7 +272,7 @@ class RouteGenerator:
         print(f"\n[单模型生成] 指定模型: {model_names}")
 
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
         except ImportError:
             settings = type('Settings', (), {'db_table_prefix': ''})()
 
@@ -320,9 +323,8 @@ class RouteGenerator:
                     defs_target = model_def.get('defs_target', f"{model_name.lower()}_defs.py")
                     custom_methods = self._load_custom_methods_from_target(model_name, def_list, defs_target)
 
-                # 收集索引
-                indexes = model_def.get('indexes', [])
-                unique_constraints = [ix for ix in indexes if ix.get('unique')]
+                # 收集索引（unique 项只生成 UniqueConstraint，见 _split_indexes 的说明）
+                indexes, unique_constraints = self._split_indexes(model_def)
 
                 # 收集所有字段类型信息
                 has_datetime_default = False
@@ -336,7 +338,11 @@ class RouteGenerator:
                     if field.get('primary_key') and field.get('type') == 'String':
                         has_uuid_pk = True
 
-                has_relationships = any(field.get('is_rel') for field in fields.values())
+                # 注意：relationships 不在 fields（那是列字段）里，必须用与 generate_all 相同的检查，
+                # 否则生成的模型会引用 relationship(...) 却没有导入它（历史缺陷）
+                has_relationships = self._check_relationships(model_def) or bool(
+                    model_def.get('relationships')
+                )
                 has_foreign_keys = self._check_foreign_keys_in_fields(fields)
 
                 # 构建类定义
@@ -382,12 +388,13 @@ class RouteGenerator:
                 import traceback
                 traceback.print_exc()
 
-        # 更新 __init__.py
+        # 更新 __init__.py（同上：必须传全量 ORM 模型，否则会抹掉其它模型入口）
         if used_modules:
             self._create_module_init_files(output_base, used_modules)
         if success_models:
-            successful_orm_config = {k: v for k, v in self.models.items() if k in success_models}
-            self._update_shared_models_init_from_orm(successful_orm_config)
+            self._update_shared_models_init_from_orm(
+                {k: v for k, v in self.models.items() if v.get('orm')}
+            )
 
         print(f"  ✅ 共生成 {generated_count} 个模型文件")
 
@@ -452,6 +459,20 @@ class RouteGenerator:
                 imports.add("from src.auth import jwt_required_dependency as jwt_required")
 
         return sorted(list(imports))
+
+    @staticmethod
+    def _split_indexes(model_def: Dict) -> tuple:
+        """把 yaml 的 indexes 段拆成 ``(普通索引, 唯一约束)``
+
+        ⚠️ ``unique: true`` 的项**只生成 UniqueConstraint**：两边都生成会让同一个索引被渲染两遍
+        （同名 ``UniqueConstraint`` 与 ``Index(name, unique=True)``），PostgreSQL 建表直接报
+        ``DuplicateTableError``（批次 20 用 ``create_all`` 时实测到）。``table_has_indexes``
+        也要按"过滤后的普通索引"判断，否则会 import 用不到的 ``Index``。
+        """
+        all_indexes = model_def.get('indexes', []) or []
+        unique_constraints = [ix for ix in all_indexes if ix.get('unique')]
+        plain_indexes = [ix for ix in all_indexes if not ix.get('unique')]
+        return plain_indexes, unique_constraints
 
     def _model_name_to_filename(self, model_name: str) -> str:
         """将模型名转换为文件名（驼峰转下划线）"""
@@ -630,8 +651,12 @@ class RouteGenerator:
                         pass
 
             # 常规属性
-            if prop_def.get('nullable'):
-                field_info['nullable'] = True
+            # nullable 是**三态**：只有 yaml 显式声明时才写进 field_info ——
+            # 这样模板能区分"没写"（保持 SQLAlchemy 默认）与"显式写了 false"（生成 nullable=False）。
+            # 历史缺陷：这里原来只处理真值（`if prop_def.get('nullable')`），于是 `nullable: false`
+            # 生成出来的列仍是可空的。
+            if 'nullable' in prop_def:
+                field_info['nullable'] = bool(prop_def['nullable'])
             if prop_def.get('maxLength'):
                 field_info['max_length'] = prop_def['maxLength']
             if 'default' in prop_def:

@@ -4,6 +4,7 @@ Magazine Theme
 """
 
 from shared.services.plugins.plugin_manager.theme_plugin import ThemePlugin
+from shared.logging import default_logger as logger
 
 
 class MagazineTheme(ThemePlugin):
@@ -26,7 +27,7 @@ class MagazineTheme(ThemePlugin):
         ]
 
     def on_theme_activated(self, payload: dict):
-        print(f"[MagazineTheme] 杂志主题已激活: {payload}")
+        logger.info(f"[MagazineTheme] 杂志主题已激活: {payload}")
 
 
 plugin_instance = MagazineTheme()

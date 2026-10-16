@@ -8,6 +8,7 @@ from typing import Dict, Any
 
 from shared.services.plugins.plugin_manager.core import BasePlugin
 from shared.services.plugins.event_bus import event_bus
+from shared.logging import default_logger as logger
 
 
 class KatexRenderPlugin(BasePlugin):
@@ -47,11 +48,11 @@ class KatexRenderPlugin(BasePlugin):
 
     def activate(self):
         super().activate()
-        print("[KaTeX] Plugin activated")
+        logger.info("[KaTeX] Plugin activated")
 
     def deactivate(self):
         super().deactivate()
-        print("[KaTeX] Plugin deactivated")
+        logger.info("[KaTeX] Plugin deactivated")
 
     # ── 管道处理 ──
 

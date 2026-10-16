@@ -1,16 +1,19 @@
-"""
+﻿"""
 双因素认证(2FA)服务
 基于TOTP(Time-based One-Time Password)实现
 """
 
 import base64
 import json
+import logging
 import secrets
 from io import BytesIO
 from typing import Dict, Any, Optional, List
 
 import pyotp
 import qrcode
+
+logger = logging.getLogger(__name__)
 
 
 class TwoFactorAuthService:
@@ -99,7 +102,7 @@ class TwoFactorAuthService:
             totp = pyotp.TOTP(secret)
             return totp.verify(token, valid_window=window)
         except Exception as e:
-            print(f"TOTP verification error: {e}")
+            logger.error("TOTP verification error: %s", e)
             return False
 
     def generate_backup_codes(self, count: Optional[int] = None) -> List[str]:
@@ -168,7 +171,7 @@ class TwoFactorAuthService:
 
             return False, None
         except Exception as e:
-            print(f"Backup code verification error: {e}")
+            logger.error("Backup code verification error: %s", e)
             return False, None
 
     def enable_2fa(self, user_id: int, secret: str, backup_codes: List[str], db_session) -> Dict[str, Any]:
@@ -210,7 +213,7 @@ class TwoFactorAuthService:
             }
         except Exception as e:
             db_session.rollback()
-            print(f"Enable 2FA error: {e}")
+            logger.error("Enable 2FA error: %s", e)
             return {'success': False, 'error': str(e)}
 
     def disable_2fa(self, user_id: int, db_session) -> Dict[str, Any]:
@@ -245,7 +248,7 @@ class TwoFactorAuthService:
             return {'success': True, 'message': '2FA已禁用'}
         except Exception as e:
             db_session.rollback()
-            print(f"Disable 2FA error: {e}")
+            logger.error("Disable 2FA error: %s", e)
             return {'success': False, 'error': str(e)}
 
     def regenerate_backup_codes(self, user_id: int, db_session) -> Dict[str, Any]:
@@ -286,7 +289,7 @@ class TwoFactorAuthService:
             }
         except Exception as e:
             db_session.rollback()
-            print(f"Regenerate backup codes error: {e}")
+            logger.error("Regenerate backup codes error: %s", e)
             return {'success': False, 'error': str(e)}
 
     def verify_2fa_login(self, user_id: int, token: str, db_session) -> Dict[str, Any]:
@@ -329,7 +332,7 @@ class TwoFactorAuthService:
 
             return {'success': False, 'error': '验证码错误'}
         except Exception as e:
-            print(f"2FA login verification error: {e}")
+            logger.error("2FA login verification error: %s", e)
             return {'success': False, 'error': str(e)}
 
 

@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - MediaFolder
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class MediaFolder(Base):
@@ -21,7 +20,7 @@ class MediaFolder(Base):
         Index('idx_media_folders_unique_name', 'user', 'parent_id', 'name', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='文件夹 ID')
 
     name = Column(String(255), nullable=True, doc='文件夹名称')

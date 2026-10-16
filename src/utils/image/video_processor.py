@@ -43,7 +43,7 @@ class VideoProcessor:
         # 优先使用传入的路径，其次使用配置文件中的路径
         if ffmpeg_path is None:
             try:
-                from src.setting import app_config
+                from shared.config.settings import app_config
                 self.ffmpeg_path = getattr(app_config, 'FFMPEG_PATH', 'ffmpeg')
                 self.ffprobe_path = getattr(app_config, 'FFPROBE_PATH', 'ffprobe')
             except Exception:

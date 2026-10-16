@@ -598,7 +598,8 @@ If you have questions about this Privacy Policy, please contact us at:
             {
                 "id": 2,
                 "name": "Apply high-security standards to all system components",
-                "status": "compliant",
+                # 仅配置开关，未做真实审计/验证，不宣称合规
+                "status": "not_audited",
             },
             {
                 "id": 3,
@@ -608,17 +609,20 @@ If you have questions about this Privacy Policy, please contact us at:
             {
                 "id": 4,
                 "name": "Protect cardholder data with encryption during transmission",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
             {
                 "id": 5,
                 "name": "Protect all systems against malware",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
             {
                 "id": 6,
                 "name": "Develop and maintain secure systems and software",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
             {
                 "id": 7,
@@ -628,35 +632,50 @@ If you have questions about this Privacy Policy, please contact us at:
             {
                 "id": 8,
                 "name": "Identify users and authenticate access to system components",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
             {
                 "id": 9,
                 "name": "Restrict physical access to cardholder data",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
             {
                 "id": 10,
                 "name": "Log and monitor all access to system components",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
             {
                 "id": 11,
                 "name": "Test security of systems and networks regularly",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
             {
                 "id": 12,
                 "name": "Support information security with organizational policies",
-                "status": "compliant",
+                # 未做真实审计/验证
+                "status": "not_audited",
             },
         ]
 
         compliant_count = sum(1 for r in requirements if r["status"] == "compliant")
+        non_compliant_count = sum(1 for r in requirements if r["status"] == "non-compliant")
+        not_audited_count = sum(1 for r in requirements if r["status"] == "not_audited")
         total_count = len(requirements)
 
+        # 未做真实审计时绝不对外宣称整体合规
+        if non_compliant_count > 0:
+            overall_status = "non-compliant"
+        elif not_audited_count > 0:
+            overall_status = "not_audited"
+        else:
+            overall_status = "compliant"
+
         return {
-            "overall_status": "compliant" if compliant_count == total_count else "partial",
+            "overall_status": overall_status,
             "compliance_percentage": round((compliant_count / total_count) * 100, 2),
             "requirements": requirements,
             "checked_at": datetime.now().isoformat(),

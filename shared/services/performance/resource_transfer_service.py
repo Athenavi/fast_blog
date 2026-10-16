@@ -133,8 +133,8 @@ class ResourceTransferService:
             if temp_path and temp_path.exists():
                 try:
                     temp_path.unlink()
-                except:
-                    pass
+                except Exception:
+                    logger.warning(f"清理临时文件失败: {temp_path}")
 
     async def _download_with_resume(
             self,

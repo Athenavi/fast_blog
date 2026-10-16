@@ -2,18 +2,23 @@
 RBAC（基于角色的访问控制）服务实现
 提供权限检查、角色分配等功能。
 所有方法接受显式的 db: AsyncSession 参数。
-"""
-from datetime import datetime, timezone
-from typing import List, Optional
 
-from sqlalchemy import select
+这是项目中唯一的 RBAC 权威实现。
+"""
+import logging
+from datetime import datetime, timezone
+from typing import List, Optional, Set
+
+from sqlalchemy import delete as sa_delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.rbac import UserRole, RoleCapability, Capability, Role
 
+logger = logging.getLogger(__name__)
+
 
 class RBACService:
-    """RBAC 核心服务"""
+    """RBAC 核心服务 — 项目中唯一的 RBAC 实现"""
 
     async def _resolve_role_ids_with_parents(
         self, db: AsyncSession, role_ids: List[int], max_depth: int = 5
@@ -267,6 +272,162 @@ class RBACService:
             select(Role).where(Role.id.in_(all_role_ids), Role.slug == role_slug)
         )
         return result.scalar_one_or_none() is not None
+
+    async def get_permission_codes_set(
+        self, db: AsyncSession, user_id: int
+    ) -> Set[str]:
+        """
+        获取用户的权限代码集合（用于缓存/前端判断）。
+
+        与 get_user_permission_codes 的区别是返回 Set[str] 且包含 superuser bypass。
+        """
+        from shared.models.user import User
+
+        user_result = await db.execute(select(User).where(User.id == user_id))
+        user = user_result.scalar_one_or_none()
+        if not user:
+            return set()
+
+        # 超级管理员返回所有启用的 capability codes
+        if user.is_superuser:
+            result = await db.execute(
+                select(Capability.code).where(Capability.is_active == True)
+            )
+            return {row[0] for row in result.all() if row[0]}
+
+        role_ids_result = await db.execute(
+            select(UserRole.role_id).where(UserRole.user_id == user_id)
+        )
+        role_ids = [r[0] for r in role_ids_result.all()]
+        if not role_ids:
+            return set()
+
+        role_ids = await self._resolve_role_ids_with_parents(db, role_ids)
+
+        query = (
+            select(Capability.code)
+            .join(RoleCapability, RoleCapability.capability_id == Capability.id)
+            .where(
+                RoleCapability.role_id.in_(role_ids),
+                Capability.is_active == True,
+            )
+            .distinct()
+        )
+        result = await db.execute(query)
+        return {row[0] for row in result.all() if row[0]}
+
+    async def check_user_permission(
+        self, db: AsyncSession, user_id: int, required_capability: str
+    ) -> bool:
+        """
+        按 capability code 检查权限（别名，兼容旧接口）。
+
+        Args:
+            required_capability: 权限代码，如 "article:create" 或 "article.create"
+        """
+        return await self.has_capability(db, user_id, required_capability)
+
+    async def check_any_permission(
+        self, db: AsyncSession, user_id: int, resource_type: str, action: str
+    ) -> bool:
+        """
+        按资源类型和操作检查权限（不拼接为 code，分别匹配 resource_type 和 action 字段）。
+        """
+        try:
+            from shared.models.user import User
+
+            user_result = await db.execute(select(User).where(User.id == user_id))
+            user = user_result.scalar_one_or_none()
+            if user and user.is_superuser:
+                return True
+
+            role_ids_result = await db.execute(
+                select(UserRole.role_id).where(UserRole.user_id == user_id)
+            )
+            role_ids = [r[0] for r in role_ids_result.all()]
+            if not role_ids:
+                return False
+
+            role_ids = await self._resolve_role_ids_with_parents(db, role_ids)
+
+            query = (
+                select(Capability)
+                .join(RoleCapability, Capability.id == RoleCapability.capability_id)
+                .where(
+                    RoleCapability.role_id.in_(role_ids),
+                    Capability.resource_type == resource_type,
+                    Capability.action == action,
+                    Capability.is_active == True,
+                )
+            )
+            result = await db.execute(query)
+            return result.scalar_one_or_none() is not None
+
+        except Exception as e:
+            logger.error(f"权限检查失败: {e}")
+            return False
+
+    async def assign_role_by_id(
+        self, db: AsyncSession, user_id: int, role_id: int
+    ) -> bool:
+        """
+        为用户分配角色（按角色 ID，幂等）。
+
+        Returns:
+            是否成功
+        """
+        try:
+            # 检查角色是否存在
+            role = await db.get(Role, role_id)
+            if not role:
+                raise ValueError(f"Role with id {role_id} not found")
+
+            # 检查是否已分配
+            existing = await db.execute(
+                select(UserRole).where(
+                    UserRole.user_id == user_id,
+                    UserRole.role_id == role_id,
+                )
+            )
+            if existing.scalar_one_or_none():
+                return True  # 幂等
+
+            assignment = UserRole(
+                user_id=user_id,
+                role_id=role_id,
+                created_at=datetime.now(timezone.utc),
+            )
+            db.add(assignment)
+            await db.flush()
+            return True
+
+        except ValueError:
+            raise
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"分配角色失败: {e}", exc_info=True)
+            return False
+
+    async def remove_role_by_id(
+        self, db: AsyncSession, user_id: int, role_id: int
+    ) -> bool:
+        """
+        移除用户的角色（按角色 ID）。
+        """
+        try:
+            await db.execute(
+                sa_delete(UserRole).where(
+                    UserRole.user_id == user_id,
+                    UserRole.role_id == role_id,
+                )
+            )
+            await db.flush()
+            return True
+
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"移除角色失败: {e}", exc_info=True)
+            return False
 
 
 # 全局单例

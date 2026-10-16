@@ -2,15 +2,16 @@
 MCP 系统管理工具处理器 — 设置/备份/Webhook/迁移
 """
 from sqlalchemy import select
-from src.utils.database.main import get_async_session_context
+
 from src.mcp.tools._perms import require_superuser
+from src.utils.database.unified_manager import db_manager
 
 
 @require_superuser
 async def get_settings(arguments: dict) -> dict:
     """获取系统设置"""
     key = arguments.get("key", "")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         query = select(SystemSettings)
         if key:
@@ -27,25 +28,28 @@ async def update_settings(arguments: dict) -> dict:
     if not isinstance(settings, dict) or not settings:
         return {"success": False, "error": "请提供要更新的设置键值对"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         from sqlalchemy import select
-        updated = 0
-        for key, value in settings.items():
-            existing = (await db.execute(select(SystemSettings).where(SystemSettings.setting_key == key))).scalar_one_or_none()
-            if existing:
-                existing.setting_value = str(value)
+        keys = list(settings)
+        rows = (
+            await db.execute(select(SystemSettings).where(SystemSettings.setting_key.in_(keys)))
+        ).scalars().all()
+        existing_by_key = {row.setting_key: row for row in rows}
+        for key in keys:
+            value = str(settings[key])
+            existing = existing_by_key.get(key)
+            if existing is not None:
+                existing.setting_value = value
             else:
-                db.add(SystemSettings(setting_key=key, setting_value=str(value)))
-            updated += 1
+                db.add(SystemSettings(setting_key=key, setting_value=value))
         await db.commit()
-        return {"success": True, "message": f"已更新 {updated} 个设置", "count": updated}
+        return {"success": True, "message": f"已更新 {len(keys)} 个设置", "count": len(keys)}
 
 
 @require_superuser
 async def list_backups(arguments: dict) -> dict:
     """列出可用的数据库备份"""
-    import os
     from pathlib import Path
     backup_dir = Path("backups")
     if not backup_dir.exists():
@@ -80,8 +84,8 @@ async def create_backup(arguments: dict) -> dict:
 @require_superuser
 async def get_system_info(arguments: dict) -> dict:
     """获取系统信息（版本/资源/运行时间等）"""
-    import os, platform, time
-    from src.setting import BaseConfig
+    import platform
+    from shared.config.settings import BaseConfig
     return {"success": True, "data": {
         "version": getattr(BaseConfig, 'VERSION', 'unknown'),
         "python_version": platform.python_version(),
@@ -93,7 +97,7 @@ async def get_system_info(arguments: dict) -> dict:
 @require_superuser
 async def list_webhooks(arguments: dict) -> dict:
     """列出所有 Webhook 配置"""
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from sqlalchemy import select
         from shared.models.system import WebhookConfig
         hooks = (await db.execute(select(WebhookConfig).limit(50))).scalars().all()
@@ -119,7 +123,7 @@ async def run_migration(arguments: dict) -> dict:
 @require_superuser
 async def get_maintenance_mode(arguments: dict) -> dict:
     """查看维护模式状态"""
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         from sqlalchemy import select
         setting = (await db.execute(
@@ -133,7 +137,7 @@ async def get_maintenance_mode(arguments: dict) -> dict:
 async def set_maintenance_mode(arguments: dict) -> dict:
     """设置维护模式开/关"""
     enabled = arguments.get("enabled", False)
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import SystemSettings
         from sqlalchemy import select
         setting = (await db.execute(

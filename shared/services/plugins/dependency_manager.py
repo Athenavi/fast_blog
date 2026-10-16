@@ -357,7 +357,7 @@ class DependencyManager:
             if version_file.exists():
                 with open(version_file, 'r') as f:
                     return f.read().strip()
-        except:
+        except (IOError, OSError):
             pass
 
         # 默认版本
@@ -408,7 +408,7 @@ class DependencyManager:
             else:
                 # 默认为 >=
                 return self._version_gte(current, required)
-        except:
+        except (ValueError, TypeError):
             return False  # 出错时默认拒绝（fail closed）
 
     def _version_gte(self, v1: str, v2: str) -> bool:
@@ -433,7 +433,7 @@ class DependencyManager:
                 v2_parts.append(0)
 
             return v1_parts >= v2_parts
-        except:
+        except (ValueError, TypeError):
             return False
 
     def _simple_version_check(self, plugin: Dict[str, Any]) -> Tuple[bool, str]:

@@ -2,8 +2,10 @@
 AI 配置模型 — 用户 AI 助手配置（最多 10 条/用户）
 """
 from datetime import datetime
+
 from sqlalchemy import Column, BigInteger, String, Text, Boolean, Integer, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
+
 from shared.models import Base
 
 
@@ -16,7 +18,12 @@ class AIConfig(Base):
     api_url = Column(String(500), nullable=False, comment='API 端点 URL')
     api_key_encrypted = Column(Text, nullable=False, comment='加密后的 API Key')
     model = Column(String(100), nullable=False, comment='模型名称')
-    provider = Column(String(50), nullable=False, default='openai', comment='提供商')
+    provider = Column(String(50), nullable=False, default='openai', comment='提供商（openai 兼容 / anthropic / custom）')
+    #: Anthropic 用 anthropic-version；OpenAI 兼容端点作为 api-version query（Azure）
+    api_version = Column(String(100), nullable=True, comment='API 版本（Anthropic / Azure）')
+    #: 自定义请求头（JSON 字符串）：Azure 的 api-key、自建网关的鉴权头等
+    extra_headers = Column(Text, nullable=True, comment='自定义请求头（JSON）')
+    max_tokens = Column(Integer, nullable=False, default=1024, comment='单次调用最大输出 token')
     is_active = Column(Boolean, nullable=False, default=False, comment='是否激活')
     sort_order = Column(Integer, nullable=False, default=0, comment='排序')
     created_at = Column(DateTime, nullable=False, default=datetime.now)

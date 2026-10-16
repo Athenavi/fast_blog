@@ -153,7 +153,7 @@ class SEOTracker:
         cutoff = now - timedelta(days=days)
 
         # 统计各搜索引擎流量
-        engine_stats = {}
+        engine_stats = Counter()
         total_organic = 0
 
         for article_id, visits in self._visits.items():
@@ -161,7 +161,7 @@ class SEOTracker:
                 if visit['timestamp'] >= cutoff and visit['is_search']:
                     engine = visit['search_engine']
                     if engine:
-                        engine_stats[engine] = engine_stats.get(engine, 0) + 1
+                        engine_stats[engine] += 1
                         total_organic += 1
 
         return {

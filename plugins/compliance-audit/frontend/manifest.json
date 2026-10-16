@@ -1,0 +1,19 @@
+{
+  "name": "Compliance Audit",
+  "slug": "compliance-audit",
+  "version": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/plugin-pages/compliance-audit",
+      "component": "./admin/Page.tsx",
+      "title": "合规审计"
+    }
+  ],
+  "navItems": [
+    {
+      "label": "合规审计",
+      "href": "/admin/plugin-pages/compliance-audit",
+      "icon": "Shield"
+    }
+  ]
+}

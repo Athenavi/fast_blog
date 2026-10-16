@@ -1,54 +1,54 @@
-## Description
+## 描述
 
-简要描述这个Pull Request做了什么更改。
+简要说明这个 PR 做了什么，以及为什么。
 
-Fixes #(issue number)
+Fixes #（issue 编号）
 
-## Type of change
+## 变更类型
 
-请选择适用于此PR的选项：
+- [ ] Bug 修复（不破坏现有行为）
+- [ ] 新功能（不破坏现有行为）
+- [ ] 破坏性变更（会让现有功能行为变化，请在下文说明迁移方式）
+- [ ] 文档更新
+- [ ] 性能优化
+- [ ] 重构（无功能变化）
+- [ ] 测试相关
+- [ ] CI/CD 相关
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-- [ ] Performance improvement
-- [ ] Code refactoring (no functional changes)
-- [ ] Test updates
-- [ ] CI/CD changes
+## 如何验证
 
-## How Has This Been Tested?
+请描述验证方式，便于复现：
 
-请描述你如何测试这些更改。提供说明以便我们可以复现你的测试。
+- [ ] 后端测试 `python -m pytest tests/ -q`
+- [ ] 后端 lint `python -m ruff check --no-cache src/api/v3`
+- [ ] 前端类型检查 `cd frontend/web && npm run type-check`
+- [ ] i18n 校验 `cd frontend/web && npm run check:i18n`（改文案时必填）
+- [ ] 前端构建 `cd frontend/web && npm run build`
+- [ ] 端到端 `cd frontend/web && npm run test:e2e`
+- [ ] 手动验证（说明步骤）
 
-- [ ] 单元测试通过
-- [ ] 集成测试通过
-- [ ] 手动测试完成
-- [ ] 已在生产环境验证
+**验证环境**：
 
-**测试配置**:
+- OS: 例如 Ubuntu 22.04
+- Python: 例如 3.14
+- Node.js: 例如 22.x
+- PostgreSQL: 例如 16
 
-- OS: [e.g. Ubuntu 22.04]
-- Python: [e.g. 3.14]
-- Database: [e.g. PostgreSQL 17]
+## 影响范围
 
-## Checklist:
+- 涉及的 API（`/api/v3/<域>/<模块>`）或前端页面：
+- 是否涉及数据库迁移 / `version.txt` 的 `[DATABASE] migration`：
+- 是否涉及权限码（`src/api/v3/core/permission/codes.py`）与 `seed_rbac`：
 
-在提交之前，请确认：
+## 检查清单
 
-- [ ] 我的代码遵循了项目的代码规范
-- [ ] 我已经进行了自我审查
-- [ ] 我已经注释了我的代码，特别是在难以理解的地方
-- [ ] 我已经更新了相应的文档
-- [ ] 我的更改不会引入新的警告
-- [ ] 我已经添加了测试来覆盖我的更改
-- [ ] 所有新的和现有的测试都通过了
-- [ ] 我已经 squashed 我的 commits 为有意义的提交
+- [ ] 我遵循了项目现有风格与约定（见 [CONTRIBUTING.md](../CONTRIBUTING.md)）
+- [ ] 我完成了自我审查，并已脱敏（无密钥、密码、真实用户数据）
+- [ ] 新增/修改的行为已有测试覆盖
+- [ ] 我更新了受影响的文档
+- [ ] 我的改动不引入新的告警（ruff / mypy / vue-tsc 无新报错）
+- [ ] 本地已通过上文勾选的检查项
 
-## Screenshots (if appropriate):
+## 截图（可选）
 
-如果适用，添加截图来帮助解释你的更改。
-
-## Additional Notes:
-
-在此添加任何额外的说明或上下文。
+## 补充说明

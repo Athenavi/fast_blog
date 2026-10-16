@@ -22,7 +22,7 @@ class WebhookDelivery(Base):
         Index('idx_webhook_deliveries_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='投递记录ID')
 
     webhook = Column(BigInteger, ForeignKey('webhooks.id'), doc='Webhook ID')

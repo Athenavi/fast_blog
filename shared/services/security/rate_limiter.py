@@ -43,8 +43,8 @@ class RateLimiter:
             'ip': {'requests': 300, 'window': 60},  # IP：300次/分钟（约5次/秒，为媒体库页面多请求场景预留）
             'user': {'requests': 500, 'window': 3600},  # 用户：500次/小时
             'endpoint': {  # 端点特定限制
-                '/api/v1/auth/login': {'requests': 10, 'window': 60},  # 登录：10次/分钟
-                '/api/v1/articles': {'requests': 200, 'window': 3600},  # 文章：200次/小时
+                '/api/v3/system/auth/login': {'requests': 60, 'window': 60},  # 登录：5次/分钟
+                '/api/v2/articles': {'requests': 200, 'window': 3600},  # 文章：200次/小时
             }
         }
 
@@ -65,7 +65,7 @@ class RateLimiter:
             return
         self._redis_attempted = True
         try:
-            from src.setting import settings
+            from shared.config.settings import settings
             host = getattr(settings, 'REDIS_HOST', 'localhost') or 'localhost'
             port = int(getattr(settings, 'REDIS_PORT', 6379) or 6379)
             db = int(getattr(settings, 'REDIS_DB', 0) or 0)
@@ -77,6 +77,19 @@ class RateLimiter:
         except Exception as e:
             logger.warning(f"Rate limiter Redis init failed, using memory store: {e}")
             self.redis_client = None
+            self._redis_attempted = False  # 允许后续重试
+
+    async def _check_redis_healthy(self) -> bool:
+        """快速检查 Redis 连接是否可用，不可用时自动降级"""
+        if self.redis_client is None:
+            return False
+        try:
+            await self.redis_client.ping()
+            return True
+        except Exception as e:
+            logger.warning(f"Redis connection lost, falling back to memory: {e}")
+            self.redis_client = None
+            return False
 
     def _get_key(self, prefix: str, identifier: str) -> str:
         """生成限流键"""
@@ -100,22 +113,32 @@ class RateLimiter:
         return len(self.memory_store[key])
 
     async def _add_request_redis(self, key: str, timestamp: float, window: int):
-        """在Redis中添加请求记录"""
-        pipe = self.redis_client.pipeline()
-        pipe.zadd(key, {str(timestamp): timestamp})
-        pipe.expire(key, window)
-        await pipe.execute()
+        """在Redis中添加请求记录，失败时降级到内存存储"""
+        try:
+            pipe = self.redis_client.pipeline()
+            pipe.zadd(key, {str(timestamp): timestamp})
+            pipe.expire(key, window)
+            await pipe.execute()
+        except Exception as e:
+            logger.warning(f"Redis add request failed, falling back to memory: {e}")
+            self.redis_client = None
+            await self._add_request_memory(key, timestamp)
 
     async def _get_request_count_redis(self, key: str, window: int) -> int:
-        """从Redis中获取窗口内的请求数"""
-        now = time.time()
-        cutoff = now - window
+        """从Redis中获取窗口内的请求数，失败时降级到内存存储"""
+        try:
+            now = time.time()
+            cutoff = now - window
 
-        # 移除过期记录并计数
-        count = await self.redis_client.zremrangebyscore(key, 0, cutoff)
-        count = await self.redis_client.zcard(key)
+            # 移除过期记录并计数
+            await self.redis_client.zremrangebyscore(key, 0, cutoff)
+            count = await self.redis_client.zcard(key)
 
-        return count
+            return count
+        except Exception as e:
+            logger.warning(f"Redis get request count failed, falling back to memory: {e}")
+            self.redis_client = None
+            return await self._get_request_count_memory(key, window)
 
     async def check_rate_limit(
             self,
@@ -196,24 +219,27 @@ class RateLimiter:
         Returns:
             (是否被限流, 限流信息)
         """
-        # 获取限流配置
+        # 获取限流配置与计数键。
+        # 注意：端点专用限制必须用**独立的桶**（endpoint+identifier）——
+        # 若与通用 IP 桶共用，同一 IP 的全部 API 流量都会计入登录等端点的
+        # 小配额，导致正常浏览后登录必然 429（T5-12 联调时实测）。
         if custom_limit:
             config = custom_limit
+            key = self._get_key(limit_type, identifier)
         elif endpoint and endpoint in self.default_limits['endpoint']:
             config = self.default_limits['endpoint'][endpoint]
+            key = self._get_key('endpoint', f"{endpoint}:{identifier}")
         else:
             config = self.default_limits.get(limit_type, self.default_limits['global'])
+            key = self._get_key(limit_type, identifier)
 
         max_requests = config['requests']
         window = config['window']
 
-        # 生成键
-        key = self._get_key(limit_type, identifier)
-
         # 获取当前请求数
         now = time.time()
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             request_count = await self._get_request_count_redis(key, window)
             await self._add_request_redis(key, now, window)
         else:
@@ -277,7 +303,7 @@ class RateLimiter:
         key = self._get_key('user', str(user_id))
         window = self.default_limits['user']['window']
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             current_count = await self._get_request_count_redis(key, window)
         else:
             current_count = await self._get_request_count_memory(key, window)
@@ -310,7 +336,7 @@ class RateLimiter:
             'window': window
         }
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             await self.redis_client.setex(key, 86400, str(config))  # 24小时过期
         else:
             # 内存存储
@@ -326,7 +352,7 @@ class RateLimiter:
         """
         key = self._get_key(limit_type, identifier)
 
-        if self.redis_client:
+        if await self._check_redis_healthy():
             await self.redis_client.delete(key)
         else:
             if key in self.memory_store:
@@ -338,16 +364,14 @@ rate_limiter = RateLimiter()
 
 
 def _resolve_client_ip(request: Request) -> str:
-    """解析客户端真实 IP（优先信任反向代理设置的 X-Forwarded-For / X-Real-IP）"""
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        first = forwarded.split(",")[0].strip()
-        if first and first.lower() not in ("unknown", ""):
-            return first
-    real = request.headers.get("X-Real-IP")
-    if real and real.strip():
-        return real.strip()
-    return request.client.host if request.client else "unknown"
+    """解析客户端真实 IP（统一实现见 ``shared.utils.client_ip``）
+
+    注意：不要退回"取 X-Forwarded-For 首值"的写法 —— 该头由 nginx 追加写入，
+    首值可被客户端伪造，会让 IP 限流形同虚设。
+    """
+    from shared.utils.client_ip import get_client_ip
+
+    return get_client_ip(request)
 
 
 async def rate_limit_middleware(request: Request, call_next):
@@ -362,7 +386,11 @@ async def rate_limit_middleware(request: Request, call_next):
     client_ip = _resolve_client_ip(request)
 
     # 生产环境优先使用 Redis 存储（多 worker/多实例共享限流计数）
-    await rate_limiter.ensure_redis()
+    # 如果 Redis 不可用，会自动降级到内存存储
+    try:
+        await rate_limiter.ensure_redis()
+    except Exception as e:
+        logger.warning(f"rate_limit_middleware: Redis init failed, continuing with memory: {e}")
 
     # 获取API端点
     endpoint = request.url.path

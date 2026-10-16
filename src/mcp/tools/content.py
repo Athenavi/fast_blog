@@ -2,7 +2,6 @@
 MCP 内容管理工具处理器 — 分类/标签/评论
 权限：创建/修改/删除分类需要管理员权限；评论审核需要管理员权限
 """
-import re
 from datetime import datetime
 
 from sqlalchemy import select, update
@@ -11,7 +10,7 @@ from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.comment import Comment
 from src.mcp._context import get_user_ctx
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 
 def _require_auth():
@@ -33,7 +32,7 @@ def _require_superuser():
 async def list_categories(arguments: dict) -> list:
     """获取分类列表（所有用户可读）"""
     _require_auth()
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         cats = (await db.execute(
             select(Category).order_by(Category.sort_order.asc(), Category.id.asc())
         )).scalars().all()
@@ -49,10 +48,10 @@ async def create_category(arguments: dict) -> dict:
     if not name:
         raise ValueError("分类名称不能为空")
     slug = arguments.get("slug") or name.lower().replace(" ", "-")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         try:
             cat = Category(name=name, slug=slug, description=arguments.get("description", ""),
-                           created_at=datetime.utcnow(), updated_at=datetime.utcnow())
+                           created_at=datetime.now(), updated_at=datetime.now())
             db.add(cat)
             await db.commit()
             return {"success": True, "message": f"分类「{name}」创建成功", "category_id": cat.id}
@@ -67,7 +66,7 @@ async def update_category(arguments: dict) -> dict:
     cid = arguments.get("category_id")
     if not cid:
         raise ValueError("分类ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         cat = await db.scalar(select(Category).where(Category.id == int(cid)))
         if not cat:
             raise ValueError(f"分类 #{cid} 不存在")
@@ -75,7 +74,7 @@ async def update_category(arguments: dict) -> dict:
             cat.name = arguments["name"].strip()
         if "description" in arguments:
             cat.description = arguments["description"].strip()
-        cat.updated_at = datetime.utcnow()
+        cat.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"分类 #{cid} 已更新", "category_id": cid}
 
@@ -86,7 +85,7 @@ async def delete_category(arguments: dict) -> dict:
     cid = arguments.get("category_id")
     if not cid:
         raise ValueError("分类ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         cat = await db.scalar(select(Category).where(Category.id == int(cid)))
         if not cat:
             raise ValueError(f"分类 #{cid} 不存在")
@@ -101,7 +100,7 @@ async def delete_category(arguments: dict) -> dict:
 async def list_tags(arguments: dict) -> dict:
     """聚合获取所有标签（所有用户可读）"""
     _require_auth()
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         rows = (await db.execute(
             select(Article.tags_list).where(Article.tags_list.isnot(None))
         )).scalars().all()
@@ -117,7 +116,7 @@ async def list_comments(arguments: dict) -> dict:
     _require_auth()
     status = arguments.get("status", "").strip().lower()
     limit = min(arguments.get("limit", 20), 50)
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         q = select(Comment).order_by(Comment.created_at.desc()).limit(limit)
         if status == "pending":
             q = q.where(Comment.is_approved == False)
@@ -139,12 +138,12 @@ async def approve_comment(arguments: dict) -> dict:
     cid = arguments.get("comment_id")
     if not cid:
         raise ValueError("评论ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         comment = await db.scalar(select(Comment).where(Comment.id == int(cid)))
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
         comment.is_approved = True
-        comment.updated_at = datetime.utcnow()
+        comment.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"评论 #{cid} 已审核通过", "comment_id": cid}
 
@@ -155,12 +154,12 @@ async def reject_comment(arguments: dict) -> dict:
     cid = arguments.get("comment_id")
     if not cid:
         raise ValueError("评论ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         comment = await db.scalar(select(Comment).where(Comment.id == int(cid)))
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
         comment.is_approved = False
-        comment.updated_at = datetime.utcnow()
+        comment.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"评论 #{cid} 已拒绝", "comment_id": cid}
 
@@ -171,7 +170,7 @@ async def delete_comment(arguments: dict) -> dict:
     cid = arguments.get("comment_id")
     if not cid:
         raise ValueError("评论ID不能为空")
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         comment = await db.scalar(select(Comment).where(Comment.id == int(cid)))
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")

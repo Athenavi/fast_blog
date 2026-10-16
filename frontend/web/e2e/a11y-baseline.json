@@ -1,0 +1,52 @@
+{
+  "admin-analytics-report": {},
+  "admin-article-list": {
+    "label": 1,
+    "scrollable-region-focusable": 1
+  },
+  "admin-article-new": {
+    "aria-input-field-name": 1,
+    "color-contrast": 2
+  },
+  "admin-category": {
+    "scrollable-region-focusable": 1
+  },
+  "admin-dashboard": {
+    "button-name": 1
+  },
+  "admin-media": {
+    "label": 5,
+    "scrollable-region-focusable": 1
+  },
+  "admin-menu": {
+    "button-name": 1,
+    "color-contrast": 1,
+    "scrollable-region-focusable": 1
+  },
+  "admin-ops-backup": {
+    "button-name": 1,
+    "scrollable-region-focusable": 2
+  },
+  "admin-plugin": {
+    "button-name": 1
+  },
+  "admin-role": {
+    "label": 1,
+    "scrollable-region-focusable": 1
+  },
+  "admin-setting": {
+    "scrollable-region-focusable": 1
+  },
+  "admin-user": {
+    "label": 1,
+    "scrollable-region-focusable": 1
+  },
+  "site-articles": {},
+  "site-categories": {
+    "color-contrast": 1
+  },
+  "site-home": {},
+  "site-search": {
+    "color-contrast": 1
+  }
+}

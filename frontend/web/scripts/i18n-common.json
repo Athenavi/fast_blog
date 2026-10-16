@@ -1,0 +1,123 @@
+{
+  "_comment": "通用文案表：extract 时自动匹配，命中就填好 key/en，不用每页重复填。用于取消/保存这类到处出现的词。",
+  "取消": {
+    "key": "admin.common.cancel",
+    "en": "Cancel"
+  },
+  "保存": {
+    "key": "admin.common.save",
+    "en": "Save"
+  },
+  "删除": {
+    "key": "admin.common.delete",
+    "en": "Delete"
+  },
+  "编辑": {
+    "key": "admin.common.edit",
+    "en": "Edit"
+  },
+  "新增": {
+    "key": "admin.common.create",
+    "en": "Create"
+  },
+  "新建": {
+    "key": "admin.common.create",
+    "en": "Create"
+  },
+  "刷新": {
+    "key": "admin.common.refresh",
+    "en": "Refresh"
+  },
+  "查询": {
+    "key": "admin.common.search",
+    "en": "Search"
+  },
+  "搜索": {
+    "key": "admin.common.search",
+    "en": "Search"
+  },
+  "重置": {
+    "key": "admin.common.reset",
+    "en": "Reset"
+  },
+  "确定": {
+    "key": "admin.common.confirm",
+    "en": "Confirm"
+  },
+  "提示": {
+    "key": "admin.common.notice",
+    "en": "Notice"
+  },
+  "危险操作": {
+    "key": "admin.common.danger",
+    "en": "Dangerous operation"
+  },
+  "操作": {
+    "key": "admin.common.actions",
+    "en": "Actions"
+  },
+  "状态": {
+    "key": "admin.common.status",
+    "en": "Status"
+  },
+  "名称": {
+    "key": "admin.common.name",
+    "en": "Name"
+  },
+  "描述": {
+    "key": "admin.common.description",
+    "en": "Description"
+  },
+  "备注": {
+    "key": "admin.common.remark",
+    "en": "Remark"
+  },
+  "创建时间": {
+    "key": "admin.common.createdAt",
+    "en": "Created at"
+  },
+  "更新时间": {
+    "key": "admin.common.updatedAt",
+    "en": "Updated at"
+  },
+  "启用": {
+    "key": "admin.common.enabled",
+    "en": "Enabled"
+  },
+  "停用": {
+    "key": "admin.common.disabled",
+    "en": "Disabled"
+  },
+  "是": {
+    "key": "admin.common.yes",
+    "en": "Yes"
+  },
+  "否": {
+    "key": "admin.common.no",
+    "en": "No"
+  },
+  "全部": {
+    "key": "admin.common.all",
+    "en": "All"
+  },
+  "暂无数据": {
+    "key": "admin.common.empty",
+    "en": "No data"
+  },
+  "加载中": {
+    "key": "admin.common.loading",
+    "en": "Loading"
+  },
+  "提交": {
+    "key": "admin.common.submit",
+    "en": "Submit"
+  },
+  "关闭": {
+    "key": "admin.common.close",
+    "en": "Close"
+  },
+  "确认": {
+    "key": "admin.common.confirmButton",
+    "en": "OK"
+  }
+}

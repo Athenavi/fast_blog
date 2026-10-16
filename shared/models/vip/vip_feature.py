@@ -4,19 +4,16 @@ SQLAlchemy 模型定义 - VIPFeature
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class VIPFeature(Base):
     """VIP 功能特权模型模型"""
     __tablename__ = 'vip_features'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='功能 ID')
 
     code = Column(String(50), nullable=True, doc='功能代码')

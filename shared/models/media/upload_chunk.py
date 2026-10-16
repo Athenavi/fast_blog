@@ -4,20 +4,18 @@ SQLAlchemy 模型定义 - UploadChunk
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
 from datetime import datetime
 
-from shared.models import Base  # 使用统一的 Base（跨子包引用）
+from sqlalchemy import Column, BigInteger, String, DateTime
 
+from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
 
 class UploadChunk(Base):
     """上传分块模型模型"""
     __tablename__ = 'upload_chunks'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='分块 ID')
 
     upload_id = Column(String(36), nullable=True, doc='上传任务 ID')

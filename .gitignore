@@ -52,6 +52,7 @@ logs/
 .env.local
 .env.dev
 .env.prod
+.env.bak-*
 
 # Node.js
 node_modules/
@@ -62,14 +63,26 @@ yarn-error.log*
 
 # Frontend build artifacts
 .vite/
-cache/
+# ×¢Òâ£ºÕâÀï**²»ÄÜ**Ğ´Âã `cache/`¡£ËüÃ»ÓĞÂ·¾¶Ç°×º£¬»áÆ¥ÅäÈÎÒâ²ã¼¶µÄ cache Ä¿Â¼£¬
+# °ÑÔ´ÂëÄ¿Â¼ `src/api/v3/modules/system/cache/` Ò»²¢ºöÂÔµô ¡ª¡ª ÄÇ¸öÄ¿Â¼ÊÇÕæÊµµÄ
+# API Ä£¿é£¨/api/v3/system/cache/*£©£¬±»ºöÂÔºó CI µÄ¸É¾»¼ì³öÀïÃ»ÓĞËü£¬Ö±½Óµ¼ÖÂ
+# `ModuleNotFoundError: No module named 'src.api.v3.modules.system.cache'`£¬
+# ¶ø±¾µØÒòÎªÎÄ¼şÒ»Ö±ÔÚ´ÅÅÌÉÏËùÒÔÍêÈ«¿´²»³öÀ´¡£Ö»ºöÂÔµãºÅĞÎÊ½µÄ»º´æÄ¿Â¼¼´¿É¡£
+**/.cache/
 frontend/dist/
-frontend-astro/dist/
-frontend-astro/.astro/
-frontend-astro/*.tsbuildinfo
-frontend-astro/src/.plugin-pages/
-frontend-astro/src/.plugin-registry.ts
-frontend-astro/src/pages/admin/plugin-pages/
+
+# Nuxtï¼ˆfrontend/webï¼‰ï¼šæ„å»ºäº§ç‰©ä¸æœ¬åœ°ç”Ÿæˆç‰©
+frontend/web/.nuxt/
+frontend/web/.output/
+frontend/web/.nitro/
+frontend/web/.data/
+frontend/web/*.tsbuildinfo
+frontend/web/src/.plugin-pages/
+frontend/web/src/.plugin-registry.ts
+
+# i18n å·¥å…·çš„è‰ç¨¿äº§ç‰©ï¼ˆscripts/i18n_tool.py extract ç”Ÿæˆï¼Œç”¨å®Œå³å¼ƒï¼‰
+frontend/web/i18n-draft.json
+
 frontend-next/.next/
 frontend-next/node_modules/
 
@@ -135,7 +148,6 @@ apps/*/migrations/*.py
 !alembic_migrations/versions/*.py
 /plugins_data/*
 /mobile-app/node_modules/
-/frontend-astro/node_modules/
 
 # Terraform
 *.tfstate
@@ -152,22 +164,28 @@ reasonix.toml
 temp_models.txt
 
 # ============================================================================
-# Slimming additions â€” runtime & build artifacts
+# Slimming additions â€„1¤7 runtime & build artifacts
 # ============================================================================
 
 # Mobile app build artifacts
 mobile-app/android/.gradle/
 mobile-app/android/app/build/
 
-# Static ffmpeg binary â€” download on demand
-tools/ffmpeg/*.tar.xz
-
 # Runtime data & state
 data/
-frontend-astro/config.json
 
 # Plugin runtime settings
 plugins/*/settings.json
 
-# Local performance-test tooling (k6 binaries â€” download on demand)
+# Local performance-test tooling (k6 binaries â€„1¤7 download on demand)
 .k6-tool/
+
+# FastApiAdmin ²Î¿¼Ô´Âë£¨clone µ½²Ö¿âÄÚµ«°´Ô¼¶¨²»Ìá½»£ºÖ»×÷ÒÆÖ²»ùÏß£©
+vendor/FastApiAdmin/
+
+
+# Playwright (e2e artifacts)
+frontend/web/test-results/
+frontend/web/playwright-report/
+frontend/web/playwright/.cache/
+frontend/web/.env.e2e

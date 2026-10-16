@@ -3,7 +3,7 @@ SQLAlchemy 模型定义 - SLAReport
 SLA 报告模型，记录企业许可证的 SLA 达标情况与历史报告。
 """
 
-from sqlalchemy import Column, BigInteger, String, Integer, Boolean, DateTime, Numeric, Index
+from sqlalchemy import Column, BigInteger, Integer, Boolean, DateTime, Numeric, Index
 
 from .. import Base  # 使用统一的 Base
 
@@ -17,6 +17,7 @@ class SLAReport(Base):
         Index('idx_sla_compliant', 'is_compliant'),
     )
 
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='报告 ID')
 
     license_id = Column(BigInteger, nullable=False, doc='企业许可证 ID')

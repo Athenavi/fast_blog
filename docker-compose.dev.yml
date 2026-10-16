@@ -10,7 +10,7 @@
 #   1. cp .env.example .env   (if not already done)
 #   2. docker-compose -f docker-compose.dev.yml up -d
 #   3. python main.py --backend fastapi --env dev
-#   4. cd frontend-astro && npm run dev
+#   4. cd frontend/web && npm run dev
 
 version: '3.8'
 

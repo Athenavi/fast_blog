@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - CryptoPayment
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class CryptoPayment(Base):
@@ -22,7 +21,7 @@ class CryptoPayment(Base):
         Index('idx_crypto_payment_status', 'status'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='加密支付 ID')
 
     transaction = Column(BigInteger, ForeignKey('payment_transactions.id'), doc='关联的交易记录')

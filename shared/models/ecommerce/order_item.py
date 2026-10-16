@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - OrderItem
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class OrderItem(Base):
@@ -20,7 +19,7 @@ class OrderItem(Base):
         Index('idx_order_item_product', 'product_id'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订单项 ID')
 
     order = Column(BigInteger, ForeignKey('orders.id'), doc='订单')

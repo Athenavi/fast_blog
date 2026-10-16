@@ -10,13 +10,18 @@
 - 权限控制
 """
 
+from shared.services.plugins.event_bus import (
+    event_bus,
+    ArticlePublishedPayload,
+    ArticleUpdatedPayload,
+    ArticleDeletedPayload,
+    CommentCreatedPayload,
+    UserRegisteredPayload,
+)
 from shared.services.plugins.plugin_manager.core import (
     BasePlugin,
     PluginManager,
     plugin_manager,
-)
-from shared.services.plugins.plugin_manager.theme_plugin import (
-    ThemePlugin,
 )
 from shared.services.plugins.plugin_manager.dependency import (
     PluginDependencyManager,
@@ -46,10 +51,14 @@ from shared.services.plugins.plugin_manager.public_api import (
     PluginPublicAPI,
     plugin_api,
 )
+from shared.services.plugins.plugin_manager.theme_plugin import (
+    ThemePlugin,
+)
 from shared.services.plugins.plugin_manager.version_utils import (
     compare_versions,
     check_version_match,
 )
+
 
 # 能力声明装饰器
 def requires_capability(cap: str):
@@ -58,14 +67,6 @@ def requires_capability(cap: str):
         func._capability = cap
         return func
     return decorator
-from shared.services.plugins.event_bus import (
-    event_bus,
-    ArticlePublishedPayload,
-    ArticleUpdatedPayload,
-    ArticleDeletedPayload,
-    CommentCreatedPayload,
-    UserRegisteredPayload,
-)
 
 __all__ = [
     # Core

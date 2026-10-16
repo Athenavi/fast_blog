@@ -262,7 +262,7 @@ class HreflangGenerator:
             from urllib.parse import urlparse
             parsed = urlparse(url)
             return parsed.netloc
-        except:
+        except (ValueError, TypeError, AttributeError):
             return None
 
 

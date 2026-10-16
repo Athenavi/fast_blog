@@ -49,22 +49,22 @@ class EncryptedField(TypeDecorator):
             raise RuntimeError("Encryption unavailable: SECRET_KEY not configured") from exc
 
     def process_bind_param(self, value: Optional[str], dialect) -> Optional[str]:
-        """Encrypt on storage"""
+        """Encrypt on storage
+
+        加密失败**不再回退明文**：静默落明文会让"看起来加密了"的字段实际裸存，
+        且写入方无从察觉。改为直接抛异常（fail loud），由调用方决定如何处理。
+        """
         if value is None:
             return None
         secret = self._get_secret_key()
         if not secret:
-            return value
-        try:
-            raw = secret.encode('utf-8')
-            key = hashlib.sha256(raw).digest()
-            aesgcm = AESGCM(key)
-            nonce = os.urandom(12)
-            ciphertext = aesgcm.encrypt(nonce, str(value).encode('utf-8'), None)
-            return base64.b64encode(nonce + ciphertext).decode('utf-8')
-        except Exception as exc:
-            logger.error("Encryption failed: %s", exc)
-            return value
+            raise RuntimeError("Encryption unavailable: SECRET_KEY not configured")
+        raw = secret.encode('utf-8')
+        key = hashlib.sha256(raw).digest()
+        aesgcm = AESGCM(key)
+        nonce = os.urandom(12)
+        ciphertext = aesgcm.encrypt(nonce, str(value).encode('utf-8'), None)
+        return base64.b64encode(nonce + ciphertext).decode('utf-8')
 
     def process_result_value(self, value: Optional[str], dialect) -> Optional[str]:
         """Decrypt on read"""

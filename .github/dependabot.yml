@@ -1,0 +1,39 @@
+version: 2
+# 依赖更新由机器人开 PR —— 之前完全没有自动化，CVE 只能靠人肉发现。
+#
+# 注意：requirements.txt 全部用 `==` 精确锁定（供应链要求），所以这里的 PR
+# 是"把锁定值往上推"，需要跑测试后再合；不要把它改成范围版本。
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - backend
+
+  - package-ecosystem: npm
+    directory: "/frontend/web"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - ci
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies
+      - containers

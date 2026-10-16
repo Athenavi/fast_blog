@@ -1,0 +1,19 @@
+{
+  "name": "Payment Gateway",
+  "slug": "payment-gateway",
+  "version": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/plugin-pages/payment-gateway",
+      "component": "./admin/Page.tsx",
+      "title": "支付网关"
+    }
+  ],
+  "navItems": [
+    {
+      "label": "支付网关",
+      "href": "/admin/plugin-pages/payment-gateway",
+      "icon": "CreditCard"
+    }
+  ]
+}

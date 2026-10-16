@@ -214,7 +214,7 @@ class PluginUpdateManager:
                     with open(info_file, 'r', encoding='utf-8') as f:
                         info = json.load(f)
                     history.append(info)
-                except:
+                except (json.JSONDecodeError, IOError):
                     pass
         
         # 按时间倒序排列
@@ -435,7 +435,7 @@ class ConflictDetector:
             last_updated = plugin.get('last_updated')
             if last_updated:
                 try:
-                    from datetime import datetime, timedelta
+                    from datetime import datetime
                     
                     # 解析最后更新时间
                     if isinstance(last_updated, str):

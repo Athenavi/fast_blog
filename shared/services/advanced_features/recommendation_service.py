@@ -5,9 +5,8 @@
 
 
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 from collections import defaultdict, Counter
-import math
 
 from shared.logging import default_logger as logger
 

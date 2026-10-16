@@ -3,9 +3,7 @@
 包含输入验证、SQL注入防护、XSS防护等功能
 """
 import os
-import random
 import re
-import string
 from urllib.parse import urlparse
 
 from fastapi import Request
@@ -51,8 +49,9 @@ def load_sensitive_words(file_path):
         return sensitive_words
     except FileNotFoundError:
         return set()
-    except IOError as e:
-        print(e)
+    except IOError:
+        import logging
+        logging.getLogger(__name__).exception("Failed to load sensitive words file")
         return set()
 
 
@@ -109,13 +108,28 @@ def safe_query_builder(table_name, conditions=None, columns="*", order_by=None, 
     
     :param table_name: 表名
     :param conditions: 条件字典，格式为 {'column': 'value'}
-    :param columns: 要查询的列
+    :param columns: 要查询的列（只允许合法列名、逗号、空格、星号）
     :param order_by: 排序字段
-    :param limit: 限制返回记录数
+    :param limit: 限制返回记录数（必须是正整数）
     :return: SQLAlchemy TextClause 对象
     """
     # 验证表名
     sanitized_table = sanitize_sql_identifier(table_name)
+
+    # 验证 columns 参数：防止注入
+    if columns != "*":
+        # 只允许字母、数字、下划线、逗号、空格、点、星号
+        if not re.match(r'^[a-zA-Z0-9_,\s\.\*]+$', str(columns)):
+            raise ValueError("Invalid columns parameter: contains disallowed characters")
+        # 逐列校验
+        for col in str(columns).split(','):
+            col_stripped = col.strip()
+            if col_stripped and col_stripped != '*':
+                # 支持 table.column 格式
+                parts = col_stripped.split('.')
+                for part in parts:
+                    if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', part):
+                        raise ValueError(f"Invalid column name: {col_stripped}")
 
     # 构建基础查询
     query_parts = [f"SELECT {columns} FROM {sanitized_table}"]
@@ -133,16 +147,32 @@ def safe_query_builder(table_name, conditions=None, columns="*", order_by=None, 
 
     # 处理排序
     if order_by:
-        # 验证排序字段
-        sanitized_order = sanitize_sql_identifier(order_by)
-        query_parts.append(f"ORDER BY {sanitized_order}")
+        # 支持 "column ASC" 或 "column DESC" 格式
+        order_str = str(order_by).strip()
+        order_parts = order_str.split(None, 1)
+        sanitized_col = sanitize_sql_identifier(order_parts[0])
+        if len(order_parts) > 1:
+            direction = order_parts[1].upper()
+            if direction not in ("ASC", "DESC"):
+                raise ValueError("ORDER BY direction must be ASC or DESC")
+            query_parts.append(f"ORDER BY {sanitized_col} {direction}")
+        else:
+            query_parts.append(f"ORDER BY {sanitized_col}")
 
-    # 处理限制
-    if limit and isinstance(limit, int) and limit > 0:
-        query_parts.append(f"LIMIT {limit}")
+    # 处理限制：严格校验为正整数，使用参数化绑定
+    bind_params = {}
+    if limit is not None:
+        try:
+            limit_int = int(limit)
+            if limit_int <= 0:
+                raise ValueError("LIMIT must be a positive integer")
+            query_parts.append("LIMIT :limit_val")
+            bind_params["limit_val"] = limit_int
+        except (ValueError, TypeError):
+            raise ValueError("LIMIT parameter must be a positive integer")
 
     query_str = " ".join(query_parts)
-    return text(query_str)
+    return text(query_str).bindparams(**bind_params)
 
 
 def escape_html(text):
@@ -187,21 +217,18 @@ def validate_url(url_string, allowed_schemes=None):
 
 
 def validate_password_strength(password):
+    """验证密码强度（**转发**到唯一权威实现）
+
+    历史上这里有一份自己的规则（额外强制小写字母），与
+    ``src/utils/security/password_validator.py`` 以及前端 Zod schema 不一致 ——
+    同一串密码可能在注册接口通过、却在别处被拒。现统一到与前端对齐的那一份；
+    保留本函数只是为了不让既有的 ``from ...safe import validate_password_strength`` 失效。
     """
-    验证密码强度
-    """
-    if len(password) < 8:
-        return False, "密码长度至少8位"
+    from src.utils.security.password_validator import (
+        validate_password_strength as _validate,
+    )
 
-    has_upper = any(c.isupper() for c in password)
-    has_lower = any(c.islower() for c in password)
-    has_digit = any(c.isdigit() for c in password)
-    has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password)
-
-    if not (has_upper and has_lower and has_digit and has_special):
-        return False, "密码必须包含大写字母、小写字母、数字和特殊字符"
-
-    return True, "密码强度符合要求"
+    return _validate(password)
 
 
 def sanitize_filename(filename):
@@ -214,11 +241,18 @@ def sanitize_filename(filename):
     if not filename:
         return filename
 
-    # 移除路径分隔符以防止路径遍历
-    filename = os.path.basename(filename)
+    # 移除路径分隔符以防止路径遍历（Windows & Unix）
+    filename = os.path.basename(filename.replace('\\', os.sep).replace('/', os.sep))
 
     # 只允许字母、数字、下划线、连字符、点号
     sanitized = re.sub(r'[^\w.-]', '_', filename)
+
+    # 阻止以点开头的隐藏文件（如 .env, .htaccess）
+    if sanitized.startswith('.'):
+        sanitized = '_' + sanitized[1:]
+
+    # 阻止连续的点号（如 .. 用于路径遍历）
+    sanitized = re.sub(r'\.{2,}', '_', sanitized)
 
     return sanitized
 
@@ -306,7 +340,7 @@ def sql_injection_protection(*param_names):
                                 detail=f'Invalid input for parameter: {param_name}'
                             )
                         validated_params[param_name] = cleaned_value
-            except:
+            except (ValueError, TypeError):
                 # 如果不是JSON数据，检查表单数据
                 try:
                     form_data = await request.form()
@@ -320,7 +354,7 @@ def sql_injection_protection(*param_names):
                                     detail=f'Invalid input for parameter: {param_name}'
                                 )
                             validated_params[param_name] = cleaned_value
-                except:
+                except (ValueError, TypeError, RuntimeError):
                     pass  # 如果既不是JSON也不是表单数据，跳过检查
 
         # 将验证后的参数附加到请求对象上，供后续处理使用
@@ -386,10 +420,6 @@ def is_valid_iso_language_code(iso_code: str) -> bool:
     return iso_code in valid_language_codes
 
 
-def random_string(param):
-    return ''.join(random.sample(string.ascii_letters + string.digits, param))
-
-
 def validate_email_base(email):
     """验证邮箱格式"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
@@ -407,6 +437,83 @@ def is_valid_hash(length, f_hash):
             c in '0123456789abcdef' for c in f_hash.lower()):
         return False
     return True
+
+
+def outbound_private_allowed() -> bool:
+    """部署者是否显式允许出站到私网（默认否）
+
+    企业自建内网 AI / 翻译端点需要它；默认关闭，避免普通用户把凭据端点指向
+    内网（含云元数据 169.254.169.254）。
+    """
+    import os
+
+    return os.environ.get("ALLOW_PRIVATE_OUTBOUND_ENDPOINTS", "false").lower() == "true"
+
+
+def _target_is_link_local_or_metadata(url: str) -> bool:
+    """目标是否为链路本地 / 云元数据地址
+
+    169.254.169.254 是 AWS / GCP / Azure / 阿里云的实例元数据端点，能换取实例凭据 ——
+    没有任何正当的 AI / Webhook 场景需要访问它，因此**即使部署者放行了私网也要拒绝**。
+    """
+    import ipaddress
+    import socket
+    from urllib.parse import urlparse
+
+    try:
+        host = urlparse(url or "").hostname
+    except Exception:
+        return False
+    if not host:
+        return False
+    candidates: list = []
+    try:
+        ipaddress.ip_address(host)
+        candidates = [host]
+    except ValueError:
+        try:
+            candidates = [info[4][0] for info in socket.getaddrinfo(host, None, proto=socket.IPPROTO_TCP)]
+        except socket.gaierror:
+            return False  # 解析不了，交给后续校验去报错
+    for candidate in candidates:
+        try:
+            ip = ipaddress.ip_address(candidate)
+        except ValueError:
+            continue
+        if ip.is_link_local:
+            return True
+    return False
+
+
+def validate_outbound_url(url: str):
+    """出站请求前的 URL 校验（SSRF 防护统一入口）
+
+    默认走 :func:`validate_public_url`（只允许公网 http/https）。若部署者设置了
+    ``ALLOW_PRIVATE_OUTBOUND_ENDPOINTS=true``，则放行私网地址 —— 这是为自建
+    ollama / 内网 AI 网关这类**正当**场景准备的开关，但**链路本地与云元数据地址
+    在任何情况下都拒绝**（能换实例凭据，没有正当用途）。
+
+    把"是否允许打内网"交给部署者，而不是由终端用户通过配置项自行决定。
+
+    Returns:
+        (is_valid: bool, error_message: str)
+    """
+    if _target_is_link_local_or_metadata(url):
+        return False, "目标为链路本地/云元数据地址，已阻止访问"
+
+    if outbound_private_allowed():
+        from urllib.parse import urlparse
+
+        try:
+            parsed = urlparse(url or "")
+        except Exception:
+            return False, "URL 格式无效"
+        if parsed.scheme not in ("http", "https"):
+            return False, "仅支持 http/https 协议"
+        if not parsed.hostname:
+            return False, "URL 缺少主机名"
+        return True, ""
+    return validate_public_url(url)
 
 
 def validate_public_url(url: str):

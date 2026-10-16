@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - PrivateMessage
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class PrivateMessage(Base):
@@ -23,7 +22,7 @@ class PrivateMessage(Base):
         Index('idx_private_messages_is_read', 'is_read'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='消息ID')
 
     sender = Column(BigInteger, ForeignKey('users.id'), doc='发送者')

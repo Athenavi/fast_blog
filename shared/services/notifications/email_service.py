@@ -2,6 +2,7 @@
 邮件服务 - 发送邮件通知
 """
 
+import asyncio
 import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -117,6 +118,30 @@ class EmailService:
 
         logger.info(f"批量邮件发送完成: 成功{results['success']}, 失败{results['failed']}")
         return results
+
+    async def send_email_async(
+            self,
+            to_email: str,
+            subject: str,
+            html_content: str,
+            text_content: Optional[str] = None,
+    ) -> bool:
+        """异步发送（SMTP 是阻塞 IO，放到线程池执行，避免卡住事件循环）"""
+        return await asyncio.to_thread(
+            self.send_email, to_email, subject, html_content, text_content
+        )
+
+    async def send_batch_emails_async(
+            self,
+            emails: List[str],
+            subject: str,
+            html_content: str,
+            text_content: Optional[str] = None,
+    ) -> dict:
+        """异步批量发送（整批一次放进线程池）"""
+        return await asyncio.to_thread(
+            self.send_batch_emails, emails, subject, html_content, text_content
+        )
 
 
 # 全局实例

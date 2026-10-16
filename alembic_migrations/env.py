@@ -2,11 +2,15 @@
 Alembic 环境配置
 支持从环境变量动态读取数据库URL
 """
+import logging
 import os
 from logging.config import fileConfig
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+# Alembic logging
+_alembic_logger = logging.getLogger("alembic.env")
 
 # 加载 .env 文件 - 支持多个位置
 project_root = Path(__file__).parent.parent
@@ -17,22 +21,41 @@ env_candidates = [
     project_root / 'config' / '.env',   # config 目录 .env（安装向导写入位置）
 ]
 env_loaded = False
+# 语义与 ``shared/config/settings.py`` **保持一致**：``override=False`` —— 容器里由 compose
+# 注入的 DB_HOST / DB_PASSWORD 必须优先于文件；两个候选位置都加载，先加载者优先。
+# 原实现用 ``override=True`` 且只加载第一个存在的文件，结果是"应用连的库"与"迁移连的库"
+# 在存在 .env 时可能不是同一个，排障时极难定位。
 for env_file in env_candidates:
     if env_file.exists():
-        load_dotenv(env_file, override=True)
-        print(f"[Alembic] Loaded .env from {env_file}")
+        load_dotenv(env_file, override=False)
+        _alembic_logger.info("Loaded .env from %s（不覆盖已存在的环境变量）", env_file)
         env_loaded = True
-        break
 
 if not env_loaded:
-    print(f"[Alembic] Warning: .env file not found. Searched:")
+    _alembic_logger.warning(".env file not found. Searched:")
     for p in env_candidates:
-        print(f"  - {p}")
+        _alembic_logger.warning("  - %s", p)
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import TypeDecorator, engine_from_config, pool
 
 from alembic import context
+
+
+def _render_item(type_, obj, autogen_context):
+    """把自定义类型渲染成它的底层 SQLAlchemy 类型。
+
+    `EncryptedField` 这类 TypeDecorator 默认会被 autogenerate 渲染成
+    ``shared.utils.crypto.EncryptedField()``，于是生成的迁移**依赖应用代码**：类一旦改名或
+    挪位置，历史迁移立刻 `NameError`（批次 21 重建迁移基线时实测到）。这里统一渲染成底层
+    类型（`EncryptedField.impl = Text` → ``sa.Text()``），迁移文件因此自洽 —— 库里的列类型
+    本来也就是底层类型。
+    """
+    if type_ == "type" and isinstance(obj, TypeDecorator):
+        impl = obj.load_dialect_impl(autogen_context.dialect)
+        name = type(impl).__name__
+        length = getattr(impl, "length", None)
+        return f"sa.{name}(length={length})" if length else f"sa.{name}()"
+    return False
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -87,7 +110,7 @@ if '@' in db_url:
     if ':' in prefix.split('://', 1)[-1]:
         user_part = prefix.split('://', 1)[0] + '://' + prefix.split('://', 1)[-1].split(':')[0]
         safe_url = f"{user_part}:***@{suffix}"
-print(f"[Alembic] Database URL: {safe_url}")
+_alembic_logger.info("Database URL: %s", safe_url)
 config.set_main_option("sqlalchemy.url", db_url)
 
 # add your model's MetaData object here
@@ -128,9 +151,9 @@ try:
             _loaded_count += 1
         except Exception as e:
             _failed_count += 1
-            print(f"[Alembic] Warning: Could not load {_model_name} from {_module_path}: {e}")
+            _alembic_logger.warning("Could not load %s from %s: %s", _model_name, _module_path, e)
 except ImportError:
-    print("[Alembic] Warning: _LAZY_IMPORTS not found, falling back to directory scan")
+    _alembic_logger.warning("_LAZY_IMPORTS not found, falling back to directory scan")
 
 # 策略 2: 扫描 shared/models/ 目录中的手动模型文件（未在 _LAZY_IMPORTS 中注册的）
 _shared_models_dir = project_root / "shared" / "models"
@@ -160,10 +183,10 @@ for _py_file in sorted(_shared_models_dir.rglob("*.py")):
         _loaded_count += 1
     except Exception as e:
         _failed_count += 1
-        print(f"[Alembic] Warning: Could not load {_full_module}: {e}")
+        _alembic_logger.warning("Could not load %s: %s", _full_module, e)
 
-print(f"[Alembic] Loaded {_loaded_count} model modules ({_failed_count} failed)")
-print(f"[Alembic] Registered {len(target_metadata.tables)} tables in metadata")
+_alembic_logger.info("Loaded %d model modules (%d failed)", _loaded_count, _failed_count)
+_alembic_logger.info("Registered %d tables in metadata", len(target_metadata.tables))
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
@@ -189,6 +212,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        render_item=_render_item,
     )
 
     with context.begin_transaction():
@@ -215,6 +239,7 @@ def run_migrations_online() -> None:
             compare_type=True,  # 比较列类型
             render_as_batch=True,  # 支持批量操作（SQLite需要）
             include_schemas=True,  # 包含所有schema
+            render_item=_render_item,  # 自定义类型渲染成底层类型（见函数说明）
         )
 
         with context.begin_transaction():

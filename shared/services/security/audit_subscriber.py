@@ -60,6 +60,11 @@ AUDIT_EVENT_MAP: Dict[str, tuple[AuditLogAction, str]] = {
     # 安全
     "security.rate_limited": (AuditLogAction.SECURITY_EVENT, "security"),
     "security.permission_change": (AuditLogAction.PERMISSION_CHANGE, "rbac"),
+    # VIP / 会员
+    "vip.subscription.created": (AuditLogAction.CREATE, "vip_subscription"),
+    "vip.subscription.cancelled": (AuditLogAction.UPDATE, "vip_subscription"),
+    "vip.subscription.expired": (AuditLogAction.UPDATE, "vip_subscription"),
+    "vip.subscription.renewed": (AuditLogAction.CREATE, "vip_subscription"),
 }
 
 # 需要记录 WARNING/ERROR 级别的事件

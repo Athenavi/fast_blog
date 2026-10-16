@@ -23,7 +23,7 @@ class CustomPostContent(Base):
         Index('idx_cpc_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='内容 ID')
 
     post_type_id = Column(BigInteger, ForeignKey('custom_post_types.id'), doc='文章类型 ID')

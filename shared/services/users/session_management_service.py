@@ -4,8 +4,10 @@
 """
 
 
-import hashlib
 import asyncio
+import hashlib
+import json
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -16,24 +18,167 @@ from shared.logging import default_logger as logger
 _LOCATION_CACHE: Dict[str, str] = {}
 
 
+def _get_redis():
+    """获取 Redis 客户端（惰性连接，失败时返回 None）"""
+    try:
+        import redis as redis_lib
+        return redis_lib.Redis(
+            host=os.environ.get('REDIS_HOST', 'localhost'),
+            port=int(os.environ.get('REDIS_PORT', 6379)),
+            db=int(os.environ.get('REDIS_DB', 0)),
+            password=os.environ.get('REDIS_PASSWORD') or None,
+            decode_responses=True,
+            socket_connect_timeout=2,  # 连接超时 2 秒，避免启动阻塞
+            socket_timeout=2,          # 读写超时 2 秒
+            retry_on_timeout=False,    # 不重试，快速失败
+        )
+    except Exception:
+        return None
+
+
 class SessionManagementService:
     """会话管理服务"""
 
     def __init__(self):
-        # 用户会话存储 {user_id: [session_info, ...]}
+        # 用户会话存储 {user_id: [session_info, ...]}（本地读缓存，非主存储）
         self._user_sessions = defaultdict(list)
 
-        # 会话索引 {session_id: user_id}
+        # 会话索引 {session_id: user_id}（本地读缓存）
         self._session_index = {}
+
+        # Redis 客户端（惰性连接）
+        self._redis = None
 
         # 默认配置
         self.session_timeout_hours = 24 * 30  # 30天
         self.max_sessions_per_user = 10  # 每个用户最多10个活跃会话
 
-        logger.warning(
-            "SessionManagementService 使用内存存储，重启后会话数据将丢失。"
-            "生产环境应使用 UserSession 模型或 Redis 实现持久化。"
+        logger.info(
+            "SessionManagementService 已启用 Redis 共享存储（多 worker 一致），"
+            "内存仅作本地读缓存。"
         )
+
+    def _redis_client(self):
+        """惰性获取 Redis 客户端"""
+        if self._redis is None:
+            self._redis = _get_redis()
+        return self._redis
+
+    def _session_key(self, session_id: str) -> str:
+        return f"session:{session_id}"
+
+    def _user_sessions_key(self, user_id: int) -> str:
+        return f"user_sessions:{user_id}"
+
+    def _serialize_session(self, session: dict) -> str:
+        """将会话 dict 序列化为 JSON（datetime 转 ISO）"""
+        s = dict(session)
+        for k in ('created_at', 'last_active', 'expires_at'):
+            if k in s and isinstance(s[k], datetime):
+                s[k] = s[k].isoformat()
+        return json.dumps(s, ensure_ascii=False)
+
+    def _deserialize_session(self, data: str) -> dict:
+        """从 JSON 反序列化会话"""
+        s = json.loads(data)
+        for k in ('created_at', 'last_active', 'expires_at'):
+            if k in s and isinstance(s[k], str):
+                s[k] = datetime.fromisoformat(s[k])
+        return s
+
+    def _store_session_redis(self, session: dict):
+        """存储会话到 Redis（含用户会话集合）"""
+        r = self._redis_client()
+        if not r:
+            return
+        try:
+            sid = session['session_id']
+            uid = session['user_id']
+            ttl = int(self.session_timeout_hours * 3600)
+            r.setex(self._session_key(sid), ttl, self._serialize_session(session))
+            r.sadd(self._user_sessions_key(uid), sid)
+            r.expire(self._user_sessions_key(uid), ttl)
+        except Exception as e:
+            logger.debug(f"Redis store session failed: {e}")
+
+    def _remove_session_redis(self, user_id: int, session_id: str):
+        """从 Redis 删除会话"""
+        r = self._redis_client()
+        if not r:
+            return
+        try:
+            r.delete(self._session_key(session_id))
+            r.srem(self._user_sessions_key(user_id), session_id)
+        except Exception as e:
+            logger.debug(f"Redis remove session failed: {e}")
+
+    def _get_session_redis(self, session_id: str) -> Optional[dict]:
+        """从 Redis 读取单个会话"""
+        r = self._redis_client()
+        if not r:
+            return None
+        try:
+            data = r.get(self._session_key(session_id))
+            if data:
+                return self._deserialize_session(data)
+        except Exception as e:
+            logger.debug(f"Redis get session failed: {e}")
+        return None
+
+    def _get_user_session_ids_redis(self, user_id: int) -> List[str]:
+        """从 Redis 获取用户所有会话 ID"""
+        r = self._redis_client()
+        if not r:
+            return []
+        try:
+            return list(r.smembers(self._user_sessions_key(user_id)))
+        except Exception as e:
+            logger.debug(f"Redis get user session ids failed: {e}")
+            return []
+
+    def _update_session_redis(self, session_id: str, updates: dict):
+        """更新 Redis 中的会话字段"""
+        r = self._redis_client()
+        if not r:
+            return
+        try:
+            session = self._get_session_redis(session_id)
+            if session:
+                session.update(updates)
+                if isinstance(session.get('last_active'), datetime):
+                    pass  # 已是 datetime
+                ttl = r.ttl(self._session_key(session_id))
+                if ttl > 0:
+                    r.setex(self._session_key(session_id), ttl, self._serialize_session(session))
+        except Exception as e:
+            logger.debug(f"Redis update session failed: {e}")
+
+    def _enforce_session_limit(self, user_id: int) -> None:
+        """超出 ``max_sessions_per_user`` 时移除创建时间最早的会话
+
+        优先用 Redis 的会话集合（多 worker / 多副本共享）；Redis 不可用时退回本进程
+        内存视图 —— 至少不比改造前更差，此时"未共享"会体现在别处的降级日志里。
+        """
+        limit = self.max_sessions_per_user
+        session_ids = self._get_user_session_ids_redis(user_id)
+        if not session_ids:
+            sessions = self._user_sessions[user_id]
+            if len(sessions) < limit:
+                return
+            oldest = min(sessions, key=lambda item: item['created_at'])
+            self._remove_session(user_id, oldest['session_id'])
+            return
+
+        if len(session_ids) < limit:
+            return
+
+        def _created_at(session_id: str) -> str:
+            data = self._get_session_redis(session_id) or {}
+            created = data.get('created_at')
+            # 统一转字符串比较（同格式 ISO 串可直接排序）；取不到的排最前，优先被移除
+            return str(created) if created is not None else ""
+
+        self._remove_session(user_id, min(session_ids, key=_created_at))
 
     async def create_session(self, user_id: int, device_info: Dict,
                        ip_address: str = None, user_agent: str = None) -> str:
@@ -55,14 +200,10 @@ class SessionManagementService:
         # 检查并清理旧会话
         self._cleanup_old_sessions(user_id)
 
-        # 检查会话数量限制
-        if len(self._user_sessions[user_id]) >= self.max_sessions_per_user:
-            # 移除最旧的会话
-            oldest_session = min(
-                self._user_sessions[user_id],
-                key=lambda s: s['created_at']
-            )
-            self._remove_session(user_id, oldest_session['session_id'])
+        # 会话数量上限：以 **Redis 集合**为准（多 worker / 多副本共享）。
+        # 原先用本进程的内存字典计数，等于每个副本各自放行 max_sessions_per_user 个，
+        # 实际上限被放大成 N 倍。
+        self._enforce_session_limit(user_id)
 
         # 创建会话记录
         now = datetime.now()
@@ -86,6 +227,9 @@ class SessionManagementService:
         self._user_sessions[user_id].append(session)
         self._session_index[session_id] = user_id
 
+        # 存储到 Redis（跨 worker 共享）
+        self._store_session_redis(session)
+
         # 持久化到数据库
         await self._persist_session_to_db(user_id, session)
 
@@ -104,6 +248,7 @@ class SessionManagementService:
         """
         sessions = []
 
+        # 优先从内存读取
         for session in self._user_sessions.get(user_id, []):
             if session['is_active'] and session['expires_at'] > datetime.now():
                 sessions.append({
@@ -118,6 +263,24 @@ class SessionManagementService:
                     'location': session.get('location', 'Unknown'),
                     'is_current': False,  # 需要调用方判断
                 })
+
+        # 内存为空时从 Redis 回退读取（跨 worker / 重启后）
+        if not sessions:
+            for sid in self._get_user_session_ids_redis(user_id):
+                session = self._get_session_redis(sid)
+                if session and session.get('is_active') and session.get('expires_at', datetime.min) > datetime.now():
+                    sessions.append({
+                        'session_id': session['session_id'],
+                        'device_info': session['device_info'],
+                        'ip_address': session.get('ip_address'),
+                        'user_agent': session.get('user_agent'),
+                        'device_fingerprint': session.get('device_fingerprint'),
+                        'created_at': session['created_at'].isoformat(),
+                        'last_active': session['last_active'].isoformat(),
+                        'expires_at': session['expires_at'].isoformat(),
+                        'location': session.get('location', 'Unknown'),
+                        'is_current': False,
+                    })
 
         # 按最后活动时间排序
         sessions.sort(key=lambda s: s['last_active'], reverse=True)
@@ -141,6 +304,9 @@ class SessionManagementService:
                 session['last_active'] = datetime.now()
                 break
 
+        # 同步到 Redis
+        self._update_session_redis(session_id, {'last_active': datetime.now()})
+
     async def revoke_session(self, user_id: int, session_id: str) -> bool:
         """
         撤销指定会话(远程注销)
@@ -154,6 +320,7 @@ class SessionManagementService:
         """
         result = self._remove_session(user_id, session_id)
         if result:
+            self._remove_session_redis(user_id, session_id)
             await self._remove_session_from_db(user_id, session_id)
         return result
 
@@ -177,6 +344,7 @@ class SessionManagementService:
 
         for session_id in sessions_to_remove:
             if self._remove_session(user_id, session_id):
+                self._remove_session_redis(user_id, session_id)
                 revoked_count += 1
 
         # 持久化层同步撤销
@@ -196,6 +364,10 @@ class SessionManagementService:
             是否有效
         """
         if session_id not in self._session_index:
+            # 内存未命中，查 Redis（跨 worker / 重启后）
+            session = self._get_session_redis(session_id)
+            if session:
+                return session.get('is_active', False) and session.get('expires_at', datetime.min) > datetime.now()
             return False
 
         user_id = self._session_index[session_id]
@@ -222,6 +394,22 @@ class SessionManagementService:
             会话详情
         """
         if session_id not in self._session_index:
+            # 内存未命中，查 Redis
+            session = self._get_session_redis(session_id)
+            if session:
+                return {
+                    'session_id': session['session_id'],
+                    'user_id': session['user_id'],
+                    'device_info': session.get('device_info'),
+                    'ip_address': session.get('ip_address'),
+                    'user_agent': session.get('user_agent'),
+                    'device_fingerprint': session.get('device_fingerprint'),
+                    'created_at': session['created_at'].isoformat() if isinstance(session.get('created_at'), datetime) else session.get('created_at'),
+                    'last_active': session['last_active'].isoformat() if isinstance(session.get('last_active'), datetime) else session.get('last_active'),
+                    'expires_at': session['expires_at'].isoformat() if isinstance(session.get('expires_at'), datetime) else session.get('expires_at'),
+                    'is_active': session.get('is_active'),
+                    'location': session.get('location', 'Unknown'),
+                }
             return None
 
         user_id = self._session_index[session_id]
@@ -301,7 +489,7 @@ class SessionManagementService:
             from src.utils.database.unified_manager import db_manager
             from shared.models.user.user_session import UserSession
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 record = UserSession(
                     user_id=user_id,
                     access_token=session_info['session_id'],
@@ -325,7 +513,7 @@ class SessionManagementService:
             from shared.models.user.user_session import UserSession
             from sqlalchemy import select
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 result = await session.execute(
                     select(UserSession).where(
                         UserSession.user_id == user_id,
@@ -346,7 +534,7 @@ class SessionManagementService:
             from shared.models.user.user_session import UserSession
             from sqlalchemy import update
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 stmt = (
                     update(UserSession)
                     .where(UserSession.user_id == user_id, UserSession.is_active == True)
@@ -436,7 +624,7 @@ class SessionManagementService:
 
     def _get_location_from_ip(self, ip_address: str) -> Dict[str, str]:
         """
-        从IP地址获取地理位置信息
+        从IP地址获取地理位置信息（并行调用多个 API，最快返回优先）
 
         Args:
             ip_address: IP地址
@@ -444,45 +632,62 @@ class SessionManagementService:
         Returns:
             包含城市、地区、国家信息的字典，失败返回None
         """
-        # 方法1: 使用 ipapi.co API (免费，无需API key)
-        try:
-            import urllib.request
-            import json
+        import json
+        import urllib.request
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            url = f"https://ipapi.co/{ip_address}/json/"
-            response = urllib.request.urlopen(url, timeout=3)
-            data = json.loads(response.read().decode('utf-8'))
-
-            if data.get('error'):
-                logger.debug(f"ipapi.co error: {data.get('reason')}")
+        def _try_ipapi():
+            """方法1: ipapi.co (免费，无需API key)"""
+            try:
+                url = f"https://ipapi.co/{ip_address}/json/"
+                response = urllib.request.urlopen(url, timeout=3)
+                data = json.loads(response.read().decode('utf-8'))
+                if data.get('error'):
+                    return None
+                return {
+                    'city': data.get('city', ''),
+                    'region': data.get('region', ''),
+                    'country': data.get('country_name', ''),
+                    'country_code': data.get('country', ''),
+                    'latitude': data.get('latitude'),
+                    'longitude': data.get('longitude'),
+                }
+            except Exception as e:
+                logger.debug(f"ipapi.co failed: {e}")
                 return None
 
-            location = {
-                'city': data.get('city', ''),
-                'region': data.get('region', ''),
-                'country': data.get('country_name', ''),
-                'country_code': data.get('country', ''),
-                'latitude': data.get('latitude'),
-                'longitude': data.get('longitude'),
-            }
-
-            logger.info(f"Location detected for IP {ip_address}: {location['city']}, {location['country']}")
-            return location
-        except Exception as e:
-            logger.debug(f"ipapi.co failed: {e}")
-
-        # 方法2: 使用 ipgeolocation.io API (需要API key)
-        api_key = os.getenv('IPGEOLOCATION_API_KEY', '')
-        if api_key:
+        def _try_ipinfo():
+            """方法2: ipinfo.io (可选API key)"""
             try:
-                import urllib.request
-                import json
+                token = os.getenv('IPINFO_TOKEN', '')
+                headers = {'Authorization': f'Bearer {token}'} if token else {}
+                url = f"https://ipinfo.io/{ip_address}/json"
+                req = urllib.request.Request(url, headers=headers)
+                response = urllib.request.urlopen(req, timeout=3)
+                data = json.loads(response.read().decode('utf-8'))
+                if 'bogon' in data:
+                    return None
+                city_region = data.get('city', '').split(',')
+                return {
+                    'city': city_region[0] if city_region else '',
+                    'region': city_region[1].strip() if len(city_region) > 1 else '',
+                    'country': data.get('country', ''),
+                    'country_code': data.get('country', ''),
+                }
+            except Exception as e:
+                logger.debug(f"ipinfo.io failed: {e}")
+                return None
 
+        def _try_ipgeolocation():
+            """方法3: ipgeolocation.io (需要API key)"""
+            api_key = os.getenv('IPGEOLOCATION_API_KEY', '')
+            if not api_key:
+                return None
+            try:
                 url = f"https://api.ipgeolocation.io/ipgeo?apiKey={api_key}&ip={ip_address}"
                 response = urllib.request.urlopen(url, timeout=3)
                 data = json.loads(response.read().decode('utf-8'))
-
-                location = {
+                return {
                     'city': data.get('city', ''),
                     'region': data.get('state_prov', ''),
                     'country': data.get('country_name', ''),
@@ -490,42 +695,26 @@ class SessionManagementService:
                     'latitude': data.get('latitude'),
                     'longitude': data.get('longitude'),
                 }
-
-                logger.info(f"Location detected for IP {ip_address}: {location['city']}, {location['country']}")
-                return location
             except Exception as e:
                 logger.debug(f"ipgeolocation.io failed: {e}")
-
-        # 方法3: 使用 ipinfo.io API (可选API key)
-        try:
-            import urllib.request
-            import json
-
-            token = os.getenv('IPINFO_TOKEN', '')
-            headers = {'Authorization': f'Bearer {token}'} if token else {}
-            url = f"https://ipinfo.io/{ip_address}/json"
-
-            req = urllib.request.Request(url, headers=headers)
-            response = urllib.request.urlopen(req, timeout=3)
-            data = json.loads(response.read().decode('utf-8'))
-
-            if 'bogon' in data:
                 return None
 
-            # ipinfo.io 的 city 格式为 "City, Region"
-            city_region = data.get('city', '').split(',')
+        # 并行调用最多两个 API（ipapi.co + ipinfo.io），避免串行等待 9s+
+        # 只有 ipgeolocation 配置了 key 才加入
+        tasks = [_try_ipapi, _try_ipinfo]
+        if os.getenv('IPGEOLOCATION_API_KEY', ''):
+            tasks.append(_try_ipgeolocation)
 
-            location = {
-                'city': city_region[0] if city_region else '',
-                'region': city_region[1].strip() if len(city_region) > 1 else '',
-                'country': data.get('country', ''),
-                'country_code': data.get('country', ''),
-            }
-
-            logger.info(f"Location detected for IP {ip_address}: {location['city']}, {location['country']}")
-            return location
-        except Exception as e:
-            logger.debug(f"ipinfo.io failed: {e}")
+        with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+            future_to_name = {executor.submit(fn): fn.__name__ for fn in tasks}
+            for future in as_completed(future_to_name, timeout=4):
+                result = future.result()
+                if result:
+                    # 取消其余任务
+                    for f in future_to_name:
+                        f.cancel()
+                    logger.info(f"Location detected for IP {ip_address}: {result.get('city', '')}, {result.get('country', '')}")
+                    return result
 
         return None
 

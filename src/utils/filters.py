@@ -1,6 +1,5 @@
 import json
 from datetime import datetime, timedelta, UTC
-from functools import lru_cache
 from typing import Any
 
 from markdown_it import MarkdownIt
@@ -18,6 +17,8 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 
+from src.unified_logger import default_logger as logger
+
 
 # ────────────── 工具函数（保留原样） ──────────────
 
@@ -30,18 +31,18 @@ def json_filter(value):
     try:
         return json.loads(value)
     except (ValueError, TypeError) as e:
-        print(f"Error parsing JSON: {e}, Value: {value}")
+        logger.warning(f"Error parsing JSON: {e}, Value: {value}")
         return None
 
 def string_split(value, delimiter=','):
     """在模板中对字符串进行分割"""
     if not isinstance(value, str):
-        print(f"Unexpected type for value: {type(value)}. Expected a string.")
+        logger.warning(f"Unexpected type for value: {type(value)}. Expected a string.")
         return []
     try:
         return value.split(delimiter)
     except Exception as e:
-        print(f"Error splitting string: {e}, Value: {value}")
+        logger.warning(f"Error splitting string: {e}, Value: {value}")
         return []
 
 def relative_time_filter(dt):
@@ -75,20 +76,6 @@ def relative_time_filter(dt):
             return f"{diff.days}天前"
         else:
             return dt_utc.strftime('%Y-%m-%d')
-
-@lru_cache(maxsize=128)
-async def category_filter(category_id):
-    """异步获取分类名称（带缓存）"""
-    from sqlalchemy import select
-    from shared.models import Category
-    from src.utils.database.unified_manager import db_manager
-
-    async with db_manager.get_session() as db:
-        result = await db.execute(
-            select(Category).where(Category.id == category_id)
-        )
-        category = result.scalar_one_or_none()
-        return category.name if category else None
 
 def f2list(input_value, delimiter=None):
     """将分隔符分隔的字符串转换为列表，支持逗号和分号"""
@@ -126,7 +113,7 @@ def f2list(input_value, delimiter=None):
             return result
         return [str(input_value).strip()]
     except (ValueError, TypeError, AttributeError) as e:
-        print(f"Error converting to list: {e}, Input: {input_value}")
+        logger.warning(f"Error converting to list: {e}, Input: {input_value}")
         return [str(input_value)] if input_value else []
 
 
@@ -509,6 +496,5 @@ def register_filters():
         'string_split': string_split,
         'md2html': md2html,
         'relative_time': relative_time_filter,
-        'CategoryName': category_filter,
         'F2list': f2list,
     }

@@ -18,6 +18,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from shared.services.plugins.plugin_manager.core import BasePlugin
 from shared.services.plugins.plugin_manager import requires_capability
 from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload
+from shared.logging import default_logger as logger
 
 # ── 插件本地 ORM ──
 NewsletterBase = declarative_base()
@@ -95,14 +96,14 @@ class NewsletterPlugin(BasePlugin):
     def activate(self):
         super().activate()
         self.init_db(NewsletterBase)
-        print("[Newsletter] Plugin activated")
+        logger.info("[Newsletter] Plugin activated")
 
     def deactivate(self):
         super().deactivate()
         if self._session_factory:
             self._session_factory.close_all_sessions()
             self._session_factory = None
-        print("[Newsletter] Plugin deactivated")
+        logger.info("[Newsletter] Plugin deactivated")
 
     # ── 公开 API 动作 ──
 
@@ -213,7 +214,7 @@ class NewsletterPlugin(BasePlugin):
         if not self.settings.get('enabled') or not self.settings.get('auto_send_on_publish'):
             return
         if not self.settings.get('smtp_host'):
-            print("[Newsletter] SMTP not configured, skipping auto-send")
+            logger.warning("[Newsletter] SMTP not configured, skipping auto-send")
             return
 
         session = self._get_session()
@@ -233,7 +234,7 @@ class NewsletterPlugin(BasePlugin):
             )
 
             emails = [s.email for s in subscribers]
-            print(f"[Newsletter] Sending to {len(emails)} subscribers for article: {payload.title}")
+            logger.info(f"[Newsletter] Sending to {len(emails)} subscribers for article: {payload.title}")
 
             # 分批发送
             batch_size = 50
@@ -243,7 +244,7 @@ class NewsletterPlugin(BasePlugin):
                     try:
                         self._send_email(email, f"[FastBlog] {payload.title}", html)
                     except Exception as e:
-                        print(f"[Newsletter] Failed to send to {email}: {e}")
+                        logger.error(f"[Newsletter] Failed to send to {email}: {e}")
         finally:
             session.close()
 
@@ -269,7 +270,7 @@ class NewsletterPlugin(BasePlugin):
                 server.send_message(msg)
             return True
         except Exception as e:
-            print(f"[Newsletter] SMTP error: {e}")
+            logger.error(f"[Newsletter] SMTP error: {e}")
             return False
 
     # ── 工具方法 ──

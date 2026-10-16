@@ -2,11 +2,12 @@
 MCP 通知/邮件工具处理器 — 通知管理/邮件发送/订阅
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.main import get_async_session_context
-from src.mcp.tools._perms import require_superuser, require_role
+
+from src.mcp.tools._perms import require_permission, require_superuser
+from src.utils.database.unified_manager import db_manager
 
 
-@require_role("user")
+@require_permission("module_ops:notification:view")
 async def list_notifications(arguments: dict) -> dict:
     """获取当前用户的通知列表"""
     user_id = arguments.get("user_id")
@@ -16,7 +17,7 @@ async def list_notifications(arguments: dict) -> dict:
     if not user_id:
         return {"success": False, "error": "请提供用户ID"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.notification import Notification
         query = select(Notification).where(Notification.recipient == int(user_id))
         if unread_only:
@@ -37,14 +38,14 @@ async def list_notifications(arguments: dict) -> dict:
         }}
 
 
-@require_role("user")
+@require_permission("module_ops:notification:edit")
 async def mark_notification_read(arguments: dict) -> dict:
     """标记通知为已读"""
     notification_id = arguments.get("notification_id")
     if not notification_id:
         return {"success": False, "error": "请提供通知ID"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.notification import Notification
         notification = await db.scalar(select(Notification).where(Notification.id == int(notification_id)))
         if not notification:
@@ -63,11 +64,15 @@ async def send_test_email(arguments: dict) -> dict:
 
     try:
         from shared.services.notifications.email_service import email_service
-        await email_service.send_email(
-            recipients=[to_email],
+        # send_email 是同步方法（smtplib），这里用其异步包装避免阻塞事件循环
+        sent = await email_service.send_email_async(
+            to_email=to_email,
             subject="FastBlog 测试邮件",
-            body="这是一封来自 FastBlog MCP 的测试邮件。",
+            html_content="<p>这是一封来自 FastBlog MCP 的测试邮件。</p>",
+            text_content="这是一封来自 FastBlog MCP 的测试邮件。",
         )
+        if not sent:
+            return {"success": False, "error": "发送失败：SMTP 未配置或连接失败（见服务端日志）"}
         return {"success": True, "message": f"测试邮件已发送至 {to_email}"}
     except Exception as e:
         return {"success": False, "error": f"发送失败: {e}"}
@@ -81,7 +86,7 @@ async def send_bulk_notification(arguments: dict) -> dict:
     if not title or not message:
         return {"success": False, "error": "请提供通知标题和内容"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.user import User
         from shared.models.notification import Notification
         from datetime import datetime
@@ -92,7 +97,7 @@ async def send_bulk_notification(arguments: dict) -> dict:
             db.add(Notification(
                 recipient=uid, type="system", title=title,
                 message=message, is_read=False,
-                created_at=datetime.utcnow(),
+                created_at=datetime.now(),
             ))
             sent += 1
             if sent % 50 == 0:

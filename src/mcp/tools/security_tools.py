@@ -2,8 +2,9 @@
 MCP 安全管理工具处理器 — 审计日志/敏感词/IP封禁/2FA
 """
 from sqlalchemy import select, func, desc
-from src.utils.database.main import get_async_session_context
-from src.mcp.tools._perms import require_superuser, require_role
+
+from src.mcp.tools._perms import require_permission, require_superuser
+from src.utils.database.unified_manager import db_manager
 
 
 @require_superuser
@@ -15,7 +16,7 @@ async def query_audit_log(arguments: dict) -> dict:
     action = arguments.get("action")
     level = arguments.get("level")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import AuditLog
         query = select(AuditLog)
         if user_id:
@@ -42,13 +43,14 @@ async def query_audit_log(arguments: dict) -> dict:
 @require_superuser
 async def export_audit_log(arguments: dict) -> dict:
     """导出审计日志为 CSV"""
-    import csv, io
+    import csv
+    import io
     days = arguments.get("days", 7)
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.system import AuditLog
         from datetime import datetime, timedelta
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now() - timedelta(days=days)
         logs = (await db.execute(
             select(AuditLog).where(AuditLog.created_at >= cutoff).order_by(desc(AuditLog.created_at))
         )).scalars().all()
@@ -74,9 +76,9 @@ async def scan_sensitive_words(arguments: dict) -> dict:
     if not text:
         return {"success": False, "error": "请提供要扫描的文本"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.security import SensitiveWord
-        words = (await db.execute(select(SensitiveWord).where(SensitiveWord.is_active == True))).scalars().all()
+        words = (await db.execute(select(SensitiveWord).where(SensitiveWord.is_active.is_(True)))).scalars().all()
 
     found = []
     for word in words:
@@ -96,7 +98,7 @@ async def manage_sensitive_word(arguments: dict) -> dict:
     if not word:
         return {"success": False, "error": "请提供敏感词"}
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.security import SensitiveWord
         if action == "add":
             existing = await db.scalar(select(SensitiveWord).where(SensitiveWord.word == word))
@@ -119,12 +121,16 @@ async def manage_sensitive_word(arguments: dict) -> dict:
     return {"success": False, "error": f"未知操作: {action}"}
 
 
-@require_role("admin")
+@require_permission("module_system:monitor:manage")
 async def list_rate_limits(arguments: dict) -> dict:
     """查看当前速率限制状态"""
     try:
-        from src.api.v2.security.rate_limit import get_rate_limit_status
-        status = get_rate_limit_status()
+        from shared.services.security.rate_limiter import rate_limiter
+
+        status = {
+            'redis_healthy': rate_limiter.redis_client is not None,
+            'default_limits': rate_limiter.default_limits,
+        }
         return {"success": True, "data": status}
     except Exception as e:
         return {"success": False, "error": f"获取失败: {e}"}
@@ -133,7 +139,7 @@ async def list_rate_limits(arguments: dict) -> dict:
 @require_superuser
 async def get_security_report(arguments: dict) -> dict:
     """生成安全报告摘要"""
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         from shared.models.security import SensitiveWord
         from shared.models.system import AuditLog
         from sqlalchemy import func

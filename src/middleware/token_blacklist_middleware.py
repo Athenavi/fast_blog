@@ -16,6 +16,11 @@ from src.unified_logger import default_logger as logger
 class TokenBlacklistMiddleware(BaseHTTPMiddleware):
     """Token 黑名单检查中间件（带内存缓存）"""
 
+    #: 豁免路径：这些是**公开端点**，不检查黑名单。
+    #:
+    #: ⚠️ 下面列的全是 v2 路径，而 v2 已下线 —— 该清单当前不匹配任何请求，等效于
+    #: "所有请求都检查黑名单"，属于**安全的一侧**。清理它时注意方向：把某个路径
+    #: 加进来是**放宽**检查，只有在确认该端点确实无需鉴权时才可为之。
     EXEMPT_PATHS = [
         "/api/v2/auth/login",
         "/api/v2/auth/register",

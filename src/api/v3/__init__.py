@@ -1,74 +1,192 @@
-"""
-FastBlog API v3
+"""FastBlog API v3 —— 唯一权威 API 层
 
-分层结构:
-  /api/v3/mobile/*  — 移动端 API（现有，不变）
-  /api/v3/admin/*   — 管理端 API（新增，权限驱动）
+结构对齐 FastApiAdmin：
+
+  - ``DOMAIN_MODULES`` 是路由的**唯一事实来源**（对应官方 ``app/api/v1/routers.py`` 的
+    ``DOMAIN_CONTROLLERS``）
+  - 业务模块放在 ``modules/<domain>/<module>/``，五件套分层
+    （``controller.py`` / ``schema.py`` / ``crud.py`` / ``service.py`` / ``model.py``）
+  - 路由前缀 ``/api/v3/<domain>/<module>``
+  - **导入失败与路由冲突/遮蔽都会中止启动**（对应官方 ``app/core/discover.py`` 的两条原则）
+
+迁移状态（Phase 5 完成后的现状）：
+
+  - 旧 ``src/api/v3/admin/**``（18 个模块，从未加载成功）与 ``src/api/v3/mobile/**``
+    （6 个扁平前缀模块）已删除，能力分别由 ``system`` 与 ``mobile`` 域取代；
+    过渡期使用的 ``LEGACY_V3_REGISTRY`` 机制随之移除
+  - ``src/api/v2`` 仍是冻结的兼容层，v3 逐步取代其全部端点
+  - 响应格式统一为 ``{code, msg, data, pagination}``
 """
 
 from fastapi import APIRouter
 
-# v3 路由注册表：(模块路径, v3前缀, 标签列表, 是否必需)
-ROUTE_REGISTRY_V3 = [
-    # ==================== 认证模块 ====================
-    ("src.api.v3.mobile.auth", "/api/v3/auth", ["mobile-auth"], True),
+from src.api.v3.core.discover import (
+    RouteRegistrationError,
+    assert_no_route_conflicts,
+    assert_no_shadowed_routes,
+    check_controller_prefix,
+    controller_module_path,
+    import_controller,
+    scan_unregistered_modules,
+)
+from src.api.v3.core.exceptions import register_v3_exception_handlers
+from src.api.v3.core.logger import get_logger
 
-    # ==================== 文章模块 ====================
-    ("src.api.v3.mobile.articles", "/api/v3/articles", ["mobile-articles"], True),
+logger = get_logger("registry")
 
-    # ==================== 评论模块 ====================
-    ("src.api.v3.mobile.comments", "/api/v3/comments", ["mobile-comments"], True),
+API_PREFIX = "/api/v3"
+MODULES_PACKAGE = "src.api.v3.modules"
 
-    # ==================== 用户模块 ====================
-    ("src.api.v3.mobile.users", "/api/v3/users", ["mobile-users"], True),
+#: 域 → 已登记模块（唯一路由事实来源；新模块必须登记到这里）
+DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
+    "/system": (
+        "accessibility",
+        "admin_menu",
+        # 对外 API 令牌（第三方 / CI 接入）
+        "api_token",
+        "auth",
+        "cache",
+        # 任务 15：边缘函数（Cloudflare Workers / Vercel Edge）接线
+        "edge",
+        "export",
+        "gdpr",
+        "group",
+        "health",
+        "help",
+        "install",
+        "integration",
+        "log",
+        "maintenance",
+        "menu",
+        "monitor",
+        # 任务 18：OAuth 第三方登录
+        "oauth",
+        "permission",
+        "quota",
+        "role",
+        "screen_options",
+        "security",
+        "sensitive_word",
+        "setting",
+        "site",
+        "social",
+        # 任务 16：翻译能力（i18n / 本地化 / 记忆库 / 机器翻译）
+        "translation",
+        "user",
+        # 任务 17：零散件（NLP 命令解析 / 模式定义 / Markdown 导出）
+        "utility",
+        "workflow",
+    ),
+    # 任务 15：AMP（生成 / 转换 / 校验）、Yjs CRDT 协同、团队内部评论
+    "/content": ("amp", "approval", "article", "category", "collaboration", "comment", "custom_post_type", "feed",
+                 "media", "page", "page_builder",
+                 "recommend", "redirect", "shortcode", "tag", "team_comment", "third_party_publish", "yjs"),
+    "/analytics": ("dashboard", "report", "search", "seo", "tracking"),
+    "/ops": ("audit", "backup", "cdn", "deployment", "email", "enterprise", "migration", "notification", "supervisor",
+             "upgrade", "webhook"),
+    "/extension": ("block_pattern", "plugin", "theme", "widget"),
+    "/marketing": (
+        "ad",
+        "form",
+        "vip",
+    ),
+    "/mobile": (
+        "article",
+        "auth",
+        "category",
+        "comment",
+        # 批次 17：关注流（personalized feed）
+        "feed",
+        "follow",
+        "media",
+        "message",
+        "revenue",
+        "user",
+        # 批次 16：前台 VIP 自助（订阅 / 开通 / 付费内容）
+        "vip",
+    ),
+    # T5-11 批次 4：AI 能力与群聊（表 ai_configs/ai_workflows、chat_groups 已存在）
+    "/ai": ("config", "skill", "workflow"),
+    # 批次 17：群聊消息（表 chat_messages 本批次新建，含 WebSocket 实时通道）
+    # 任务 15：Web Push 订阅与推送
+    "/chat": ("group", "message", "web_push"),
+    # T5-11 批次 7：商务域（支付 + 收益分成 + 打赏）
+    "/commerce": ("payment", "revenue", "shop", "tipping"),
+    # T5-11 批次 12：用户成长域（积分 / 勋章 / 专家认证）
+    "/gamification": ("badge", "certification", "points"),
+}
 
-    # ==================== 媒体模块 ====================
-    ("src.api.v3.mobile.media", "/api/v3/media", ["mobile-media"], True),
 
-    # ==================== 分类模块 ====================
-    ("src.api.v3.mobile.categories", "/api/v3/categories", ["mobile-categories"], True),
+def register_v3_routes(app, *, fail_fast: bool = True) -> dict:
+    """注册 v3 路由并返回注册摘要
 
-    # ==================== 管理端 API ====================
-    ("src.api.v3.admin.users", "/api/v3/admin", ["admin-users"], False),
-    ("src.api.v3.admin.articles", "/api/v3/admin", ["admin-articles"], False),
-    ("src.api.v3.admin.media", "/api/v3/admin", ["admin-media"], False),
-    ("src.api.v3.admin.system", "/api/v3/admin", ["admin-system"], False),
-    ("src.api.v3.admin.roles", "/api/v3/admin", ["admin-roles"], False),
-    ("src.api.v3.admin.dashboard", "/api/v3/admin", ["admin-dashboard"], False),
-    ("src.api.v3.admin.comments", "/api/v3/admin", ["admin-comments"], False),
-    ("src.api.v3.admin.plugins", "/api/v3/admin", ["admin-plugins"], False),
-    ("src.api.v3.admin.themes", "/api/v3/admin", ["admin-themes"], False),
-    ("src.api.v3.admin.seo", "/api/v3/admin", ["admin-seo"], False),
-    ("src.api.v3.admin.backup", "/api/v3/admin", ["admin-backup"], False),
-    ("src.api.v3.admin.permission", "/api/v3/admin", ["admin-permission"], False),
-    ("src.api.v3.admin.categories", "/api/v3/admin", ["admin-categories"], False),
-    ("src.api.v3.admin.analytics", "/api/v3/admin", ["admin-analytics"], False),
-    ("src.api.v3.admin.notifications", "/api/v3/admin", ["admin-notifications"], False),
-    ("src.api.v3.admin.search_analytics", "/api/v3/admin", ["admin-search-analytics"], False),
-    ("src.api.v3.admin.webhooks", "/api/v3/admin", ["admin-webhooks"], False),
-    ("src.api.v3.admin.widgets", "/api/v3/admin", ["admin-widgets"], False),
+    :param fail_fast: 模块导入失败时是否直接抛错（默认 True，任何环境都建议开启）
+    :raises RouteRegistrationError: 模块导入失败、存在路由冲突或被遮蔽
+    """
+    root = APIRouter(prefix=API_PREFIX)
+    summary: dict = {"domains": {}, "routes": 0, "unregistered": []}
+
+    for domain, modules in DOMAIN_MODULES.items():
+        domain_router = APIRouter(prefix=domain)
+        loaded: list[str] = []
+        for name in modules:
+            module_path = controller_module_path(domain, name, MODULES_PACKAGE)
+            try:
+                router = import_controller(module_path)
+            except RouteRegistrationError as exc:
+                if fail_fast:
+                    logger.error("API v3 模块加载失败，中止启动：%s", exc)
+                    raise
+                logger.error("API v3 跳过模块 %s：%s", module_path, exc)
+                continue
+            check_controller_prefix(module_path, router, f"/{name}")
+            domain_router.include_router(router)
+            loaded.append(name)
+        root.include_router(domain_router)
+        summary["domains"][domain] = loaded
+
+        unregistered = scan_unregistered_modules(domain, modules, package=MODULES_PACKAGE)
+        if unregistered:
+            summary["unregistered"].extend(f"{domain}/{name}" for name in unregistered)
+            logger.warning(
+                "API v3 域 %s 下存在未登记模块 %s（不会被注册，请加入 DOMAIN_MODULES）",
+                domain,
+                unregistered,
+            )
+
+    # MCP 端点（单一 POST /api/v3/mcp）：不走 DOMAIN_MODULES 的 /{module} 前缀约定，故单独挂载。
+    # 延迟导入避免与 v3 骨架形成循环依赖；注册失败不影响其余路由。
+    try:
+        from src.mcp.http import router as mcp_router
+
+        root.include_router(mcp_router)
+        summary["mcp"] = True
+    except Exception as exc:  # noqa: BLE001 - MCP 不可用不应拖垮整个 API
+        logger.warning("MCP 端点注册失败（其余路由不受影响）：%s", exc)
+        summary["mcp"] = False
+
+    # 启动期冲突检测：只针对 v3 骨架，避免被 v2 的历史冲突牵连
+    assert_no_route_conflicts(root, source="API v3")
+    # 遮蔽检测：静态路径不得注册在能匹配它的参数路径之后
+    assert_no_shadowed_routes(root, source="API v3")
+    app.include_router(root)
+    summary["routes"] = len(root.routes)
+
+    # 统一异常响应（仅作用于 /api/v3/**），随路由注册一起挂载
+    register_v3_exception_handlers(app)
+
+    logger.info(
+        "API v3 路由注册完成 (域: %s, 路由: %d)",
+        ", ".join(f"{domain}({len(names)})" for domain, names in summary["domains"].items()),
+        summary["routes"],
+    )
+    return summary
+
+
+__all__ = [
+    "API_PREFIX",
+    "DOMAIN_MODULES",
+    "MODULES_PACKAGE",
+    "RouteRegistrationError",
+    "register_v3_routes",
 ]
-
-
-def register_v3_routes(app):
-    """注册 v3 API 路由"""
-    from importlib import import_module
-
-    for module_path, prefix, tags, required in ROUTE_REGISTRY_V3:
-        try:
-            module = import_module(module_path)
-            if hasattr(module, 'router'):
-                app.include_router(module.router, prefix=prefix, tags=tags)
-                print(f"[V3 API] Registered: {prefix}")
-            else:
-                print(f"[V3 API] Warning: No router found in {module_path}")
-        except Exception as e:
-            if required:
-                print(f"[V3 API] Error: Failed to load required module {module_path}: {e}")
-                raise
-            else:
-                print(f"[V3 API] Warning: Failed to load optional module {module_path}: {e}")
-
-
-# 创建主路由器
-router = APIRouter(prefix="/api/v3", tags=["mobile-api-v3"])

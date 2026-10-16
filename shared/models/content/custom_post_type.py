@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - CustomPostType
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class CustomPostType(Base):
@@ -20,7 +19,7 @@ class CustomPostType(Base):
         Index('idx_cpt_is_active', 'is_active'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='内容类型ID')
 
     name = Column(String(100), nullable=True, doc='内容类型名称')
@@ -30,6 +29,11 @@ class CustomPostType(Base):
     description = Column(String(255), nullable=True, doc='描述')
 
     supports = Column(String(255), nullable=True, doc='支持的功能(JSON数组)')
+
+    # 字段定义（JSON 数组文本）：手工追加，避免为加一列而重新生成整个模型
+    # （生成器会覆盖文件，且无 relationship 的模型会漏 Base 导入 —— 见 security/api_token.py 注释）。
+    # 已在 config/models.yaml 同步登记，保持"单一权威"一致。
+    fields = Column(String(4000), nullable=True, doc='字段定义（JSON 数组文本）')
 
     has_archive = Column(Boolean, default=False, doc='是否有归档页')
 

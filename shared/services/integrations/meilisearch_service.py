@@ -11,10 +11,12 @@ Meilisearch 全文搜索引擎集成服务
 7. 增量索引更新
 """
 import hashlib
+import os
 from datetime import datetime
-from typing import List, Dict, Optional, Any
+from typing import Any, Dict, List, Optional
 
-from meilisearch_python_sdk import Client
+from meilisearch_python_sdk import AsyncClient
+from meilisearch_python_sdk.models.settings import MeilisearchSettings
 
 from shared.logging import default_logger as logger
 
@@ -27,31 +29,35 @@ class MeilisearchService:
     注意：客户端采用懒加载模式，首次使用时才创建连接，避免启动时阻塞
     """
 
-    def __init__(self, host: str = "http://localhost:7700", api_key: str = ""):
+    def __init__(self, host: Optional[str] = None, api_key: Optional[str] = None):
         """
         初始化 Meilisearch 客户端（懒加载）
 
         Args:
-            host: Meilisearch 服务器地址
-            api_key: API密钥（可选）
+            host: Meilisearch 服务器地址（默认取 MEILISEARCH_HOST 环境变量）
+            api_key: API密钥（默认取 MEILISEARCH_API_KEY 环境变量）
         """
-        self.host = host
-        self.api_key = api_key
-        self._client = None  # 懒加载：首次访问时才创建
+        self.host = host or os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
+        self.api_key = api_key if api_key is not None else os.getenv("MEILISEARCH_API_KEY", "")
+        self._client: Optional[AsyncClient] = None  # 懒加载：首次访问时才创建
         self.index_name = "articles"
         self.index = None
+        #: 初始化失败后短路：避免每次请求都重复等待网络超时
+        self._unavailable = False
 
     @property
-    def client(self):
+    def client(self) -> AsyncClient:
         """懒加载 Meilisearch 客户端，首次访问时才创建"""
         if self._client is None:
-            self._client = Client(self.host, self.api_key) if self.api_key else Client(self.host)
+            self._client = AsyncClient(self.host, self.api_key or None, timeout=5)
         return self._client
 
     async def initialize(self):
-        """初始化搜索引擎和索引配置"""
+        """初始化搜索引擎和索引配置（失败后标记不可用，不再重复尝试）"""
+        if self._unavailable:
+            return False
         try:
-            # 获取或创建索引
+            # 获取或创建索引（AsyncClient.index 是同步方法，返回 AsyncIndex）
             self.index = self.client.index(self.index_name)
 
             # 配置索引设置
@@ -61,12 +67,19 @@ class MeilisearchService:
             return True
 
         except Exception as e:
-            logger.error(f"Failed to initialize Meilisearch: {e}")
+            self._unavailable = True
+            logger.warning(f"Meilisearch unavailable at {self.host}, falling back to database search: {e}")
             return False
+
+    async def _ensure_index(self) -> bool:
+        """确保索引可用；不可用时立即返回 False（不阻塞调用方）"""
+        if self.index is not None:
+            return True
+        return await self.initialize()
 
     async def _configure_index(self):
         """配置索引设置（ searchable attributes, filterable attributes等）"""
-        settings = MeiliSearchIndexSettings(
+        settings = MeilisearchSettings(
             # 可搜索字段（按重要性排序）
             searchable_attributes=[
                 "title",
@@ -139,6 +152,8 @@ class MeilisearchService:
         Returns:
             是否成功
         """
+        if not await self._ensure_index():
+            return False
         try:
             # 添加文档到索引
             task = await self.index.add_documents([article_data])
@@ -160,6 +175,8 @@ class MeilisearchService:
         Returns:
             是否成功
         """
+        if not await self._ensure_index():
+            return False
         try:
             # 更新文档
             task = await self.index.update_documents([article_data])
@@ -181,6 +198,8 @@ class MeilisearchService:
         Returns:
             是否成功
         """
+        if not await self._ensure_index():
+            return False
         try:
             # 删除文档
             task = await self.index.delete_document(article_id)
@@ -202,10 +221,11 @@ class MeilisearchService:
         Returns:
             是否成功
         """
+        if not articles:
+            return True
+        if not await self._ensure_index():
+            return False
         try:
-            if not articles:
-                return True
-
             # 批量添加文档
             task = await self.index.add_documents(articles)
 
@@ -227,7 +247,7 @@ class MeilisearchService:
             page: int = 1,
             per_page: int = 20,
             sort_by: str = "relevance"
-    ) -> Dict[str, Any]:
+    ) -> Optional[Dict[str, Any]]:
         """
         搜索文章
 
@@ -243,8 +263,10 @@ class MeilisearchService:
             sort_by: 排序方式 (relevance, date, views)
 
         Returns:
-            搜索结果和分页信息
+            搜索结果和分页信息；引擎不可用时返回 None（调用方据此回退）
         """
+        if not await self._ensure_index():
+            return None
         try:
             # 构建过滤器
             filters = []
@@ -332,15 +354,7 @@ class MeilisearchService:
 
         except Exception as e:
             logger.error(f"Search failed: {e}")
-            return {
-                'articles': [],
-                'total': 0,
-                'page': page,
-                'per_page': per_page,
-                'total_pages': 0,
-                'query': query,
-                'error': str(e)
-            }
+            return None
 
     async def get_search_suggestions(
             self,
@@ -357,6 +371,8 @@ class MeilisearchService:
         Returns:
             搜索建议列表
         """
+        if not await self._ensure_index():
+            return []
         try:
             # 使用 Meilisearch 的 facet search 功能
             result = await self.index.search(
@@ -382,6 +398,8 @@ class MeilisearchService:
         Returns:
             是否成功
         """
+        if not await self._ensure_index():
+            return False
         try:
             # 清空索引
             await self.index.delete_all_documents()
@@ -404,6 +422,8 @@ class MeilisearchService:
         Returns:
             统计信息
         """
+        if not await self._ensure_index():
+            return {}
         try:
             stats = await self.index.get_stats()
 

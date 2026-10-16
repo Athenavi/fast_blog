@@ -5,6 +5,8 @@ Popular Articles Plugin
 from datetime import datetime, timedelta, timezone
 from typing import Dict, Any
 
+from sqlalchemy import select
+
 from shared.services.plugins.plugin_manager import requires_capability
 from shared.services.plugins.plugin_manager.core import BasePlugin
 
@@ -34,14 +36,12 @@ class PopularArticlesPlugin(BasePlugin):
     def get_popular(self, max_items: int = 5, days: int = 30) -> Dict[str, Any]:
         """获取热门文章列表"""
         try:
-            from sqlalchemy import select, func
             from shared.models.article import Article
-            from src.utils.database.unified_manager import db_manager
+            from src.extensions import get_db
 
             cutoff = datetime.now(timezone.utc) - timedelta(days=days)
-            sync_session = db_manager.get_sync_session()
 
-            try:
+            with get_db() as sync_session:
                 query = (
                     select(Article)
                     .where(Article.status == 1, Article.created_at >= cutoff)
@@ -62,8 +62,7 @@ class PopularArticlesPlugin(BasePlugin):
                     })
 
                 return {"success": True, "data": items, "total": len(items)}
-            finally:
-                sync_session.close()
+
         except Exception as e:
             return {"success": False, "error": str(e)}
 

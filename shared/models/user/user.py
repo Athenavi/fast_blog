@@ -9,6 +9,7 @@ from sqlalchemy.orm import relationship
 
 # 提前导入 UserRole 以确保 user_role_assignments 表在 User.roles relationship 解析前已注册到 Base.metadata
 import shared.models.rbac.user_role  # noqa: F401
+import shared.models.rbac.user_group_member  # noqa: F401  确保 user_group_members 表在 relationship 解析前注册
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 from shared.utils.crypto import EncryptedField
 
@@ -78,6 +79,9 @@ class User(Base):
 
     # 关系定义
     roles = relationship('Role', secondary='user_role_assignments', back_populates='users', primaryjoin="User.id == user_role_assignments.c.user_id", secondaryjoin="user_role_assignments.c.role_id == Role.id")
+    permission_groups = relationship('PermissionGroup', secondary='user_group_members', back_populates='users',
+                                     primaryjoin="User.id == user_group_members.c.user_id",
+                                     secondaryjoin="user_group_members.c.group_id == PermissionGroup.id")
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

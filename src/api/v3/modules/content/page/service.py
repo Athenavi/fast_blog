@@ -1,0 +1,254 @@
+"""page 模块业务逻辑
+
+页面正文内联在 ``pages.content``，无需额外表；发布态用 ``status`` + ``published_at``。
+"""
+
+from datetime import datetime
+from typing import Any, List, Optional, Tuple
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.models.page.pages import Pages
+from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission import codes as C
+from src.api.v3.core.permission.scope import ensure_object_in_scope, ensure_write_in_scope
+from src.api.v3.modules.content.approval.guard import (
+    PAGE_CONTENT_TYPE,
+    ensure_new_content_publish_allowed,
+    ensure_publish_allowed,
+)
+from src.api.v3.modules.content.page.crud import page_crud
+from src.api.v3.modules.content.page.schema import (
+    STATUS_DRAFT,
+    STATUS_PUBLISHED,
+    PageCreate,
+    PageUpdate,
+)
+
+logger = get_logger("page")
+
+
+async def _assert_page_write(
+    db: AsyncSession, page: Pages, *, scope_user: Any, others_code: str
+) -> None:
+    """管理端写路径校验：数据范围 + 他人数据权限（``scope_user`` 为空 = 内部调用，跳过）"""
+    if scope_user is not None:
+        await ensure_write_in_scope(
+            db, Pages, page, user=scope_user, others_code=others_code
+        )
+
+
+def _out(page: Pages, *, with_content: bool = False) -> dict:
+    data = {
+        "id": page.id,
+        "title": page.title,
+        "slug": page.slug,
+        "excerpt": page.excerpt,
+        "template": page.template,
+        "status": page.status,
+        "author_id": page.author_id,
+        "parent_id": page.parent_id,
+        "order_index": page.order_index or 0,
+        "meta_title": page.meta_title,
+        "meta_description": page.meta_description,
+        "meta_keywords": page.meta_keywords,
+        "published_at": page.published_at,
+        "created_at": page.created_at,
+        "updated_at": page.updated_at,
+    }
+    if with_content:
+        data["content"] = page.content
+    return data
+
+
+class PageService:
+    """CMS 页面管理"""
+
+    @staticmethod
+    def _validate_status(status: Optional[int]) -> None:
+        if status is not None and status not in (STATUS_DRAFT, STATUS_PUBLISHED):
+            raise BadRequestError("status 只能是 0（草稿）或 1（已发布）")
+
+    async def list_pages(
+        self,
+        db: AsyncSession,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        keyword: Optional[str] = None,
+        status: Optional[int] = None,
+        parent_id: Optional[int] = None,
+        order_by: Optional[str] = None,
+        order: str = "asc",
+        scope_user: Any = None,
+    ) -> Tuple[List[dict], int]:
+        items, total = await page_crud.list(
+            db,
+            page=page,
+            page_size=page_size,
+            keyword=keyword,
+            filters={"status": status, "parent_id": parent_id},
+            order_by=order_by or "order_index",
+            order=order,
+            scope_user=scope_user,
+        )
+        return [_out(page) for page in items], total
+
+    async def get_page(
+        self, db: AsyncSession, page_id: int, *, scope_user: Any = None
+    ) -> dict:
+        page = await page_crud.get(db, page_id)
+        if page is None:
+            raise NotFoundError("页面不存在")
+        if scope_user is not None:
+            await ensure_object_in_scope(db, Pages, page, user=scope_user)
+        return _out(page, with_content=True)
+
+    async def create_page(
+        self, db: AsyncSession, payload: PageCreate, *, author_id: Optional[int] = None
+    ) -> dict:
+        self._validate_status(payload.status)
+        if payload.slug and await page_crud.exists(db, slug=payload.slug):
+            raise ConflictError(f"页面 slug {payload.slug} 已存在")
+
+        if payload.status == STATUS_PUBLISHED:
+            # 新建即发布同样过闸门（新页面没有 id，不可能已有审批单）
+            await ensure_new_content_publish_allowed(db, content_type=PAGE_CONTENT_TYPE)
+
+        now = datetime.now()
+        data = payload.model_dump()
+        data.update(
+            {
+                "author_id": author_id,
+                "created_at": now,
+                "updated_at": now,
+                "published_at": now if payload.status == STATUS_PUBLISHED else None,
+            }
+        )
+        page = await page_crud.create(db, data)
+        return _out(page, with_content=True)
+
+    async def update_page(
+        self, db: AsyncSession, page_id: int, payload: PageUpdate, *, scope_user: Any = None
+    ) -> dict:
+        page = await page_crud.get(db, page_id)
+        if page is None:
+            raise NotFoundError("页面不存在")
+        await _assert_page_write(
+            db, page, scope_user=scope_user, others_code=C.PAGE_EDIT_OTHERS
+        )
+
+        fields_set = payload.model_fields_set
+        self._validate_status(payload.status if "status" in fields_set else None)
+
+        data = payload.model_dump(exclude_unset=True)
+        if "slug" in fields_set and payload.slug:
+            existing = await page_crud.get_by(db, slug=payload.slug)
+            if existing is not None and existing.id != page_id:
+                raise ConflictError(f"页面 slug {payload.slug} 已存在")
+        if "status" in fields_set and payload.status == STATUS_PUBLISHED and page.status != STATUS_PUBLISHED:
+            # 与 POST /{id}/publish 走同一闸门：堵住「编辑接口改状态」这条绕过路径
+            await ensure_publish_allowed(
+                db, content_type=PAGE_CONTENT_TYPE, content_id=page_id
+            )
+        if data.get("status") == STATUS_PUBLISHED and page.published_at is None:
+            data["published_at"] = datetime.now()
+        data["updated_at"] = datetime.now()
+
+        page = await page_crud.update(db, page, data)
+        return _out(page, with_content=True)
+
+    async def delete_page(
+        self, db: AsyncSession, page_id: int, *, scope_user: Any = None
+    ) -> None:
+        page = await page_crud.get(db, page_id)
+        if page is None:
+            raise NotFoundError("页面不存在")
+        await _assert_page_write(
+            db, page, scope_user=scope_user, others_code=C.PAGE_DELETE_OTHERS
+        )
+        await page_crud.remove(db, page)
+
+    async def _assert_batch_writable(
+        self, db: AsyncSession, ids: List[int], *, scope_user: Any, others_code: str
+    ) -> None:
+        """批量写操作的前置校验：逐个核对归属 / 数据范围 / 他人数据权限"""
+        if scope_user is None:
+            return
+        for page_id in ids:
+            page = await page_crud.get(db, page_id)
+            if page is not None:
+                await _assert_page_write(
+                    db, page, scope_user=scope_user, others_code=others_code
+                )
+
+    async def batch_delete(
+        self, db: AsyncSession, ids: List[int], *, scope_user: Any = None
+    ) -> int:
+        await self._assert_batch_writable(
+            db, ids, scope_user=scope_user, others_code=C.PAGE_DELETE_OTHERS
+        )
+        count = 0
+        for page_id in ids:
+            try:
+                await self.delete_page(db, page_id)
+                count += 1
+            except NotFoundError:
+                continue
+        return count
+
+    async def set_published(
+        self, db: AsyncSession, page_id: int, publish: bool, *, scope_user: Any = None
+    ) -> dict:
+        page = await page_crud.get(db, page_id)
+        if page is None:
+            raise NotFoundError("页面不存在")
+        await _assert_page_write(
+            db, page, scope_user=scope_user, others_code=C.PAGE_EDIT_OTHERS
+        )
+
+        if publish:
+            # 审批闸门（真实查 approval_records 里 content_type='page' 的记录）
+            await ensure_publish_allowed(
+                db, content_type=PAGE_CONTENT_TYPE, content_id=page_id
+            )
+            data = {
+                "status": STATUS_PUBLISHED,
+                "published_at": page.published_at or datetime.now(),
+                "updated_at": datetime.now(),
+            }
+        else:
+            data = {"status": STATUS_DRAFT, "updated_at": datetime.now()}
+
+        page = await page_crud.update(db, page, data)
+        return _out(page)
+
+    # ------------------------------------------------------------------ 公开读
+    async def public_list(
+        self, db: AsyncSession, *, page: int = 1, page_size: int = 50
+    ) -> Tuple[List[dict], int]:
+        items, total = await page_crud.list(
+            db,
+            page=page,
+            page_size=page_size,
+            filters={"status": STATUS_PUBLISHED},
+            order_by="order_index",
+            order="asc",
+        )
+        return [_out(item) for item in items], total
+
+    async def public_detail_by_slug(self, db: AsyncSession, slug: str) -> dict:
+        page = await page_crud.get_by(db, slug=slug)
+        if page is None or page.status != STATUS_PUBLISHED:
+            raise NotFoundError("页面不存在或未发布")
+        return _out(page, with_content=True)
+
+    async def public_detail(self, db: AsyncSession, page_id: int) -> dict:
+        page = await page_crud.get(db, page_id)
+        if page is None or page.status != STATUS_PUBLISHED:
+            raise NotFoundError("页面不存在或未发布")
+        return _out(page, with_content=True)
+
+
+page_service = PageService()

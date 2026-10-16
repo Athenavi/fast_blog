@@ -4,6 +4,8 @@ MCP 工具定义注册表
 所有工具的名称、描述、参数模式和处理器函数集中定义在此。
 MCPServer 初始化时调用 register_all() 一次性注册全部工具。
 """
+from typing import Any
+
 from src.mcp.tools import article, content, analytics, media
 from src.mcp.tools import system, users_tools, security_tools
 from src.mcp.tools import workflow, notifications_tools, cache_tools
@@ -210,7 +212,7 @@ _TOOL_DEFS = [
 ]
 
 
-def register_all(mcp_server: "MCPServer") -> None:
+def register_all(mcp_server: Any) -> None:
     """向 MCPServer 实例注册所有工具"""
     for name, desc, params, handler in _TOOL_DEFS:
         mcp_server.register_tool(name=name, description=desc, parameters=params, handler=handler)

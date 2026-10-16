@@ -1,9 +1,7 @@
 """
 Models 包 - 懒加载版本
-
 所有模型类通过 __getattr__ 按需导入，避免启动时一次性加载所有模型文件。
 Base 保持立即导入（SQLAlchemy 元数据初始化必需）。
-
 由代码生成器自动生成 - 请勿手动修改
 """
 
@@ -20,17 +18,21 @@ _LAZY_IMPORTS = {
     'AdClick': '.ad.ad_click',
     'AdImpression': '.ad.ad_impression',
     'AdPlacement': '.ad.ad_placement',
+    'AdminMenu': '.rbac.admin_menu',
+    'AdminSettings': '.system.admin_settings',
+    'ApiToken': '.security.api_token',
     'ApprovalRecord': '.collaboration.approval_record',
     'ApprovalStep': '.collaboration.approval_step',
     'Article': '.article.article',
     'ArticleAnnotation': '.article.article_annotation',
     'ArticleContent': '.article.article_content',
     'ArticleLike': '.article.article_like',
+    'ArticlePreviewToken': '.article.article_preview_token',
     'ArticleRevision': '.article.article_revision',
     'ArticleRevisionNote': '.article.article_revision_note',
     'ArticleSEO': '.article.article_seo',
     'AuditLog': '.system.audit_log',
-    'AdminSettings': '.system.admin_settings',
+    'BadgeDefinition': '.gamification.badge_definition',
     'BaiduAnalyticsConfig': '.analytics.baidu_analytics_config',
     'BlockPattern': '.widget.block_pattern',
     'Capability': '.rbac.capability',
@@ -38,9 +40,13 @@ _LAZY_IMPORTS = {
     'CartItem': '.ecommerce.cart_item',
     'Category': '.category.category',
     'CategorySubscription': '.category.category_subscription',
+    'CertificationDocument': '.certification.certification_document',
+    'CertificationReview': '.certification.certification_review',
     'ChatGroup': '.chat.chat_group',
     'ChatGroupInvite': '.chat.chat_group_invite',
     'ChatGroupMember': '.chat.chat_group_member',
+    'ChatMessage': '.chat.chat_message',
+    'CollaborationInvite': '.collaboration.invitation',
     'Comment': '.comment.comment',
     'CommentSubscription': '.comment.comment_subscription',
     'CommentVote': '.comment.comment_vote',
@@ -56,6 +62,7 @@ _LAZY_IMPORTS = {
     'EmailServiceConfig': '.integration.email_service_config',
     'EmailSubscription': '.notification.email_subscription',
     'EnterpriseLicense': '.enterprise.enterprise_license',
+    'ExpertCertification': '.certification.expert_certification',
     'FieldPermission': '.security.field_permission',
     'FileHash': '.media.file_hash',
     'Form': '.form.form',
@@ -90,14 +97,22 @@ _LAZY_IMPORTS = {
     'PaymentTransaction': '.payment.payment_transaction',
     'PayoutRequest': '.revenue.payout_request',
     'PermissionAuditLog': '.rbac.permission_audit_log',
+    'PermissionGroup': '.rbac.permission_group',
     'Plugin': '.plugin.plugin',
+    'PointsRule': '.gamification.points_rule',
+    'PointsTransaction': '.gamification.points_transaction',
     'PrivateMessage': '.chat.private_message',
     'Product': '.ecommerce.product',
+    'PublishChannel': '.third_party_publish.publish_channel',
+    'PublishLog': '.third_party_publish.publish_log',
+    'PublishTask': '.third_party_publish.publish_task',
     'ReportHistory': '.report.report_history',
     'RevenueRecord': '.revenue.revenue_record',
     'RevenueSharingConfig': '.revenue.revenue_sharing_config',
     'Role': '.rbac.role',
+    'RoleAdminMenu': '.rbac.role_admin_menu',
     'RoleCapability': '.rbac.role_capability',
+    'RoleGroup': '.rbac.role_group',
     'SAMLConfig': '.integration.saml_config',
     'SLAReport': '.monitoring.sla_report',
     'SSOProvider': '.integration.sso_provider',
@@ -105,6 +120,7 @@ _LAZY_IMPORTS = {
     'SearchHistory': '.search.search_history',
     'SearchIndex': '.search.search_index',
     'SensitiveWord': '.security.sensitive_word',
+    'SeoRedirect': '.seo.seo_redirect',
     'ShareStat': '.social.share_stat',
     'Site': '.multisite.site',
     'SiteUser': '.multisite.site_user',
@@ -115,18 +131,25 @@ _LAZY_IMPORTS = {
     'TaxConfig': '.payment.tax_config',
     'TeamComment': '.comment.team_comment',
     'Theme': '.theme.theme',
+    'Tip': '.tipping.tip',
+    'TipWithdrawal': '.tipping.tip_withdrawal',
     'TokenBlacklist': '.security.token_blacklist',
     'UploadChunk': '.media.upload_chunk',
     'UploadTask': '.media.upload_task',
     'User': '.user.user',
     'UserActivity': '.analytics.user_activity',
+    'UserBadge': '.gamification.user_badge',
     'UserBlock': '.user.user_block',
+    'UserFollow': '.user.user_follow',
+    'UserGroupMember': '.rbac.user_group_member',
+    'UserPoints': '.gamification.user_points',
     'UserRevenueStats': '.revenue.user_revenue_stats',
     'UserRole': '.rbac.user_role',
     'UserSession': '.user.user_session',
     'VIPFeature': '.vip.vip_feature',
     'VIPPlan': '.vip.vip_plan',
     'VIPSubscription': '.vip.vip_subscription',
+    'VipPaymentOrder': '.vip.vip_payment_order',
     'Webhook': '.webhook.webhook',
     'WebhookDelivery': '.webhook.webhook_delivery',
     'WidgetInstance': '.widget.widget_instance',
@@ -146,47 +169,56 @@ def __getattr__(name):
     module_path = _LAZY_IMPORTS.get(name)
     if module_path is not None:
         import importlib
-        try:
-            module = importlib.import_module(module_path, package=__name__)
-            cls = getattr(module, name, None)
-            if cls is not None:
-                _loaded_models[name] = cls
-                return cls
-        except (ImportError, AttributeError) as e:
-            pass
+        module = importlib.import_module(module_path, package='shared.models')
+        cls = getattr(module, name)
+        # 缓存到模块命名空间，后续访问直接命中
+        globals()[name] = cls
+        _loaded_models[name] = cls
+        return cls
 
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    raise AttributeError(f"module 'shared.models' has no attribute {name!r}")
 
+
+# ==================== 自动生成 - __all__ ====================
+# 此部分由脚本自动生成 - 请勿手动修改
 
 __all__ = [
-    'Base',
     'AIConfig',
     'AIWorkflow',
     'Ad',
     'AdClick',
     'AdImpression',
     'AdPlacement',
+    'AdminMenu',
+    'AdminSettings',
+    'ApiToken',
     'ApprovalRecord',
     'ApprovalStep',
     'Article',
     'ArticleAnnotation',
     'ArticleContent',
     'ArticleLike',
+    'ArticlePreviewToken',
     'ArticleRevision',
     'ArticleRevisionNote',
     'ArticleSEO',
     'AuditLog',
-    'AdminSettings',
+    'BadgeDefinition',
     'BaiduAnalyticsConfig',
+    'Base',
     'BlockPattern',
     'Capability',
     'Cart',
     'CartItem',
     'Category',
     'CategorySubscription',
+    'CertificationDocument',
+    'CertificationReview',
     'ChatGroup',
     'ChatGroupInvite',
     'ChatGroupMember',
+    'ChatMessage',
+    'CollaborationInvite',
     'Comment',
     'CommentSubscription',
     'CommentVote',
@@ -202,6 +234,7 @@ __all__ = [
     'EmailServiceConfig',
     'EmailSubscription',
     'EnterpriseLicense',
+    'ExpertCertification',
     'FieldPermission',
     'FileHash',
     'Form',
@@ -236,14 +269,22 @@ __all__ = [
     'PaymentTransaction',
     'PayoutRequest',
     'PermissionAuditLog',
+    'PermissionGroup',
     'Plugin',
+    'PointsRule',
+    'PointsTransaction',
     'PrivateMessage',
     'Product',
+    'PublishChannel',
+    'PublishLog',
+    'PublishTask',
     'ReportHistory',
     'RevenueRecord',
     'RevenueSharingConfig',
     'Role',
+    'RoleAdminMenu',
     'RoleCapability',
+    'RoleGroup',
     'SAMLConfig',
     'SLAReport',
     'SSOProvider',
@@ -251,6 +292,7 @@ __all__ = [
     'SearchHistory',
     'SearchIndex',
     'SensitiveWord',
+    'SeoRedirect',
     'ShareStat',
     'Site',
     'SiteUser',
@@ -261,21 +303,29 @@ __all__ = [
     'TaxConfig',
     'TeamComment',
     'Theme',
+    'Tip',
+    'TipWithdrawal',
     'TokenBlacklist',
     'UploadChunk',
     'UploadTask',
     'User',
     'UserActivity',
+    'UserBadge',
     'UserBlock',
+    'UserFollow',
+    'UserGroupMember',
+    'UserPoints',
     'UserRevenueStats',
     'UserRole',
     'UserSession',
     'VIPFeature',
     'VIPPlan',
     'VIPSubscription',
+    'VipPaymentOrder',
     'Webhook',
     'WebhookDelivery',
     'WidgetInstance',
     'Workspace',
     'WorkspaceMember',
 ]
+# ============================================================================

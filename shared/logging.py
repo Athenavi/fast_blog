@@ -6,6 +6,13 @@
 """
 import logging
 import os
+from logging.handlers import RotatingFileHandler
+
+#: 单个日志文件上限与保留份数
+#: 容器里的 /app/logs 是命名卷，不轮转会被长期运行写满（compose 的 json-file
+#: max-size 只管 stdout，管不到容器内的文件）。
+LOG_MAX_BYTES = 10 * 1024 * 1024
+LOG_BACKUP_COUNT = 5
 
 
 class _BuiltinLoggerConfig:
@@ -26,7 +33,12 @@ class _BuiltinLoggerConfig:
                 log_dir = os.path.dirname(log_file)
                 if log_dir:
                     os.makedirs(log_dir, exist_ok=True)
-                fh = logging.FileHandler(log_file, encoding='utf-8')
+                fh = RotatingFileHandler(
+                    log_file,
+                    maxBytes=LOG_MAX_BYTES,
+                    backupCount=LOG_BACKUP_COUNT,
+                    encoding='utf-8',
+                )
                 fh.setLevel(level)
                 fh.setFormatter(fmt)
                 logger.addHandler(fh)

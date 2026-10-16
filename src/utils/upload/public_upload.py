@@ -20,12 +20,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import FileHash, Media, UploadChunk, UploadTask
 from shared.services.media.media_manager import media_service
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database.unified_manager import get_db_session as get_async_db
 from src.utils.storage import s3_storage
 from src.utils.image.video_processor import video_processor
+from src.utils.upload.svg_sanitizer import sanitize_svg_bytes
 
 from src.unified_logger import default_logger as logger
-from src.setting import app_config
+from shared.config.settings import app_config
+
+#: 分片上传的临时目录（**绝对路径**）。相对路径取决于进程 CWD，多副本部署时各容器
+#: 会写到不同位置，表现为"分片找不到"。生产环境应把它放在共享卷上。
+_UPLOAD_CHUNK_ROOT = Path(__file__).resolve().parents[3] / "upload_chunks"
+
+# 视频后处理并发上限：限制同时进行的 ffmpeg 任务数（subprocess.run 阻塞最长可达 60s）
+_video_process_semaphore = asyncio.Semaphore(3)
+
+
+def _write_bytes(path: str, data: bytes):
+    """写入二进制文件（供线程池调用）"""
+    with open(path, 'wb') as f:
+        f.write(data)
+
+
+def _read_bytes(path: str) -> bytes:
+    """读取二进制文件（供线程池调用）"""
+    with open(path, 'rb') as f:
+        return f.read()
 
 
 class FileProcessor:
@@ -439,7 +459,9 @@ class FileProcessor:
         await db.flush()  # 刷新以获取生成的 ID
 
         # 构建文件URL（使用 media_id）
-        new_media.file_url = f"/api/v2/media/{new_media.id}"
+        # 契约：/api/v3/content/media/{id}/file（v3 media service.MEDIA_FILE_URL_TEMPLATE，
+        # 公开媒体匿名可读；不得使用裸 /media/** 前缀，避免与前台页面路由冲突）
+        new_media.file_url = f"/api/v3/content/media/{new_media.id}/file"
         await db.flush()  # 再次刷新以保存 file_url
 
         # 如果是视频文件，异步处理视频（转码、生成缩略图等）
@@ -458,87 +480,87 @@ class FileProcessor:
             media: 媒体记录
             file_hash: 文件哈希记录
         """
-        try:
-            from datetime import datetime
-            import tempfile
+        async with _video_process_semaphore:
+            try:
+                from datetime import datetime
+                import tempfile
+                from sqlalchemy import update
+                from src.utils.database.unified_manager import db_manager
 
-            logger.info(f"开始处理视频文件: {media.filename}")
+                logger.info(f"开始处理视频文件: {media.filename}")
 
-            # 获取文件路径
-            file_path = file_hash.storage_path
+                # 获取文件路径
+                file_path = file_hash.storage_path
 
-            # 创建临时目录用于处理
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # 下载文件到临时目录
-                local_video_path = os.path.join(temp_dir, os.path.basename(media.filename))
-                file_data = s3_storage.read_file(file_path)
+                # 创建临时目录用于处理
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    # 下载文件到临时目录（阻塞IO放到线程池）
+                    local_video_path = os.path.join(temp_dir, os.path.basename(media.filename))
+                    file_data = await asyncio.to_thread(s3_storage.read_file, file_path)
 
-                if not file_data:
-                    logger.error(f"无法读取视频文件: {file_path}")
-                    return
+                    if not file_data:
+                        logger.error(f"无法读取视频文件: {file_path}")
+                        return
 
-                # 保存到本地临时文件
-                with open(local_video_path, 'wb') as f:
-                    f.write(file_data)
+                    # 保存到本地临时文件（阻塞IO放到线程池）
+                    await asyncio.to_thread(_write_bytes, local_video_path, file_data)
 
-                # 1. 获取视频信息
-                video_info = video_processor.get_video_info(local_video_path)
-                if video_info:
-                    logger.info(f"视频信息: {video_info}")
+                    # 1. 获取视频信息（subprocess ffprobe 阻塞，放到线程池）
+                    video_info = await asyncio.to_thread(video_processor.get_video_info, local_video_path)
+                    if video_info:
+                        logger.info(f"视频信息: {video_info}")
 
-                    # 更新媒体记录的宽度和高度
-                    from sqlalchemy import update
-                    from src.extensions import get_async_db_session
+                        # 更新媒体记录的宽度和高度
+                        async with db_manager.get_session() as db:
+                            stmt = update(Media).where(
+                                Media.id == media.id
+                            ).values(
+                                width=video_info['width'],
+                                height=video_info['height'],
+                                duration=int(video_info['duration']),
+                                updated_at=datetime.now()
+                            )
+                            await db.execute(stmt)
+                            await db.commit()
 
-                    async with get_async_db_session()() as db:
-                        stmt = update(Media).where(
-                            Media.id == media.id
-                        ).values(
-                            width=video_info['width'],
-                            height=video_info['height'],
-                            duration=int(video_info['duration']),
-                            updated_at=datetime.now()
-                        )
-                        await db.execute(stmt)
-                        await db.commit()
+                    # 2. 生成缩略图（subprocess ffmpeg 阻塞，最长可达60s，放到线程池）
+                    thumbnail_filename = f"{Path(media.filename).stem}_thumb.jpg"
+                    thumbnail_local_path = os.path.join(temp_dir, thumbnail_filename)
 
-                # 2. 生成缩略图
-                thumbnail_filename = f"{Path(media.filename).stem}_thumb.jpg"
-                thumbnail_local_path = os.path.join(temp_dir, thumbnail_filename)
-
-                thumbnail_success = video_processor.create_thumbnail(
-                    video_path=local_video_path,
-                    thumbnail_path=thumbnail_local_path,
-                    time=1.0,  # 从第1秒提取
-                    width=320,
-                    quality=85
-                )
-
-                if thumbnail_success and os.path.exists(thumbnail_local_path):
-                    # 上传缩略图到存储
-                    with open(thumbnail_local_path, 'rb') as f:
-                        thumbnail_data = f.read()
-
-                    thumbnail_hash = hashlib.sha256(thumbnail_data).hexdigest()
-                    thumbnail_storage_path = s3_storage.save_file(
-                        thumbnail_hash,
-                        thumbnail_data,
-                        thumbnail_filename
+                    thumbnail_success = await asyncio.to_thread(
+                        video_processor.create_thumbnail,
+                        video_path=local_video_path,
+                        thumbnail_path=thumbnail_local_path,
+                        time=1.0,  # 从第1秒提取
+                        width=320,
+                        quality=85
                     )
 
-                    # 更新媒体记录的缩略图信息
-                    async with get_async_db_session()() as db:
-                        stmt = update(Media).where(
-                            Media.id == media.id
-                        ).values(
-                            thumbnail_path=thumbnail_storage_path,
-                            thumbnail_url=f"/api/v1/media/thumbnail/{media.id}",
-                            updated_at=datetime.now()
-                        )
-                        await db.execute(stmt)
-                        await db.commit()
+                    if thumbnail_success and os.path.exists(thumbnail_local_path):
+                        # 上传缩略图到存储
+                        thumbnail_data = await asyncio.to_thread(_read_bytes, thumbnail_local_path)
 
-                    logger.info(f"视频缩略图生成成功: {thumbnail_storage_path}")
+                        thumbnail_hash = hashlib.sha256(thumbnail_data).hexdigest()
+                        thumbnail_storage_path = await asyncio.to_thread(
+                            s3_storage.save_file,
+                            thumbnail_hash,
+                            thumbnail_data,
+                            thumbnail_filename
+                        )
+
+                        # 更新媒体记录的缩略图信息
+                        async with db_manager.get_session() as db:
+                            stmt = update(Media).where(
+                                Media.id == media.id
+                            ).values(
+                                thumbnail_path=thumbnail_storage_path,
+                                thumbnail_url=f"/api/v1/media/thumbnail/{media.id}",
+                                updated_at=datetime.now()
+                            )
+                            await db.execute(stmt)
+                            await db.commit()
+
+                        logger.info(f"视频缩略图生成成功: {thumbnail_storage_path}")
 
                 # 3. 生成多种分辨率版本（可选，根据配置）
                 # 这里可以根据系统配置决定是否启用多分辨率转码
@@ -556,10 +578,10 @@ class FileProcessor:
                 #         # 上传每个分辨率版本
                 #         pass
 
-            logger.info(f"视频处理完成: {media.filename}")
+                logger.info(f"视频处理完成: {media.filename}")
 
-        except Exception as e:
-            logger.error(f"视频后处理失败: {str(e)}", exc_info=True)
+            except Exception as e:
+                logger.error(f"视频后处理失败: {str(e)}", exc_info=True)
 
 
 class ChunkedUploadProcessor:
@@ -568,7 +590,7 @@ class ChunkedUploadProcessor:
     def __init__(self, user_id: int, chunk_size: int = 5 * 1024 * 1024):
         self.user_id = user_id
         self.chunk_size = chunk_size
-        self.temp_dir = "upload_chunks"
+        self.temp_dir = str(_UPLOAD_CHUNK_ROOT)
         os.makedirs(self.temp_dir, exist_ok=True)
 
     async def init_upload(self, filename: str, total_size: int, total_chunks: int,
@@ -1048,6 +1070,10 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
                     r'(href|xlink:href|src|style)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)',
                     _strip_proto, content, flags=svg_re.IGNORECASE)
                 file_data = content.encode('utf-8')
+                # 第二道防线：白名单清洗（XML 解析重建文档）。
+                # 正则黑名单无法覆盖"未被列出的元素 / 实体编码 / 命名空间混淆"，
+                # 这里按元素与属性白名单过滤，未知元素整棵子树丢弃。
+                file_data = sanitize_svg_bytes(file_data)
                 logger.info(f"[OK] SVG 消毒完成: {filename}")
             except Exception as svg_err:
                 logger.warning(f"[WARN] SVG 消毒失败: {svg_err}，将拒绝该文件")

@@ -1,8 +1,9 @@
 """
 交互式 Shell 命令（类似 django-admin shell）
 """
-import typer
 import code
+
+import typer
 
 app = typer.Typer(help="交互式 Shell")
 
@@ -25,7 +26,7 @@ def standard_shell():
     namespace = {}
     try:
         from src.app import create_app
-        from src.setting import ProductionConfig
+        from shared.config.settings import ProductionConfig
         app = create_app(ProductionConfig())
         namespace.update({
             "app": app,

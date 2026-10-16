@@ -51,6 +51,8 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
     规则:
       - 至少 8 个字符
       - 至少包含一个字母和一个数字
+      - 至少包含一个特殊字符
+      - 至少包含一个大写字母
 
     Returns:
         (is_valid, error_message)
@@ -61,6 +63,10 @@ def validate_password_strength(password: str) -> tuple[bool, str]:
         return False, '密码长度不能超过 128 个字符'
     if not re.search(r'[a-zA-Z]', password):
         return False, '密码必须包含字母'
+    if not re.search(r'[A-Z]', password):
+        return False, '密码必须包含大写字母'
     if not re.search(r'\d', password):
         return False, '密码必须包含数字'
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>_\-+=\[\]\\/]', password):
+        return False, '密码必须包含至少一个特殊字符'
     return True, ''

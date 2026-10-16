@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - PaymentGateway
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class PaymentGateway(Base):
@@ -50,17 +49,17 @@ class PaymentGateway(Base):
             'id': self.id,
             'name': self.name,
             'provider': self.provider,
-            'config_data': self.config_data,
             'is_active': self.is_active,
             'supported_currencies': self.supported_currencies,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        if not exclude_sensitive:
-            sensitive_data = {
-            }
-            data.update(sensitive_data)
+        if exclude_sensitive:
+            # 默认脱敏：不返回 config_data（含 API 密钥等敏感配置）
+            data['config_data'] = '***masked***'
+        else:
+            data['config_data'] = self.config_data
 
         return data
 

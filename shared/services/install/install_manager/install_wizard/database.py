@@ -1,12 +1,10 @@
 """
 安装向导 — 数据库配置与迁移模块
 """
-import os, sys, json, subprocess
+import sys, subprocess
 from pathlib import Path
 from typing import Dict, Any
-from datetime import datetime
 
-from shared.logging import default_logger as logger
 
 
 def _update_env_file(env_path: Path, updates: Dict[str, str]):

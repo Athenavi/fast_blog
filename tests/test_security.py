@@ -120,7 +120,8 @@ class TestSafeQueryBuilder:
     def test_with_order_and_limit(self):
         result = safe_query_builder("users", order_by="id", limit=10)
         assert "ORDER BY id" in result.text
-        assert "LIMIT 10" in result.text
+        assert "LIMIT :limit_val" in result.text
+        assert result.compile().params["limit_val"] == 10
 
     def test_invalid_table_name(self):
         with pytest.raises(ValueError):
@@ -215,9 +216,14 @@ class TestValidatePasswordStrength:
         is_valid, _ = validate_password_strength("abc123!@#")
         assert is_valid is False
 
-    def test_no_lowercase(self):
+    def test_all_uppercase_is_accepted(self):
+        """口径统一到与前端 Zod 对齐的 password_validator：不强制小写字母
+
+        旧实现（曾被这个用例固化为"必须含小写"）与前端不一致，同一串密码会在
+        注册接口通过、在安装向导被拒 —— 故以 password_validator 为准。
+        """
         is_valid, _ = validate_password_strength("ABC123!@#")
-        assert is_valid is False
+        assert is_valid is True
 
     def test_no_digit(self):
         is_valid, _ = validate_password_strength("Abcdef!@#")

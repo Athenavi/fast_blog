@@ -12,8 +12,7 @@ from typing import Dict, List, Optional
 
 from PIL import Image
 
-# 原: from updater.updater import base_dir
-# updater/ 被 .dockerignore 排除，改为本地计算项目根目录
+# 原先从 updater 包导入 base_dir；updater/ 已删除，改为本地计算项目根目录
 base_dir = Path(__file__).resolve().parents[4]  # shared/services/media/image_tool/ → 项目根
 
 from shared.logging import default_logger as logger

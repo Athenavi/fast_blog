@@ -1,6 +1,7 @@
 """
 版本管理器
-统一版本管理 — 同时支持 JSON 和旧的 configparser 格式
+统一版本管理 — 文件格式为 **INI**（``[RELEASE]`` / ``[DATABASE]`` / ``[AUTHOR]``），
+读取时兼容历史 JSON（2026-09-21 批次 18 修正，见 ``_save`` 的说明）。
 """
 import json
 import os
@@ -57,12 +58,23 @@ class VersionManager:
         return data
 
     def _save(self, data: dict = None):
+        """写回 **INI** 格式（与仓库现状、scripts/ 里的读取方保持一致）
+
+        历史缺陷：本模块曾"读 INI、写 JSON"，于是 `bump_version()` 调用一次就把
+        ``version.txt`` 变成 JSON，而 ``scripts/build_release.py``、``scripts/cli.py``
+        以及部署脚本仍按 INI 解析 —— 版本号随即读不到（升级演练时实测复现）。
+        现在统一写 INI；读取侧继续兼容 JSON，历史上已被改写成 JSON 的文件也能读。
+        """
         if data is None:
             data = self._data
-        self.version_file.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2),
-            encoding='utf-8'
-        )
+        lines: list[str] = []
+        for section in ('release', 'database', 'author'):
+            values = data.get(section) or {}
+            lines.append(f'[{section.upper()}]')
+            for key, value in values.items():
+                lines.append(f'{key} = {value}')
+            lines.append('')
+        self.version_file.write_text('\n'.join(lines).rstrip() + '\n', encoding='utf-8')
 
     # ── 读取 ──
 

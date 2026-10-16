@@ -2,19 +2,16 @@
 TOTP 双因素认证服务
 支持 TOTP 验证、2FA 启用/禁用、备用码管理
 """
-import hashlib
 import hmac
-import struct
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List
 
 import pyotp
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.user import User
 from shared.logging import default_logger as logger
+from shared.models.user import User
 
 
 BACKUP_CODE_COUNT = 8
@@ -25,23 +22,62 @@ TOTP_ISSUER = "FastBlog"
 class TwoFactorService:
     """双因素认证服务"""
 
-    # 已使用的 TOTP 时间步 (user_id -> set of time_step), 防止重放攻击
-    _used_totp_steps: Dict[int, Set[int]] = {}
+    #: 已使用的 TOTP 时间步 (user_id -> {time_step: 记录时刻})，防止重放攻击。
+    #: Redis 是**权威**存储；本字典只在 Redis 不可用时兜底 —— 多副本部署下仅用内存
+    #: 意味着攻击者可以在副本 A 用掉一个验证码，再拿它去副本 B 用一次。
+    _used_totp_steps: Dict[int, Dict[int, float]] = {}
+    #: Redis 键前缀与 TTL（覆盖 ±1 个时间步 = 90s，留足余量）
+    _TOTP_STEP_PREFIX = "fb:totp_used"
+    _TOTP_STEP_TTL = 300
+
+    async def _claim_totp_step(self, user_id: int, step: int) -> bool:
+        """原子占用一个 TOTP 时间步；返回 ``False`` 表示该步已被用过（重放）
+
+        用 Redis ``SADD`` 的返回值做判定：1 = 本次新增（占用成功），0 = 已存在（重放）。
+        这个操作本身是原子的，天然适配多副本；失败时降级到进程内集合并明确告警。
+        """
+        key = f"{self._TOTP_STEP_PREFIX}:{user_id}"
+        try:
+            from src.services.redis_service import redis_service
+
+            if redis_service._redis is None:
+                await redis_service.connect()
+            client = redis_service.redis
+            added = await client.sadd(key, str(step))
+            await client.expire(key, self._TOTP_STEP_TTL)
+            return bool(added)
+        except Exception as exc:  # noqa: BLE001 - Redis 不可用时不能把 2FA 整体打死
+            logger.warning("TOTP 重放检查降级为进程内存（%s）", type(exc).__name__)
+            self._cleanup_used_steps()
+            used = self._used_totp_steps.setdefault(user_id, {})
+            if step in used:
+                return False
+            used[step] = time.monotonic()
+            return True
 
     def _get_totp_time_step(self) -> int:
         """获取当前 TOTP 时间步 (30秒步长)"""
         return int(time.time()) // 30
 
-    def _cleanup_used_steps(self, user_id: int) -> None:
-        """清理当前时间步 ±1 范围之外的旧记录"""
-        current_step = self._get_totp_time_step()
-        valid_steps = {current_step - 1, current_step, current_step + 1}
-        if user_id in self._used_totp_steps:
-            self._used_totp_steps[user_id] = {
-                s for s in self._used_totp_steps[user_id] if s in valid_steps
+    def _cleanup_used_steps(self) -> None:
+        """按 TTL 清理过期记录（与 Redis 侧 ``expire`` 语义保持一致）
+
+        **不要**改成"只保留当前时间步 ±1"的白名单式过滤：那会让任何非当前步的
+        记录在写入后立刻被清掉（典型触发场景是时钟漂移、以及直接以非当前步调用
+        本方法），重放防护会静默失效。这里按**写入时刻 + TTL** 判断，语义与
+        Redis 侧一致。
+        """
+        now = time.monotonic()
+        for uid in list(self._used_totp_steps):
+            kept = {
+                s: ts
+                for s, ts in self._used_totp_steps[uid].items()
+                if now - ts < self._TOTP_STEP_TTL
             }
-            if not self._used_totp_steps[user_id]:
-                del self._used_totp_steps[user_id]
+            if kept:
+                self._used_totp_steps[uid] = kept
+            else:
+                del self._used_totp_steps[uid]
 
     async def setup_totp(
         self,
@@ -125,15 +161,12 @@ class TwoFactorService:
         if not totp.verify(code, valid_window=1):
             return {"success": False, "error": "验证码无效，请重试"}
 
-        # 防止 TOTP 重放攻击
+        # 防止 TOTP 重放攻击（Redis 原子占用 —— 多副本下同样拦得住）
         current_step = self._get_totp_time_step()
-        self._cleanup_used_steps(user_id)
-        used = self._used_totp_steps.setdefault(user_id, set())
         for step in (current_step - 1, current_step, current_step + 1):
             if totp.verify(code, valid_window=0, time=step * 30):
-                if step in used:
+                if not await self._claim_totp_step(user_id, step):
                     return {"success": False, "error": "该验证码已被使用过，请等待新验证码"}
-                used.add(step)
                 break
 
         # 生成备用码并启用
@@ -180,16 +213,12 @@ class TwoFactorService:
         if user.totp_secret:
             totp = pyotp.TOTP(user.totp_secret)
             if totp.verify(code, valid_window=1):
-                # 防止 TOTP 重放攻击: 记录已使用的时间步
+                # 防止 TOTP 重放攻击: 原子占用该时间步（Redis 权威，内存兜底）
                 current_step = self._get_totp_time_step()
-                self._cleanup_used_steps(user_id)
-                used = self._used_totp_steps.setdefault(user_id, set())
-                # 检查该时间步是否已被使用过
                 for step in (current_step - 1, current_step, current_step + 1):
                     if totp.verify(code, valid_window=0, time=step * 30):
-                        if step in used:
+                        if not await self._claim_totp_step(user_id, step):
                             return {"success": False, "error": "该验证码已被使用过，请等待新验证码"}
-                        used.add(step)
                         break
                 return {"success": True, "method": "totp"}
 

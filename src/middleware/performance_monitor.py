@@ -9,19 +9,22 @@
 5. 数据库查询优化建议
 """
 
-import time
-import psutil
 import os
-from typing import Dict, Any, Optional
+import time
 from datetime import datetime
-from fastapi import Request, Response
+from typing import Dict, Any
+
+import psutil
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from src.unified_logger import default_logger as logger
 
 
 class PerformanceMonitor:
     """
     性能监控器
-    
+
     跟踪和记录应用性能指标
     """
 
@@ -38,7 +41,7 @@ class PerformanceMonitor:
     def record_request_end(self, request_id: str, path: str, method: str, status_code: int) -> float:
         """
         记录请求结束时间并返回耗时
-        
+
         Returns:
             请求耗时（秒）
         """
@@ -72,6 +75,10 @@ class PerformanceMonitor:
 
         uptime = time.time() - self.start_time
 
+        # cpu_percent() 不带 interval 参数：非阻塞模式，返回自上次调用以来的 CPU 占比
+        # 首次调用可能为 0，这是预期行为
+        cpu_percent = process.cpu_percent()
+
         return {
             "uptime_seconds": round(uptime, 2),
             "memory": {
@@ -80,7 +87,7 @@ class PerformanceMonitor:
                 "percent": process.memory_percent(),
             },
             "cpu": {
-                "percent": process.cpu_percent(interval=0.1),
+                "percent": round(cpu_percent, 1),
                 "count": psutil.cpu_count(),
             },
             "slow_requests": {
@@ -129,7 +136,7 @@ performance_monitor_middleware = PerformanceMonitor()
 class RequestPerformanceMiddleware(BaseHTTPMiddleware):
     """
     性能监控中间件
-    
+
     自动监控所有请求的性能
     """
 
@@ -157,7 +164,7 @@ class RequestPerformanceMiddleware(BaseHTTPMiddleware):
 
         # 如果是慢请求，记录日志
         if duration > performance_monitor_middleware.slow_threshold:
-            print(f"[SLOW REQUEST] {request.method} {request.url.path} - {duration:.4f}s")
+            logger.warning(f"[SLOW REQUEST] {request.method} {request.url.path} - {duration:.4f}s")
 
         return response
 

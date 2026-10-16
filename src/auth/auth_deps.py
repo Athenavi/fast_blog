@@ -13,10 +13,12 @@ from jwt.exceptions import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config.settings import settings
+from shared.logging import default_logger as logger
 from shared.models.user import User as UserModel
-from shared.services.security.rbac_service import rbac_service
-from src.setting import settings
-from src.utils.database.main import get_async_session
+from src.api.v3.core.tenancy import set_site_bypass
+from src.auth.api_token import Principal
+from src.utils.database.unified_manager import get_db_session as get_async_session
 
 # token_blacklist 改为惰性导入：避免模块加载时触发 Redis .ping() 导致启动缓慢
 # from src.utils.token_blacklist import token_blacklist  →  移至 _authenticate_user 内部
@@ -63,20 +65,44 @@ def create_access_token(
 # ---------- 提取与验证 Token ----------
 async def _get_token_from_request(request: Request) -> Optional[str]:
     """
-    从 Authorization Header、Cookie 或查询参数中提取 JWT token
+    从 Authorization Header 或 Cookie 中提取 JWT token
+    注意：不再从 URL 查询参数提取 token，避免在浏览器历史/日志/Referer 中泄露
     """
     # 1. 优先从 Bearer Header 获取
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         return auth_header[len("Bearer "):]
 
-    # 2. 从查询参数 token 获取（用于 iframe/img 等无法携带 header/cookie 的场景）
-    token_param = request.query_params.get("token")
-    if token_param:
-        return token_param
-
-    # 3. 从 Cookie 获取（兼容页面路由）
+    # 2. 从 Cookie 获取（兼容页面路由）
     return request.cookies.get("access_token") or request.cookies.get("access_token_cookie")
+
+
+async def _authenticate_api_key(request: Request, db: AsyncSession) -> Optional[Principal]:
+    """用 ``X-API-Key`` 认证（第三方应用 / CI 的接入方式）。
+
+    成功时把 :class:`Principal` 挂到 ``request.state.principal``；权限层据此把可用权限
+    **收窄**到令牌的 ``scopes``。任何失败都返回 ``None``（由调用方统一给同一个 401），
+    不区分"不存在 / 已撤销 / 已过期 / 哈希不匹配"，避免用差异枚举令牌。
+    """
+    raw = (request.headers.get("X-API-Key") or "").strip()
+    if not raw:
+        return None
+
+    from src.auth.api_token import authenticate_api_key, principal_from_token
+
+    row = await authenticate_api_key(db, raw)
+    if row is None:
+        return None
+
+    user = (
+        await db.execute(select(UserModel).where(UserModel.id == row.user_id))
+    ).scalar_one_or_none()
+    if not user or not user.is_active:
+        return None
+
+    principal = principal_from_token(row, user)
+    request.state.principal = principal
+    return principal
 
 
 async def _authenticate_user(
@@ -91,6 +117,10 @@ async def _authenticate_user(
     """
     token = await _get_token_from_request(request)
     if not token:
+        # 无 JWT 时尝试 API 令牌（X-API-Key）：第三方应用 / CI 不需要共享用户密码
+        principal = await _authenticate_api_key(request, db)
+        if principal is not None:
+            return _apply_cross_site_privilege(request, principal.user)
         if required:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -105,11 +135,11 @@ async def _authenticate_user(
     try:
         payload = jwt.decode(token, jwt_secret, algorithms=[jwt_algorithm],
                             options={"verify_exp": True, "require": ["exp", "iat"]})
-    except InvalidTokenError as e:
+    except InvalidTokenError:
         if required:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=f"Invalid token: {str(e)}",
+                detail="Invalid or expired token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
         return None
@@ -154,10 +184,40 @@ async def _authenticate_user(
             )
         return None
 
-    return user
+    # 标记身份来源：权限层据此判断是否需要把权限收窄到 token 的 scopes
+    request.state.principal = Principal(user=user, scopes=None, source="jwt")
+    return _apply_cross_site_privilege(request, user)
 
 
 # ---------- 依赖：获取当前用户（API 版 / 页面版） ----------
+#: 显式声明"跨站点查看"的请求头；**仅对超级管理员生效**
+CROSS_SITE_HEADER = "X-Site-Scope"
+
+
+def _apply_cross_site_privilege(
+    request: Request, user: Optional[UserModel]
+) -> Optional[UserModel]:
+    """为超级管理员按需开启跨站点视图
+
+    这是"看到所有站点数据"的**唯一入口**，三个条件缺一不可：已认证、是超管、
+    请求显式声明（``X-Site-Scope: all``）。普通用户伪造该头无效 ——
+    ``set_site_bypass`` 只在这里被调用。
+    """
+    if user is None:
+        return None
+    if not getattr(user, "is_superuser", False):
+        return user
+    if (request.headers.get(CROSS_SITE_HEADER) or "").strip().lower() != "all":
+        return user
+
+    set_site_bypass(True)
+    # 跨站点读取属于敏感操作，留一条明确日志（审计表也会记下这次请求本身）
+    logger.info(
+        "跨站点视图已开启：user=%s path=%s", getattr(user, "id", None), request.url.path
+    )
+    return user
+
+
 async def get_current_user(
     request: Request,
     db: AsyncSession = Depends(get_async_session),
@@ -205,110 +265,14 @@ async def admin_required_page(
     return user_or_redirect
 
 
-# ---------- 角色 / 权限检查 ----------
-def require_permission(permission_code: str):
-    """API：检查特定权限代码（格式: resource.action）"""
-    async def checker(
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        if user.is_superuser:
-            return user
-        if not await rbac_service.has_capability(db, user.id, permission_code):
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-        return user
-    return checker
-
-
-def require_resource_permission(resource: str, action: str):
-    """API：检查指定资源的操作权限"""
-    async def checker(
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        if user.is_superuser:
-            return user
-        if not await rbac_service.has_permission(db, user.id, resource, action):
-            raise HTTPException(status_code=403, detail="Insufficient permissions")
-        return user
-    return checker
-
-
-def require_role(role_slug: str):
-    """API：检查用户是否拥有指定角色（支持角色继承）"""
-    async def checker(
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        if user.is_superuser:
-            return user
-        if await rbac_service.user_has_role(db, user.id, role_slug):
-            return user
-        raise HTTPException(status_code=403, detail="Insufficient role permissions")
-    return checker
-
-
-def require_permission_page(permission_code: str):
-    """页面：检查特定权限，未认证重定向"""
-    async def checker(
-        request: Request,
-        user_or_redirect=Depends(get_current_user_or_redirect),
-        db: AsyncSession = Depends(get_async_session),
-    ):
-        if isinstance(user_or_redirect, RedirectResponse):
-            return user_or_redirect
-        if user_or_redirect.is_superuser:
-            return user_or_redirect
-        if not await rbac_service.has_capability(db, user_or_redirect.id, permission_code):
-            return RedirectResponse(url=f"/login?next={request.url}")
-        return user_or_redirect
-    return checker
-
-
-def require_role_page(role_slug: str):
-    """页面：检查特定角色，未认证重定向"""
-    async def checker(
-        request: Request,
-        user_or_redirect=Depends(get_current_user_or_redirect),
-        db: AsyncSession = Depends(get_async_session),
-    ):
-        if isinstance(user_or_redirect, RedirectResponse):
-            return user_or_redirect
-        if user_or_redirect.is_superuser:
-            return user_or_redirect
-        roles = await rbac_service.get_user_roles(db, user_or_redirect.id)
-        if not any(r.slug == role_slug for r in roles):
-            return RedirectResponse(url=f"/login?next={request.url}")
-        return user_or_redirect
-    return checker
-
-
-# ---------- VIP 检查 ----------
-def require_vip():
-    """API：要求 VIP 成员资格（基于实时 VIPSubscription 表）"""
-    async def checker(
-        user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session),
-    ) -> UserModel:
-        # 超级管理员 bypass
-        if user.is_superuser:
-            return user
-        # 实时查询 VIPSubscription 表
-        from shared.models.vip import VIPSubscription
-        from datetime import datetime
-        result = await db.execute(
-            select(VIPSubscription).where(
-                VIPSubscription.user == user.id,
-                VIPSubscription.status == 1,
-                VIPSubscription.expires_at > datetime.now(),
-            )
-        )
-        sub = result.scalar_one_or_none()
-        if not sub:
-            raise HTTPException(status_code=403, detail="VIP membership required or expired")
-        return user
-    return checker
-
+# ---------- 权限检查函数已移除（权限重构 P1）----------
+#
+# 权限校验统一由 src/api/v3/core/permission.AuthPermission 承担
+# （ANY 语义 + 通配 + 单点 superuser bypass + fail-closed）。
+# 被删的旧实现：_check_cached / require_permission / require_resource_permission /
+#   require_role / require_permission_page / require_role_page / require_vip
+# 它们全部无调用方，且把权限码冒号归一化为点号后再比较（权限恒失败的根因之一）。
+# 注意：admin_required 保留（v2 端点大量使用）。
 
 # ---------- 导出别名（兼容旧代码） ----------
 jwt_required = get_current_user

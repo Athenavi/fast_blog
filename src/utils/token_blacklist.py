@@ -3,6 +3,7 @@ Token 黑名单管理
 支持 Redis 高速缓存 + ORM 持久化降级的双重保障机制
 """
 
+import asyncio
 import hashlib
 import os
 from datetime import datetime
@@ -188,8 +189,9 @@ class TokenBlacklistManager:
         Returns:
             bool: 是否在黑名单中
         """
-        # 1. 优先检查 Redis
-        if self.is_blacklisted(token):
+        # 1. 优先检查 Redis（放线程池：这里用的是同步 redis 客户端，
+        #    直接在协程里调用会把一次网络往返阻塞到整个事件循环上）
+        if await asyncio.to_thread(self.is_blacklisted, token):
             return True
 
         # 2. Redis 不可用或未命中时，检查 ORM 持久化层
@@ -220,8 +222,10 @@ class TokenBlacklistManager:
                             if ttl > 0:
                                 key = f"token_blacklist:{token_id}"
                                 self.redis_client.setex(key, ttl, "blacklisted")
-                        except Exception:
-                            pass
+                        except Exception as exc:
+                            # 回写 Redis 失败不影响本次判定，但必须留痕：
+                            # 否则 Redis 与 ORM 黑名单长期不一致时无从排查
+                            logger.warning(f"Token 黑名单回写 Redis 失败：{exc}")
                     return True
                 return False
         except Exception as e:

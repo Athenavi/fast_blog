@@ -1,0 +1,218 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Magazine",
+    "slug": "magazine",
+    "version": "1.0.0",
+    "description": "杂志风格主题 - 网格布局、特色图片展示、多栏目支持，适合新闻和杂志网站",
+    "author": "FastBlog Team"
+  },
+  "settings": {
+    "colors": {
+      "primary": "#dc2626",
+      "secondary": "#1f2937",
+      "accent": "#f59e0b",
+      "background": "#ffffff",
+      "foreground": "#111827",
+      "muted": "#f3f4f6",
+      "border": "#e5e7eb"
+    },
+    "layout": {
+      "sidebarPosition": "right",
+      "contentWidth": "max-w-7xl",
+      "showSidebar": true,
+      "showHeader": true,
+      "showFooter": true,
+      "gridColumns": 3
+    },
+    "typography": {
+      "fontFamily": "Merriweather, Georgia, serif",
+      "headingFont": "Montserrat, sans-serif",
+      "fontSize": "16px",
+      "lineHeight": 1.8
+    },
+    "components": {
+      "borderRadius": "0.5rem",
+      "shadowStyle": "medium",
+      "buttonStyle": "default"
+    },
+    "features": {
+      "showFeaturedPosts": true,
+      "showCategorySections": true,
+      "stickyHeader": true
+    }
+  },
+  "settings_schema": {
+    "colors": {
+      "type": "group",
+      "label": "颜色方案",
+      "fields": {
+        "primary": {
+          "type": "color",
+          "label": "主色调",
+          "default": "#dc2626"
+        },
+        "secondary": {
+          "type": "color",
+          "label": "次要色",
+          "default": "#1f2937"
+        },
+        "accent": {
+          "type": "color",
+          "label": "强调色",
+          "default": "#f59e0b"
+        },
+        "background": {
+          "type": "color",
+          "label": "背景色",
+          "default": "#ffffff"
+        },
+        "foreground": {
+          "type": "color",
+          "label": "前景色",
+          "default": "#111827"
+        },
+        "muted": {
+          "type": "color",
+          "label": "弱化背景",
+          "default": "#f3f4f6"
+        },
+        "border": {
+          "type": "color",
+          "label": "边框",
+          "default": "#e5e7eb"
+        }
+      }
+    },
+    "layout": {
+      "type": "group",
+      "label": "布局设置",
+      "fields": {
+        "sidebarPosition": {
+          "type": "select",
+          "label": "侧边栏位置",
+          "options": [
+            "left",
+            "right",
+            "none"
+          ]
+        },
+        "contentWidth": {
+          "type": "select",
+          "label": "内容宽度",
+          "options": [
+            "max-w-4xl",
+            "max-w-5xl",
+            "max-w-7xl"
+          ]
+        },
+        "showSidebar": {
+          "type": "boolean",
+          "label": "显示侧边栏"
+        },
+        "showHeader": {
+          "type": "boolean",
+          "label": "显示页头"
+        },
+        "showFooter": {
+          "type": "boolean",
+          "label": "显示页脚"
+        },
+        "gridColumns": {
+          "type": "select",
+          "label": "网格列数",
+          "options": [
+            2,
+            3,
+            4
+          ]
+        }
+      }
+    },
+    "typography": {
+      "type": "group",
+      "label": "排版设置",
+      "fields": {
+        "fontFamily": {
+          "type": "text",
+          "label": "正文字体"
+        },
+        "headingFont": {
+          "type": "text",
+          "label": "标题字体"
+        },
+        "fontSize": {
+          "type": "text",
+          "label": "字号"
+        },
+        "lineHeight": {
+          "type": "number",
+          "label": "行高"
+        }
+      }
+    },
+    "components": {
+      "type": "group",
+      "label": "组件",
+      "fields": {
+        "borderRadius": {
+          "type": "text",
+          "label": "圆角"
+        },
+        "shadowStyle": {
+          "type": "select",
+          "label": "阴影",
+          "options": [
+            "none",
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "buttonStyle": {
+          "type": "select",
+          "label": "按钮风格",
+          "options": [
+            "default",
+            "rounded",
+            "pill"
+          ]
+        }
+      }
+    },
+    "features": {
+      "type": "group",
+      "label": "功能开关",
+      "fields": {
+        "showFeaturedPosts": {
+          "type": "boolean",
+          "label": "显示精选文章"
+        },
+        "showCategorySections": {
+          "type": "boolean",
+          "label": "显示分类区块"
+        },
+        "stickyHeader": {
+          "type": "boolean",
+          "label": "粘性导航栏"
+        }
+      }
+    }
+  },
+  "componentSlots": {
+    "header": "classic",
+    "articleCard": "default",
+    "footer": "default"
+  },
+  "supports": [
+    "custom-logo",
+    "custom-header",
+    "featured-image",
+    "post-thumbnails",
+    "comments",
+    "widgets",
+    "multi-column",
+    "sticky-posts",
+    "dark-mode"
+  ]
+}

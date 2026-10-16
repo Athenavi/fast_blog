@@ -4,19 +4,16 @@ SQLAlchemy 模型定义 - ArticleLike
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, DateTime, ForeignKey
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class ArticleLike(Base):
     """文章点赞模型模型"""
     __tablename__ = 'article_likes'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='点赞 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')

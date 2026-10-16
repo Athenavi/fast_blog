@@ -14,13 +14,14 @@ from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from shared.config.settings import settings
 from src.unified_logger import default_logger as logger
 
 
 class UnifiedDatabaseManager:
     """
     统一的数据库管理器
-    
+
     确保整个应用中只有一个异步引擎实例和会话工厂，
     避免连接池冲突和会话管理问题。
     """
@@ -47,20 +48,17 @@ class UnifiedDatabaseManager:
     @property
     def database_url(self) -> str:
         """获取数据库URL"""
-        from src.setting import settings
         return settings.database_url
 
     def _get_pool_config(self) -> dict:
         """
         获取连接池配置
-        
+
         Windows + asyncpg 特殊处理：
         - 使用适中的连接池大小支持并发
         - 设置合理的超时时间避免长时间阻塞
         - 禁用 pre-ping 避免 Proactor 事件循环问题
         """
-        from src.setting import settings
-
         if sys.platform == 'win32':
             # Windows: 优化配置以平衡性能和稳定性
             # 参考最佳实践：pool_size=5-10, timeout=5-10s
@@ -79,7 +77,7 @@ class UnifiedDatabaseManager:
                 'pool_size': getattr(settings, 'database_pool_size', 20),  # 降低到 20，避免资源浪费
                 'max_overflow': getattr(settings, 'database_pool_overflow', 40),  # 降低到 40
                 'pool_timeout': getattr(settings, 'database_pool_timeout', 30),  # 增加到 30 秒，更宽松
-                'pool_recycle': 1800,  # 增加到 30 分钟，防止频繁重建连接
+                'pool_recycle': getattr(settings, 'database_pool_recycle', 1800),  # 从配置读取，默认30分钟
                 'pool_pre_ping': True,  # Linux 上启用健康检查
             }
 
@@ -103,7 +101,7 @@ class UnifiedDatabaseManager:
     def initialize(self):
         """
         初始化异步引擎和会话工厂
-        
+
         这个方法应该在应用启动时调用一次。
         """
         if self._async_engine is not None:
@@ -145,27 +143,39 @@ class UnifiedDatabaseManager:
                 'pool_size': pool_config['pool_size'],
                 'max_overflow': pool_config['max_overflow'],
                 'pool_timeout': pool_config['pool_timeout'],
-                'echo': getattr(__import__('src.setting', fromlist=['settings']).settings,
-                                'database_echo', False),
+                'echo': getattr(settings, 'database_echo', False),
             }
 
-            # Windows + asyncpg: 添加额外的连接参数
-            if sys.platform == 'win32' and 'asyncpg' in async_url:
-                engine_kwargs['connect_args'] = {
-                    'statement_cache_size': 0,  # 禁用语句缓存，避免 prepared statement 问题
-                    'command_timeout': 60,  # 命令超时
-                    'server_settings': {
-                        'jit': 'off',  # 禁用 JIT 编译，提高性能
-                    },
+            # 命令超时对**所有平台**都要设：原实现把它放在 Windows 分支里，
+            # 于是生产（Linux 容器）根本没有超时 —— 一个慢查询或锁等待会永久占住
+            # 连接，池被耗尽后整站 503。
+            # 同时设服务端 statement_timeout（双保险：客户端断开后服务端仍在跑的场景）。
+            # 走 alembic 迁移用的是独立连接，不受此影响。
+            if 'asyncpg' in async_url:
+                connect_args: dict = {
+                    'command_timeout': 60,
+                    'server_settings': {'statement_timeout': '60000'},
                 }
+                if sys.platform == 'win32':
+                    # Windows 专有问题：Proactor 事件循环与被禁用语句缓存
+                    connect_args['statement_cache_size'] = 0
+                    connect_args['server_settings']['jit'] = 'off'
+                engine_kwargs['connect_args'] = connect_args
                 logger.info(
-                    f"Windows + asyncpg detected. Using optimized settings: "
-                    f"pool_size={pool_config['pool_size']}, "
-                    f"max_overflow={pool_config['max_overflow']}, "
-                    f"statement_cache_size=0, jit=off"
+                    "asyncpg connect_args: command_timeout=60s, statement_timeout=60s"
+                    + ("（含 Windows 专属优化：statement_cache_size=0, jit=off）"
+                       if sys.platform == 'win32' else "")
                 )
 
             self._async_engine = create_async_engine(async_url, **engine_kwargs)
+
+            # 慢查询采集（可在 SLOW_QUERY_LOG_ENABLED=false 时关闭）
+            try:
+                from src.utils.database.slow_query_hook import install_slow_query_hook
+
+                install_slow_query_hook(self._async_engine)
+            except Exception as exc:  # noqa: BLE001 - 采集装不上不应影响数据库初始化
+                logger.warning(f"慢查询采集安装失败（已跳过）：{exc}")
 
             # 创建会话工厂
             self._async_session_factory = async_sessionmaker(
@@ -200,13 +210,13 @@ class UnifiedDatabaseManager:
     async def get_session(self) -> AsyncGenerator[AsyncSession, None]:
         """
         获取数据库会话的上下文管理器
-        
+
         这是推荐的会话获取方式，确保：
         1. 会话正确关闭
         2. 异常时自动回滚
         3. 成功时自动提交
         4. Windows + asyncpg 兼容性处理
-        
+
         使用示例：
             async with db_manager.get_session() as session:
                 result = await session.execute(query)
@@ -227,10 +237,10 @@ class UnifiedDatabaseManager:
                 )
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
-        
+
         session = self.async_session_factory()
         logger.debug(f"Creating new session: {id(session)}")
-        
+
         try:
             yield session
             # 如果没有异常，尝试提交
@@ -300,10 +310,10 @@ class UnifiedDatabaseManager:
     async def get_session_no_auto_commit(self) -> AsyncGenerator[AsyncSession, None]:
         """
         获取数据库会话（不自动提交）- 上下文管理器版本
-        
+
         适用于需要手动控制事务的场景。
         调用者负责 commit/rollback。
-        
+
         使用示例：
             async with db_manager.get_session_no_auto_commit() as session:
                 result = await session.execute(query)
@@ -324,7 +334,7 @@ class UnifiedDatabaseManager:
                 )
                 logger.error(error_msg)
                 raise RuntimeError(error_msg)
-        
+
         session = self.async_session_factory()
         logger.debug(f"Creating new session (no auto-commit): {id(session)}")
         try:
@@ -379,9 +389,9 @@ db_manager = UnifiedDatabaseManager()
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
     """
     FastAPI 依赖注入使用的会话生成器
-    
+
     这是推荐的使用方式，在 FastAPI 路由中使用：
-    
+
     @router.get("/example")
     async def example_endpoint(db: AsyncSession = Depends(get_db_session)):
         result = await db.execute(query)
@@ -394,7 +404,7 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
 async def get_db_session_manual() -> AsyncGenerator[AsyncSession, None]:
     """
     手动控制事务的会话生成器
-    
+
     适用于需要手动控制 commit/rollback 的场景。
     """
     async with db_manager.get_session_no_auto_commit() as session:

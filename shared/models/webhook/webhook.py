@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - Webhook
 生成时间：2026-06-13 23:18:24
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class Webhook(Base):
@@ -19,7 +18,7 @@ class Webhook(Base):
         Index('idx_webhooks_is_active', 'is_active'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='Webhook ID')
 
     name = Column(String(255), nullable=True, doc='Webhook名称')

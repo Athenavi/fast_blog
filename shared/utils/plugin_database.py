@@ -9,6 +9,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any
 
+from shared.utils.logger import get_logger
+
+logger = get_logger("plugin_database")
+
 
 class PluginDatabaseManager:
     """插件数据库管理器 - 为每个插件管理独立的SQLite数据库"""
@@ -105,7 +109,7 @@ class PluginDatabaseManager:
 
             return True
         except Exception as e:
-            print(f"[PluginDB] Failed to delete database for {plugin_slug}: {e}")
+            logger.error(f"[PluginDB] Failed to delete database for {plugin_slug}: {e}")
             return False
 
     def list_plugin_databases(self) -> List[Dict[str, Any]]:

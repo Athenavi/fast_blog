@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - RevenueSharingConfig
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class RevenueSharingConfig(Base):
@@ -19,7 +18,7 @@ class RevenueSharingConfig(Base):
         Index('idx_revenue_sharing_configs_type', 'revenue_type', unique=True),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
     revenue_type = Column(String(50), unique=True, nullable=True, doc='收益类型')

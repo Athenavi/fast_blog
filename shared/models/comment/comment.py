@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - Comment
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class Comment(Base):
@@ -27,7 +26,7 @@ class Comment(Base):
         Index('idx_comments_spam_score', 'spam_score'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='评论 ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='文章 ID')

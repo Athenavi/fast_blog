@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - BlockPattern
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class BlockPattern(Base):
@@ -21,7 +20,7 @@ class BlockPattern(Base):
         Index('idx_block_patterns_user_id', 'user_id'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='模式ID')
 
     name = Column(String(100), unique=True, nullable=True, doc='模式名称（唯一标识）')

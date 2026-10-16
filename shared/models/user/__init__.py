@@ -5,6 +5,7 @@ user 子模块 - 模型定义
 from .o_auth_account import OAuthAccount
 from .user import User
 from .user_block import UserBlock
+from .user_follow import UserFollow
 from .user_session import UserSession
 
-__all__ = ['OAuthAccount', 'User', 'UserBlock', 'UserSession']
+__all__ = ['OAuthAccount', 'User', 'UserBlock', 'UserFollow', 'UserSession']

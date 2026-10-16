@@ -1,0 +1,85 @@
+<script lang="ts" setup>
+/** 文章列表：分页 + 分类筛选（查询参数即状态，便于分享与回退） */
+import type {ArticleItem, CategoryItem} from '@/types/content'
+
+const route = useRoute()
+const router = useRouter()
+const {t} = useI18n()
+const page = computed(() => Number(route.query.page || 1))
+const categoryId = computed(() => (route.query.category ? Number(route.query.category) : undefined))
+
+// 站点信息 / 文章列表 / 分类三者**并发**（原先一个个 await，串成 3 轮往返）
+const [site, {data: pageData, pending, error, refresh: refreshList}, {data: categories}] = await Promise.all([
+  useSiteInfo(),
+  useAsyncData(
+    () => `articles-${page.value}-${categoryId.value ?? 'all'}`,
+    () =>
+      apiPage<ArticleItem>('/content/article/public/list', {
+        page: page.value,
+        page_size: 9,
+        category_id: categoryId.value,
+      }),
+    {watch: [page, categoryId]},
+  ),
+  useAsyncData('article-list-categories', () =>
+    apiGet<CategoryItem[]>('/content/category/public'),
+  ),
+])
+
+const articles = computed(() => pageData.value?.items ?? [])
+
+function changePage(next: number) {
+  router.push({query: {...route.query, page: next}})
+}
+
+function selectCategory(id?: number) {
+  router.push({query: id ? {category: id} : {}})
+}
+
+useSeoMeta({
+  title: () => t('article.seoTitle', {name: site.value.site_name || 'FastBlog'}),
+  description: site.value.site_description || '',
+})
+</script>
+
+<template>
+  <div class="mx-auto max-w-5xl px-4 py-10">
+    <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('article.title') }}</h1>
+
+    <div v-if="(categories || []).length" class="mt-5 flex flex-wrap gap-2">
+      <button @click="selectCategory()">
+        <Badge :variant="categoryId ? 'outline' : 'default'" class="cursor-pointer px-3 py-1 text-sm">
+          {{ $t('admin.common.all') }}
+        </Badge>
+      </button>
+      <button v-for="category in categories || []" :key="category.id" @click="selectCategory(category.id)">
+        <Badge
+          :variant="categoryId === category.id ? 'default' : 'outline'"
+          class="cursor-pointer px-3 py-1 text-sm"
+        >
+          {{ category.name }}
+        </Badge>
+      </button>
+    </div>
+
+    <ArticleListSection
+
+      :error="Boolean(error)"
+
+      @retry="refreshList"
+      :articles="articles"
+      :loading="pending"
+      :page="page"
+      :pages="pageData?.pages ?? 0"
+      class="mt-8"
+      :empty-description="categoryId ? $t('article.emptyInCategory') : $t('article.emptyDesc')"
+      @change="changePage"
+    >
+      <template v-if="categoryId" #empty-action>
+        <Button class="mt-3" size="sm" variant="outline" @click="selectCategory()">
+          {{ $t('article.viewAllArticles') }}
+        </Button>
+      </template>
+    </ArticleListSection>
+  </div>
+</template>

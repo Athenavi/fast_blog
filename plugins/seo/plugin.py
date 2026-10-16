@@ -6,15 +6,14 @@ SEO 插件 — 文章级 SEO 元数据驱动
    使每篇文章开箱即拥有完整 meta。
 2. 提供 build_article_seo() 组装器，供路由/前端把文章平铺的 seo_* 字段组装为完整 meta 结构。
 
-前端由 plugins/seo 配套的 SeoHead 组件（frontend-astro/src/components/seo/SeoHead.astro）渲染。
+前端由 Nuxt 侧（frontend/web）的 useSeoMeta / useHead 消费这些字段渲染。
 """
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from sqlalchemy import select
 
 from shared.services.plugins.event_bus import (
-    event_bus,
     ArticlePublishedPayload,
     ArticleUpdatedPayload,
 )

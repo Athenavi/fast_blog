@@ -22,7 +22,7 @@ class Ad(Base):
         Index('idx_ads_priority', 'priority'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='广告 ID')
 
     title = Column(String(200), nullable=True, doc='广告标题')

@@ -13,9 +13,10 @@
 """
 
 import uuid
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from collections import Counter
+from datetime import datetime
 from enum import Enum
+from typing import Dict, Any, Optional, List
 
 
 class OrderStatus(Enum):
@@ -326,7 +327,7 @@ class ShoppingCart:
 class OrderManager:
     """
     订单管理器
-    
+
     统一管理订单和购物车
     """
 
@@ -350,14 +351,14 @@ class OrderManager:
     ) -> Optional[Order]:
         """
         从购物车创建订单
-        
+
         Args:
             user_id: 用户ID
             currency: 货币类型
             shipping_address: 收货地址
             billing_address: 账单地址
             notes: 备注
-            
+
         Returns:
             创建的订单，如果购物车为空则返回None
         """
@@ -398,7 +399,7 @@ class OrderManager:
     ) -> Order:
         """
         直接创建订单
-        
+
         Args:
             user_id: 用户ID
             items: 订单项列表
@@ -406,7 +407,7 @@ class OrderManager:
             shipping_address: 收货地址
             billing_address: 账单地址
             notes: 备注
-            
+
         Returns:
             创建的订单
         """
@@ -430,11 +431,11 @@ class OrderManager:
     def get_user_orders(self, user_id: int, status: OrderStatus = None) -> List[Order]:
         """
         获取用户订单列表
-        
+
         Args:
             user_id: 用户ID
             status: 订单状态过滤（可选）
-            
+
         Returns:
             订单列表
         """
@@ -454,11 +455,11 @@ class OrderManager:
     def update_order_status(self, order_id: str, status: OrderStatus) -> bool:
         """
         更新订单状态
-        
+
         Args:
             order_id: 订单ID
             status: 新状态
-            
+
         Returns:
             是否成功更新
         """
@@ -477,12 +478,12 @@ class OrderManager:
     ) -> bool:
         """
         处理支付
-        
+
         Args:
             order_id: 订单ID
             transaction_id: 交易ID
             payment_method: 支付方式
-            
+
         Returns:
             是否成功处理
         """
@@ -496,10 +497,10 @@ class OrderManager:
     def ship_order(self, order_id: str) -> bool:
         """
         发货
-        
+
         Args:
             order_id: 订单ID
-            
+
         Returns:
             是否成功发货
         """
@@ -516,10 +517,10 @@ class OrderManager:
     def deliver_order(self, order_id: str) -> bool:
         """
         标记为已送达
-        
+
         Args:
             order_id: 订单ID
-            
+
         Returns:
             是否成功标记
         """
@@ -536,11 +537,11 @@ class OrderManager:
     def cancel_order(self, order_id: str, reason: str = "") -> bool:
         """
         取消订单
-        
+
         Args:
             order_id: 订单ID
             reason: 取消原因
-            
+
         Returns:
             是否成功取消
         """
@@ -561,11 +562,11 @@ class OrderManager:
     ) -> Optional[Dict[str, Any]]:
         """
         退款
-        
+
         Args:
             order_id: 订单ID
             amount: 退款金额（可选，默认为全额）
-            
+
         Returns:
             退款结果
         """
@@ -581,10 +582,10 @@ class OrderManager:
     def get_order_statistics(self, user_id: int = None) -> Dict[str, Any]:
         """
         获取订单统计信息
-        
+
         Args:
             user_id: 用户ID（可选，不提供则统计所有订单）
-            
+
         Returns:
             统计信息
         """
@@ -596,10 +597,7 @@ class OrderManager:
         total_orders = len(orders)
         total_revenue = sum(order.total_amount for order in orders)
 
-        status_counts = {}
-        for order in orders:
-            status = order.status.value
-            status_counts[status] = status_counts.get(status, 0) + 1
+        status_counts = Counter(order.status.value for order in orders)
 
         return {
             "total_orders": total_orders,
@@ -619,7 +617,7 @@ class OrderManager:
     ) -> List[Order]:
         """
         搜索订单
-        
+
         Args:
             user_id: 用户ID
             status: 订单状态
@@ -627,7 +625,7 @@ class OrderManager:
             date_to: 结束日期
             min_amount: 最小金额
             max_amount: 最大金额
-            
+
         Returns:
             匹配的订单列表
         """

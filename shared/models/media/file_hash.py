@@ -4,19 +4,16 @@ SQLAlchemy 模型定义 - FileHash
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
+from sqlalchemy import Column, BigInteger, String, DateTime
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class FileHash(Base):
     """文件哈希模型模型"""
     __tablename__ = 'file_hashs'
 
-
-
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='哈希 ID')
 
     hash = Column(String(64), nullable=True, doc='文件哈希')

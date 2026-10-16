@@ -10,6 +10,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, configure_mappers
 from sqlalchemy.pool import QueuePool
 
+from shared import logging
 from src.unified_logger import default_logger as logger
 # 导入统一管理器
 from src.utils.database.unified_manager import db_manager as unified_db_manager
@@ -26,7 +27,7 @@ def _import_models_once():
 
     try:
         # 动态导入settings模块，避免循环依赖
-        from src.setting import settings
+        from shared.config.settings import settings
 
         # 尝试从配置中获取模型路径
         if hasattr(settings, 'MODELS_PATH'):
@@ -67,8 +68,7 @@ def _import_models_once():
         logger.error(f"无法导入settings模块: {e}")
     except Exception as e:
         logger.error(f"导入模型时出错: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
+        logger.exception("导入模型详细错误")
 
 
 class DatabaseManager:
@@ -90,13 +90,13 @@ class DatabaseManager:
     @property
     def database_url(self) -> str:
         """获取数据库URL"""
-        from src.setting import settings
+        from shared.config.settings import settings
         return settings.database_url
 
     @property
     def echo_sql(self) -> bool:
         """是否输出SQL日志"""
-        from src.setting import settings
+        from shared.config.settings import settings
         return getattr(settings, 'database_echo', False)
 
     def _parse_database_url(self, url: str) -> tuple:
@@ -149,18 +149,19 @@ class DatabaseManager:
     def _init_sync_engine(self):
         """初始化同步引擎（PostgreSQL）"""
         # 从环境变量读取连接池配置
-        from src.setting import settings
-        pool_size = getattr(settings, 'database_pool_size', 50)
-        max_overflow = getattr(settings, 'database_pool_overflow', 100)
+        from shared.config.settings import settings
+        pool_size = getattr(settings, 'database_pool_size', 20)
+        max_overflow = getattr(settings, 'database_pool_overflow', 30)
         pool_timeout = getattr(settings, 'database_pool_timeout', 60)
+        pool_recycle = getattr(settings, 'database_pool_recycle', 1200)
 
-        logger.info(f"初始化同步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}")
+        logger.info(f"初始化同步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}, recycle={pool_recycle}")
 
         self._sync_engine = create_engine(
             self.database_url,
             poolclass=QueuePool,
             pool_pre_ping=True,
-            pool_recycle=300,
+            pool_recycle=pool_recycle,
             pool_size=pool_size,
             max_overflow=max_overflow,
             pool_timeout=pool_timeout,
@@ -198,17 +199,18 @@ class DatabaseManager:
             )
 
         # 从环境变量读取连接池配置
-        from src.setting import settings
-        pool_size = getattr(settings, 'database_pool_size', 50)
-        max_overflow = getattr(settings, 'database_pool_overflow', 100)
+        from shared.config.settings import settings
+        pool_size = getattr(settings, 'database_pool_size', 20)
+        max_overflow = getattr(settings, 'database_pool_overflow', 30)
         pool_timeout = getattr(settings, 'database_pool_timeout', 60)
+        pool_recycle = getattr(settings, 'database_pool_recycle', 1200)
 
-        logger.info(f"初始化异步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}")
+        logger.info(f"初始化异步引擎 - 连接池配置：pool_size={pool_size}, max_overflow={max_overflow}, timeout={pool_timeout}, recycle={pool_recycle}")
 
         self._async_engine = create_async_engine(
             async_url,
             pool_pre_ping=use_pre_ping,
-            pool_recycle=300,
+            pool_recycle=pool_recycle,
             pool_size=pool_size,
             max_overflow=max_overflow,
             pool_timeout=pool_timeout,
@@ -272,7 +274,7 @@ async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
     不应用于 FastAPI 的 Depends() 依赖注入。
 
     使用示例：
-        async with get_async_session_context() as session:
+        async with db_manager.get_session() as session:
             result = await session.execute(query)
     """
     # 委托给统一管理器
@@ -281,12 +283,6 @@ async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
 
 
 # FastAPI依赖注入
-def get_db():
-    """同步数据库依赖"""
-    with get_session() as session:
-        yield session
-
-
 async def get_async_db():
     """
     异步数据库依赖（已迁移到统一管理器）

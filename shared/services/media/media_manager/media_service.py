@@ -3,12 +3,12 @@
 SQLAlchemy async 版本 — 替代原 Django ORM 实现
 提供缩略图生成、分类标签、批量操作、EXIF处理等
 """
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 
 from PIL import Image, ExifTags
-from sqlalchemy import select, func, delete as sa_delete, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
@@ -24,6 +24,10 @@ DEFAULT_THUMBNAIL_SIZES = [
 # EXIF 日期格式
 EXIF_DATE_FORMAT = '%Y:%m:%d %H:%M:%S'
 
+#: 媒体文件根目录（**绝对路径**）。相对路径会随 CWD 变化，多副本部署时媒体会散落到
+#: 各容器；生产应挂共享卷或改用对象存储。
+_DEFAULT_MEDIA_ROOT = Path(__file__).resolve().parents[4] / "storage" / "objects"
+
 
 class MediaService:
     """
@@ -36,8 +40,8 @@ class MediaService:
     4. EXIF数据提取和处理
     """
 
-    def __init__(self, media_dir: str = "storage/objects"):
-        self.media_dir = Path(media_dir)
+    def __init__(self, media_dir: Optional[str] = None):
+        self.media_dir = Path(media_dir) if media_dir else _DEFAULT_MEDIA_ROOT
         self.media_dir.mkdir(parents=True, exist_ok=True)
 
     # ==================== 缩略图生成 ====================

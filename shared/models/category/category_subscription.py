@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - CategorySubscription
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, BigInteger, DateTime, ForeignKey, UniqueConstraint
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class CategorySubscription(Base):
@@ -19,7 +18,7 @@ class CategorySubscription(Base):
         UniqueConstraint('category', 'subscriber', name='uq_category_subscriber'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
     category = Column(BigInteger, ForeignKey('categories.id', ondelete='CASCADE'), nullable=True, doc='分类')

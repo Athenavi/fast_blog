@@ -1,12 +1,12 @@
 """
 数据库备份与恢复命令（实现版）
 """
-import typer
 import os
-import json
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
-from datetime import datetime
+
+import typer
 
 app = typer.Typer(help="数据库备份与恢复")
 
@@ -19,7 +19,7 @@ def create_backup(
     """创建数据库备份"""
     typer.echo("创建数据库备份...")
     try:
-        from src.setting import settings
+        from shared.config.settings import settings
         db_url = getattr(settings, 'SQLALCHEMY_DATABASE_URI', None) or "postgresql://localhost/db"
         typer.echo(f"  数据库: {db_url}")
 
@@ -64,7 +64,7 @@ def restore_backup(
         typer.confirm("⚠️  恢复将覆盖现有数据，确定继续?", abort=True)
     typer.echo(f"从 {backup_file} 恢复...")
     try:
-        from src.setting import settings
+        from shared.config.settings import settings
         db_url = getattr(settings, 'SQLALCHEMY_DATABASE_URI', None) or "postgresql://localhost/db"
 
         import re

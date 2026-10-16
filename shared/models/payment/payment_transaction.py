@@ -4,10 +4,9 @@ SQLAlchemy 模型定义 - PaymentTransaction
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
-
 
 
 class PaymentTransaction(Base):
@@ -22,7 +21,7 @@ class PaymentTransaction(Base):
         Index('idx_payment_transaction_created', 'created_at'),
     )
 
-
+    site_id = Column(BigInteger, nullable=True, index=True, doc='所属站点 ID（多租户隔离键）')
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='交易 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')

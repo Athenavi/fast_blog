@@ -28,6 +28,14 @@ class HaloImportService:
             halo_url: Halo 博客的 URL (例如: https://your-halo-blog.com)
             api_token: Halo API Token
         """
+        # SSRF 防护：halo_url 由用户在导入页面填写，与 wordpress_import 保持同一口径
+        # （那边已有 validate_public_url 校验）
+        from src.utils.security.safe import validate_outbound_url
+
+        valid, err = validate_outbound_url(halo_url)
+        if not valid:
+            raise ValueError(f"Halo 站点地址不可用：{err}")
+
         self.halo_url = halo_url.rstrip('/')
         self.api_token = api_token
         self.headers = {
@@ -224,7 +232,7 @@ class HaloImportService:
         if publish_time:
             try:
                 created_at = datetime.fromisoformat(publish_time.replace('Z', '+00:00'))
-            except:
+            except Exception:
                 created_at = datetime.now()
         else:
             created_at = datetime.now()

@@ -1,0 +1,520 @@
+@import 'tailwindcss';
+
+/* ============================================================================
+ * 设计令牌（Design Tokens）
+ *
+ * 约定：**组件里不写死任何色值/字号/圆角**，一律使用下面的语义变量。
+ *  - 换主题：覆盖 `[data-theme=...]` 下的变量；
+ *  - 用户自选配色：切换 `[data-accent=...]`，只影响主色系；
+ *  - 深浅色跟随系统：`data-theme` 设为 `system` 时由脚本解析为 light/dark。
+ * ========================================================================== */
+@theme {
+  /* ---- 语义色：浅色为默认 ---- */
+  --color-canvas: oklch(99% 0.002 250);        /* 页面底色 */
+  --color-surface: oklch(100% 0 0);            /* 卡片/容器 */
+  --color-surface-soft: oklch(97.2% 0.004 250);/* 次级容器/代码块底 */
+  --color-fg: oklch(23% 0.02 260);             /* 主文本 */
+  /* 次要文本：oklch(50%) 在白底只有 3.86:1，未达 WCAG AA 的 4.5:1
+   * （ArticleCard 的阅读量/日期等元信息、各处的说明文字都用它）→ 压深到约 4.9:1 */
+  --color-fg-muted: oklch(46% 0.015 260);
+  --color-fg-subtle: oklch(68% 0.012 260);     /* 最弱层级：仅用于装饰性占位，不承载信息 */
+  --color-line: oklch(92.5% 0.006 260);        /* 分隔线/边框 */
+  --color-line-strong: oklch(86% 0.01 260);    /* 强调边框 */
+  --color-primary: oklch(52% 0.18 258);        /* 主色（由 data-accent 覆盖） */
+  --color-primary-fg: oklch(100% 0 0);         /* 主色之上的文字 */
+  --color-primary-soft: oklch(96% 0.03 258);   /* 主色浅底 */
+  --color-primary-hover: oklch(46% 0.18 258);
+
+  --color-danger: oklch(58% 0.2 25);
+  --color-danger-soft: oklch(96% 0.03 25);
+  --color-success: oklch(56% 0.14 155);
+  --color-success-soft: oklch(96% 0.04 155);
+  --color-warning: oklch(68% 0.15 75);
+  --color-warning-soft: oklch(97% 0.04 85);
+
+  /* ---- 排版 ----
+   * ⚠️ 这里只列**真实可用**的字体族。
+   *
+   * 此前声明的是 `Inter` / `Noto Serif SC` / `JetBrains Mono`，但全仓既没有任何
+   * `@font-face`、也没接字体加载模块（`public/` 下只有图标），而
+   * `fonts.googleapis.com` 在目标网络还不可达（实测 HTTP 000）—— 结果是这三个名字
+   * **从未生效**：中文 Windows 落到 Microsoft YaHei、macOS 落到 PingFang SC、
+   * Linux 落到通用 sans，同一份设计在三台机器上是三种样子；代码块也拿不到 JetBrains Mono。
+   *
+   * 现在的取法是**中文优先的系统栈**：中文字体（Noto Sans SC 全量约 10 MB）不适合自托管，
+   * 而系统字体在中文下的字重覆盖与 hinting 恰恰更好；西文/数字交给平台 UI 字体即可。
+   *
+   * 若将来要引入 Inter / JetBrains Mono（它们只影响西文与代码）：
+   *   1. 自托管 latin subset 的 woff2（约 15 KB/字重）到 `public/fonts/`，**不要用 CDN**
+   *      （Google Fonts 在目标网络不可达；本项目 CSP 也只放行了 jsdelivr）；
+   *   2. 在此加 `@font-face`，配 `font-display: swap` 与
+   *      `unicode-range: U+0000-00FF, U+0131, ...`，只让西文走 Web 字体、中文继续用系统字体；
+   *   3. 挂 `size-adjust` 对齐 fallback 的度量，压住换字体带来的 CLS。
+   */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC', 'Hiragino Sans GB',
+  'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+  --font-serif: Georgia, 'Songti SC', 'SimSun', 'Noto Serif CJK SC', serif;
+  --font-mono: ui-monospace, SFMono-Regular, 'Cascadia Mono', Consolas, Menlo,
+  'Noto Sans Mono CJK SC', monospace;
+
+  /* ---- 圆角 ---- */
+  --radius-control: 8px;
+  --radius-card: 12px;
+  --radius-pill: 999px;
+
+  /* ---- 阅读宽度 ---- */
+  --container-read: 46rem;   /* 正文最佳阅读宽度 */
+  --container-wide: 72rem;   /* 列表/导航宽度 */
+}
+
+/* ---------------------------------------------------------------- 深浅色 */
+:root {
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-canvas: oklch(19% 0.015 260);
+  --color-surface: oklch(23% 0.015 260);
+  --color-surface-soft: oklch(26% 0.015 260);
+  --color-fg: oklch(94% 0.008 250);
+  --color-fg-muted: oklch(72% 0.015 255);
+  --color-fg-subtle: oklch(58% 0.015 255);
+  --color-line: oklch(31% 0.015 260);
+  --color-line-strong: oklch(40% 0.02 260);
+
+  --color-primary-soft: oklch(30% 0.05 258);
+  --color-danger-soft: oklch(30% 0.06 25);
+  --color-success-soft: oklch(30% 0.05 155);
+  --color-warning-soft: oklch(32% 0.05 85);
+}
+
+/* ---------------------------------------------------------------- 自选配色 */
+[data-accent='violet'] {
+  --color-primary: oklch(52% 0.2 300);
+  --color-primary-hover: oklch(46% 0.2 300);
+  --color-primary-soft: oklch(96% 0.03 300);
+}
+
+[data-accent='emerald'] {
+  --color-primary: oklch(55% 0.14 165);
+  --color-primary-hover: oklch(49% 0.14 165);
+  --color-primary-soft: oklch(96% 0.04 165);
+}
+
+[data-accent='rose'] {
+  --color-primary: oklch(58% 0.18 15);
+  --color-primary-hover: oklch(52% 0.18 15);
+  --color-primary-soft: oklch(96% 0.03 15);
+}
+
+[data-accent='amber'] {
+  --color-primary: oklch(64% 0.15 72);
+  --color-primary-hover: oklch(57% 0.15 72);
+  --color-primary-soft: oklch(97% 0.04 80);
+}
+
+[data-theme='dark'][data-accent='violet'] {
+  --color-primary-soft: oklch(30% 0.05 300);
+}
+
+[data-theme='dark'][data-accent='emerald'] {
+  --color-primary-soft: oklch(30% 0.05 165);
+}
+
+[data-theme='dark'][data-accent='rose'] {
+  --color-primary-soft: oklch(30% 0.05 15);
+}
+
+[data-theme='dark'][data-accent='amber'] {
+  --color-primary-soft: oklch(32% 0.05 80);
+}
+
+/* ---------------------------------------------------------------- 基础样式 */
+html,
+body,
+#__nuxt {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-fg);
+  background-color: var(--color-canvas);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------- 跳过导航直达正文
+ * 键盘用户按第一下 Tab 就能越过整条导航（WCAG 2.4.1）。平时移出视口，
+ * 拿到键盘焦点时滑入；用 `:focus-visible` 而不是 `:focus`，鼠标点击不会把它唤出来。
+ */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 100;
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: var(--color-primary-fg);
+  font-size: 0.875rem;
+  transform: translateY(-200%);
+  transition: transform 0.15s ease;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 2px solid var(--color-fg);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------- 主题切换过渡
+ * 只在**用户主动切换**的那一瞬间生效：`useTheme` 会临时挂上 `.theme-transitioning`，
+ * 约 200ms 后摘掉。
+ *
+ * 为什么不再用原先的 `body *` 常驻通配：那等于给**每个元素**都挂一份 transition 计算，
+ * 常态下任何颜色变化都被拖慢 150ms；切主题时更会触发全文档的样式失效与大面积重绘
+ * （页面元素越多越慢）。改成一个类切换，常态零过渡开销。
+ */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-transitioning,
+  .theme-transitioning *,
+  .theme-transitioning *::before,
+  .theme-transitioning *::after {
+    transition: none !important;
+  }
+}
+
+/* ---------------- 后台（Element Plus）---------------- */
+
+/* 表格在窄屏下可横向滚动 */
+.el-table {
+  width: 100%;
+}
+
+.page-container {
+  padding: 16px;
+}
+
+.page-card {
+  background: var(--color-surface);
+  border-radius: 6px;
+  padding: 16px;
+}
+
+/* ---------------- 富文本正文（文章详情 / 单页共用）----------------
+ * 全部使用语义令牌，因此深浅色与自选配色自动生效。
+ * 放在全局而非组件 scoped 里，避免多个页面重复定义。
+ */
+.prose-content {
+  color: var(--color-fg);
+  font-size: 1.0625rem;
+  line-height: 1.85;
+}
+
+.prose-content h2 {
+  margin: 2.25rem 0 0.75rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+}
+
+.prose-content h3 {
+  margin: 1.75rem 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+/* 目录锚点跳转时给 sticky 顶栏留出高度，否则标题会被顶栏盖住 */
+.prose-content h2,
+.prose-content h3 {
+  scroll-margin-top: 5rem;
+}
+
+/* 代码块复制按钮：由 ArticleDetailView 在客户端注入到 <pre> 内，样式必须是全局的 */
+.prose-content pre {
+  position: relative;
+}
+
+.code-copy {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.prose-content pre:hover .code-copy,
+.code-copy:focus-visible {
+  opacity: 1;
+}
+
+.code-copy:hover {
+  color: var(--color-fg);
+  border-color: var(--color-line-strong);
+}
+
+.prose-content p {
+  margin: 0 0 1.15rem;
+}
+
+.prose-content a {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-content img {
+  max-width: 100%;
+  margin: 1.25rem 0;
+  border-radius: var(--radius-card);
+}
+
+.prose-content pre {
+  margin: 1.25rem 0;
+  padding: 1rem 1.15rem;
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-card);
+  background: var(--color-surface-soft);
+}
+
+.prose-content code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.prose-content :not(pre) > code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: var(--color-surface-soft);
+}
+
+.prose-content blockquote {
+  margin: 1.25rem 0;
+  padding: 0.25rem 0 0.25rem 1rem;
+  border-left: 3px solid var(--color-line-strong);
+  color: var(--color-fg-muted);
+}
+
+.prose-content ul,
+.prose-content ol {
+  margin: 1rem 0 1.15rem 1.35rem;
+}
+
+.prose-content ul {
+  list-style: disc;
+}
+
+.prose-content ol {
+  list-style: decimal;
+}
+
+.prose-content li {
+  margin-bottom: 0.4rem;
+}
+
+.prose-content hr {
+  margin: 2rem 0;
+  border: 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.prose-content table {
+  width: 100%;
+  margin: 1.25rem 0;
+  border-collapse: collapse;
+}
+
+.prose-content th,
+.prose-content td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-line);
+}
+
+.prose-content th {
+  background: var(--color-surface-soft);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------- 提示块（callout）
+ * 前台正文与编辑器内共用同一套规则（编辑器内容在 .ProseMirror 下）。
+ * 四类语义色全部走令牌，深浅色与自选配色自动跟随。
+ */
+[data-callout] {
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  border-left: 3px solid var(--color-line-strong);
+  border-radius: var(--radius-control);
+  background: var(--color-surface-soft);
+}
+
+[data-callout='info'] {
+  border-left-color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+[data-callout='success'] {
+  border-left-color: var(--color-success);
+  background: var(--color-success-soft);
+}
+
+[data-callout='warning'] {
+  border-left-color: var(--color-warning);
+  background: var(--color-warning-soft);
+}
+
+[data-callout='danger'] {
+  border-left-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+[data-callout] > p:first-child {
+  margin-top: 0;
+}
+
+[data-callout] > p:last-child {
+  margin-bottom: 0;
+}
+
+/* ---------------------------------------------------------------- 代码高亮（highlight.js token）
+ * 不引入 highlight.js 自带主题：用语义令牌写 token 配色，
+ * 深浅色与用户自选主色都能自动跟随（编辑器内与前台正文共用同一套）。
+ */
+.hljs-comment,
+.hljs-quote {
+  font-style: italic;
+  color: var(--color-fg-subtle);
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-doctag,
+.hljs-name {
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.hljs-string,
+.hljs-attr,
+.hljs-template-tag,
+.hljs-addition,
+.hljs-regexp {
+  color: var(--color-success);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable,
+.hljs-template-variable {
+  color: var(--color-warning);
+}
+
+.hljs-built_in,
+.hljs-type,
+.hljs-title,
+.hljs-class .hljs-title,
+.hljs-function .hljs-title,
+.hljs-deletion {
+  color: var(--color-danger);
+}
+
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-attribute {
+  color: var(--color-fg-muted);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+/* ---------------------------------------------------------------- 打印（前台内容页）
+ * 此前没有打印样式：打印文章会把顶部导航、底部导航、页脚、浮动提示一起打在纸上。
+ * 这里只保留正文，并把链接地址摊开（纸质件点不了）。
+ */
+@media print {
+  body {
+    background: #fff;
+    color: #000;
+  }
+
+  /* 导航 / 页脚 / 各类浮层：打印时一并去掉 */
+  header.sticky,
+  footer,
+  nav,
+  .fixed,
+  [role='dialog'],
+  [role='alert'] {
+    display: none !important;
+  }
+
+  main,
+  .prose-content,
+  .max-w-read,
+  .max-w-wide,
+  .pb-16 {
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .prose-content {
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .prose-content img {
+    max-width: 100% !important;
+    break-inside: avoid;
+  }
+
+  .prose-content pre,
+  .prose-content blockquote,
+  .prose-content table {
+    break-inside: avoid;
+  }
+
+  /* 纸质件点不了链接，把地址摊开 */
+  .prose-content a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.85em;
+    color: #555;
+  }
+}

@@ -7,8 +7,13 @@ from datetime import datetime
 from sqlalchemy import select
 
 from shared.models.article import Article, ArticleContent
+from src.api.v3.modules.content.approval.guard import (
+    ARTICLE_CONTENT_TYPE,
+    ensure_new_content_publish_allowed,
+    ensure_publish_allowed,
+)
 from src.mcp._context import get_user_ctx
-from src.utils.database.main import get_async_session_context
+from src.utils.database.unified_manager import db_manager
 
 
 def _require_auth():
@@ -29,12 +34,15 @@ async def create_article(arguments: dict) -> dict:
     if not content:
         raise ValueError("文章内容不能为空")
 
-    now = datetime.utcnow()
+    now = datetime.now()
     slug = title.lower().replace(" ", "-")[:200]
     status_str = arguments.get("status", "draft")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         try:
+            if status_str == "published":
+                # 与 REST 走**同一个**审批闸门：否则 MCP 就是绕过审批的后门
+                await ensure_new_content_publish_allowed(db, content_type=ARTICLE_CONTENT_TYPE)
             article = Article(
                 title=title, slug=slug, excerpt=content[:200], user=ctx.id,
                 category=arguments.get("category_id"), tags_list=arguments.get("tags", "").split(",") if arguments.get("tags") else [],
@@ -60,8 +68,8 @@ async def update_article(arguments: dict) -> dict:
     if not article_id:
         raise ValueError("文章ID不能为空")
 
-    now = datetime.utcnow()
-    async with get_async_session_context() as db:
+    now = datetime.now()
+    async with db_manager.get_session() as db:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
             raise ValueError(f"文章 #{article_id} 不存在")
@@ -71,7 +79,13 @@ async def update_article(arguments: dict) -> dict:
         if "title" in arguments:
             article.title = arguments["title"].strip()
         if "status" in arguments:
-            article.status = 1 if arguments["status"] == "published" else 0
+            new_status = 1 if arguments["status"] == "published" else 0
+            if new_status == 1 and article.status != 1:
+                # 由「非发布 → 发布」的转变要过审批闸门（与 REST 的 update_article 一致）
+                await ensure_publish_allowed(
+                    db, content_type=ARTICLE_CONTENT_TYPE, content_id=int(article_id)
+                )
+            article.status = new_status
         if "content" in arguments:
             text = arguments["content"].strip()
             ac = await db.scalar(select(ArticleContent).where(ArticleContent.article == int(article_id)))
@@ -93,7 +107,7 @@ async def delete_article(arguments: dict) -> dict:
     if not article_id:
         raise ValueError("文章ID不能为空")
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
             raise ValueError(f"文章 #{article_id} 不存在")
@@ -101,8 +115,8 @@ async def delete_article(arguments: dict) -> dict:
             raise PermissionError("只能删除自己的文章")
 
         article.status = -1
-        article.deleted_at = datetime.utcnow()
-        article.updated_at = datetime.utcnow()
+        article.deleted_at = datetime.now()
+        article.updated_at = datetime.now()
         await db.commit()
         return {"success": True, "message": f"文章 #{article_id} 已删除", "article_id": article_id}
 
@@ -126,7 +140,7 @@ async def search_articles(arguments: dict) -> list:
     except Exception:
         pass
 
-    async with get_async_session_context() as db:
+    async with db_manager.get_session() as db:
         pattern = f"%{query_text}%"
         articles = (await db.execute(
             select(Article).where(Article.status == 1)

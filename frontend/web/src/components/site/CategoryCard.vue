@@ -1,0 +1,27 @@
+<script lang="ts" setup>
+/** 分类卡片：分类总览页使用，递归展示子分类 */
+
+import type {CategoryItem} from '@/types/content'
+
+const props = defineProps<{ category: CategoryItem }>()
+</script>
+
+<template>
+  <NuxtLink :to="`/category/${props.category.id}`" class="group block">
+    <Card class="h-full transition-colors group-hover:border-line-strong">
+      <CardHeader class="pb-3">
+        <CardTitle class="flex items-center gap-2">
+          <Icon class="h-4 w-4 text-fg-subtle" name="folder"/>
+          {{ props.category.name }}
+        </CardTitle>
+        <CardDescription v-if="props.category.description">{{ props.category.description }}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p class="text-xs text-fg-subtle">{{ $t('site.articleCount', {n: props.category.article_count ?? 0}) }}</p>
+        <div v-if="props.category.children?.length" class="mt-3 flex flex-wrap gap-1.5">
+          <Badge v-for="child in props.category.children" :key="child.id" variant="secondary">{{ child.name }}</Badge>
+        </div>
+      </CardContent>
+    </Card>
+  </NuxtLink>
+</template>

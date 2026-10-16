@@ -2,12 +2,9 @@
 Content Approval Plugin
 独立 SQLite 持久化，通过 action 端点与系统交互
 """
-import json
 from datetime import datetime
-from pathlib import Path
-from typing import Optional
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Text, create_engine
+from sqlalchemy import Column, Integer, String, DateTime, Text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from shared.services.plugins.plugin_manager import BasePlugin, requires_capability
@@ -125,7 +122,7 @@ class ContentApprovalPlugin(BasePlugin):
             record.status = 'approved'
             if notes:
                 record.notes = notes
-            record.updated_at = datetime.utcnow()
+            record.updated_at = datetime.now()
             session.commit()
             return {'success': True, 'data': self._row_to_dict(record)}
         finally:
@@ -142,7 +139,7 @@ class ContentApprovalPlugin(BasePlugin):
             record.status = 'rejected'
             if notes:
                 record.notes = notes
-            record.updated_at = datetime.utcnow()
+            record.updated_at = datetime.now()
             session.commit()
             return {'success': True, 'data': self._row_to_dict(record)}
         finally:
@@ -157,7 +154,7 @@ class ContentApprovalPlugin(BasePlugin):
             if not record:
                 return {'success': False, 'message': '记录不存在'}
             record.status = 'cancelled'
-            record.updated_at = datetime.utcnow()
+            record.updated_at = datetime.now()
             session.commit()
             return {'success': True}
         finally:
