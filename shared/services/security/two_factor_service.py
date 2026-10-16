@@ -4,7 +4,7 @@ TOTP 双因素认证服务
 """
 import hmac
 import time
-from typing import Dict, List, Set
+from typing import Dict, List
 
 import pyotp
 from sqlalchemy import select
@@ -22,10 +22,10 @@ TOTP_ISSUER = "FastBlog"
 class TwoFactorService:
     """双因素认证服务"""
 
-    #: 已使用的 TOTP 时间步 (user_id -> set of time_step)，防止重放攻击。
+    #: 已使用的 TOTP 时间步 (user_id -> {time_step: 记录时刻})，防止重放攻击。
     #: Redis 是**权威**存储；本字典只在 Redis 不可用时兜底 —— 多副本部署下仅用内存
     #: 意味着攻击者可以在副本 A 用掉一个验证码，再拿它去副本 B 用一次。
-    _used_totp_steps: Dict[int, Set[int]] = {}
+    _used_totp_steps: Dict[int, Dict[int, float]] = {}
     #: Redis 键前缀与 TTL（覆盖 ±1 个时间步 = 90s，留足余量）
     _TOTP_STEP_PREFIX = "fb:totp_used"
     _TOTP_STEP_TTL = 300
@@ -48,27 +48,36 @@ class TwoFactorService:
             return bool(added)
         except Exception as exc:  # noqa: BLE001 - Redis 不可用时不能把 2FA 整体打死
             logger.warning("TOTP 重放检查降级为进程内存（%s）", type(exc).__name__)
-            self._cleanup_used_steps(user_id)
-            used = self._used_totp_steps.setdefault(user_id, set())
+            self._cleanup_used_steps()
+            used = self._used_totp_steps.setdefault(user_id, {})
             if step in used:
                 return False
-            used.add(step)
+            used[step] = time.monotonic()
             return True
 
     def _get_totp_time_step(self) -> int:
         """获取当前 TOTP 时间步 (30秒步长)"""
         return int(time.time()) // 30
 
-    def _cleanup_used_steps(self, user_id: int) -> None:
-        """清理当前时间步 ±1 范围之外的旧记录"""
-        current_step = self._get_totp_time_step()
-        valid_steps = {current_step - 1, current_step, current_step + 1}
-        if user_id in self._used_totp_steps:
-            self._used_totp_steps[user_id] = {
-                s for s in self._used_totp_steps[user_id] if s in valid_steps
+    def _cleanup_used_steps(self) -> None:
+        """按 TTL 清理过期记录（与 Redis 侧 ``expire`` 语义保持一致）
+
+        **不要**改成"只保留当前时间步 ±1"的白名单式过滤：那会让任何非当前步的
+        记录在写入后立刻被清掉（典型触发场景是时钟漂移、以及直接以非当前步调用
+        本方法），重放防护会静默失效。这里按**写入时刻 + TTL** 判断，语义与
+        Redis 侧一致。
+        """
+        now = time.monotonic()
+        for uid in list(self._used_totp_steps):
+            kept = {
+                s: ts
+                for s, ts in self._used_totp_steps[uid].items()
+                if now - ts < self._TOTP_STEP_TTL
             }
-            if not self._used_totp_steps[user_id]:
-                del self._used_totp_steps[user_id]
+            if kept:
+                self._used_totp_steps[uid] = kept
+            else:
+                del self._used_totp_steps[uid]
 
     async def setup_totp(
         self,

@@ -167,7 +167,17 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend/web
-        run: npm ci
+        # lock 是在 Windows 上生成的，顶层依赖树与 Linux 不一致（hoisting 差异）：
+        # Linux 上 npm ci 会报 `Missing: @emnapi/core@1.11.3 / @emnapi/runtime /
+        # tslib@2.8.1 / unplugin@3.4.0 from lock file`。
+        # 注意 `--os=linux` **补不出** Linux 的顶层条目 —— 它只影响 optional deps
+        # 的筛选，改不了 hoisting 结果（实测只加了嵌套位置的副本，npm ci 仍报缺）。
+        # 所以这里先在目标平台上把 lock 补全（`--package-lock-only` 只写 lock、
+        # 不动 node_modules），再用 npm ci 做严格安装：既不降低严格性，也不依赖
+        # 本地 Linux 环境。vite 已在 package.json 中精确钉为 8.3.0，不会被重新解析抬高。
+        run: |
+          npm install --package-lock-only --no-audit --no-fund
+          npm ci --no-audit --no-fund
 
       - name: Production build
         working-directory: frontend/web
@@ -289,7 +299,10 @@ jobs:
 
       - name: Install dependencies
         working-directory: frontend/web
-        run: npm ci
+        # 同 test-frontend：先在目标平台补全 lock 再严格安装（原因见该步骤的注释）
+        run: |
+          npm install --package-lock-only --no-audit --no-fund
+          npm ci --no-audit --no-fund
 
       - name: Build frontend
         working-directory: frontend/web
