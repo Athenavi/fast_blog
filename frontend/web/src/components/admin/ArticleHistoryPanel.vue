@@ -31,6 +31,14 @@ const props = defineProps<{
   articleId: number
   /** 非作者访问时需要（邀请链接进入时带） */
   invite?: string | null
+  /**
+   * 编辑器里**当前**的正文（可能尚未保存）。
+   *
+   * 用于"版本 × 当前"的对比 —— 这里必须用编辑器里的实时内容而不是再取一次库：
+   * 用户想确认的是"我现在的改动相对某个历史版本变了什么"，
+   * 如果拿已保存内容对比，他会看到一份没算上自己刚写的东西的差异，反而更困惑。
+   */
+  currentContent?: string
 }>()
 
 const emit = defineEmits<{
@@ -44,6 +52,16 @@ const {t} = useI18n()
 
 const open = ref(false)
 const compareOpen = ref(false)
+
+/**
+ * 当前浮层里呈现的是哪种对比 —— 决定标题怎么写。
+ *
+ * - `versions`：两个历史版本互比
+ * - `current`：某个历史版本 × **编辑器里的当前正文**（可能未保存）
+ *
+ * 不区分的话，用户看到"对比 #3 → #4"却不知道右边其实是自己正在写的内容。
+ */
+const diffMode = ref<'versions' | 'current'>('versions')
 
 const versions = ref<YjsRevision[]>([])
 const loading = ref(false)
@@ -112,6 +130,67 @@ async function compare(): Promise<void> {
     }
     diff.value = diffLines(a.content ?? '', b.content ?? '')
     stat.value = diffStat(diff.value)
+    diffMode.value = 'versions'
+    compareOpen.value = true
+  } finally {
+    comparing.value = false
+  }
+}
+
+/**
+ * 删除某个版本。
+ *
+ * ## 后端不做限制，提示由前端承担
+ *
+ * `deleteVersion` 允许删**任意**版本（含最新版）—— 最新版正是"刚才存歪的那一版"时，
+ * 后端拦下来只会让用户卡住。所以"删掉最后一版就没有任何历史了"这条提示
+ * 属于**交互决策**，放在这里做二次确认。
+ *
+ * ## 为什么用 `window.confirm`
+ *
+ * 编辑页跑在前台布局下，**没有注册 Element Plus**（`ElMessageBox` 不可用），
+ * `el-*` 组件会静默解析失败。原生 `confirm` 虽然朴素，但它是真实可用的确认。
+ */
+async function remove(revision: number): Promise<void> {
+  const isLast = versions.value.length <= 1
+  const message = isLast
+    ? t('myPosts.collab.history.confirmDeleteLast', {n: revision})
+    : t('myPosts.collab.history.confirmDelete', {n: revision})
+  if (!window.confirm(message)) return
+
+  try {
+    await yjsApi.deleteVersion(props.articleId, revision, props.invite)
+    // 删掉的可能是当前选中做对比的版本 —— 清掉选择，否则对比会引向不存在的版本
+    if (leftNo.value === revision) leftNo.value = null
+    if (rightNo.value === revision) rightNo.value = null
+    detailCache.delete(revision)
+    pushToast(t('myPosts.collab.history.deleted', {n: revision}), 'success')
+    await loadVersions()
+  } catch {
+    // 请求层已统一提示
+  }
+}
+
+/**
+ * 「对比当前」：拿编辑器里的**未保存**正文，与某个历史版本逐行比较。
+ *
+ * 与 `compare()`（两版互比）的区别在数据来源：这里右侧是**编辑器实时内容**，
+ * 所以能回答"我改到现在，跟那一版差在哪"。
+ */
+async function compareWithCurrent(revision: number): Promise<void> {
+  comparing.value = true
+  try {
+    const detail = await loadDetail(revision)
+    if (!detail) {
+      pushToast(t('myPosts.collab.history.loadVersionFailed'), 'error')
+      return
+    }
+    // 左侧是历史版本、右侧是当前 —— 方向与"从旧到新"的直觉一致
+    diff.value = diffLines(detail.content ?? '', props.currentContent ?? '')
+    stat.value = diffStat(diff.value)
+    leftNo.value = revision
+    rightNo.value = null
+    diffMode.value = 'current'
     compareOpen.value = true
   } finally {
     comparing.value = false
@@ -215,6 +294,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
               <button class="hist-btn hist-btn--restore" type="button" @click="restore(v.revision_number ?? 0)">
                 {{ t('myPosts.collab.history.restore') }}
               </button>
+              <button
+                :disabled="comparing"
+                class="hist-btn"
+                type="button"
+                @click="compareWithCurrent(v.revision_number ?? 0)"
+              >
+                {{ t('myPosts.collab.history.compareWithCurrent') }}
+              </button>
+              <button class="hist-btn hist-btn--danger" type="button" @click="remove(v.revision_number ?? 0)">
+                {{ t('myPosts.collab.history.delete') }}
+              </button>
             </li>
           </ul>
 
@@ -242,7 +332,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
     <!-- 全屏差异浮层：左右分栏 -->
     <div v-if="compareOpen && diff" class="hist-full">
       <header class="hist-full__head">
-        <strong>{{ t('myPosts.collab.history.compareTitle', {a: leftNo, b: rightNo}) }}</strong>
+        <strong>{{
+            diffMode === 'current'
+              ? t('myPosts.collab.history.compareWithCurrentTitle', {a: leftNo})
+              : t('myPosts.collab.history.compareTitle', {a: leftNo, b: rightNo})
+          }}</strong>
         <span class="hist-stat">
           <em class="hist-add">+{{ stat.added }}</em>
           <em class="hist-del">−{{ stat.removed }}</em>

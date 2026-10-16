@@ -24,7 +24,24 @@ const props = defineProps<{
    * 调用方通常同时给组件换 `:key`，强制重建 —— 因为表单状态在组件内部，
    * 只改 prop 不会重载已加载的正文。
    */
+  /**
+   * 用这份正文覆盖表单内容（从历史版本恢复时用）。
+   *
+   * 调用方通常同时给组件换 `:key`，强制重建 —— 因为表单状态在组件内部，
+   * 只改 prop 不会重载已加载的正文。
+   */
   initialContent?: string
+
+  /**
+   * 正文与元信息的排布方式。
+   *
+   * - `stacked`（默认）：单列竖排 —— 前台投稿页用这个，保持原样。
+   * - `two-column`：正文占左、元信息收进右栏 —— 后台编辑页用。
+   *
+   * 做成属性而不是直接改模板，是因为本组件**前台投稿页也在用**：
+   * 直接重排会让那边的布局跟着变，那是我不该顺带改的东西。
+   */
+  layout?: 'stacked' | 'two-column'
 }>()
 const emit = defineEmits<{ (e: 'saved', id: number): void }>()
 
@@ -40,7 +57,19 @@ const message = ref('')
 
 const articleIdRef = computed<number | null>(() => props.articleId ?? null)
 
-const {form, loading, saving, error, load, save, draftAvailable, restoreDraft, discardDraft} = useArticleForm({
+const {
+  form,
+  loading,
+  saving,
+  error,
+  load,
+  save,
+  draftAvailable,
+  restoreDraft,
+  discardDraft,
+  dirty,
+  savedAt
+} = useArticleForm({
   mode: 'contributor',
   articleId: articleIdRef,
   messages: {
@@ -130,10 +159,29 @@ watch(
 onMounted(async () => {
   await Promise.all([loadCategories(), load()])
 })
+
+/**
+ * 暴露正文与保存状态给父级 —— 编辑页的「分栏预览」用 `content`，
+ * 底部状态带用 `content` / `dirty` / `savedAt`。
+ *
+ * 只暴露这几个只读 ref，而不是把整个 `form` 抛出去：父级需要的是**读**，
+ * 暴露 `form` 会让任何父级都能直接改表单内部状态，那是难以追踪的耦合。
+ */
+defineExpose({
+  content: computed(() => form.content),
+  title: computed(() => form.title),
+  dirty,
+  savedAt,
+  /** 供编辑页的吸顶操作条触发保存（不必滚到表单底部的保存按钮） */
+  save,
+})
 </script>
 
 <template>
-  <div class="mx-auto max-w-read px-4 py-10">
+  <div
+    :class="layout === 'two-column' ? 'lg:max-w-none' : ''"
+    class="mx-auto max-w-read px-4 py-10"
+  >
     <div class="flex items-end justify-between gap-4">
       <div>
         <h1 class="text-2xl font-bold tracking-tight text-fg">
@@ -162,7 +210,19 @@ onMounted(async () => {
       <Skeleton class="h-64 w-full"/>
     </div>
 
-    <form v-else class="mt-6 space-y-4" @submit.prevent="submit">
+    <form
+      v-else
+      :class="layout === 'two-column'
+        ? 'space-y-0 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-6 lg:max-w-none'
+        : ''"
+      class="mt-6 space-y-4"
+      @submit.prevent="submit"
+    >
+      <!-- 元信息组：two-column 时被移到右栏；stacked 时保持竖排原位 -->
+      <div
+        :class="layout === 'two-column' ? 'space-y-4 lg:col-start-2 lg:row-start-1' : ''"
+        class="editor__meta"
+      >
       <div>
         <label class="mb-1.5 block text-sm font-medium text-fg">{{ $t('myPosts.fieldTitle') }} <span
           class="text-danger">*</span></label>
@@ -244,7 +304,12 @@ onMounted(async () => {
         正文区。协作态下由外层隐藏（`hideBody`）并交给 CollabEditor ——
         同一条正文不能同时被两个编辑器持有，否则保存时必然互相覆盖。
       -->
-      <div v-if="!hideBody">
+      </div>
+
+      <div
+        v-if="!hideBody"
+        :class="layout === 'two-column' ? 'lg:col-start-1 lg:row-start-1' : ''"
+      >
         <div class="mb-1.5 flex items-center justify-between">
           <label class="block text-sm font-medium text-fg">{{ $t('myPosts.fieldContent') }}</label>
           <div class="flex items-center gap-1 rounded-control bg-surface-soft p-0.5 text-xs">
@@ -282,7 +347,11 @@ onMounted(async () => {
 
       <!-- 协作态隐藏本组按钮：此时保存正文是协作条的职责（走 yjs 快照），
            这里的提交会用旧的 form.content 覆盖协作内容。 -->
-      <div v-if="!hideBody" class="flex items-center justify-end gap-2 pt-1">
+      <div
+        v-if="!hideBody"
+        :class="layout === 'two-column' ? 'lg:col-span-2' : ''"
+        class="flex items-center justify-end gap-2 pt-1"
+      >
         <NuxtLink to="/my/posts">
           <Button type="button" variant="outline">{{ $t('myPosts.cancel') }}</Button>
         </NuxtLink>

@@ -19,7 +19,9 @@
  * 真表 + `invite_service`）。前端只负责展示与调用，**不做任何准入判断** ——
  * 前端判断等于没有边界。
  */
-definePageMeta({layout: 'default', middleware: 'auth', title: 'myPosts.editTitle'})
+definePageMeta({layout: 'default', middleware: 'auth', title: 'myPosts.editTitle', applyTheme: false})
+
+import {renderMarkdown} from '@/utils/markdown'
 
 const route = useRoute()
 const articleId = computed(() => Number(route.params.id))
@@ -102,6 +104,42 @@ const LAYOUT_LABELS: Record<string, string> = {
   split: 'myPosts.layout.split',
 }
 
+/**
+ * 分栏预览：读编辑器里**当前（可能未保存）**的正文渲染成 HTML。
+ *
+ * 用 `ArticleEditor` 暴露出来的 `content` 而不是另发一次请求 —— 预览要反映
+ * "我正在写的东西"，而不是"上次保存的东西"，后者会让人以为改动丢了。
+ */
+const editorRef = ref<{
+  content?: string
+  title?: string
+  dirty?: boolean
+  savedAt?: string | null
+  save?: () => unknown
+} | null>(null)
+const previewHtml = computed(() => renderMarkdown(editorRef.value?.content ?? ''))
+
+/**
+ * 底部状态带的数据。
+ *
+ * 字数按**去掉 HTML 标签后的字符数**算 —— 正文可能是 Tiptap 的 HTML，
+ * 直接 `content.length` 会把标签也算进去，数字会大得离谱且随格式变化。
+ */
+const charCount = computed(() => {
+  const raw = editorRef.value?.content ?? ''
+  return raw.replace(/<[^>]*>/g, '').replace(/\s+/g, '').length
+})
+
+/** 中文阅读速度约 300 字/分钟，取整且至少 1 分钟 */
+const readMinutes = computed(() => Math.max(1, Math.round(charCount.value / 300)))
+
+const savedLabel = computed(() => {
+  const at = editorRef.value?.savedAt
+  if (!at) return ''
+  const d = new Date(at)
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleTimeString()
+})
+
 function onSaved(): void {
   message.value = t('myPosts.saved')
 }
@@ -109,6 +147,21 @@ function onSaved(): void {
 
 <template>
   <div :data-editor-layout="layout" class="space-y-4">
+    <!--
+      吸顶操作条：长文滚动时"返回 / 标题 / 保存"始终可达。
+      背景用不透明色 + z-index，避免正文从下面透出来。
+    -->
+    <header v-if="!fromInvite" class="editor-topbar">
+      <NuxtLink class="editor-topbar__back" to="/my/posts">
+        ← {{ t('myPosts.layout.back') }}
+      </NuxtLink>
+      <span class="editor-topbar__title">{{ editorRef?.title || t('myPosts.layout.untitled') }}</span>
+      <span v-if="editorRef?.dirty" :title="t('myPosts.layout.statusDirty')" class="editor-topbar__dot">●</span>
+      <button class="editor-topbar__save" type="button" @click="editorRef?.save?.()">
+        {{ t('myPosts.layout.save') }}
+      </button>
+    </header>
+
     <!-- 布局切换：按钮组，选择写入 localStorage（个人偏好，不做成 URL 参数） -->
     <div :aria-label="t('myPosts.layout.label')" class="layout-switch" role="group">
       <button
@@ -199,17 +252,46 @@ function onSaved(): void {
     <ArticleHistoryPanel
       v-if="!fromInvite"
       :article-id="articleId"
+      :current-content="editorRef?.content ?? ''"
       @restore="onRestore"
     />
 
-    <ArticleEditor
-      v-if="!fromInvite"
-      :key="editorKey"
-      :article-id="articleId"
-      :initial-content="restoredContent || undefined"
-      :hide-body="collab.active.value"
-      @saved="onSaved"
-    />
+    <!--
+      分栏预览：右侧实时渲染当前正文（未保存的改动也会显示）。
+      编辑器与预览各占一列 —— 用**明确的容器类**定位，不用 `:not()` 通配：
+      通配会把编辑器也框进"跨两列"，与预览栏重叠（这是实际发生过的 bug）。
+    -->
+    <div v-if="!fromInvite" class="editor-slot">
+      <ArticleEditor
+        :key="editorKey"
+        ref="editorRef"
+        :article-id="articleId"
+        :hide-body="collab.active.value"
+        :initial-content="restoredContent || undefined"
+        :layout="layout === 'classic' ? 'two-column' : 'stacked'"
+        @saved="onSaved"
+      />
+    </div>
+
+    <aside v-if="isSplit && !collab.active.value" class="split-preview">
+      <header class="split-preview__head">{{ t('myPosts.layout.previewTitle') }}</header>
+      <!-- eslint-disable-next-line vue/no-v-html -- 内容来自本站用户自己的 Markdown，经 renderMarkdown 净化 -->
+      <div class="prose split-preview__body" v-html="previewHtml"/>
+    </aside>
+
+    <!-- 底部状态带：写完一段最想确认的就是"多少字、存没存" -->
+    <footer v-if="!fromInvite && !collab.active.value" class="editor-status">
+      <span>{{ t('myPosts.layout.statusChars', {n: charCount}) }}</span>
+      <span class="editor-status__sep">·</span>
+      <span>{{ t('myPosts.layout.statusMinutes', {n: readMinutes}) }}</span>
+      <template v-if="savedLabel">
+        <span class="editor-status__sep">·</span>
+        <span>{{ t('myPosts.layout.statusSavedAt', {time: savedLabel}) }}</span>
+      </template>
+      <span v-if="editorRef?.dirty" class="editor-status__dirty">
+        ● {{ t('myPosts.layout.statusDirty') }}
+      </span>
+    </footer>
     <CollabEditor
       v-if="collab.active.value"
       :model-value="collab.text.value"
@@ -221,6 +303,75 @@ function onSaved(): void {
 </template>
 
 <style scoped>
+/* ── 吸顶操作条 ──────────────────────────────────────────── */
+
+.editor-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  /* 必须不透明：否则正文会从下面透出来 */
+  background: #fff;
+  border-bottom: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.editor-topbar__back {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #606266;
+  text-decoration: none;
+}
+
+.editor-topbar__back:hover {
+  color: #2271b1;
+}
+
+.editor-topbar__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.editor-topbar__dot {
+  flex-shrink: 0;
+  color: #e6a23c;
+  font-size: 10px;
+}
+
+.editor-topbar__save {
+  flex-shrink: 0;
+  padding: 4px 14px;
+  border: 1px solid #2271b1;
+  border-radius: 4px;
+  background: #2271b1;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.editor-topbar__save:hover {
+  filter: brightness(0.95);
+}
+
+.editor-topbar__back:focus-visible,
+.editor-topbar__save:focus-visible {
+  outline: 2px solid #2271b1;
+  outline-offset: 2px;
+}
+
+/* 分栏模式下吸顶条跨满两列 */
+[data-editor-layout='split'] > .editor-topbar {
+  grid-column: 1 / -1;
+}
+
 /* ── 布局切换 ──────────────────────────────────────────── */
 
 .layout-switch {
@@ -268,14 +419,100 @@ function onSaved(): void {
   margin-inline: auto;
 }
 
-/* 分栏预览：正文收窄，右侧留出预览栏的位置 */
-[data-editor-layout='split'] :deep(.max-w-read) {
-  max-width: 34rem;
-  margin-inline: 0;
+/*
+ * 分栏预览：编辑器占左列、预览占右列，横幅类元素（吸顶条/布局切换/协作条/状态带）
+ * 跨满两列。
+ *
+ * 各元素列位**写死**，不用 `:not()` 通配 —— 早先版本写成
+ * `> :not(.split-preview) { grid-column: 1 / -1 }`，结果把编辑器也框进"跨两列"，
+ * 与右侧预览栏重叠（实际发生过的 bug）。通配看起来省事，但会把"没想到的元素"
+ * 也一起改掉，而这种错只有在真渲染出来时才看得见。
+ */
+[data-editor-layout='split'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  /* 刻意**不设** max-width：根容器已被 `lg:max-w-none` 放宽，
+     这里再限宽会让整页贴在左边、右侧留出大片空白（实际发生过）。 */
 }
 
-[data-editor-layout='split'] {
-  max-width: 1100px;
+[data-editor-layout='split'] > .editor-slot {
+  grid-column: 1;
+  min-width: 0; /* 允许内部长内容收缩，否则 grid 列会被撑破 */
+}
+
+[data-editor-layout='split'] > .split-preview {
+  grid-column: 2;
+}
+
+[data-editor-layout='split'] > .editor-topbar,
+[data-editor-layout='split'] > .layout-switch,
+[data-editor-layout='split'] > .collab-alert,
+[data-editor-layout='split'] > .collab-bar,
+[data-editor-layout='split'] > .editor-status {
+  grid-column: 1 / -1;
+}
+
+.split-preview__head {
+  position: sticky;
+  top: 0;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--color-line, var(--el-border-color-lighter, #ebeef5));
+  /* 跟随深浅色，不写死白色 —— 否则深色模式下头部会是一块刺眼的亮条 */
+  background: var(--color-surface, #fff);
+  color: var(--color-fg-muted, #909399);
+  font-size: 12px;
+}
+
+.split-preview__body {
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* 预览栏的外框（列位在别处指定，这里只管外观）
+ *
+ * 颜色一律走**站点令牌**而不是写死 `#fff` —— 站点可能处于深色模式，
+ * 写死白底会让正文变成"浅灰字压白底"，对比度跌到不可读（实际发生过）。
+ * 与主题令牌（--color-*）的区别：那些由主题设置驱动、不随深浅色变化，
+ * 这里要的恰恰是**跟随深浅色**，所以用 --color-surface / --color-fg。 */
+.split-preview {
+  align-self: start;
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 16px;
+  border: 1px solid var(--color-line, var(--el-border-color-lighter, #ebeef5));
+  border-radius: 6px;
+  background: var(--color-surface, #fff);
+  color: var(--color-fg, #1d2327);
+}
+
+/* 底部状态带：常驻但不抢视觉，只在信息层面回答"多少字、存没存" */
+.editor-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  font-size: 12px;
+  color: #909399;
+  border-top: 1px solid var(--el-border-color-lighter, #ebeef5);
+}
+
+.editor-status__sep {
+  color: #dcdfe6;
+}
+
+.editor-status__dirty {
+  margin-left: auto;
+  color: #e6a23c;
+}
+
+/* 历史触发按钮是"自身宽度"的元素 —— 网格里不加约束会被拉伸成整行（实际发生过）。
+   必须用 `:deep()`：该按钮在子组件内，带的是子组件的 scoped 属性，
+   父组件的 `> .hist-trigger` 匹配不到它。注意不能写成 `> :deep(...)`，那是无效语法。 */
+[data-editor-layout='split'] :deep(.hist-trigger) {
+  justify-self: start;
 }
 
 /* ── 协作工具条 ──────────────────────────────────────────── */

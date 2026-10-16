@@ -39,6 +39,27 @@ const themeSlug = useThemeSlug()
  *
  * 空值时不注入任何 `<style>`，而不是塞空标签。
  */
+const route = useRoute()
+
+/**
+ * 是否给这个页面注入主题的外观（CSS 变量 + 主题 styles.css）。
+ *
+ * ## 为什么需要这个开关
+ *
+ * 布局契约把 `data-active-theme` 挂到了 **`html`** —— 主题的 `styles.css` 因此
+ * 作用于**整页**。但**后台/我的**这些页面也用同一个 `default` 布局，
+ * 于是主题的深色底、`h1 { font-size: 2.5rem }` 之类的规则会直接改掉后台的外观
+ * （实测：编辑页变成大面积深色、标题失控）。
+ *
+ * 默认 `true` 是为了**不改变前台现有行为**；非前台页面在自己的
+ * `definePageMeta` 里写 `applyTheme: false` 即可退出主题作用域。
+ */
+const applyTheme = computed(() => route.meta.applyTheme !== false)
+
+// 不注入主题时，把之前写在 html 上的 slug 也清掉 ——
+// 否则属性还在、CSS 不在，任何 `[data-active-theme]` 选择器都会命中一个"半生效"的状态。
+const activeThemeAttr = computed(() => (applyTheme.value ? (themeSlug.value ?? '') : ''))
+
 useHead({
   // 挂在 **`html`**（不是根 div）：深色的 `[data-theme]` 由 useTheme() 写在 html 上，
   // 两者同层，主题才能写 `[data-active-theme='x'][data-theme='dark']` 适配深色。
@@ -48,9 +69,10 @@ useHead({
   // 而 themeSlug 是服务器级数据（SSR 时确定、同一份发给所有访问者），
   // 无需响应式 —— 换主题本身就要重新取 bootstrap。
   htmlAttrs: {
-    'data-active-theme': themeSlug.value ?? '',
+    'data-active-theme': activeThemeAttr.value,
   },
   style: computed(() => {
+    if (!applyTheme.value) return []
     const blocks: Array<{ innerHTML: string }> = []
     if (themeVariables.value) blocks.push({innerHTML: themeVariables.value})
     if (themeCss.value) blocks.push({innerHTML: themeCss.value})
