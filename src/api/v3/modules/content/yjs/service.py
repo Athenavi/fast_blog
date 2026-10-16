@@ -33,7 +33,7 @@ import hashlib
 from datetime import datetime
 from typing import Any, Iterable, Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article.article import Article
@@ -70,6 +70,13 @@ logger = get_logger("content.yjs")
 
 #: 分页上限
 MAX_PAGE_SIZE = 100
+
+#: 每篇文章**保留**的修订条数上限。
+#:
+#: 每存一次正文就新增一条修订，正文是长文本 —— 不设上限的话，
+#: 一篇被反复编辑的文章会把 `article_revisions` 撑到几十 MB，
+#: 拖慢版本列表查询与数据库备份。15 条足够覆盖"最近改了什么"这个真实需求。
+MAX_KEPT_REVISIONS = 15
 
 #: ``GET /rooms`` 的**口径说明**（如实告知：进程内、无用户身份、跨 worker 状态在 Redis）
 ROOM_SCOPE_NOTE = (
@@ -269,6 +276,119 @@ class YjsDocumentService:
                 )
             )
         ).scalar()
+
+    async def delete_revision(
+        self,
+        db: AsyncSession,
+        article_id: int,
+        revision_number: int,
+        user_id: Optional[int] = None,
+        *,
+        invite_code: Optional[str] = None,
+    ) -> dict:
+        """删除指定修订。
+
+        ## 准入校验不能省
+
+        `_require_edit` 与 `restore` 走同一套判定（作者本人，或持 `permission=edit`
+        的邀请码）。省掉它 = **任何人都能删别人文章的版本** —— 这是安全问题，
+        不是体验问题。
+
+        ## 为什么不在这里限制"不能删最新版"
+
+        曾被设计成禁止删最新版，但那会让用户**卡在一个不想要的状态上**：
+        最新版正是刚才存歪的那一版时，他反而删不掉。
+        所以后端不设人为限制；"删掉最后一版就没有历史了"由前端二次确认承担。
+
+        ## 版本号不重排
+        删除后号码出现空洞是**预期**的：版本号是历史事实，重排等于改写历史。
+        """
+        await self._require_edit(db, article_id, user_id, invite_code)
+
+        row = await self._revision_by_number(db, article_id, revision_number)
+        if row is None:
+            raise NotFoundError(f"版本 {revision_number} 不存在")
+
+        # **先数再删**，顺序不能反。
+        # 反过来写（先 `db.delete` 再 `count`）会踩 SQLAlchemy 的 autoflush：
+        # count 查询前会自动 flush，把待删行真正删掉，于是计数**已经不含它**，
+        # 再减 1 就少算一条 —— 这种"看起来对、差一条"的错最难查。
+        before = (
+                     await db.execute(
+                         select(func.count())
+                         .select_from(ArticleRevision)
+                         .where(ArticleRevision.article_id == article_id)
+                     )
+                 ).scalar() or 0
+
+        await db.delete(row)
+        await db.commit()
+        remaining = max(int(before) - 1, 0)
+
+        logger.info(
+            "修订已删除: document=%s revision=%s 剩余=%s",
+            article_id,
+            revision_number,
+            remaining,
+        )
+        return {
+            "document_id": article_id,
+            "deleted_revision": revision_number,
+            # 剩余条数直接给前端（用于"这是最后一个版本"的提示），它不用自己推算
+            "remaining": remaining,
+        }
+
+    async def _prune_revisions(
+        self, db: AsyncSession, article_id: int, keep: int = MAX_KEPT_REVISIONS
+    ) -> int:
+        """只保留**最新的 `keep` 条**修订，更旧的删除。
+
+        每存一次正文就新增一条修订，长期使用会让 `article_revisions` 无限膨胀 ——
+        正文是长文本，几百条修订就是几十 MB，列表查询与备份都会变慢。
+
+        **保留最新的**而不是最旧的：历史版本的价值集中在"最近改了什么"，
+        而越久远的版本被恢复的概率越低。
+
+        返回值是**删掉的行数**，供调用方记日志（0 表示未触发）。
+
+        注意：删除**不会**重排 `revision_number` —— 版本号是历史事实，
+        清理后号码会出现空洞，这与"历史不可改写"的语义一致。
+        """
+        if keep <= 0:
+            return 0
+
+        # 取第 keep+1 新的那条的版本号：比它更旧的全部要删。
+        # 用 `OFFSET keep-1 ... LIMIT 1` 而不是拉全部 id，避免把整表读进内存。
+        threshold = (
+            await db.execute(
+                select(ArticleRevision.revision_number)
+                .where(ArticleRevision.article_id == article_id)
+                .order_by(ArticleRevision.revision_number.desc())
+                .offset(keep - 1)
+                .limit(1)
+            )
+        ).scalar()
+
+        if threshold is None:
+            return 0
+
+        result = await db.execute(
+            delete(ArticleRevision).where(
+                ArticleRevision.article_id == article_id,
+                ArticleRevision.revision_number < threshold,
+            )
+        )
+        await db.commit()
+        removed = int(result.rowcount or 0)
+        if removed:
+            logger.info(
+                "修订已裁剪: document=%s 保留=%s 删除=%s（阈值 revision<%s）",
+                article_id,
+                keep,
+                removed,
+                threshold,
+            )
+        return removed
 
     async def _author_names(
         self, db: AsyncSession, user_ids: Iterable[Any]
@@ -635,6 +755,9 @@ class YjsDocumentService:
             )
         )
         await db.commit()
+        # 只保留最近 MAX_KEPT_REVISIONS 条：正文是长文本，不裁剪会让
+        # article_revisions 随编辑次数无限膨胀（详见 `_prune_revisions`）。
+        await self._prune_revisions(db, article_id)
         logger.info(
             "协同快照已保存: document=%s revision=%s chars=%s user=%s",
             article_id,
@@ -701,6 +824,8 @@ class YjsDocumentService:
             )
         )
         await db.commit()
+        # 恢复同样会新增修订，因此也要裁剪（否则"恢复"成了绕过上限的后门）
+        await self._prune_revisions(db, article_id)
         logger.info(
             "协同文档回滚: document=%s from=%s new_revision=%s user=%s",
             article_id,

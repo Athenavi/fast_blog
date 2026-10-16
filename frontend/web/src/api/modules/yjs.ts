@@ -182,6 +182,16 @@ export interface YjsRestorePayload {
   change_summary?: string | null
 }
 
+/** 删除版本的返回体
+ *  字段来源：`yjs/service.py` 的 `delete_revision` 返回值 */
+export interface YjsDeleteResult {
+  document_id: number
+  /** 被删掉的版本号 */
+  deleted_revision: number
+  /** 删除后剩余的修订条数 —— 前端据此提示"这是最后一个版本" */
+  remaining: number
+}
+
 /** 回滚结果
  *  字段来源：`schema.RestoreResultOut` */
 export interface YjsRestoreResult {
@@ -239,6 +249,14 @@ export const yjsApi = {
     http.post<YjsSnapshotResult>(
       `/content/yjs/document/${documentId}/snapshot`,
       data,
+      invite ? {invite} : undefined,
+    ),
+
+  /** DELETE /content/yjs/document/{document_id}/version/{revision_number} —— 删除指定版本
+   *  （需 collaboration:edit + 写准入；**任何版本都可删**，含最新版） */
+  deleteVersion: (documentId: number, revisionNumber: number, invite?: string | null) =>
+    http.delete<YjsDeleteResult>(
+      `/content/yjs/document/${documentId}/version/${revisionNumber}`,
       invite ? {invite} : undefined,
     ),
 

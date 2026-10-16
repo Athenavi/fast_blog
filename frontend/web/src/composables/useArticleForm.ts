@@ -1,4 +1,5 @@
 import {computed, type ComputedRef, onBeforeUnmount, onMounted, reactive, ref, type Ref, watch} from 'vue'
+import {debounce} from '@/utils/debounce'
 
 import {articleApi, type ArticlePayload, mobileApi, type MobileArticlePayload} from '@/api/public'
 import {formatDateTime} from '@/utils/format'
@@ -222,21 +223,29 @@ export function useArticleForm(options: UseArticleFormOptions): UseArticleFormRe
   }
 
   if (import.meta.client) {
-    let draftTimer: ReturnType<typeof setTimeout> | null = null
+    /**
+     * 自动暂存：**停止输入 1.5 秒后**写 localStorage。
+     *
+     * 用 `debounce` 而不是手写 `setTimeout`：统一工具提供了 `flush()` 语义 ——
+     * 页面卸载时必须**立刻落盘**，而防抖的默认行为恰恰是"丢弃未触发的那次调用"。
+     * 用户打完最后一个字就关页面时，那次改动不能丢。
+     */
+    const writeDraftDebounced = debounce(() => {
+      if (dirty.value) writeDraft()
+    }, DRAFT_WRITE_DELAY)
 
     watch(
       [form, publish],
       () => {
         if (!dirty.value) return
-        if (draftTimer) clearTimeout(draftTimer)
-        draftTimer = setTimeout(writeDraft, DRAFT_WRITE_DELAY)
+        writeDraftDebounced()
       },
       {deep: true},
     )
 
     const confirmUnload = (event: BeforeUnloadEvent): void => {
       if (!dirty.value) return
-      writeDraft() // 不等防抖，立刻落盘
+      writeDraftDebounced.flush() // 不等防抖，立刻落盘
       event.preventDefault()
       event.returnValue = ''
     }
@@ -244,7 +253,8 @@ export function useArticleForm(options: UseArticleFormOptions): UseArticleFormRe
     onMounted(() => window.addEventListener('beforeunload', confirmUnload))
     onBeforeUnmount(() => {
       window.removeEventListener('beforeunload', confirmUnload)
-      if (draftTimer) clearTimeout(draftTimer)
+      // 组件销毁也落盘一次：切路由不等于放弃改动
+      writeDraftDebounced.flush()
     })
   }
 

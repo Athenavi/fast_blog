@@ -377,6 +377,16 @@ class ArticleService:
             await db.commit()
 
         await self._invalidate(article_id)
+        # 修订与事件的入参**必须在 commit 之前取好**。
+        #
+        # `save_article_revision` 内部会 `await db.commit()`，而 SQLAlchemy 默认
+        # `expire_on_commit=True` —— commit 之后所有 ORM 属性都被标记过期，
+        # 再访问 `article.slug` 会触发**延迟加载**：在 async session 里那是同步 IO，
+        # 直接抛 `MissingGreenlet: greenlet_spawn has not been called`（实测 500）。
+        slug = article.slug or ""
+        title = article.title or ""
+        author_id = article.user or 0
+
         # 修订历史：保存**本次保存后的状态**为一条修订（该服务自带 hash 去重，
         # 内容没变时不会产生冗余记录）。放在写入之后，所以 revision 就是刚存下的样子。
         # 它内部容错（异常时 rollback 并返回 None），失败不影响文章保存本身。
@@ -387,9 +397,9 @@ class ArticleService:
             "article.updated",
             ArticleUpdatedPayload(
                 article_id=article_id,
-                slug=article.slug or "",
-                title=article.title or "",
-                author_id=article.user or 0,
+                slug=slug,
+                title=title,
+                author_id=author_id,
             ),
         )
         return await self.get_article(db, article_id)

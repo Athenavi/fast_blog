@@ -33,6 +33,7 @@ DELETE /api/v3/content/shortcode/{shortcode_id}
 DELETE /api/v3/content/team_comment/{comment_id}
 DELETE /api/v3/content/third-party-publish/channel/{channel_id}
 DELETE /api/v3/content/third-party-publish/task/{task_id}
+DELETE /api/v3/content/yjs/document/{document_id}/version/{revision_number}
 DELETE /api/v3/extension/block-pattern/{pattern_id}
 DELETE /api/v3/extension/plugin/{slug}
 DELETE /api/v3/extension/widget/{widget_id}

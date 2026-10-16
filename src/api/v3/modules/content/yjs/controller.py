@@ -227,3 +227,36 @@ async def restore_version(
         ),
         msg="已回滚",
     )
+
+
+@router.delete(
+    "/document/{document_id}/version/{revision_number}",
+    response_model=ResponseModel,
+    summary="删除指定版本",
+)
+async def delete_version(
+    document_id: int,
+    revision_number: int,
+    db: DBSession,
+    current: CurrentUser,
+    _perm=_EDIT,
+    invite: Optional[str] = Query(
+        default=None, description="协作邀请码（非作者时必须持 permission=edit 的码）"
+    ),
+) -> dict:
+    """删除一条历史修订。
+
+    **任何版本都可删，包括最新版** —— 后端不设人为限制（最新版就是存歪的那一版时，
+    限制反而让用户卡住）。"删掉最后一版就没有历史了"由前端二次确认承担。
+
+    返回体里的 `remaining` 是删除后的剩余条数，前端据此提示"这是最后一个版本"。
+    """
+    return resp.success(
+        await yjs_document_service.delete_revision(
+            db,
+            document_id,
+            revision_number,
+            invite_code=invite,
+        ),
+        msg="已删除",
+    )

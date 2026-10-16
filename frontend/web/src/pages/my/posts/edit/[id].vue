@@ -56,13 +56,73 @@ async function onCopyInvite(): Promise<void> {
   }
 }
 
+/**
+ * 协作者从邀请链接进来时**自动加入房间**。
+ *
+ * 不自动加入的话，页面会完全空白：`ArticleEditor` 因 `fromInvite` 不渲染，
+ * 而 `CollabEditor` 又因 `active` 仍为 false 也不渲染 —— 两个分支都不命中。
+ *
+ * 这里**必须用 `join()` 而不是 `start()`**：`start()` 会尝试签发邀请，
+ * 而签发只允许文章所有者（后端 `_assert_target_owner` 会拒绝）。
+ */
+onMounted(() => {
+  if (fromInvite.value && !collab.active.value) collab.join()
+})
+
+/** 从历史版本恢复过来的正文（供填回编辑器） */
+const restoredContent = ref('')
+
+/**
+ * 历史里点「恢复」时：后端已经把该版本作为**新修订**写回（历史不丢），
+ * 这里把正文交给编辑器。用 `:key` 重建编辑器是刻意的 ——
+ * `ArticleEditor` 内部持有自己的表单状态，仅改 prop 不会重载正文。
+ */
+const editorKey = ref(0)
+
+function onRestore(content: string): void {
+  restoredContent.value = content
+  editorKey.value += 1
+  pushToast(t('myPosts.collab.history.restoreToEditor'), 'success')
+}
+
+// ---------------------------------------------------------------- 布局
+
+/**
+ * 三种布局：经典 / 专注 / 分栏预览。
+ *
+ * - `classic` 全宽，协作与历史都在手边
+ * - `focus` 收窄居中，并隐藏协作条与历史按钮 —— 长文写作时去掉干扰
+ * - `split` 正文区收窄，右侧留出预览栏
+ */
+const {layout, setLayout, isFocus, isSplit} = useEditorLayout()
+
+const LAYOUT_LABELS: Record<string, string> = {
+  classic: 'myPosts.layout.classic',
+  focus: 'myPosts.layout.focus',
+  split: 'myPosts.layout.split',
+}
+
 function onSaved(): void {
   message.value = t('myPosts.saved')
 }
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div :data-editor-layout="layout" class="space-y-4">
+    <!-- 布局切换：按钮组，选择写入 localStorage（个人偏好，不做成 URL 参数） -->
+    <div :aria-label="t('myPosts.layout.label')" class="layout-switch" role="group">
+      <button
+        v-for="(key, name) in LAYOUT_LABELS"
+        :key="name"
+        :aria-pressed="layout === name"
+        :class="{'is-active': layout === name}"
+        class="layout-switch__btn"
+        type="button"
+        @click="setLayout(name as never)"
+      >
+        {{ t(key) }}
+      </button>
+    </div>
     <!-- 注意：本页在 `layout: 'default'`（前台布局）下，**没有注册 Element Plus**，
          所以这里一律用原生控件。用 el-* 会静默解析失败（控制台只有一条 warn，
          界面上则什么都不渲染）。 -->
@@ -131,9 +191,22 @@ function onSaved(): void {
       校验（非本人 404）。协作者是从邀请链接进来的，没有归属权 —— 渲染它就会
       报「加载文章失败，可能不存在或不属于你」。协作者本来就只能编辑正文。
     -->
-    <ArticleEditor
+    <!--
+      历史是**抽屉**（默认关闭），不常驻占版面 ——
+      看历史是低频动作，不该跟正文抢横向空间。
+      触发按钮与历史面板都**仅作者可见**：协作者没有归属权，读版本会被后端拒。
+    -->
+    <ArticleHistoryPanel
       v-if="!fromInvite"
       :article-id="articleId"
+      @restore="onRestore"
+    />
+
+    <ArticleEditor
+      v-if="!fromInvite"
+      :key="editorKey"
+      :article-id="articleId"
+      :initial-content="restoredContent || undefined"
       :hide-body="collab.active.value"
       @saved="onSaved"
     />
@@ -148,6 +221,65 @@ function onSaved(): void {
 </template>
 
 <style scoped>
+/* ── 布局切换 ──────────────────────────────────────────── */
+
+.layout-switch {
+  display: inline-flex;
+  gap: 2px;
+  align-self: flex-start;
+  padding: 2px;
+  border: 1px solid var(--el-border-color, #dcdfe6);
+  border-radius: 6px;
+  background: #f5f7fa;
+}
+
+.layout-switch__btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #606266;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.layout-switch__btn.is-active {
+  background: #fff;
+  color: #2271b1;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+
+.layout-switch__btn:focus-visible {
+  outline: 2px solid #2271b1;
+  outline-offset: 1px;
+}
+
+/*
+ * 专注模式：收窄居中，并把协作条、历史触发按钮、布局切换之外的非正文元素淡出。
+ * 用 `max-width` 而不是 `display:none` —— 完全隐藏会让用户找不到怎么切回去。
+ */
+[data-editor-layout='focus'] .collab-bar,
+[data-editor-layout='focus'] .hist-trigger {
+  display: none;
+}
+
+[data-editor-layout='focus'] :deep(.max-w-read) {
+  max-width: 42rem;
+  margin-inline: auto;
+}
+
+/* 分栏预览：正文收窄，右侧留出预览栏的位置 */
+[data-editor-layout='split'] :deep(.max-w-read) {
+  max-width: 34rem;
+  margin-inline: 0;
+}
+
+[data-editor-layout='split'] {
+  max-width: 1100px;
+}
+
+/* ── 协作工具条 ──────────────────────────────────────────── */
+
 .collab-bar {
   display: flex;
   flex-wrap: wrap;

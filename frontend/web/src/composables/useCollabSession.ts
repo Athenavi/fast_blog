@@ -159,6 +159,10 @@ export function useCollabSession(articleId: Ref<number>) {
     if (!id) return
     if (provider) leave()
 
+    // 进入协作态。`join()` 可能被所有者（开启协作时）或协作者（自动加入）调用，
+    // 两条路都必须把状态置真 —— 否则协作编辑器不渲染，页面会空。
+    active.value = true
+
     doc = new Y.Doc()
     yText = doc.getText('content')
 
@@ -248,7 +252,19 @@ export function useCollabSession(articleId: Ref<number>) {
     if (!id || !yText) return
     saving.value = true
     try {
-      await http.post(`/content/yjs/document/${id}/save`, {content: yText.toString()})
+      // 三处都必须对齐 `content/collaboration` 的契约（都踩过）：
+      //   1. 路径归属 `collaboration` 模块（少模块段 → 404）
+      //   2. payload 字段名是 `html` 而不是 `content`（错字段名 → 422）
+      //   3. **非作者必须带邀请码**（controller:411 的 `invite` query；协作者没有归属权）
+      //
+      // ⚠️ 字段叫 `html` 是后端既有 schema，但项目正文现在存的是 **Markdown** ——
+      // 名实不符。改 schema 影响面大，这里照契约发送并记下这个不一致。
+      const url = `/content/collaboration/yjs/document/${id}/save`
+      const invite = inviteFromUrl()
+      await http.post(
+        invite ? `${url}?invite=${encodeURIComponent(invite)}` : url,
+        {html: yText.toString()},
+      )
       text.value = yText.toString()
       pushToast(t('myPosts.collab.saved'), 'success')
     } finally {
@@ -290,6 +306,8 @@ export function useCollabSession(articleId: Ref<number>) {
     createInvite,
     start,
     stop,
+    /** 仅加入房间、不签发邀请 —— 协作者从邀请链接进入时用这个 */
+    join,
     applyLocal,
     snapshotText,
     saveToArticle,

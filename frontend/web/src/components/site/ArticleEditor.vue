@@ -15,7 +15,17 @@ import {useArticleForm} from '@/composables/useArticleForm'
 import {useSaveShortcut} from '@/composables/useSaveShortcut'
 import {formatDateTime} from '@/utils/format'
 
-const props = defineProps<{ articleId?: number; hideBody?: boolean }>()
+const props = defineProps<{
+  articleId?: number
+  hideBody?: boolean
+  /**
+   * 用这份正文覆盖表单内容（从历史版本恢复时用）。
+   *
+   * 调用方通常同时给组件换 `:key`，强制重建 —— 因为表单状态在组件内部，
+   * 只改 prop 不会重载已加载的正文。
+   */
+  initialContent?: string
+}>()
 const emit = defineEmits<{ (e: 'saved', id: number): void }>()
 
 const {t} = useI18n()
@@ -102,6 +112,20 @@ async function submit(): Promise<void> {
 
 /** Ctrl/Cmd + S 与页面底部"保存"同义 */
 useSaveShortcut(() => submit(), {enabled: () => !saving.value && !loading.value})
+
+/**
+ * 从历史版本恢复：用 `initialContent` 覆盖表单正文。
+ *
+ * `immediate` 是必要的 —— 调用方用 `:key` 重建组件时，这个值在**挂载前就已存在**，
+ * 不给 `immediate` 会一直等下一次变化，恢复就白点了。
+ */
+watch(
+  () => props.initialContent,
+  (value) => {
+    if (value !== undefined && value !== null) form.content = value
+  },
+  {immediate: true},
+)
 
 onMounted(async () => {
   await Promise.all([loadCategories(), load()])
