@@ -90,6 +90,12 @@ aioboto3==15.5.0
 # GraphQL（读 + 少量写；与 REST 共享鉴权，见 src/api/v3/graphql/）
 strawberry-graphql[fastapi]==0.315.4
 
+#   graphql-core 必须显式钉住：它是 strawberry 的**间接**依赖，3.3 起移除了
+#   `graphql.execution.ExecutionContext`，而 strawberry 0.315.4 仍在导入它。
+#   不钉版本时 CI 会解析到 3.3+，表现为 test_v3_graphql.py 在**收集期**就
+#   ImportError（本地装的是 3.2.8 所以测不出来）。升 strawberry 时请一并复核。
+graphql-core==3.2.8
+
 # XML 解析与富文本净化
 #   lxml：src/utils/html_sanitizer.py（白名单重建式净化）+ SAML 断言解析
 lxml==6.1.3
