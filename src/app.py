@@ -122,6 +122,27 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         except Exception as exc:  # noqa: BLE001 - 兜底装不上不应阻断启动
             logger.warning(f"[lifespan] 多租户 ORM 隔离安装失败（已跳过）：{exc}")
 
+        # 2.5 搜索连接配置：后台可改，启动时从 system_settings 载入一次
+        #
+        # 位置必须在数据库初始化之后（要读表）；失败不阻断启动 ——
+        # 搜索是增强能力，没配好就自动回退数据库，不该让整个服务起不来。
+        try:
+            step_start = _time.monotonic()
+            from src.utils.database.unified_manager import db_manager
+
+            from src.api.v3.modules.system.search.service import search_settings_service
+
+            async with db_manager.get_session() as _search_db:
+                if await search_settings_service.load_into_service(_search_db):
+                    logger.info(
+                        f"[lifespan] Meilisearch 配置已载入（已启用）"
+                        f"耗时: {_time.monotonic() - step_start:.2f}s"
+                    )
+                else:
+                    logger.info("[lifespan] Meilisearch 未配置，搜索走数据库")
+        except Exception as exc:  # noqa: BLE001 - 载入失败不影响启动
+            logger.warning(f"[lifespan] Meilisearch 配置载入失败（已跳过）：{exc}")
+
     # 3. 扩展、调度器
     try:
         from src.extensions import init_extensions
@@ -160,6 +181,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info(f"[lifespan] 审计日志订阅者注册耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
         logger.warning(f"[审计日志订阅者] 跳过: {e}")
+
+    # 4.6 搜索索引同步订阅者（同样依赖 EventBus，放在其后）
+    #
+    # 订阅 article.published / updated / deleted，把变更同步到 Meilisearch 索引。
+    # 用事件总线而不是在文章服务里直接调索引：事件覆盖**所有**写入口
+    # （后台、开放 API、未来新增的），而逐个写方法插调用一定会漏 ——
+    # 漏一处，索引就与库不一致，且很难被发现。
+    try:
+        step_start = _time.monotonic()
+        from src.api.v3.modules.system.search.subscriber import register_search_subscriber
+        register_search_subscriber()
+        logger.info(f"[lifespan] 搜索索引订阅者注册耗时: {_time.monotonic() - step_start:.2f}s")
+    except ImportError as e:
+        logger.warning(f"[搜索索引订阅者] 跳过: {e}")
 
     # 5. 下载队列处理器
     if is_installed:

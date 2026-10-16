@@ -4,6 +4,7 @@ import {onBeforeRouteLeave} from 'vue-router'
 import {computed, ref} from 'vue'
 
 import ArticleAssistPanel from '@/components/admin/ArticleAssistPanel.vue'
+import ArticleCustomFieldsPanel from '@/components/admin/ArticleCustomFieldsPanel.vue'
 import ArticlePreviewTokenPanel from '@/components/admin/ArticlePreviewTokenPanel.vue'
 import RichEditor from '@/components/site/RichEditor.vue'
 import {useArticleForm} from '@/composables/useArticleForm'
@@ -81,11 +82,32 @@ async function replaceToEditIfNew(id: number | null): Promise<void> {
   if (id !== null && articleId.value === null) await router.replace(`/content/article/${id}`)
 }
 
+/**
+ * 自定义字段面板引用
+ *
+ * 字段值挂在**已存在的内容实例**上，所以只能在文章保存拿到 id 之后写 ——
+ * 这也是面板用 `defineExpose` 暴露 `save()`、而不是自带保存按钮的原因。
+ */
+const customFieldsRef = ref<InstanceType<typeof ArticleCustomFieldsPanel> | null>(null)
+
+/**
+ * 保存文章成功后顺带写入自定义字段值
+ *
+ * **字段值失败不回滚文章**：此时文章已经存下了，回滚只会丢掉用户的正文。
+ * 面板内部会给出"文章已保存，但字段值写入失败"的提示，用户可单独重试。
+ * 面板未渲染（当前没有 slug=article 的内容类型）时 `?.` 直接跳过。
+ */
+async function saveCustomFields(id: number | null): Promise<void> {
+  if (id === null) return
+  await customFieldsRef.value?.save(id)
+}
+
 /** 保存但不改变发布状态（Ctrl/Cmd + S 走这里：已发布的文章不会被静默撤回草稿） */
 async function onSave(): Promise<void> {
   const result = await save()
   if (!result.ok) return notifyFailure()
   await replaceToEditIfNew(result.id)
+  await saveCustomFields(result.id ?? articleId.value)
   ElMessage.success(t('admin.content.article.saved'))
 }
 
@@ -95,6 +117,7 @@ async function onPublishNow(): Promise<void> {
   const result = await publishNow()
   if (!result.ok) return notifyFailure()
   await replaceToEditIfNew(result.id)
+  await saveCustomFields(result.id ?? articleId.value)
   ElMessage.success(t('common.published'))
 }
 
@@ -103,6 +126,7 @@ async function onUnpublish(): Promise<void> {
   const result = await saveDraft()
   if (!result.ok) return notifyFailure()
   await replaceToEditIfNew(result.id)
+  await saveCustomFields(result.id ?? articleId.value)
   ElMessage.success(t('admin.content.article.movedToDraft'))
 }
 
@@ -451,6 +475,10 @@ function adoptTag(tag: string): void {
             </el-form-item>
           </el-form>
         </el-card>
+
+        <!-- 自定义字段：按「内容类型（slug=article）的字段定义」动态渲染。
+             没有这样的内容类型时整个面板不渲染，不影响现有写作流程 -->
+        <ArticleCustomFieldsPanel ref="customFieldsRef" :article-id="articleId"/>
 
         <!-- 内容助手：自带 5 个标签页以及各自的「加载中 / 加载失败可重试 / 暂无数据」
              三态，与页面主体没有耦合，独立成组件（此前它连加载态都没有） -->

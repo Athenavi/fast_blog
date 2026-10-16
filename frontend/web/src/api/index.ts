@@ -258,6 +258,14 @@ export {blockPatternApi} from './modules/blockPattern'
 export type {BlockPatternItem, BlockPatternPayload} from './modules/blockPattern'
 
 export {customPostTypeApi} from './modules/customPostType'
+export {
+  searchSettingsApi,
+  type SearchConfig,
+  type SearchConfigPayload,
+  type SearchReindexResult,
+  type SearchStats,
+  type SearchTestResult,
+} from './modules/search'
 export type {
   CustomFieldEntry,
   CustomFieldValues,

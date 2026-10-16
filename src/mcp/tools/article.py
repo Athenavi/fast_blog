@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from shared.models.article import Article, ArticleContent
+from src.api.v3.core.tenancy import site_filter_value
 from src.api.v3.modules.content.approval.guard import (
     ARTICLE_CONTENT_TYPE,
     ensure_new_content_publish_allowed,
@@ -131,12 +132,21 @@ async def search_articles(arguments: dict) -> list:
 
     try:
         from shared.services.integrations.meilisearch_service import meilisearch_service
-        result = await meilisearch_service.search(query=query_text, page=1, per_page=limit)
-        if result and 'articles' in result:
+
+        # 传 site_id：搜索引擎侧**不会**自动按站点收窄（见 `search()` 的 fail-safe
+        # 说明），漏传的后果是"搜不到本占文档"，而不是"搜到别站的"。
+        result = await meilisearch_service.search(
+            query=query_text, page=1, per_page=limit, site_id=site_filter_value(Article)
+        )
+        # 空结果必须**回退数据库**：`{'articles': []}` 也是 truthy，
+        # 用 `result.get('articles')` 判断（空列表 falsy）—— 否则索引为空时
+        # 搜索会静默返回空结果，而库里明明有文章。
+        hits = (result or {}).get('articles') or []
+        if hits:
             return [{"id": h.get("id"), "title": h.get("title", ""),
                      "excerpt": h.get("excerpt", ""), "slug": h.get("slug", ""),
                      "category_name": h.get("category_name", ""), "author_name": h.get("author_name", "")}
-                    for h in result['articles']]
+                    for h in hits]
     except Exception:
         pass
 

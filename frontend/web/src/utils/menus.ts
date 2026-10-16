@@ -120,6 +120,12 @@ export const ADMIN_MENUS: AdminMenuItem[] = [
         permission: 'module_system:permission:view'
       },
       {name: 'SettingList', path: '/system/setting', title: '系统设置', permission: 'module_system:setting:view'},
+      {
+        name: 'SearchSettings',
+        path: '/system/search',
+        title: '搜索设置',
+        permission: 'module_system:setting:view'
+      },
       {name: 'LogList', path: '/system/log', title: '日志', permission: 'module_system:log:view'},
       {name: 'CacheManage', path: '/system/cache', title: '缓存', permission: 'module_system:cache:view'},
       {

@@ -823,6 +823,27 @@
       "levelL3": "L3 · 文件"
     },
     "system": {
+      "search": {
+        "title": "搜索设置",
+        "desc": "配置 Meilisearch 全文搜索连接；保存后立即生效，无需重启",
+        "enabled": "启用搜索引擎",
+        "enabledHint": "关闭后搜索直接回退数据库，不再尝试连接 Meilisearch",
+        "host": "服务地址",
+        "envHint": "环境变量侧配置：{host}（数据库配置优先于环境变量）",
+        "indexName": "索引名",
+        "apiKey": "API 密钥",
+        "apiKeyKeep": "留空表示保持已保存的密钥不变",
+        "apiKeyEmpty": "尚未配置密钥",
+        "clearApiKey": "清空已保存的密钥",
+        "test": "测试连接",
+        "testOk": "连接成功（v{version}，{ms}ms）",
+        "reindex": "重建索引",
+        "available": "引擎可用",
+        "documents": "文档数",
+        "indexing": "正在建索引",
+        "loadFailed": "读取搜索配置失败",
+        "saved": "搜索配置已保存"
+      },
       "monitoring": {
         "title": "监控中心",
         "alerts": "告警",
@@ -2538,6 +2559,16 @@
         "wordCount": "{n} 字",
         "summaryAndSeo": "摘要与别名",
         "aliasHint": "留空则由后端按标题生成；发布后再改动会使旧链接失效",
+        "customFields": {
+          "title": "自定义字段",
+          "loadFailed": "自定义字段加载失败，请稍后重试",
+          "saveFirst": "保存文章后即可填写自定义字段",
+          "selectPlaceholder": "请选择",
+          "saveFailed": "文章已保存，但自定义字段写入失败",
+          "richtextHint": "字段值按纯文本存储，富文本请写在正文里",
+          "relationHint": "填写 {target} 的标识（如 ID 或 slug）",
+          "requiredHint": "此字段为必填"
+        },
         "previewFullscreen": "全屏预览",
         "previewExitFullscreen": "退出全屏",
         "openInNewTab": "在新标签打开",
@@ -4941,6 +4972,7 @@
     }
   },
   "menu": {
+    "SearchSettings": "搜索设置",
     "Dashboard": "仪表盘",
     "CustomFieldValues": "字段值",
     "CollabEditor": "协同编辑",

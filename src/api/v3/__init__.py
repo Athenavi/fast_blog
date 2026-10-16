@@ -65,6 +65,9 @@ DOMAIN_MODULES: dict[str, tuple[str, ...]] = {
         "quota",
         "role",
         "screen_options",
+        # 全文搜索连接配置（后台可改 Meilisearch 地址；配置存 system_settings 的
+        # `search.meilisearch` 键，与 oauth.providers 同一约定，不进迁移）
+        "search",
         "security",
         "sensitive_word",
         "setting",

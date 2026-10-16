@@ -823,6 +823,27 @@
       "levelL3": "L3 · Files"
     },
     "system": {
+      "search": {
+        "title": "Search settings",
+        "desc": "Configure the Meilisearch connection; changes take effect immediately",
+        "enabled": "Enable search engine",
+        "enabledHint": "When off, search falls back to the database without contacting Meilisearch",
+        "host": "Server URL",
+        "envHint": "Configured via environment: {host} (database config takes precedence)",
+        "indexName": "Index name",
+        "apiKey": "API key",
+        "apiKeyKeep": "Leave blank to keep the saved key unchanged",
+        "apiKeyEmpty": "No key configured yet",
+        "clearApiKey": "Clear the saved key",
+        "test": "Test connection",
+        "testOk": "Connected (v{version}, {ms}ms)",
+        "reindex": "Rebuild index",
+        "available": "Engine available",
+        "documents": "Documents",
+        "indexing": "Indexing",
+        "loadFailed": "Failed to load search settings",
+        "saved": "Search settings saved"
+      },
       "monitoring": {
         "title": "Monitoring Center",
         "alerts": "Alerts",
@@ -2538,6 +2559,16 @@
         "wordCount": "{n} characters",
         "summaryAndSeo": "Summary & slug",
         "aliasHint": "Leave blank to let the backend derive it from the title; changing it after publishing breaks existing links",
+        "customFields": {
+          "title": "Custom fields",
+          "loadFailed": "Failed to load custom fields, please retry",
+          "saveFirst": "Save the article to fill in custom fields",
+          "selectPlaceholder": "Select",
+          "saveFailed": "Article saved, but writing custom fields failed",
+          "richtextHint": "Field values are stored as plain text; put rich text in the body instead",
+          "relationHint": "Enter the identifier of {target} (e.g. ID or slug)",
+          "requiredHint": "This field is required"
+        },
         "previewFullscreen": "Fullscreen preview",
         "previewExitFullscreen": "Exit fullscreen",
         "openInNewTab": "Open in new tab",
@@ -4941,6 +4972,7 @@
     }
   },
   "menu": {
+    "SearchSettings": "Search settings",
     "Dashboard": "Dashboard",
     "CustomFieldValues": "Field values",
     "CollabEditor": "Collaborative editing",

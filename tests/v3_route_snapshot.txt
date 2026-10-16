@@ -492,6 +492,8 @@ GET /api/v3/system/role/{role_id}
 GET /api/v3/system/role/{role_id}/permissions
 GET /api/v3/system/screen-options
 GET /api/v3/system/screen-options/{page}
+GET /api/v3/system/search/config
+GET /api/v3/system/search/stats
 GET /api/v3/system/security/anomalies
 GET /api/v3/system/security/attempts
 GET /api/v3/system/security/blacklist
@@ -785,6 +787,8 @@ POST /api/v3/system/permission/check
 POST /api/v3/system/quota/{site_id}/check
 POST /api/v3/system/role
 POST /api/v3/system/role/create
+POST /api/v3/system/search/reindex
+POST /api/v3/system/search/test
 POST /api/v3/system/security/report/archive
 POST /api/v3/system/sensitive-word
 POST /api/v3/system/sensitive-word/batch/import
@@ -901,6 +905,7 @@ PUT /api/v3/system/role/update/{role_id}
 PUT /api/v3/system/role/{role_id}
 PUT /api/v3/system/role/{role_id}/permissions
 PUT /api/v3/system/screen-options/{page}
+PUT /api/v3/system/search/config
 PUT /api/v3/system/security/anomalies/thresholds
 PUT /api/v3/system/sensitive-word/{word_id}
 PUT /api/v3/system/setting
