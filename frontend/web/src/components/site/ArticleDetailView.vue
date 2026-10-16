@@ -17,6 +17,7 @@ import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 
 import {mobileApi} from '@/api/public'
 import type {ArticleDetail, ArticleItem} from '@/types/content'
+import {renderMarkdown} from '@/utils/markdown'
 import {useReadingPrefs} from '@/composables/useReadingPrefs'
 import {useUserStore} from '@/store/modules/user'
 import {formatDate} from '@/utils/format'
@@ -101,7 +102,9 @@ function slugify(text: string): string {
  */
 const processed = computed<{ html: string; headings: TocHeading[] }>(() => {
   const headings: TocHeading[] = []
-  const html = (content.value || '').replace(
+  // 正文在库里存的是 **Markdown**，必须先在转成 HTML 之后再做标题锚点处理 ——
+  // 下面的正则是按 `<h2>` 匹配的，直接喂 Markdown 会一个都匹配不到。
+  const html = renderMarkdown(content.value).replace(
     /<h([23])\b([^>]*)>([\s\S]*?)<\/h\1>/gi,
     (match, level: string, attrs: string, inner: string) => {
       const text = String(inner)

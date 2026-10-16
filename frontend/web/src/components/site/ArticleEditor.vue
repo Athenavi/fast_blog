@@ -15,7 +15,7 @@ import {useArticleForm} from '@/composables/useArticleForm'
 import {useSaveShortcut} from '@/composables/useSaveShortcut'
 import {formatDateTime} from '@/utils/format'
 
-const props = defineProps<{ articleId?: number }>()
+const props = defineProps<{ articleId?: number; hideBody?: boolean }>()
 const emit = defineEmits<{ (e: 'saved', id: number): void }>()
 
 const {t} = useI18n()
@@ -216,7 +216,11 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div>
+      <!--
+        正文区。协作态下由外层隐藏（`hideBody`）并交给 CollabEditor ——
+        同一条正文不能同时被两个编辑器持有，否则保存时必然互相覆盖。
+      -->
+      <div v-if="!hideBody">
         <div class="mb-1.5 flex items-center justify-between">
           <label class="block text-sm font-medium text-fg">{{ $t('myPosts.fieldContent') }}</label>
           <div class="flex items-center gap-1 rounded-control bg-surface-soft p-0.5 text-xs">
@@ -252,7 +256,9 @@ onMounted(async () => {
       <p v-if="error" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">{{ error }}</p>
       <p v-else-if="message" class="rounded-control bg-success-soft px-3 py-2 text-sm text-success">{{ message }}</p>
 
-      <div class="flex items-center justify-end gap-2 pt-1">
+      <!-- 协作态隐藏本组按钮：此时保存正文是协作条的职责（走 yjs 快照），
+           这里的提交会用旧的 form.content 覆盖协作内容。 -->
+      <div v-if="!hideBody" class="flex items-center justify-end gap-2 pt-1">
         <NuxtLink to="/my/posts">
           <Button type="button" variant="outline">{{ $t('myPosts.cancel') }}</Button>
         </NuxtLink>

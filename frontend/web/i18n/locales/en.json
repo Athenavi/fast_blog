@@ -2473,7 +2473,12 @@
         "placeholder": "Type here — edits sync to other collaborators…",
         "save": "Save to article",
         "saved": "Saved to the article body",
-        "seedFailed": "Could not read the existing body; starting from an empty document"
+        "seedFailed": "Could not read the existing body; starting from an empty document",
+        "source": "Markdown source",
+        "preview": "Live preview",
+        "charCount": "{count} characters",
+        "inviteCreated": "Invite link generated — copy and send it to collaborators",
+        "inviteMissingCode": "Backend did not return an invite code, please retry"
       },
       "customFieldValues": {
         "title": "Custom field values",
@@ -5093,6 +5098,33 @@
     "notFound": "User not found"
   },
   "myPosts": {
+    "collab": {
+      "title": "Collaborative editing",
+      "hint": "Turns the body into Markdown source + live preview with multi-user sync. Maintain other fields after leaving collaboration.",
+      "hours": "Valid for (hours)",
+      "maxUses": "Max collaborators",
+      "start": "Start collaboration",
+      "stop": "End collaboration",
+      "copy": "Copy link",
+      "copied": "Invite link copied",
+      "copyFailed": "Copy failed, please select the link manually",
+      "online": "{count} online",
+      "joinedAsGuest": "You joined via an invite link and can only edit the body",
+      "saveToArticle": "Save to article",
+      "connecting": "Connecting",
+      "connected": "Connected (waiting for sync)",
+      "synced": "Synced",
+      "disconnected": "Disconnected",
+      "rejected": "Rejected",
+      "source": "Markdown source",
+      "preview": "Live preview",
+      "charCount": "{count} characters",
+      "placeholder": "Edit the body together with other collaborators…",
+      "saved": "Saved to the article body",
+      "inviteCreated": "Invite link generated — copy and send it to collaborators",
+      "inviteMissingCode": "Backend did not return an invite code, please retry",
+      "seedFailed": "Could not read the existing body; collaboration starts from an empty document"
+    },
     "title": "My articles",
     "filterDraft": "Drafts",
     "filterPublished": "Published",

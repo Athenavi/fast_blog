@@ -193,6 +193,57 @@
   margin: 0;
 }
 
+/* ── 深色模式适配 ───────────────────────────────────────
+ *
+ * 站点深浅色由 useTheme() 在 **html** 上写 `[data-theme='dark']`，并用
+ * `--color-canvas` / `--color-fg` / `--color-surface` 换色。
+ *
+ * 但本主题的 `--color-background` / `--color-foreground` 来自**主题设置**，
+ * 它们**不随深浅色变化** —— 不写这个块，主题的浅底深字在深色模式下就是
+ * "白底刺眼、字看不清"，表现上等于深色切换失效。
+ *
+ * 处理办法：**底色与正文色改用站点的语义令牌**（自动跟随深浅色），
+ * 卡片/标签改用站点 surface 令牌；主题的品牌色（主色/强调色）保持不变。
+ */
+
+[data-active-theme='wordpress'][data-theme='dark'] {
+  color: var(--color-fg, #f0f0f1);
+  background: var(--color-canvas, #1d2327);
+}
+
+[data-active-theme='wordpress'][data-theme='dark'] h1,
+[data-active-theme='wordpress'][data-theme='dark'] h2,
+[data-active-theme='wordpress'][data-theme='dark'] h3,
+[data-active-theme='wordpress'][data-theme='dark'] h4 {
+  color: var(--color-fg, #f0f0f1);
+}
+
+[data-active-theme='wordpress'][data-theme='dark'] .t-card {
+  border-color: var(--color-line, #3c434a);
+  background: var(--color-surface, #2c3338);
+}
+
+[data-active-theme='wordpress'][data-theme='dark'] .t-muted,
+[data-active-theme='wordpress'][data-theme='dark'] .t-widget__link,
+[data-active-theme='wordpress'][data-theme='dark'] .t-widget__count {
+  color: var(--color-fg-muted, #c3c4c7);
+}
+
+[data-active-theme='wordpress'][data-theme='dark'] .t-tag {
+  border-color: var(--color-line, #3c434a);
+  background: var(--color-surface-soft, #3c434a);
+  color: var(--color-fg-muted, #c3c4c7);
+}
+
+[data-active-theme='wordpress'][data-theme='dark'] .t-widget__title {
+  color: var(--color-fg, #f0f0f1);
+  border-bottom-color: var(--color-line, #3c434a);
+}
+
+[data-active-theme='wordpress'][data-theme='dark'] .t-divider {
+  border-top-color: var(--color-line, #3c434a);
+}
+
 /* ── 减少动效 ───────────────────────────────────────────
  *
  * WordPress 规范要求尊重系统的「减少动效」。这里统一关掉，

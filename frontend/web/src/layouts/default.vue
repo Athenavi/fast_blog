@@ -40,6 +40,16 @@ const themeSlug = useThemeSlug()
  * 空值时不注入任何 `<style>`，而不是塞空标签。
  */
 useHead({
+  // 挂在 **`html`**（不是根 div）：深色的 `[data-theme]` 由 useTheme() 写在 html 上，
+  // 两者同层，主题才能写 `[data-active-theme='x'][data-theme='dark']` 适配深色。
+  // 与 app.vue 禁止声明 data-theme 不冲突：那条针对**用户级**状态（会被 swr 缓存串号），
+  // 这里的 slug 是**服务器级**数据。
+  // 这里刻意**不用** computed：unhead 的 htmlAttrs 类型不接受 Ref，
+  // 而 themeSlug 是服务器级数据（SSR 时确定、同一份发给所有访问者），
+  // 无需响应式 —— 换主题本身就要重新取 bootstrap。
+  htmlAttrs: {
+    'data-active-theme': themeSlug.value ?? '',
+  },
   style: computed(() => {
     const blocks: Array<{ innerHTML: string }> = []
     if (themeVariables.value) blocks.push({innerHTML: themeVariables.value})
@@ -51,23 +61,13 @@ useHead({
 
 <template>
   <!--
-    布局契约（参考 Halo 2.26 的 `layout.html`）：把当前主题 slug 挂到根元素上，
-    主题的 styles.css 便能定向 `.theme-<slug> ...`，页头/页脚/内容区都在它的作用域内。
+    布局契约（参考 Halo 2.26 的 `layout.html`）：主题 slug 挂在 **`html`** 上
+    （见 script 的 `useHead({htmlAttrs})`），主题 styles.css 便能定向
+    `[data-active-theme='<slug>']`，且与深色的 `[data-theme]` **同层**、可适配深色。
 
-    这是"插件前台页面复用当前主题页头页脚与样式、无需重复实现"的锚点 ——
-    主题因此**不需要**在自己的 templates 里声明 site-header / site-footer（那会画两遍）。
-
-    ⚠️ 属性名是 `data-active-theme` 而不是 `data-theme`：后者**已被深浅色模式占用**
-    （`useTheme.ts` 往 `html` 上写 `light`/`dark`/`system`，`styles/index.css:75` 有
-    `[data-theme='dark']` 规则）。用同一个名字会让两个概念撞车，
-    任何 `[data-theme]` 选择器都可能误命中。
-
-    `themeSlug` 是**服务器级**数据（同一份发给所有访问者），可安全 SSR 直出。
+    主题因此不需要在 templates 里声明 site-header / site-footer（那会画两遍）。
   -->
-  <div
-    :data-active-theme="themeSlug ?? undefined"
-    class="flex min-h-dvh flex-col bg-canvas pb-16 md:pb-0"
-  >
+  <div class="flex min-h-dvh flex-col bg-canvas pb-16 md:pb-0">
     <!-- 跳过导航直达正文：键盘用户按第一下 Tab 就能越过整条导航（WCAG 2.4.1）。
          平时移出视口，获得焦点时滑入 —— 见 styles/index.css 的 .skip-link。 -->
     <a class="skip-link" href="#main-content">{{ $t('site.skipToContent') }}</a>

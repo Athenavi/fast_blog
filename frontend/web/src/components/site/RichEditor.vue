@@ -2,6 +2,8 @@
 import {EditorContent, useEditor} from '@tiptap/vue-3'
 import {marked} from 'marked'
 import {computed, onBeforeUnmount, onMounted, ref, watch} from 'vue'
+import {serializeMarkdown} from '@/utils/tiptap-markdown'
+import {renderMarkdown} from '@/utils/markdown'
 
 import {createEditorExtensions} from '@/components/editor/extensions'
 import {buildToolbarGroups, EDITOR_SHORTCUTS} from '@/components/editor/tools'
@@ -98,7 +100,7 @@ const editor = useEditor({
       return true // 已处理，阻止默认的粘贴
     },
   },
-  onUpdate: ({editor: instance}) => emit('update:modelValue', instance.getHTML()),
+  onUpdate: ({editor: instance}) => emit('update:modelValue', serializeMarkdown(instance.getJSON() as never)),
 })
 
 /** 外部改动（如切换文章/重置表单）时同步进编辑器，且不回灌 update 事件 */
@@ -107,7 +109,9 @@ watch(
   (value) => {
     const instance = editor.value
     if (!instance) return
-    if (value !== instance.getHTML()) instance.commands.setContent(value, {emitUpdate: false})
+    if (value !== serializeMarkdown(instance.getJSON() as never)) {
+      instance.commands.setContent(renderMarkdown(value), {emitUpdate: false})
+    }
   },
 )
 

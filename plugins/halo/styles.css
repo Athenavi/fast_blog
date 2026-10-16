@@ -179,6 +179,49 @@
   margin: 0;
 }
 
+/* ── 深色模式适配 ───────────────────────────────────────
+ *
+ * 站点深浅色由 useTheme() 在 **html** 上写 `[data-theme='dark']` 并用
+ * `--color-canvas` / `--color-fg` / `--color-surface` 换色；而本主题的
+ * `--color-background` / `--color-foreground` 来自**主题设置**、不随深浅色变化。
+ *
+ * 不写这个块，Halo 的白色大卡片在深色模式下会变成刺眼亮块 —— 等于深色失效。
+ */
+
+[data-active-theme='halo'][data-theme='dark'] {
+  color: var(--color-fg, #f1f5f9);
+  background: var(--color-canvas, #0f172a);
+}
+
+[data-active-theme='halo'][data-theme='dark'] h1,
+[data-active-theme='halo'][data-theme='dark'] h2,
+[data-active-theme='halo'][data-theme='dark'] h3 {
+  color: var(--color-fg, #f1f5f9);
+}
+
+[data-active-theme='halo'][data-theme='dark'] .t-card {
+  border-color: var(--color-line, #334155);
+  background: var(--color-surface, #1e293b);
+}
+
+[data-active-theme='halo'][data-theme='dark'] .t-muted,
+[data-active-theme='halo'][data-theme='dark'] .t-widget__link {
+  color: var(--color-fg-muted, #94a3b8);
+}
+
+[data-active-theme='halo'][data-theme='dark'] .t-tag {
+  background: var(--color-surface-soft, #334155);
+  color: var(--color-fg-muted, #94a3b8);
+}
+
+[data-active-theme='halo'][data-theme='dark'] .t-widget__title {
+  color: var(--color-fg, #f1f5f9);
+}
+
+[data-active-theme='halo'][data-theme='dark'] .t-divider {
+  border-top-color: var(--color-line, #334155);
+}
+
 /* ── 减少动效 ─────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

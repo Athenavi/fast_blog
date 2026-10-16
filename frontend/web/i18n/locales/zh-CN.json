@@ -2473,7 +2473,12 @@
         "placeholder": "在这里与其他协作者同步编辑正文…",
         "save": "保存到文章",
         "saved": "已保存到文章正文",
-        "seedFailed": "未能读取文章现有正文，本次以空文档开始"
+        "seedFailed": "未能读取文章现有正文，本次以空文档开始",
+        "source": "Markdown 源码",
+        "preview": "实时预览",
+        "charCount": "{count} 字符",
+        "inviteCreated": "邀请链接已生成，复制后发给协作者",
+        "inviteMissingCode": "后端未返回邀请码，请重试"
       },
       "customFieldValues": {
         "title": "自定义字段值",
@@ -5093,6 +5098,33 @@
     "notFound": "用户不存在"
   },
   "myPosts": {
+    "collab": {
+      "title": "协作编辑",
+      "hint": "开启后正文切换为 Markdown 源码 + 实时预览，多人同步编辑。其余字段退出协作后再维护。",
+      "hours": "有效期（小时）",
+      "maxUses": "人数上限",
+      "start": "开启协作",
+      "stop": "结束协作",
+      "copy": "复制链接",
+      "copied": "邀请链接已复制",
+      "copyFailed": "复制失败，请手动选择链接",
+      "online": "{count} 人在线",
+      "joinedAsGuest": "你通过邀请链接加入，只能编辑正文",
+      "saveToArticle": "保存到文章",
+      "connecting": "连接中",
+      "connected": "已连接（等待同步）",
+      "synced": "已同步",
+      "disconnected": "已断开",
+      "rejected": "被拒绝",
+      "source": "Markdown 源码",
+      "preview": "实时预览",
+      "charCount": "{count} 字符",
+      "placeholder": "在这里与其他协作者同步编辑正文…",
+      "saved": "已保存到文章正文",
+      "inviteCreated": "邀请链接已生成，复制后发给协作者",
+      "inviteMissingCode": "后端未返回邀请码，请重试",
+      "seedFailed": "未能读取文章现有正文，协作以空文档开始"
+    },
     "title": "我的文章",
     "filterDraft": "草稿",
     "filterPublished": "已发布",
