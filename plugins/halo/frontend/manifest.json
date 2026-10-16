@@ -1,0 +1,19 @@
+{
+  "name": "Halo Style",
+  "slug": "halo",
+  "version": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/plugin-pages/halo",
+      "component": "./admin/ConfigPage.vue",
+      "title": "Halo Style"
+    }
+  ],
+  "navItems": [
+    {
+      "label": "Halo Style",
+      "href": "/admin/plugin-pages/halo",
+      "icon": "Palette"
+    }
+  ]
+}

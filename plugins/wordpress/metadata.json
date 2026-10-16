@@ -1,0 +1,16 @@
+{
+  "name": "WordPress Style",
+  "slug": "wordpress",
+  "version": "1.0.0",
+  "description": "经典博客风：顶部导航 + 主栏/侧栏两列、文章列表带摘要、文章页带标签与相关文章",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "category": "theme",
+  "screenshot": "screenshot.svg",
+  "supports": [
+    "featured-image",
+    "post-thumbnails",
+    "comments",
+    "widgets"
+  ]
+}

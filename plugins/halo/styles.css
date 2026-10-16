@@ -1,0 +1,198 @@
+/**
+ * Halo 主题样式
+ *
+ * 参考 Halo 的现代博客观感与它的实现机制（**设计令牌 + 组件化**）：
+ *   - **单栏居中**：内容宽度受限，靠留白而非分隔线建立节奏
+ *   - **大圆角卡片 + 层次阴影**：Halo 卡片最鲜明的特征，悬停时轻微抬升
+ *   - **宽松间距**：尺度的 2xl/3xl 明显大于 WordPress（更"呼吸"）
+ *   - **强调排版层次**：标题字重 700，正文行高 1.75
+ *   - **胶囊标签**：分类/标签一律圆角全开
+ *   - **焦点可见 + 尊重 `prefers-reduced-motion`**
+ *
+ * ## 设计令牌
+ *
+ * 颜色/字号尺度/间距尺度/圆角/阴影**全部由后端按主题设置注入 `:root`**
+ * （`theme/variables.py` 的白名单），本文件只**引用** —— 这是 Halo 那套
+ * "主题用 CSS 变量换肤"在本项目的对应实现。写死颜色会让后台配置项变成摆设。
+ *
+ * ## 命名空间
+ *
+ * 所有选择器限定在 `[data-active-theme='halo']` 下（布局契约挂的钩子），
+ * 不会外溢到别的主题或后台。
+ */
+
+/* ── 基础排版 ───────────────────────────────────────────── */
+
+[data-active-theme='halo'] {
+  font-family: var(--font-family, Inter, ui-sans-serif, system-ui, sans-serif);
+  font-size: var(--font-size, 16px);
+  line-height: var(--line-height, 1.75);
+  color: var(--color-foreground, #0f172a);
+  background: var(--color-background, #ffffff);
+}
+
+[data-active-theme='halo'] h1,
+[data-active-theme='halo'] h2,
+[data-active-theme='halo'] h3 {
+  font-weight: var(--heading-font-weight, 700);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--color-foreground, #0f172a);
+}
+
+[data-active-theme='halo'] h1 {
+  font-size: var(--text-2xl, 2.5rem);
+}
+
+[data-active-theme='halo'] h2 {
+  font-size: var(--text-xl, 1.75rem);
+}
+
+[data-active-theme='halo'] h3 {
+  font-size: var(--text-lg, 1.25rem);
+  letter-spacing: -0.01em;
+}
+
+[data-active-theme='halo'] a {
+  color: var(--color-primary, #4f46e5);
+  text-decoration: none;
+}
+
+[data-active-theme='halo'] a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── 焦点可见 ───────────────────────────────────────────── */
+
+[data-active-theme='halo'] a:focus-visible,
+[data-active-theme='halo'] button:focus-visible,
+[data-active-theme='halo'] input:focus-visible,
+[data-active-theme='halo'] [tabindex]:focus-visible {
+  outline: var(--focus-width, 2px) solid var(--focus-color, #4f46e5);
+  outline-offset: var(--focus-offset, 3px);
+  border-radius: var(--radius, 0.75rem);
+}
+
+/* ── 卡片：Halo 最鲜明的观感 ─────────────────────────────
+ *
+ * 大圆角 + 极浅描边 + 柔和阴影，悬停时抬升 2px、阴影加深。
+ * 过渡时长走 `--motion-duration` 令牌（Halo 默认 200ms，比 WP 稍慢因而更"柔"）。
+ */
+
+[data-active-theme='halo'] .t-card {
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: var(--radius, 0.75rem);
+  background: var(--color-background, #ffffff);
+  box-shadow: var(--shadow, 0 4px 12px rgb(0 0 0 / 0.08));
+  padding: var(--space-lg, 24px);
+  transition: transform var(--motion-duration, 200ms) var(--motion-easing, ease),
+  box-shadow var(--motion-duration, 200ms) var(--motion-easing, ease);
+}
+
+[data-active-theme='halo'] .t-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.1);
+}
+
+[data-active-theme='halo'] .t-card h3 {
+  margin-bottom: var(--space-sm, 8px);
+}
+
+[data-active-theme='halo'] .t-muted {
+  color: var(--color-secondary, #64748b);
+}
+
+/* 胶囊标签（Halo 的分类/标签一律圆角全开） */
+[data-active-theme='halo'] .t-tag {
+  display: inline-block;
+  padding: var(--space-xs, 4px) var(--space-md, 16px);
+  border-radius: 9999px;
+  background: var(--color-muted, #f8fafc);
+  color: var(--color-secondary, #64748b);
+  font-size: var(--text-sm, 0.875rem);
+  transition: background var(--motion-duration, 200ms) var(--motion-easing, ease);
+}
+
+[data-active-theme='halo'] .t-tag:hover {
+  background: var(--color-border, #e2e8f0);
+  text-decoration: none;
+}
+
+[data-active-theme='halo'] .t-button {
+  display: inline-block;
+  padding: var(--space-sm, 8px) var(--space-lg, 24px);
+  border: none;
+  border-radius: var(--button-radius, 0.75rem);
+  background: var(--color-primary, #4f46e5);
+  color: #ffffff;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter var(--motion-duration, 200ms) var(--motion-easing, ease);
+}
+
+[data-active-theme='halo'] .t-button:hover {
+  filter: brightness(0.95);
+  text-decoration: none;
+}
+
+[data-active-theme='halo'] .t-divider {
+  border: none;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  margin: var(--space-2xl, 56px) 0;
+}
+
+/* ── 侧栏小工具（保持同一套观感）─────────────────────────── */
+
+[data-active-theme='halo'] .t-widget + .t-widget {
+  margin-top: var(--space-xl, 32px);
+}
+
+[data-active-theme='halo'] .t-widget__title {
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
+  color: var(--color-foreground, #0f172a);
+  margin-bottom: var(--space-md, 16px);
+}
+
+[data-active-theme='halo'] .t-widget__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md, 16px);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+[data-active-theme='halo'] .t-widget__link {
+  color: var(--color-secondary, #64748b);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+[data-active-theme='halo'] .t-widget__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm, 8px);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── 减少动效 ─────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-active-theme='halo'] *,
+  [data-active-theme='halo'] *::before,
+  [data-active-theme='halo'] *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* 悬停抬升一并取消：位移对前庭敏感用户最不友好 */
+  [data-active-theme='halo'] .t-card:hover {
+    transform: none;
+  }
+}

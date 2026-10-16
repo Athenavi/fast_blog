@@ -1,0 +1,211 @@
+/**
+ * WordPress 主题样式
+ *
+ * 严格按 WordPress 设计语言实现（参考 WordPress Design Handbook / Gutenberg 设计系统）：
+ *   - **系统字体栈**：跨平台一致、零加载成本
+ *   - **8px 基础网格**：用 `--space-*` 令牌，不写魔法数字
+ *   - **小圆角（2–4px）+ 细边框 + 轻阴影**：工具化、中性，不做重拟物
+ *   - **字重只用 400/500/600**：建立层次而不喧哗
+ *   - **焦点清晰可见**：2px 轮廓（WCAG 2.4.13）
+ *   - **动效 100–200ms，且尊重 `prefers-reduced-motion`**
+ *
+ * ## 颜色/令牌从哪来
+ *
+ * 全部由后端按主题设置注入 `:root`（`theme/variables.py` 的白名单），本文件只**引用**。
+ * 写死颜色会让后台配置项变成摆设 —— 那正是本次重构要消灭的东西。
+ * 每个变量都带兜底值：后端未注入时页面仍应可读。
+ *
+ * ## 命名空间
+ *
+ * 所有选择器限定在 `[data-active-theme='wordpress']` 下（布局契约挂的钩子），
+ * 主题样式因此不会外溢到别的主题或后台。
+ */
+
+/* ── 基础排版 ───────────────────────────────────────────── */
+
+[data-active-theme='wordpress'] {
+  font-family: var(--font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-size: var(--font-size, 16px);
+  line-height: var(--line-height, 1.5);
+  color: var(--color-foreground, #1d2327);
+  background: var(--color-background, #ffffff);
+}
+
+/* 字重只用 400/500/600（WordPress 规范），不引入 700+ 的粗黑 */
+[data-active-theme='wordpress'] h1,
+[data-active-theme='wordpress'] h2,
+[data-active-theme='wordpress'] h3,
+[data-active-theme='wordpress'] h4 {
+  font-weight: var(--heading-font-weight, 600);
+  line-height: 1.3;
+  color: var(--color-foreground, #1d2327);
+}
+
+[data-active-theme='wordpress'] h1 {
+  font-size: var(--text-2xl, 2rem);
+}
+
+[data-active-theme='wordpress'] h2 {
+  font-size: var(--text-xl, 1.5rem);
+}
+
+[data-active-theme='wordpress'] h3 {
+  font-size: var(--text-lg, 1.25rem);
+}
+
+[data-active-theme='wordpress'] a {
+  color: var(--color-primary, #2271b1);
+  text-decoration: none;
+}
+
+[data-active-theme='wordpress'] a:hover {
+  text-decoration: underline;
+}
+
+/* ── 焦点可见（WCAG 2.4.13：轮廓 ≥2px、对比度 ≥3:1）──────── */
+
+[data-active-theme='wordpress'] a:focus-visible,
+[data-active-theme='wordpress'] button:focus-visible,
+[data-active-theme='wordpress'] input:focus-visible,
+[data-active-theme='wordpress'] [tabindex]:focus-visible {
+  outline: var(--focus-width, 2px) solid var(--focus-color, #2271b1);
+  outline-offset: var(--focus-offset, 2px);
+}
+
+/* ── 组件：WordPress 的「小圆角 + 细描边 + 轻阴影」──────── */
+
+[data-active-theme='wordpress'] .t-card {
+  border: 1px solid var(--color-border, #dcdcde);
+  border-radius: var(--radius, 3px);
+  background: var(--color-background, #ffffff);
+  box-shadow: var(--shadow, 0 1px 2px rgb(0 0 0 / 0.05));
+  padding: var(--space-md, 16px);
+}
+
+[data-active-theme='wordpress'] .t-muted {
+  color: var(--color-secondary, #50575e);
+}
+
+[data-active-theme='wordpress'] .t-tag {
+  display: inline-block;
+  padding: var(--space-xs, 4px) var(--space-sm, 8px);
+  border: 1px solid var(--color-border, #dcdcde);
+  border-radius: var(--radius, 3px);
+  background: var(--color-muted, #f6f7f7);
+  color: var(--color-secondary, #50575e);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+[data-active-theme='wordpress'] .t-button {
+  display: inline-block;
+  padding: var(--space-sm, 8px) var(--space-md, 16px);
+  border: 1px solid var(--color-primary, #2271b1);
+  border-radius: var(--button-radius, var(--radius, 3px));
+  background: var(--color-primary, #2271b1);
+  color: #ffffff;
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 500;
+  cursor: pointer;
+  transition: filter var(--motion-duration, 150ms) var(--motion-easing, ease);
+}
+
+[data-active-theme='wordpress'] .t-button:hover {
+  filter: brightness(0.92);
+  text-decoration: none;
+}
+
+[data-active-theme='wordpress'] .t-divider {
+  border: none;
+  border-top: 1px solid var(--color-border, #dcdcde);
+  margin: var(--space-lg, 24px) 0;
+}
+
+/* ── 布局契约：主栏 + 侧栏 ───────────────────────────────
+ *
+ * HomePage / ArchivePage 用 `columns(3)` 排出 3 列：主栏跨 2 列、侧栏占 1 列。
+ *
+ * `sidebar` 区块自带固定宽度类（`md:w-72` 之类），放进网格会与列宽冲突 ——
+ * 所以这里显式覆盖成 `auto`，**让网格决定宽度**。
+ *
+ * 窄屏（<md）`columns` 区块已退化为单列，这里只需清掉跨列。
+ */
+
+[data-active-theme='wordpress'] .wp-sidebar {
+  width: auto;
+}
+
+@media (min-width: 768px) {
+  [data-active-theme='wordpress'] .wp-primary {
+    grid-column: span 2;
+  }
+
+  [data-active-theme='wordpress'] .wp-sidebar {
+    grid-column: span 1;
+    max-width: none;
+  }
+}
+
+/* ── 侧栏小工具（WP 右侧栏的经典观感）────────────────────── */
+
+[data-active-theme='wordpress'] .t-widget + .t-widget {
+  margin-top: var(--space-xl, 32px);
+}
+
+[data-active-theme='wordpress'] .t-widget__title {
+  font-size: var(--text-base, 1rem);
+  font-weight: 600;
+  color: var(--color-foreground, #1d2327);
+  padding-bottom: var(--space-sm, 8px);
+  margin-bottom: var(--space-sm, 8px);
+  border-bottom: 1px solid var(--color-border, #dcdcde);
+}
+
+[data-active-theme='wordpress'] .t-widget__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm, 8px);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+[data-active-theme='wordpress'] .t-widget__link {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm, 8px);
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--color-secondary, #50575e);
+}
+
+[data-active-theme='wordpress'] .t-widget__count {
+  flex-shrink: 0;
+  color: var(--color-secondary, #646970);
+  font-size: 0.8125rem;
+}
+
+[data-active-theme='wordpress'] .t-widget__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs, 4px);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* ── 减少动效 ───────────────────────────────────────────
+ *
+ * WordPress 规范要求尊重系统的「减少动效」。这里统一关掉，
+ * 而不是逐个组件判断 —— 漏一个都会让前庭敏感用户难受。
+ */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-active-theme='wordpress'] *,
+  [data-active-theme='wordpress'] *::before,
+  [data-active-theme='wordpress'] *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

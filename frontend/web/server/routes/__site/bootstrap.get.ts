@@ -46,8 +46,21 @@ interface BootstrapPayload {
    * 参与直出会被公开页的 swr 边缘缓存串号（见 `app.vue` 的说明）。
    */
   themeCss: string
+  /**
+   * 主题设置渲染出的 CSS 变量块（`:root { --color-primary: …; }`）
+   *
+   * 与 `themeCss` 分开传：注入时它必须**在前**，主题 CSS 才能覆盖默认值。
+   */
+  themeVariables: string
   /** 当前激活主题的 slug（调试用；也便于判断是否换了主题） */
   themeSlug: string | null
+  /**
+   * L1 声明式页面（`theme.json` 的 `templates`）
+   *
+   * 形如 `{HomePage: [{block, props, children}, ...]}`，由后端做白名单校验后下发。
+   * 前端区块渲染器解释执行 —— 这是"改 theme.json 刷新即生效"的载体，**无需重新构建**。
+   */
+  themeTemplates: Record<string, unknown[]>
 }
 
 /** 缓存新鲜期（秒）：公开配置改动极少，120s 足够且不至于让后台改完看不见 */
@@ -88,14 +101,17 @@ const fetchBootstrap = defineCachedFunction(
     const [settings, nav, theme, themeCss] = await Promise.all([
       fetchPublic<unknown>(base, '/system/setting/public', headers),
       fetchPublic<{ items?: unknown[] }>(base, '/system/menu/public/main-nav', headers),
-      fetchPublic<{ component_slots?: Record<string, unknown> }>(
+      fetchPublic<{
+        component_slots?: Record<string, unknown>
+        templates?: Record<string, unknown[]>
+      }>(
         base,
         '/extension/theme/public/config',
         headers,
       ),
       // 主题 CSS：后端已有公开端点（`theme_ops_service.active_css()` 返回 {slug, css, length}）。
       // 放在这里一起取，就能复用同一个缓存条目 —— 不必为样式再开一条请求链路。
-      fetchPublic<{ slug?: string | null; css?: string }>(
+      fetchPublic<{ slug?: string | null; css?: string; variables?: string }>(
         base,
         '/extension/theme/public/css',
         headers,
@@ -107,6 +123,10 @@ const fetchBootstrap = defineCachedFunction(
       nav: nav?.items ?? [],
       themeSlots: theme?.component_slots ?? {},
       themeCss: themeCss?.css ?? '',
+      // 主题设置渲染出的 CSS 变量块（后端 `theme/variables.py`），与主题 CSS 分开传
+      themeVariables: themeCss?.variables ?? '',
+      // L1 声明式页面（后端已按区块白名单校验过）
+      themeTemplates: theme?.templates ?? {},
       themeSlug: themeCss?.slug ?? null,
     }
   },

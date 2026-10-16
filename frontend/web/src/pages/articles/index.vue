@@ -43,7 +43,10 @@ useSeoMeta({
 </script>
 
 <template>
-  <div class="mx-auto max-w-5xl px-4 py-10">
+  <!-- 页面级主题接管：当前主题若提供 `frontend/site/ArchivePage.vue`，
+       就用它的整页实现；否则渲染默认插槽（下面的内置列表页）。 -->
+  <ThemePage page="ArchivePage">
+    <div class="mx-auto max-w-5xl px-4 py-10">
     <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('article.title') }}</h1>
 
     <div v-if="(categories || []).length" class="mt-5 flex flex-wrap gap-2">
@@ -81,5 +84,6 @@ useSeoMeta({
         </Button>
       </template>
     </ArticleListSection>
-  </div>
+    </div>
+  </ThemePage>
 </template>

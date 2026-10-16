@@ -1,0 +1,404 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "Halo",
+    "slug": "halo",
+    "version": "2.0.0",
+    "description": "现代博客风：单栏居中、大圆角卡片、宽松留白与层次阴影，配色由设计令牌驱动",
+    "author": "FastBlog Team"
+  },
+  "settings": {
+    "colors": {
+      "primary": "#4f46e5",
+      "secondary": "#64748b",
+      "accent": "#06b6d4",
+      "background": "#ffffff",
+      "foreground": "#0f172a",
+      "muted": "#f8fafc",
+      "border": "#e2e8f0"
+    },
+    "typography": {
+      "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, \"Segoe UI\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": 1.75,
+      "headingFontWeight": 700
+    },
+    "fontSizes": {
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.25rem",
+      "xl": "1.75rem",
+      "2xl": "2.5rem"
+    },
+    "spacing": {
+      "xs": "4px",
+      "sm": "8px",
+      "md": "16px",
+      "lg": "24px",
+      "xl": "32px",
+      "2xl": "56px",
+      "3xl": "80px"
+    },
+    "focus": {
+      "width": "2px",
+      "offset": "3px",
+      "color": "#4f46e5"
+    },
+    "motion": {
+      "duration": "200ms",
+      "easing": "cubic-bezier(0.4, 0, 0.2, 1)"
+    },
+    "components": {
+      "borderRadius": "0.75rem",
+      "shadowStyle": "medium",
+      "buttonStyle": "pill"
+    }
+  },
+  "settings_schema": {
+    "colors": {
+      "type": "group",
+      "label": "颜色（设计令牌）",
+      "fields": {
+        "primary": {
+          "type": "color",
+          "label": "主色"
+        },
+        "secondary": {
+          "type": "color",
+          "label": "次要色"
+        },
+        "accent": {
+          "type": "color",
+          "label": "强调色"
+        },
+        "background": {
+          "type": "color",
+          "label": "背景"
+        },
+        "foreground": {
+          "type": "color",
+          "label": "前景"
+        },
+        "muted": {
+          "type": "color",
+          "label": "弱化背景"
+        },
+        "border": {
+          "type": "color",
+          "label": "边框"
+        }
+      }
+    },
+    "typography": {
+      "type": "group",
+      "label": "排版",
+      "fields": {
+        "fontFamily": {
+          "type": "text",
+          "label": "字体栈"
+        },
+        "fontSize": {
+          "type": "text",
+          "label": "正文字号"
+        },
+        "lineHeight": {
+          "type": "number",
+          "label": "行高"
+        },
+        "headingFontWeight": {
+          "type": "number",
+          "label": "标题字重"
+        }
+      }
+    },
+    "fontSizes": {
+      "type": "group",
+      "label": "字号尺度",
+      "fields": {
+        "sm": {
+          "type": "text",
+          "label": "小"
+        },
+        "base": {
+          "type": "text",
+          "label": "正文"
+        },
+        "lg": {
+          "type": "text",
+          "label": "大"
+        },
+        "xl": {
+          "type": "text",
+          "label": "特大"
+        },
+        "2xl": {
+          "type": "text",
+          "label": "标题"
+        }
+      }
+    },
+    "spacing": {
+      "type": "group",
+      "label": "间距尺度（宽松）",
+      "fields": {
+        "xs": {
+          "type": "text",
+          "label": "xs"
+        },
+        "sm": {
+          "type": "text",
+          "label": "sm"
+        },
+        "md": {
+          "type": "text",
+          "label": "md"
+        },
+        "lg": {
+          "type": "text",
+          "label": "lg"
+        },
+        "xl": {
+          "type": "text",
+          "label": "xl"
+        },
+        "2xl": {
+          "type": "text",
+          "label": "2xl"
+        },
+        "3xl": {
+          "type": "text",
+          "label": "3xl"
+        }
+      }
+    },
+    "focus": {
+      "type": "group",
+      "label": "焦点样式",
+      "fields": {
+        "width": {
+          "type": "text",
+          "label": "轮廓宽度"
+        },
+        "offset": {
+          "type": "text",
+          "label": "轮廓偏移"
+        },
+        "color": {
+          "type": "color",
+          "label": "轮廓颜色"
+        }
+      }
+    },
+    "motion": {
+      "type": "group",
+      "label": "动效",
+      "fields": {
+        "duration": {
+          "type": "text",
+          "label": "时长"
+        },
+        "easing": {
+          "type": "text",
+          "label": "缓动"
+        }
+      }
+    },
+    "components": {
+      "type": "group",
+      "label": "组件",
+      "fields": {
+        "borderRadius": {
+          "type": "text",
+          "label": "圆角（偏大）"
+        },
+        "shadowStyle": {
+          "type": "select",
+          "label": "阴影",
+          "options": [
+            "none",
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "buttonStyle": {
+          "type": "select",
+          "label": "按钮风格",
+          "options": [
+            "default",
+            "rounded",
+            "pill"
+          ]
+        }
+      }
+    }
+  },
+  "componentSlots": {
+    "articleCard": "default"
+  },
+  "supports": [
+    "featured-image",
+    "post-thumbnails",
+    "comments"
+  ],
+  "templates": {
+    "HomePage": [
+      {
+        "block": "section",
+        "props": {
+          "padding": "3xl"
+        },
+        "children": [
+          {
+            "block": "container",
+            "props": {
+              "width": "default"
+            },
+            "children": [
+              {
+                "block": "hero",
+                "props": {
+                  "align": "center"
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "xl"
+                }
+              },
+              {
+                "block": "category-nav",
+                "props": {
+                  "limit": 8,
+                  "style": "tag"
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "lg"
+                }
+              },
+              {
+                "block": "post-list",
+                "props": {
+                  "limit": 9,
+                  "layout": "grid",
+                  "columns": 3,
+                  "showExcerpt": true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "ArchivePage": [
+      {
+        "block": "section",
+        "props": {
+          "padding": "2xl"
+        },
+        "children": [
+          {
+            "block": "container",
+            "props": {
+              "width": "default"
+            },
+            "children": [
+              {
+                "block": "page-title",
+                "props": {
+                  "text": "全部文章"
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "xl"
+                }
+              },
+              {
+                "block": "post-list",
+                "props": {
+                  "limit": 12,
+                  "layout": "grid",
+                  "columns": 2,
+                  "paginated": true
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "ArticlePage": [
+      {
+        "block": "section",
+        "props": {
+          "padding": "2xl"
+        },
+        "children": [
+          {
+            "block": "container",
+            "props": {
+              "width": "narrow"
+            },
+            "children": [
+              {
+                "block": "post-header",
+                "props": {
+                  "showSummary": true,
+                  "showMeta": false
+                }
+              },
+              {
+                "block": "post-meta",
+                "props": {
+                  "showAuthor": true,
+                  "showDate": true,
+                  "showViews": true
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "lg"
+                }
+              },
+              {
+                "block": "post-content",
+                "props": {}
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "xl"
+                }
+              },
+              {
+                "block": "post-tags",
+                "props": {
+                  "limit": 12
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "2xl"
+                }
+              },
+              {
+                "block": "post-related",
+                "props": {
+                  "limit": 6
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

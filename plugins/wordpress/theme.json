@@ -1,0 +1,481 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "name": "WordPress",
+    "slug": "wordpress",
+    "version": "2.0.0",
+    "description": "经典博客风：主栏 + 右侧栏（分类/标签/最新文章小工具），系统字体栈、8px 网格、小圆角，遵循 WordPress 设计语言的克制基线",
+    "author": "FastBlog Team"
+  },
+  "settings": {
+    "colors": {
+      "primary": "#2271b1",
+      "secondary": "#50575e",
+      "accent": "#d63638",
+      "background": "#ffffff",
+      "foreground": "#1d2327",
+      "muted": "#f6f7f7",
+      "border": "#dcdcde"
+    },
+    "typography": {
+      "fontFamily": "-apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, Oxygen-Sans, Ubuntu, Cantarell, \"Helvetica Neue\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": 1.5,
+      "headingFontWeight": 600
+    },
+    "fontSizes": {
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.25rem",
+      "xl": "1.5rem",
+      "2xl": "2rem"
+    },
+    "spacing": {
+      "xs": "4px",
+      "sm": "8px",
+      "md": "16px",
+      "lg": "24px",
+      "xl": "32px",
+      "2xl": "48px",
+      "3xl": "64px"
+    },
+    "focus": {
+      "width": "2px",
+      "offset": "2px",
+      "color": "#2271b1"
+    },
+    "motion": {
+      "duration": "150ms",
+      "easing": "ease"
+    },
+    "components": {
+      "borderRadius": "3px",
+      "shadowStyle": "small",
+      "buttonStyle": "default"
+    }
+  },
+  "settings_schema": {
+    "colors": {
+      "type": "group",
+      "label": "颜色",
+      "fields": {
+        "primary": {
+          "type": "color",
+          "label": "主色（WordPress 蓝）"
+        },
+        "secondary": {
+          "type": "color",
+          "label": "次要色"
+        },
+        "accent": {
+          "type": "color",
+          "label": "强调色"
+        },
+        "background": {
+          "type": "color",
+          "label": "背景"
+        },
+        "foreground": {
+          "type": "color",
+          "label": "前景"
+        },
+        "muted": {
+          "type": "color",
+          "label": "弱化背景"
+        },
+        "border": {
+          "type": "color",
+          "label": "边框"
+        }
+      }
+    },
+    "typography": {
+      "type": "group",
+      "label": "排版",
+      "fields": {
+        "fontFamily": {
+          "type": "text",
+          "label": "字体栈（系统字体）"
+        },
+        "fontSize": {
+          "type": "text",
+          "label": "正文字号"
+        },
+        "lineHeight": {
+          "type": "number",
+          "label": "行高"
+        },
+        "headingFontWeight": {
+          "type": "number",
+          "label": "标题字重（400/500/600）"
+        }
+      }
+    },
+    "fontSizes": {
+      "type": "group",
+      "label": "字号尺度",
+      "fields": {
+        "sm": {
+          "type": "text",
+          "label": "小"
+        },
+        "base": {
+          "type": "text",
+          "label": "正文"
+        },
+        "lg": {
+          "type": "text",
+          "label": "大"
+        },
+        "xl": {
+          "type": "text",
+          "label": "特大"
+        },
+        "2xl": {
+          "type": "text",
+          "label": "标题"
+        }
+      }
+    },
+    "spacing": {
+      "type": "group",
+      "label": "间距（8px 网格）",
+      "fields": {
+        "xs": {
+          "type": "text",
+          "label": "xs (4px)"
+        },
+        "sm": {
+          "type": "text",
+          "label": "sm (8px)"
+        },
+        "md": {
+          "type": "text",
+          "label": "md (16px)"
+        },
+        "lg": {
+          "type": "text",
+          "label": "lg (24px)"
+        },
+        "xl": {
+          "type": "text",
+          "label": "xl (32px)"
+        },
+        "2xl": {
+          "type": "text",
+          "label": "2xl (48px)"
+        },
+        "3xl": {
+          "type": "text",
+          "label": "3xl (64px)"
+        }
+      }
+    },
+    "focus": {
+      "type": "group",
+      "label": "焦点样式（WCAG 2.4.13）",
+      "fields": {
+        "width": {
+          "type": "text",
+          "label": "轮廓宽度（至少 2px）"
+        },
+        "offset": {
+          "type": "text",
+          "label": "轮廓偏移"
+        },
+        "color": {
+          "type": "color",
+          "label": "轮廓颜色（对比度需 ≥3:1）"
+        }
+      }
+    },
+    "motion": {
+      "type": "group",
+      "label": "动效",
+      "fields": {
+        "duration": {
+          "type": "text",
+          "label": "时长（100–200ms）"
+        },
+        "easing": {
+          "type": "text",
+          "label": "缓动"
+        }
+      }
+    },
+    "components": {
+      "type": "group",
+      "label": "组件",
+      "fields": {
+        "borderRadius": {
+          "type": "text",
+          "label": "圆角（WordPress 偏好 2–4px）"
+        },
+        "shadowStyle": {
+          "type": "select",
+          "label": "阴影",
+          "options": [
+            "none",
+            "small",
+            "medium",
+            "large"
+          ]
+        },
+        "buttonStyle": {
+          "type": "select",
+          "label": "按钮风格",
+          "options": [
+            "default",
+            "rounded",
+            "pill"
+          ]
+        }
+      }
+    }
+  },
+  "componentSlots": {
+    "articleCard": "default"
+  },
+  "supports": [
+    "featured-image",
+    "post-thumbnails",
+    "comments",
+    "widgets"
+  ],
+  "templates": {
+    "HomePage": [
+      {
+        "block": "section",
+        "props": {
+          "padding": "lg"
+        },
+        "children": [
+          {
+            "block": "container",
+            "props": {
+              "width": "wide"
+            },
+            "children": [
+              {
+                "block": "hero",
+                "props": {
+                  "align": "left",
+                  "actions": [
+                    {
+                      "label": "浏览文章",
+                      "href": "/articles"
+                    }
+                  ]
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "lg"
+                }
+              },
+              {
+                "block": "columns",
+                "props": {
+                  "columns": 3,
+                  "gap": "lg"
+                },
+                "children": [
+                  {
+                    "block": "section",
+                    "props": {
+                      "padding": "none"
+                    },
+                    "class": "wp-primary",
+                    "children": [
+                      {
+                        "block": "post-list",
+                        "props": {
+                          "limit": 6,
+                          "layout": "list",
+                          "showExcerpt": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "block": "sidebar",
+                    "props": {
+                      "width": "default",
+                      "sticky": true
+                    },
+                    "class": "wp-sidebar",
+                    "children": [
+                      {
+                        "block": "widget-categories",
+                        "props": {
+                          "title": "分类",
+                          "limit": 10,
+                          "showCount": true
+                        }
+                      },
+                      {
+                        "block": "widget-recent",
+                        "props": {
+                          "title": "最新文章",
+                          "limit": 5
+                        }
+                      },
+                      {
+                        "block": "widget-tags",
+                        "props": {
+                          "title": "标签",
+                          "limit": 20
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "ArchivePage": [
+      {
+        "block": "section",
+        "props": {
+          "padding": "lg"
+        },
+        "children": [
+          {
+            "block": "container",
+            "props": {
+              "width": "wide"
+            },
+            "children": [
+              {
+                "block": "page-title",
+                "props": {
+                  "text": "文章"
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "md"
+                }
+              },
+              {
+                "block": "columns",
+                "props": {
+                  "columns": 3,
+                  "gap": "lg"
+                },
+                "children": [
+                  {
+                    "block": "section",
+                    "props": {
+                      "padding": "none"
+                    },
+                    "class": "wp-primary",
+                    "children": [
+                      {
+                        "block": "post-list",
+                        "props": {
+                          "limit": 10,
+                          "layout": "list",
+                          "paginated": true
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "block": "sidebar",
+                    "props": {
+                      "width": "default",
+                      "sticky": true
+                    },
+                    "class": "wp-sidebar",
+                    "children": [
+                      {
+                        "block": "widget-categories",
+                        "props": {
+                          "title": "分类",
+                          "showCount": true
+                        }
+                      },
+                      {
+                        "block": "widget-tags",
+                        "props": {
+                          "title": "标签",
+                          "limit": 20
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "ArticlePage": [
+      {
+        "block": "section",
+        "props": {
+          "padding": "lg"
+        },
+        "children": [
+          {
+            "block": "container",
+            "props": {
+              "width": "default"
+            },
+            "children": [
+              {
+                "block": "post-header",
+                "props": {
+                  "showSummary": true,
+                  "showMeta": false
+                }
+              },
+              {
+                "block": "post-meta",
+                "props": {
+                  "showAuthor": true,
+                  "showDate": true
+                }
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "md"
+                }
+              },
+              {
+                "block": "post-content",
+                "props": {}
+              },
+              {
+                "block": "spacer",
+                "props": {
+                  "size": "lg"
+                }
+              },
+              {
+                "block": "post-tags",
+                "props": {
+                  "limit": 12
+                }
+              },
+              {
+                "block": "post-related",
+                "props": {
+                  "limit": 5
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

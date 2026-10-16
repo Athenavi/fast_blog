@@ -258,6 +258,7 @@ GET /api/v3/content/redirect/{redirect_id}
 GET /api/v3/content/shortcode
 GET /api/v3/content/tag
 GET /api/v3/content/tag/list
+GET /api/v3/content/tag/public
 GET /api/v3/content/tag/public/{tag}/articles
 GET /api/v3/content/tag/{tag}/articles
 GET /api/v3/content/team_comment

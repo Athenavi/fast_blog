@@ -24,6 +24,8 @@ export const SITE_SETTINGS_KEY = 'site-settings'
 export const SITE_NAV_KEY = 'site-main-nav-items'
 export const THEME_SLOTS_KEY = 'theme-slots'
 export const THEME_CSS_KEY = 'theme-css'
+export const THEME_VARIABLES_KEY = 'theme-variables'
+export const THEME_TEMPLATES_KEY = 'theme-templates'
 export const THEME_SLUG_KEY = 'theme-slug'
 
 /** 聚合接口的响应体（与 server/routes/__site/bootstrap.get.ts 的返回一一对应） */
@@ -33,6 +35,15 @@ export interface SiteBootstrapPayload {
   themeSlots: ThemeSlots
   /** 当前激活主题的 styles.css（服务器级，可安全 SSR 直出） */
   themeCss: string
+  /** 主题设置渲染出的 CSS 变量块（服务器级，可安全 SSR 直出） */
+  themeVariables: string
+  /**
+   * L1 声明式页面（`theme.json` 的 `templates`）
+   *
+   * 形如 `{HomePage: [{block, props, children}, ...]}`，后端已按区块白名单校验。
+   * 区块渲染器解释执行 —— "改 theme.json 刷新即生效"的载体，无需重新构建。
+   */
+  themeTemplates: Record<string, unknown[]>
   themeSlug: string | null
 }
 
@@ -53,6 +64,8 @@ export function loadSiteBootstrap(): Promise<void> {
   const nav = useState<NavNode[]>(SITE_NAV_KEY, () => [])
   const slots = useState<ThemeSlots>(THEME_SLOTS_KEY, () => ({}))
   const themeCss = useState<string>(THEME_CSS_KEY, () => '')
+  const themeVariables = useState<string>(THEME_VARIABLES_KEY, () => '')
+  const themeTemplates = useState<Record<string, unknown[]>>(THEME_TEMPLATES_KEY, () => ({}))
   const themeSlug = useState<string | null>(THEME_SLUG_KEY, () => null)
 
   if (loaded.value) return Promise.resolve()
@@ -72,6 +85,8 @@ export function loadSiteBootstrap(): Promise<void> {
       nav.value = payload.nav ?? []
       slots.value = payload.themeSlots ?? {}
       themeCss.value = payload.themeCss ?? ''
+      themeVariables.value = payload.themeVariables ?? ''
+      themeTemplates.value = payload.themeTemplates ?? {}
       themeSlug.value = payload.themeSlug ?? null
     }
     loaded.value = true
@@ -88,4 +103,35 @@ export function loadSiteBootstrap(): Promise<void> {
  */
 export function useThemeCss() {
   return useState<string>(THEME_CSS_KEY, () => '')
+}
+
+/**
+ * 当前主题设置渲染出的 CSS 变量块（服务器级）
+ *
+ * 与 `useThemeCss()` 分开：注入时必须**先变量、后主题 CSS** —— 主题 CSS 依赖
+ * 这些变量（`var(--color-primary)`），且允许它覆盖默认值。
+ */
+export function useThemeVariables() {
+  return useState<string>(THEME_VARIABLES_KEY, () => '')
+}
+
+/**
+ * 当前主题声明的 L1 页面区块（`theme.json` 的 `templates`）
+ *
+ * 形如 `{HomePage: [{block, props, children}, ...]}`，后端已按白名单校验。
+ * 与 `useThemePage()`（L2 编译期组件）互补：L2 优先，取不到才用 L1。
+ */
+export function useThemeTemplates() {
+  return useState<Record<string, unknown[]>>(THEME_TEMPLATES_KEY, () => ({}))
+}
+
+/**
+ * 当前激活主题的 slug
+ *
+ * 布局用它给根元素挂 `data-theme`，从而形成**布局契约**（Halo 的 `layout.html` 精神）：
+ * 主题的 `styles.css` 可以定向 `.theme-<slug> .t-card { … }`，
+ * 插件的前台页面也能复用同一套主题样式，不必各自重复实现。
+ */
+export function useThemeSlug() {
+  return useState<string | null>(THEME_SLUG_KEY, () => null)
 }

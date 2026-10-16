@@ -1,0 +1,15 @@
+{
+  "name": "Halo Style",
+  "slug": "halo",
+  "version": "1.0.0",
+  "description": "现代博客风：居中大标题、卡片式文章列表、文章页带元信息与相关文章",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "category": "theme",
+  "screenshot": "screenshot.svg",
+  "supports": [
+    "featured-image",
+    "post-thumbnails",
+    "comments"
+  ]
+}

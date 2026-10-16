@@ -1,0 +1,19 @@
+{
+  "name": "WordPress Style",
+  "slug": "wordpress",
+  "version": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/plugin-pages/wordpress",
+      "component": "./admin/ConfigPage.vue",
+      "title": "WordPress Style"
+    }
+  ],
+  "navItems": [
+    {
+      "label": "WordPress Style",
+      "href": "/admin/plugin-pages/wordpress",
+      "icon": "Palette"
+    }
+  ]
+}

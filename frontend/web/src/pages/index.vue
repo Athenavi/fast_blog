@@ -54,9 +54,13 @@ useSeoMeta({
 </script>
 
 <template>
-  <div>
-    <!-- Hero：留白优先，避免任何装饰性硬编码色 -->
-    <section class="relative overflow-hidden border-b border-line">
+  <!-- 页面级主题接管：当前主题若提供 `frontend/site/HomePage.vue`，就用它的整页实现；
+       否则渲染默认插槽（下面的内置首页）。判断收敛在 ThemePage 宿主里，
+       页面本身不需要知道当前是哪个主题。 -->
+  <ThemePage page="HomePage">
+    <div>
+      <!-- Hero：留白优先，避免任何装饰性硬编码色 -->
+      <section class="relative overflow-hidden border-b border-line">
       <!-- 线框背景：纯 Canvas 2D，由 Nuxt 自动导入（见 script 里的说明） -->
       <ClientOnly>
         <WireframeScene :reduced-motion="reducedMotion"/>
@@ -122,5 +126,6 @@ useSeoMeta({
         </div>
       </div>
     </section>
-  </div>
+    </div>
+  </ThemePage>
 </template>

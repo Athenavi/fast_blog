@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900" role="img"
+     aria-label="Halo 主题预览">
+    <rect width="1200" height="900" fill="#ffffff"/>
+    <!-- 页头（布局契约提供，主题只影响配色） -->
+    <rect x="0" y="0" width="1200" height="64" fill="#ffffff"/>
+    <rect x="0" y="63" width="1200" height="1" fill="#e2e8f0"/>
+    <rect x="40" y="24" width="120" height="16" rx="8" fill="#0f172a"/>
+    <rect x="1000" y="26" width="70" height="12" rx="6" fill="#4f46e5"/>
+    <rect x="1090" y="26" width="70" height="12" rx="6" fill="#64748b"/>
+    <!-- 居中 Hero -->
+    <rect x="420" y="120" width="360" height="30" rx="15" fill="#0f172a"/>
+    <rect x="480" y="166" width="240" height="13" rx="6" fill="#64748b"/>
+    <!-- 胶囊分类 -->
+    <rect x="470" y="212" width="76" height="28" rx="14" fill="#f8fafc"/>
+    <rect x="556" y="212" width="70" height="28" rx="14" fill="#f8fafc"/>
+    <rect x="636" y="212" width="94" height="28" rx="14" fill="#f8fafc"/>
+    <!-- 三栏卡片网格（大圆角 + 柔和阴影） -->
+    <g>
+        <rect x="60" y="292" width="340" height="230" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <rect x="60" y="292" width="340" height="230" rx="12" fill="none" stroke="none"/>
+        <rect x="88" y="320" width="270" height="16" rx="6" fill="#4f46e5"/>
+        <rect x="88" y="352" width="284" height="11" rx="5" fill="#64748b"/>
+        <rect x="88" y="374" width="262" height="11" rx="5" fill="#64748b"/>
+        <rect x="88" y="396" width="240" height="11" rx="5" fill="#cbd5e1"/>
+        <rect x="88" y="466" width="72" height="26" rx="13" fill="#f8fafc"/>
+    </g>
+    <g>
+        <rect x="430" y="292" width="340" height="230" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <rect x="458" y="320" width="252" height="16" rx="6" fill="#4f46e5"/>
+        <rect x="458" y="352" width="284" height="11" rx="5" fill="#64748b"/>
+        <rect x="458" y="374" width="230" height="11" rx="5" fill="#64748b"/>
+        <rect x="458" y="396" width="256" height="11" rx="5" fill="#cbd5e1"/>
+        <rect x="458" y="466" width="86" height="26" rx="13" fill="#f8fafc"/>
+    </g>
+    <g>
+        <rect x="800" y="292" width="340" height="230" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <rect x="828" y="320" width="284" height="16" rx="6" fill="#4f46e5"/>
+        <rect x="828" y="352" width="240" height="11" rx="5" fill="#64748b"/>
+        <rect x="828" y="374" width="268" height="11" rx="5" fill="#64748b"/>
+        <rect x="828" y="396" width="220" height="11" rx="5" fill="#cbd5e1"/>
+        <rect x="828" y="466" width="78" height="26" rx="13" fill="#f8fafc"/>
+    </g>
+    <!-- 第二行卡片（宽松留白） -->
+    <g>
+        <rect x="60" y="562" width="340" height="200" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <rect x="88" y="590" width="248" height="16" rx="6" fill="#4f46e5"/>
+        <rect x="88" y="622" width="284" height="11" rx="5" fill="#64748b"/>
+        <rect x="88" y="644" width="252" height="11" rx="5" fill="#64748b"/>
+        <rect x="88" y="700" width="80" height="26" rx="13" fill="#f8fafc"/>
+    </g>
+    <g>
+        <rect x="430" y="562" width="340" height="200" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <rect x="458" y="590" width="270" height="16" rx="6" fill="#4f46e5"/>
+        <rect x="458" y="622" width="240" height="11" rx="5" fill="#64748b"/>
+        <rect x="458" y="644" width="268" height="11" rx="5" fill="#64748b"/>
+        <rect x="458" y="700" width="68" height="26" rx="13" fill="#f8fafc"/>
+    </g>
+    <g>
+        <rect x="800" y="562" width="340" height="200" rx="12" fill="#ffffff" stroke="#e2e8f0"/>
+        <rect x="828" y="590" width="256" height="16" rx="6" fill="#4f46e5"/>
+        <rect x="828" y="622" width="272" height="11" rx="5" fill="#64748b"/>
+        <rect x="828" y="644" width="228" height="11" rx="5" fill="#64748b"/>
+        <rect x="828" y="700" width="92" height="26" rx="13" fill="#f8fafc"/>
+    </g>
+    <!-- 页脚 -->
+    <rect x="0" y="836" width="1200" height="64" fill="#ffffff"/>
+    <rect x="0" y="836" width="1200" height="1" fill="#e2e8f0"/>
+    <rect x="520" y="862" width="160" height="11" rx="5" fill="#94a3b8"/>
+</svg>

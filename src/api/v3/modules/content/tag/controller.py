@@ -61,6 +61,28 @@ async def public_articles_by_tag(
     return resp.success_page([_article_brief(a) for a in articles], total, page, page_size)
 
 
+# ─────────────────────────── 公开：标签列表 ───────────────────────────
+@router.get(
+    "/public",
+    response_model=ResponseModel,
+    summary="公开标签列表（无需鉴权，供主题的标签云/小工具使用）",
+)
+async def public_tags(
+    db: DBSession,
+    limit: int = Query(default=50, ge=1, le=200),
+    min_count: int = Query(default=1, ge=1),
+) -> dict:
+    """公开标签列表
+
+    与 ``GET /content/tag``（管理端）**复用同一个 service 方法** ``list_tags``，
+    区别只有两点：
+      - 无鉴权 —— 前台主题的标签云要用；
+      - `limit` 上限更低（200）—— 前台不需要一次拉上千个标签。
+    """
+    items, total = await tag_service.list_tags(db, limit=limit, min_count=min_count)
+    return resp.success_page(items, total, 1, limit)
+
+
 # ─────────────────────────── 聚合列表 ───────────────────────────
 @router.get("", response_model=ResponseModel, summary="标签列表（聚合）")
 @router.get(
