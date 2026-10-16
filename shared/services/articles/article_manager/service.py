@@ -240,7 +240,7 @@ async def create_article(
     # 异步触发文章创建事件（不阻塞主流程）
     status_map = {0: 'draft', 1: 'published', 2: 'archived'}
     event_status = status_map.get(kwargs.get('status', 1), 'unknown')
-    _trigger_article_event('article_published', {
+    _trigger_article_event('article.published', {
         'id': article.id,
         'title': article.title,
         'slug': getattr(article, 'slug', ''),
@@ -306,7 +306,7 @@ async def update_article(
         await db.refresh(article)
 
         # 异步触发文章更新事件
-        _trigger_article_event('article_updated', {
+        _trigger_article_event('article.updated', {
             'id': article.id,
             'title': article.title,
             'updated_fields': list(update_data.keys()),
@@ -415,7 +415,7 @@ async def delete_article(db: AsyncSession, article_id: int, user_id: Optional[in
     await db.commit()
 
     # 异步触发文章删除事件
-    _trigger_article_event('article_deleted', {
+    _trigger_article_event('article.deleted', {
         'id': article_id,
         'title': article_title,
         'deleted_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),  # 移除时区信息以匹配数据库字段

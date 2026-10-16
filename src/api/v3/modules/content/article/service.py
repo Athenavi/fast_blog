@@ -13,6 +13,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article.article import Article
 from shared.models.article.article_content import ArticleContent
 from shared.models.article.article_seo import ArticleSEO
+from shared.services.articles.article_manager.revision_service import (
+    compare_revisions,
+    get_article_revisions,
+    get_revision_detail,
+    rollback_to_revision,
+    save_article_revision,
+)
+from shared.services.plugins.event_bus import (
+    ArticleDeletedPayload,
+    ArticlePublishedPayload,
+    ArticleUpdatedPayload,
+)
 from src.api.v3.common.tags import normalize_tags
 from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from src.api.v3.core.logger import get_logger
@@ -37,11 +49,32 @@ from src.api.v3.modules.content.article.schema import (
     ArticleCreate,
     ArticleUpdate,
 )
+from src.api.v3.modules.content.shortcode.service import shortcode_service
 from src.utils.markdown import render_content_for_display
 
 logger = get_logger("article")
 
 DEFAULT_LANGUAGE = "zh-CN"
+
+
+async def _emit_article_event(event_name: str, payload: Any) -> None:
+    """把文章写入事件发给插件与审计订阅者。
+
+    两个必须注意的点：
+
+    1. **事件名用点号**（``article.published`` / ``article.updated`` / ``article.deleted``）。
+       此前 ``article_manager`` 发的是下划线名（``article_published`` 等），而插件订阅
+       （``plugins/seo``、``plugins/newsletter``）与审计（``audit_subscriber``）用的都是
+       点号 —— 两边对不上，订阅方其实**从未收到过**这些事件。
+    2. **必须容错**。插件是可选组件，订阅方抛异常不能影响文章写入主流程，
+       因此这里吞掉异常只记日志。
+    """
+    try:
+        from shared.services.plugins.event_bus import event_bus
+
+        await event_bus.emit(event_name, payload)
+    except Exception:  # noqa: BLE001 - 插件故障不应影响文章写入
+        logger.warning("发出 %s 事件失败", event_name, exc_info=True)
 
 
 async def _assert_article_write(
@@ -288,6 +321,18 @@ class ArticleService:
             await db.commit()
 
         await self._invalidate(article.id)
+        await _emit_article_event(
+            "article.published",
+            ArticlePublishedPayload(
+                article_id=article.id,
+                slug=article.slug or "",
+                title=article.title or "",
+                author_id=article.user or 0,
+                excerpt=article.excerpt or "",
+                tags=[t for t in (article.tags_list or "").split(";") if t],
+                category_id=article.category,
+            ),
+        )
         return await self.get_article(db, article.id)
 
     async def update_article(
@@ -332,7 +377,66 @@ class ArticleService:
             await db.commit()
 
         await self._invalidate(article_id)
+        # 修订历史：保存**本次保存后的状态**为一条修订（该服务自带 hash 去重，
+        # 内容没变时不会产生冗余记录）。放在写入之后，所以 revision 就是刚存下的样子。
+        # 它内部容错（异常时 rollback 并返回 None），失败不影响文章保存本身。
+        await save_article_revision(
+            db, article_id, getattr(scope_user, "id", None) or 0, "更新文章"
+        )
+        await _emit_article_event(
+            "article.updated",
+            ArticleUpdatedPayload(
+                article_id=article_id,
+                slug=article.slug or "",
+                title=article.title or "",
+                author_id=article.user or 0,
+            ),
+        )
         return await self.get_article(db, article_id)
+
+    # ------------------------------------------------------------------ 修订历史
+
+    async def list_revisions(
+        self, db: AsyncSession, article_id: int, *, page: int = 1, page_size: int = 20
+    ) -> dict:
+        """文章的修订历史（按版本号降序，带分页）"""
+        return await get_article_revisions(db, article_id, page=page, per_page=page_size)
+
+    async def get_revision(self, db: AsyncSession, revision_id: int) -> dict:
+        """单个修订的详情"""
+        detail = await get_revision_detail(db, revision_id)
+        if detail is None:
+            raise NotFoundError("修订版本不存在")
+        return detail
+
+    async def rollback_revision(
+        self,
+        db: AsyncSession,
+        article_id: int,
+        revision_id: int,
+        *,
+        author_id: Optional[int] = None,
+    ) -> dict:
+        """回滚到指定修订。
+
+        **回滚前先保存当前状态为一条新修订**：回滚本身也是一次内容变更，
+        若不先存，被回滚掉的那个版本就永久丢失，用户无法撤销这次回滚。
+        """
+        await save_article_revision(db, article_id, author_id or 0, "回滚前自动保存")
+        ok = await rollback_to_revision(db, article_id, revision_id, author_id or 0)
+        if not ok:
+            raise NotFoundError("修订版本不存在或回滚失败")
+        await self._invalidate(article_id)
+        return await self.get_article(db, article_id)
+
+    async def diff_revisions(
+        self, db: AsyncSession, revision1_id: int, revision2_id: int
+    ) -> dict:
+        """比较两个修订的差异（字段级 + 文本 unified diff）"""
+        diff = await compare_revisions(db, revision1_id, revision2_id)
+        if diff is None:
+            raise NotFoundError("修订版本不存在")
+        return diff
 
     async def delete_article(
         self, db: AsyncSession, article_id: int, *, scope_user: Any = None
@@ -348,6 +452,14 @@ class ArticleService:
             db, article, {"status": STATUS_DELETED, "deleted_at": datetime.now()}
         )
         await self._invalidate(article_id)
+        await _emit_article_event(
+            "article.deleted",
+            ArticleDeletedPayload(
+                article_id=article_id,
+                slug=article.slug or "",
+                title=article.title or "",
+            ),
+        )
 
     async def _assert_batch_writable(
         self,
@@ -534,7 +646,9 @@ class ArticleService:
             raise NotFoundError("文章不存在或未发布")
         data = await self.get_article(db, article_id, language_code=language_code)
         data = await self.apply_vip_gate(db, data, viewer)
-        return self._render_content_for_display(data)
+        return await self._render_content_for_display(
+            db, data, site_id=getattr(article, "site_id", None)
+        )
 
     async def public_detail_by_slug(
         self,
@@ -554,22 +668,32 @@ class ArticleService:
             raise NotFoundError("文章不存在或未发布")
         data = await self.get_article(db, article.id, language_code=language_code)
         data = await self.apply_vip_gate(db, data, viewer)
-        return self._render_content_for_display(data)
+        return await self._render_content_for_display(
+            db, data, site_id=getattr(article, "site_id", None)
+        )
 
-    @staticmethod
-    def _render_content_for_display(data: dict) -> dict:
-        """把正文规整成"可直接放进页面的 HTML"：Markdown 转 HTML，HTML 原样保留。
+    async def _render_content_for_display(
+        self, db: AsyncSession, data: dict, *, site_id: Optional[int] = None
+    ) -> dict:
+        """把正文规整成"可直接放进页面的 HTML"：先展开短代码，再 Markdown → HTML。
 
-        投稿编辑器的【源码】模式允许写 Markdown，而详情页只做 `v-html`，
-        于是 Markdown 标记会原样显示（标题层级丢失、内链不可爬、图片 alt 丢失、
-        目录抽取拿不到 h2/h3）。前台是 SSR，必须在服务端就产出正确 HTML ——
+        **顺序很重要**：短代码必须**先于** Markdown/净化展开。短代码的替换内容是
+        HTML 片段，若在净化之后注入就会绕过 `html_sanitizer`（那是 XSS 的唯一防线）；
+        放在前面则替换结果与正文一起走完整管线。
+
+        其余说明同原实现：投稿编辑器的【源码】模式允许写 Markdown，而详情页只做
+        `v-html`，于是 Markdown 标记会原样显示（标题层级丢失、内链不可爬、图片 alt
+        丢失、目录抽取拿不到 h2/h3）。前台是 SSR，必须在服务端就产出正确 HTML ——
         详见 `utils/markdown.py` 的模块注释。
 
         **只在面向渲染的出口调用**（公开详情、VIP 正文端点）。不要放进 `get_article`：
         管理端编辑页需要拿到作者原样的源码，否则源码模式里写的 Markdown 会被
         转换后的 HTML 顶替，作者下次打开看到的内容与他写的不一致。
         """
-        data["content"] = render_content_for_display(data.get("content"))
+        content = await shortcode_service.expand_for_content(
+            db, data.get("content"), site_id=site_id
+        )
+        data["content"] = render_content_for_display(content)
         return data
 
     async def apply_vip_gate(self, db: AsyncSession, data: dict, viewer: Optional[Any]) -> dict:

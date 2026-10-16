@@ -73,6 +73,12 @@ useSeoMeta({
     <div class="mx-auto max-w-read px-4 pt-8">
       <Breadcrumbs :items="breadcrumbs"/>
     </div>
-    <ArticleDetailView :article="article"/>
+
+    <!-- 页面级主题接管：当前主题若提供 `frontend/site/ArticlePage.vue`，就用它的
+         整页实现；否则渲染默认插槽（内置 ArticleDetailView）。判断收敛在
+         ThemePage 宿主里，页面本身不需要知道当前是哪个主题。 -->
+    <ThemePage :article="article" page="ArticlePage">
+      <ArticleDetailView :article="article"/>
+    </ThemePage>
   </div>
 </template>

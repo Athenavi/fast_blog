@@ -23,12 +23,17 @@ export const SITE_BOOTSTRAP_URL = '/__site/bootstrap'
 export const SITE_SETTINGS_KEY = 'site-settings'
 export const SITE_NAV_KEY = 'site-main-nav-items'
 export const THEME_SLOTS_KEY = 'theme-slots'
+export const THEME_CSS_KEY = 'theme-css'
+export const THEME_SLUG_KEY = 'theme-slug'
 
 /** 聚合接口的响应体（与 server/routes/__site/bootstrap.get.ts 的返回一一对应） */
 export interface SiteBootstrapPayload {
   settings: SiteSettings | null
   nav: NavNode[]
   themeSlots: ThemeSlots
+  /** 当前激活主题的 styles.css（服务器级，可安全 SSR 直出） */
+  themeCss: string
+  themeSlug: string | null
 }
 
 /** 单飞挂载点（挂在 NuxtApp 实例上，随请求生命周期存亡） */
@@ -47,6 +52,8 @@ export function loadSiteBootstrap(): Promise<void> {
   const settings = useState<SiteSettings>(SITE_SETTINGS_KEY, () => ({}))
   const nav = useState<NavNode[]>(SITE_NAV_KEY, () => [])
   const slots = useState<ThemeSlots>(THEME_SLOTS_KEY, () => ({}))
+  const themeCss = useState<string>(THEME_CSS_KEY, () => '')
+  const themeSlug = useState<string | null>(THEME_SLUG_KEY, () => null)
 
   if (loaded.value) return Promise.resolve()
 
@@ -64,9 +71,21 @@ export function loadSiteBootstrap(): Promise<void> {
       if (payload.settings) settings.value = {...settings.value, ...payload.settings}
       nav.value = payload.nav ?? []
       slots.value = payload.themeSlots ?? {}
+      themeCss.value = payload.themeCss ?? ''
+      themeSlug.value = payload.themeSlug ?? null
     }
     loaded.value = true
   })()
 
   return nuxtApp._fbSiteBootstrap
+}
+
+/**
+ * 当前主题 CSS（服务器级，可安全 SSR 直出）
+ *
+ * 由 `loadSiteBootstrap()` 一次取回；未取到时返回空串，布局据此不注入任何样式
+ * （而不是注入一段占位 —— 空的 `<style>` 只会让 HTML 更难看懂）。
+ */
+export function useThemeCss() {
+  return useState<string>(THEME_CSS_KEY, () => '')
 }

@@ -209,6 +209,44 @@
     "identifierRequired": "Please enter your username or email",
     "passwordRequired": "Please enter your password"
   },
+  "installWizard": {
+    "title": "Installation Wizard",
+    "seoTitle": "Installation Wizard",
+    "subtitle": "Single-machine setup",
+    "loadFailed": "Cannot read install status. Make sure the backend is running.",
+    "notAvailable": "The web installation wizard is not enabled for this deployment",
+    "enterpriseHint": "For enterprise deployments, initialize from the command line: python install.py. To use the web wizard, set DEPLOYMENT_MODE=single and restart.",
+    "installedHint": "This site is already installed; the wizard is permanently closed",
+    "runCheck": "Run checks",
+    "testAndSave": "Test & save",
+    "runMigrate": "Run migrations",
+    "createAdmin": "Create admin",
+    "saveSettings": "Save settings",
+    "finish": "Finish installation",
+    "prev": "Back",
+    "stepFailed": "This step did not succeed. Fix the issue above and retry.",
+    "done": "Installation complete",
+    "doneHint": "The wizard write endpoints are now permanently closed. Sign in to continue configuring your site.",
+    "goLogin": "Go to sign in",
+    "db": {
+      "host": "Host",
+      "port": "Port",
+      "database": "Database",
+      "username": "Username",
+      "password": "Password"
+    },
+    "admin": {
+      "username": "Username",
+      "email": "Email",
+      "password": "Password",
+      "passwordHint": "At least 8 characters"
+    },
+    "site": {
+      "siteName": "Site name",
+      "siteUrl": "Site URL",
+      "siteDescription": "Site description"
+    }
+  },
   "register": {
     "title": "Create Account",
     "subtitle": "Join FastBlog and start your creative journey",

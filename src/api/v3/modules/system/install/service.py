@@ -13,6 +13,7 @@
   - **实时协同依赖**：``pycrdt`` 是否可用（缺失只影响协同编辑）。
 """
 
+import os
 from typing import Optional
 
 from sqlalchemy import func, select, text
@@ -90,5 +91,47 @@ class InstallService:
             "realtime_available": _realtime_available(),
         }
 
+    def wizard_status(self) -> dict:
+        """Web 安装向导的状态（公开可读，不涉及写操作）
+
+        面向两类部署人群分别给出口径：
+
+          - ``enterprise``（**默认**）：不开放 Web 写口，初始化走命令行 ——
+            保持"不存在任何人重建超管的风险面"这一原决策；
+          - ``single``（单机 / 极客）：开放向导，但**仅在尚未安装时**，
+            安装完成即永久关闭。
+
+        前端据此直接决定显示向导还是"请用命令行初始化"，不需要自己猜。
+        """
+        from shared.services.install.install_manager.install_wizard import (
+            installation_wizard_service,
+        )
+
+        installed = installation_wizard_service.is_installed()
+        return {
+            "deployment_mode": _deployment_mode(),
+            "wizard_enabled": wizard_enabled(),
+            "installed": installed,
+            "available": wizard_enabled() and not installed,
+            "steps": installation_wizard_service.get_installation_steps(),
+        }
+
 
 install_service = InstallService()
+
+
+# ── 部署模式 ────────────────────────────────────────────────────────────
+
+def _deployment_mode() -> str:
+    """部署模式：``single``（单机 / 极客）或 ``enterprise``（企业化）
+
+    **默认 ``enterprise``**：Web 安装向导会暴露"创建超管"的写口，默认关闭比
+    默认开放安全 —— 企业化部署有运维渠道（CLI / 环境变量），不依赖 Web 向导。
+    要启用向导请显式设 ``DEPLOYMENT_MODE=single``。
+    """
+    return os.environ.get("DEPLOYMENT_MODE", "enterprise").strip().lower()
+
+
+def wizard_enabled() -> bool:
+    """Web 安装向导是否对本部署开放（仅单机模式）"""
+    return _deployment_mode() == "single"

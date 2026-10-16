@@ -378,3 +378,82 @@ async def revoke_preview_token(
 ) -> dict:
     await article_preview_service.revoke_token(db, token_id, user=_current)
     return resp.success(None, msg="已撤销")
+
+
+# ─────────────────────────── 管理端：修订历史 ───────────────────────────
+# 说明：`/revisions/compare` 是静态路径，必须注册在 `/revisions/{revision_id}`
+# 之前，否则会被参数路由吃掉（与文件顶部注释里 `/batch/*`、`/public/*` 同一约定）。
+@router.get(
+    "/{article_id}/revisions/compare",
+    response_model=ResponseModel,
+    summary="比较两个修订版本的差异",
+)
+async def compare_article_revisions(
+    article_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    from_revision: int = Query(..., alias="from", description="基准修订 ID"),
+    to_revision: int = Query(..., alias="to", description="对比修订 ID"),
+    _perm=AuthControl(codes.ARTICLE_VIEW),
+) -> dict:
+    return resp.success(
+        await article_service.diff_revisions(db, from_revision, to_revision)
+    )
+
+
+@router.get(
+    "/{article_id}/revisions", response_model=ResponseModel, summary="文章的修订历史"
+)
+async def list_article_revisions(
+    article_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    _perm=AuthControl(codes.ARTICLE_VIEW),
+) -> dict:
+    return resp.success(
+        await article_service.list_revisions(
+            db, article_id, page=page, page_size=page_size
+        )
+    )
+
+
+@router.get(
+    "/{article_id}/revisions/{revision_id}",
+    response_model=ResponseModel,
+    summary="修订版本详情",
+)
+async def get_article_revision(
+    article_id: int,
+    revision_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_VIEW),
+) -> dict:
+    return resp.success(await article_service.get_revision(db, revision_id))
+
+
+@router.post(
+    "/{article_id}/revisions/{revision_id}/rollback",
+    response_model=ResponseModel,
+    summary="回滚到指定修订版本",
+)
+async def rollback_article_revision(
+    article_id: int,
+    revision_id: int,
+    db: DBSession,
+    _current: CurrentUser,
+    _perm=AuthControl(codes.ARTICLE_EDIT),
+) -> dict:
+    """回滚到指定修订。
+
+    回滚前会先把**当前状态**存成一条新修订，因此这次回滚本身也可以再被回滚掉
+    （否则被覆盖的版本会永久丢失）。
+    """
+    return resp.success(
+        await article_service.rollback_revision(
+            db, article_id, revision_id, author_id=getattr(_current, "id", None)
+        ),
+        msg="已回滚到指定修订",
+    )

@@ -197,6 +197,9 @@ GET /api/v3/content/article/public/slug/{slug}
 GET /api/v3/content/article/{article_id}
 GET /api/v3/content/article/{article_id}/locales
 GET /api/v3/content/article/{article_id}/preview-tokens
+GET /api/v3/content/article/{article_id}/revisions
+GET /api/v3/content/article/{article_id}/revisions/compare
+GET /api/v3/content/article/{article_id}/revisions/{revision_id}
 GET /api/v3/content/category
 GET /api/v3/content/category/detail/{category_id}
 GET /api/v3/content/category/list
@@ -437,6 +440,7 @@ GET /api/v3/system/help/topic/{page_key}
 GET /api/v3/system/help/topics
 GET /api/v3/system/help/videos
 GET /api/v3/system/install/status
+GET /api/v3/system/install/wizard
 GET /api/v3/system/integration/ldap
 GET /api/v3/system/integration/saml
 GET /api/v3/system/integration/saml/{config_id}/metadata
@@ -604,6 +608,7 @@ POST /api/v3/content/article/public/{article_id}/views
 POST /api/v3/content/article/reorder
 POST /api/v3/content/article/{article_id}/preview-token
 POST /api/v3/content/article/{article_id}/publish
+POST /api/v3/content/article/{article_id}/revisions/{revision_id}/rollback
 POST /api/v3/content/category
 POST /api/v3/content/category/create
 POST /api/v3/content/category/{category_id}/merge
@@ -747,6 +752,12 @@ POST /api/v3/system/group/create
 POST /api/v3/system/group/{group_id}/members
 POST /api/v3/system/health/web-vitals
 POST /api/v3/system/help/topic
+POST /api/v3/system/install/wizard/admin
+POST /api/v3/system/install/wizard/complete
+POST /api/v3/system/install/wizard/database
+POST /api/v3/system/install/wizard/migrate
+POST /api/v3/system/install/wizard/prerequisites
+POST /api/v3/system/install/wizard/settings
 POST /api/v3/system/integration/ldap
 POST /api/v3/system/integration/saml
 POST /api/v3/system/integration/saml/{config_id}/acs

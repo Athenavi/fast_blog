@@ -209,6 +209,44 @@
     "identifierRequired": "请输入用户名或邮箱",
     "passwordRequired": "请输入密码"
   },
+  "installWizard": {
+    "title": "安装向导",
+    "seoTitle": "安装向导",
+    "subtitle": "单机部署初始化",
+    "loadFailed": "无法读取安装状态，请确认后端服务已启动",
+    "notAvailable": "当前部署不开放 Web 安装向导",
+    "enterpriseHint": "企业化部署请用命令行初始化：python install.py。如需 Web 向导，请设 DEPLOYMENT_MODE=single 后重启。",
+    "installedHint": "站点已安装，安装向导已永久关闭",
+    "runCheck": "开始检测",
+    "testAndSave": "测试连接并保存",
+    "runMigrate": "执行迁移",
+    "createAdmin": "创建管理员",
+    "saveSettings": "保存设置",
+    "finish": "完成安装",
+    "prev": "上一步",
+    "stepFailed": "该步骤未成功，请按提示修正后重试",
+    "done": "安装完成",
+    "doneHint": "向导写口已永久关闭。请登录后台继续配置站点。",
+    "goLogin": "去登录",
+    "db": {
+      "host": "主机",
+      "port": "端口",
+      "database": "数据库名",
+      "username": "用户名",
+      "password": "密码"
+    },
+    "admin": {
+      "username": "用户名",
+      "email": "邮箱",
+      "password": "密码",
+      "passwordHint": "至少 8 位"
+    },
+    "site": {
+      "siteName": "站点名称",
+      "siteUrl": "站点地址",
+      "siteDescription": "站点描述"
+    }
+  },
   "register": {
     "title": "创建账号",
     "subtitle": "加入 FastBlog，开启您的创作之旅",

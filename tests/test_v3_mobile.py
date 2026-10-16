@@ -6,12 +6,14 @@
 import asyncio
 import json
 from datetime import datetime
+from types import SimpleNamespace
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
 from src.api.v3 import register_v3_routes
 from src.api.v3.modules.content.article.service import article_service
 from src.api.v3.modules.mobile.user.service import SENSITIVE_FIELDS, build_public_profile
-from types import SimpleNamespace
 
 # ============================================================ 来自 test_v3_mobile.py（1 项）
 REMOVED_PATHS = {
@@ -187,21 +189,41 @@ def test_follow_write_requires_auth():
 
 
 def test_install_status_is_public_and_read_only():
-    """安装自检**公开可读**（未安装时没有管理员可用），且**没有**任何写口"""
+    """安装自检**公开可读**；向导写口存在，但**默认（enterprise）下不可用**
+
+    原实现只有只读端点。现在按部署模式分流：``enterprise``（**默认**）不开放
+    Web 写口、初始化走命令行；``single`` 才开放，且仅限尚未安装时。
+
+    因此这里锁两件事（这才是企业部署真正的安全承诺）：
+
+      1. ``GET /status`` 无 DB 时也返回 200（把 database.ok 报成 false），不是 500；
+      2. 向导写口在**默认部署模式下**一律 403 —— 即企业部署的风险面为零。
+    """
     app = _app__follow()
     client = TestClient(app, raise_server_exceptions=False)
     resp = client.get("/api/v3/system/install/status")
     # 无 DB 时也应返回 200（把 database.ok 报成 false），而不是 500
     assert resp.status_code == 200, f"install/status 应为公开 200，实际 {resp.status_code}"
 
-    install_methods = {
-        method
-        for route in app.routes
-        if getattr(route, "path", "").startswith("/api/v3/system/install")
-        for method in (getattr(route, "methods", None) or set())
-        if method != "HEAD"
-    }
-    assert install_methods == {"GET"}, f"install 只应有只读端点，实际 {install_methods}"
+    # 默认部署模式是 enterprise → 所有向导写口必须拒绝（不得留下"任何人重建超管"的面）
+    for path in (
+            "/api/v3/system/install/wizard/prerequisites",
+            "/api/v3/system/install/wizard/database",
+            "/api/v3/system/install/wizard/migrate",
+            "/api/v3/system/install/wizard/admin",
+            "/api/v3/system/install/wizard/settings",
+            "/api/v3/system/install/wizard/complete",
+    ):
+        r = client.post(path)
+        assert r.status_code == 403, f"{path} 在默认部署模式下应 403，实际 {r.status_code}"
+
+    # 向导状态只读、公开可访问（前端据此决定显示向导还是"请用命令行初始化"）
+    wizard = client.get("/api/v3/system/install/wizard")
+    assert wizard.status_code == 200
+    payload = wizard.json()["data"]
+    assert payload["deployment_mode"] == "enterprise"
+    assert payload["wizard_enabled"] is False
+    assert payload["available"] is False
 
 
 # ============================================================ 来自 test_v3_feed.py（2 项）

@@ -12,6 +12,21 @@
  * 现在布局只等一次**同进程的 Nitro 调用**，后端只在缓存未命中时才被问一次。
  */
 const site = await useSiteInfo()
+
+/**
+ * 主题 CSS 服务端内联
+ *
+ * 与 `app.vue` 里那条"不要用 useHead 声明主题"的约束**不冲突** —— 那里禁止的是
+ * **用户级**的 `data-theme` / `data-accent`：公开页开了 swr 边缘缓存，用户级状态
+ * 一旦参与直出就会被发给所有人。主题 CSS 是**服务器级**的（同一份发给所有访问者），
+ * 直出既安全，又省掉一次额外请求。
+ *
+ * 空值时不注入任何 `<style>`（而不是塞一个空标签）—— 未取到主题样式时页面保持原样。
+ */
+const themeCss = useThemeCss()
+useHead({
+  style: computed(() => (themeCss.value ? [{innerHTML: themeCss.value}] : [])),
+})
 </script>
 
 <template>

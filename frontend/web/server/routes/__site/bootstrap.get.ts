@@ -38,6 +38,16 @@ interface BootstrapPayload {
   settings: unknown
   nav: unknown[]
   themeSlots: Record<string, unknown>
+  /**
+   * 当前激活主题的 `styles.css`（服务端内联进 `<head>`，不额外发请求）
+   *
+   * 注意与**用户级**配色的区别：主题 CSS 是**服务器级**的（同一份发给所有访问者），
+   * 所以可以安全参与 SSR 直出；而 `data-theme` / `data-accent` 是用户级的，
+   * 参与直出会被公开页的 swr 边缘缓存串号（见 `app.vue` 的说明）。
+   */
+  themeCss: string
+  /** 当前激活主题的 slug（调试用；也便于判断是否换了主题） */
+  themeSlug: string | null
 }
 
 /** 缓存新鲜期（秒）：公开配置改动极少，120s 足够且不至于让后台改完看不见 */
@@ -75,12 +85,19 @@ const fetchBootstrap = defineCachedFunction(
       'x-forwarded-host': forwardedHost,
     }
 
-    const [settings, nav, theme] = await Promise.all([
+    const [settings, nav, theme, themeCss] = await Promise.all([
       fetchPublic<unknown>(base, '/system/setting/public', headers),
       fetchPublic<{ items?: unknown[] }>(base, '/system/menu/public/main-nav', headers),
       fetchPublic<{ component_slots?: Record<string, unknown> }>(
         base,
         '/extension/theme/public/config',
+        headers,
+      ),
+      // 主题 CSS：后端已有公开端点（`theme_ops_service.active_css()` 返回 {slug, css, length}）。
+      // 放在这里一起取，就能复用同一个缓存条目 —— 不必为样式再开一条请求链路。
+      fetchPublic<{ slug?: string | null; css?: string }>(
+        base,
+        '/extension/theme/public/css',
         headers,
       ),
     ])
@@ -89,6 +106,8 @@ const fetchBootstrap = defineCachedFunction(
       settings: settings ?? null,
       nav: nav?.items ?? [],
       themeSlots: theme?.component_slots ?? {},
+      themeCss: themeCss?.css ?? '',
+      themeSlug: themeCss?.slug ?? null,
     }
   },
   {
