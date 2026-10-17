@@ -167,11 +167,6 @@ export class CollabProvider {
     this.awareness.destroy()
   }
 
-  /** 当前在线协作者（含自己）的 clientID 列表 —— 页面可据此显示人数 */
-  peers(): number[] {
-    return Array.from(this.awareness.getStates().keys())
-  }
-
   // ─────────────────────────────────────────────── 内部
 
   private setStatus(status: CollabStatus, detail?: string): void {

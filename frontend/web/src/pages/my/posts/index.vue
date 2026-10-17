@@ -97,7 +97,7 @@ onMounted(loadList)
         <h1 class="text-2xl font-bold tracking-tight text-fg">{{ $t('myPosts.title') }}</h1>
         <p class="mt-1.5 text-sm text-fg-muted">{{ $t('myPosts.subtitle') }}</p>
       </div>
-      <NuxtLink to="/my/posts/create">
+      <NuxtLink to="/my/posts/edit/new">
         <Button>
           <Icon class="h-4 w-4" name="plus"/>
           {{ $t('myPosts.write') }}

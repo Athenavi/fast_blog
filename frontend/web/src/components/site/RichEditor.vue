@@ -19,6 +19,15 @@ import {buildToolbarGroups, EDITOR_SHORTCUTS} from '@/components/editor/tools'
  * 工具栏定义在 `components/editor/tools.ts`。调用方签名（`v-model` + `placeholder` +
  * `editable`）保持不变，因此既有调用点无需改动。
  *
+ * **文档工作台（`components/editor/DocWorkspace.vue`）接入后的改动**：
+ *  - 工具栏改为**吸顶**、滚动交还给页面：长文里工具栏要一直够得着，而滚动容器
+ *    在后台布局是 `el-main`、在前台是 window，编辑器自己算不出该多高。
+ *    因此 `.rich-editor` 不再有 `overflow: hidden` —— 它会静默地把 sticky 变成 relative。
+ *  - 底部那条字数/阅读时长状态栏删掉了：工作台元信息行已经显示同一组数字
+ *    （口径也换成了 `utils/content.ts` 的正确算法），两处各报一个数只会让人怀疑哪个准。
+ *
+ * 目录与字数**不在这里算** —— 由页面直接从 `v-model` 的 Markdown 取，见 `utils/content.ts`。
+ *
  * 两处刻意的差异（保留自 astro 迁移）：
  *  1. astro 版的工具栏由父组件渲染（`RichEditor` 本身"no toolbar"），Nuxt 侧没有
  *     现成的工具栏组件，所以这里自带一条（功能更完整，调用方不需要再实现一遍）。
@@ -100,7 +109,9 @@ const editor = useEditor({
       return true // 已处理，阻止默认的粘贴
     },
   },
-  onUpdate: ({editor: instance}) => emit('update:modelValue', serializeMarkdown(instance.getJSON() as never)),
+  onUpdate: ({editor: instance}) => {
+    emit('update:modelValue', serializeMarkdown(instance.getJSON() as never))
+  },
 })
 
 /** 外部改动（如切换文章/重置表单）时同步进编辑器，且不回灌 update 事件 */
@@ -161,28 +172,7 @@ function toolTitle(tool: { id: string; title: string }): string {
   return `${tool.title} (${modKey.value === '⌘' ? shortcut.replace('Ctrl', '⌘') : shortcut})`
 }
 
-/** 字数与阅读时长：中文按字、西文按词（去标签后统计） */
-const stats = computed(() => {
-  const plain = plainText(props.modelValue || '').trim()
-  const cjk = (plain.match(/[\u4e00-\u9fff]/g) ?? []).length
-  const words = plain.replace(/[\u4e00-\u9fff]/g, ' ').split(/\s+/).filter(Boolean).length
-  const units = cjk + words
-  return {units, minutes: Math.max(1, Math.round(units / 400))}
-})
-
-function plainText(html: string): string {
-  if (!import.meta.client) return html.replace(/<[^>]*>/g, ' ')
-  const holder = document.createElement('div')
-  holder.innerHTML = html
-  return holder.textContent ?? ''
-}
-
-/**
- * 插入/编辑链接
- *
- * 用编辑器内的输入条替代 `window.prompt`：原生 prompt 的按钮文案跟随操作系统语言、
- * 无法样式化、移动端体验差（与后台用 ElMessageBox 的做法也不一致）。
- */
+/** 插入/编辑链接：用一条内联输入条替代原生 `window.prompt`（留空即移除链接） */
 const linkOpen = ref(false)
 const linkUrl = ref('')
 
@@ -220,7 +210,8 @@ const shortcutRows = computed(() => {
     }))
 })
 
-/** 工具表跟随编辑器实例与语言变化重建（`isActive` 高亮依赖 `editor` 就绪） */const toolbarGroups = computed(() =>
+/** 工具表跟随编辑器实例与语言变化重建（`isActive` 高亮依赖 `editor` 就绪） */
+const toolbarGroups = computed(() =>
   buildToolbarGroups(editor.value, (key) => t(key), {
     pickImage: () => {
       pickerOpen.value = true
@@ -232,7 +223,7 @@ const shortcutRows = computed(() => {
 
 <template>
   <div class="rich-editor">
-    <!-- 工具栏 -->
+    <!-- 工具栏（吸顶：见样式注释，偏移量由工作台写在 --doc-ws-offset / --doc-bar-h 上） -->
     <div :aria-label="$t('editor.toolbar')" class="rich-editor__toolbar" role="toolbar">
       <template v-for="(group, groupIndex) in toolbarGroups" :key="groupIndex">
         <span v-if="groupIndex > 0" class="rich-editor__divider"/>
@@ -315,33 +306,42 @@ const shortcutRows = computed(() => {
     <!-- 编辑区 -->
     <EditorContent :editor="editor" class="rich-editor__body"/>
 
-    <!-- 字数与阅读时长（此前创作者只能自己在别处统计） -->
-    <div class="rich-editor__status">
-      <span>{{ $t('editor.words', {n: stats.units}) }}</span>
-      <span aria-hidden="true">·</span>
-      <span>{{ $t('editor.readingTime', {n: stats.minutes}) }}</span>
-    </div>
-
     <!-- 媒体选择弹窗（我的媒体库 / 本地上传 / 外链） -->
     <MediaPickerDialog v-model="pickerOpen" @select="insertImage"/>
   </div>
 </template>
 
 <style scoped>
+/*
+ * 没有 `overflow: hidden` —— 它会创建一个裁剪容器，把工具栏的 `position: sticky`
+ * 静默降级成普通定位（不报错、看不出来，只是吸不住）。
+ * 圆角改由工具栏自己承担（见下），所以这里不需要裁剪。
+ */
 .rich-editor {
-  overflow: hidden;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-card);
   background-color: var(--color-surface);
 }
 
+/*
+ * 吸顶工具栏。
+ *
+ * `--doc-ws-offset` = 工作台距滚动容器顶部的距离（前台布局还有站点导航条，后台为 0），
+ * `--doc-bar-h`     = 顶部文档栏实测高度。两者都由 `DocWorkspace` 测量后写变量，
+ * 这里不猜常量 —— 猜了就会在导航高度变化时错位。
+ * 独立使用（不在工作台里）时两个变量缺省为 0，等价于贴着视口顶部吸住。
+ */
 .rich-editor__toolbar {
+  position: sticky;
+  top: calc(var(--doc-ws-offset, 0px) + var(--doc-bar-h, 0px));
+  z-index: 10;
   display: flex;
   flex-wrap: wrap;
   gap: 2px;
   align-items: center;
   padding: 6px 8px;
   border-bottom: 1px solid var(--color-line);
+  border-radius: calc(var(--radius-card) - 1px) calc(var(--radius-card) - 1px) 0 0;
   background-color: var(--color-surface-soft);
 }
 
@@ -389,17 +389,6 @@ const shortcutRows = computed(() => {
   padding: 8px 10px;
   border-bottom: 1px solid var(--color-line);
   background-color: var(--color-surface-soft);
-}
-
-/* 底部状态栏：字数与阅读时长 */
-.rich-editor__status {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-end;
-  padding: 6px 10px;
-  font-size: 12px;
-  color: var(--color-fg-subtle);
-  border-top: 1px solid var(--color-line);
 }
 
 /* 快捷键面板 */

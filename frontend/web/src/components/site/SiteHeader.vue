@@ -178,6 +178,9 @@ onBeforeUnmount(() => {
       </nav>
 
       <div class="ml-auto flex items-center gap-1">
+        <!-- 协作在场：只有编辑页开着协作会话时才有内容（见 composables/useCollabPresence） -->
+        <CollabPresence/>
+
         <NuxtLink
           class="inline-flex h-9 w-9 items-center justify-center rounded-control text-fg-muted transition-colors hover:bg-surface-soft hover:text-fg"
           :aria-label="$t('site.navSearch')"

@@ -1,19 +1,19 @@
 <script lang="ts" setup>
 /**
- * 写文章（投稿）
+ * 旧投稿入口 → 统一后的编辑页
  *
- * 对应原 astro 的 `my/posts/create.astro`，编辑逻辑复用 `ArticleEditor`。
+ * 新建与编辑原先是两套（`/my/posts/create` 一个壳 + `/my/posts/edit/[id]` 一个壳），
+ * 现在合并成一条路由：`/my/posts/edit/new` 新建、`/my/posts/edit/{id}` 编辑。
+ * 保留这个跳转是为了已经存下的书签与外链 —— 让它直接 404 的话，用户看到的
+ * 是"页面不存在"，而不是他想去的那个页面。
  */
-definePageMeta({layout: 'default', middleware: 'auth', title: 'myPosts.createTitle'})
-
-const router = useRouter()
-
-function onSaved(id: number): void {
-  // 新草稿创建后直接进入编辑态，方便继续补充
-  router.replace(`/my/posts/edit/${id}`)
-}
+definePageMeta({
+  layout: 'default',
+  middleware: 'auth',
+  redirect: '/my/posts/edit/new',
+})
 </script>
 
 <template>
-  <ArticleEditor @saved="onSaved"/>
+  <div/>
 </template>

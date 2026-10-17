@@ -26,6 +26,14 @@
 
 import * as Y from 'yjs'
 import {CollabProvider, type CollabStatus} from '@/lib/yjs/collab-provider'
+import {
+  localPresenceMeta,
+  PRESENCE_USER_FIELD,
+  resolvePeers,
+  type CollabPeer,
+} from '@/lib/yjs/presence'
+import {openPresenceSession, type PresenceHandle} from '@/composables/useCollabPresence'
+import {useUserStore} from '@/store/modules/user'
 import http from '@/api/request'
 
 /** 邀请参数：由所有者在开启协作时配置 */
@@ -38,12 +46,21 @@ export interface InviteOptions {
 
 export function useCollabSession(articleId: Ref<number>) {
   const {t} = useI18n()
+  const userStore = useUserStore()
 
   /** 是否处于协作态（false = 普通编辑，由 ArticleEditor 承担） */
   const active = ref(false)
   const status = ref<CollabStatus>('connecting')
   const statusDetail = ref('')
-  const online = ref(0)
+  /**
+   * 在场列表（含自己），由 awareness 身份状态解析而来，见 `lib/yjs/presence`。
+   *
+   * 排序稳定、自己在前；页面与全站顶栏读同一份（顶栏走 `useCollabPresence`，
+   * 因为布局在页面之上，props 传不上去）。
+   */
+  const peers = ref<CollabPeer[]>([])
+  /** 在线人数（含自己）—— 与 `peers` 同一份来源，不再各算各的 */
+  const online = computed(() => peers.value.length)
   /** 协作态正文（**只用于展示字数/诊断**，不参与输入绑定，见文件头约束 1） */
   const text = ref('')
   /** 邀请链接（所有者开启后可复制） */
@@ -56,10 +73,43 @@ export function useCollabSession(articleId: Ref<number>) {
   let doc: Y.Doc | null = null
   let yText: Y.Text | null = null
   let provider: CollabProvider | null = null
+  /** 顶栏在场头像的发布句柄（离开会话时必须 close，否则顶栏留着已不在场的人） */
+  let presence: PresenceHandle | null = null
 
   const statusLabel = computed(() => t(`myPosts.collab.${status.value}`))
 
-  /** 所有者的身份令牌（协作者可能是免登录进来的，那时没有这个） */
+  /**
+   * 从 awareness 重算在场列表，同时推给本页与全站顶栏。
+   *
+   * 直接绑在 `awareness` 的 `update` 事件上：远端加入、离开、30s 超时清除都会触发它，
+   * 不需要自己轮询（`CollabProvider` 里的连接事件覆盖不到超时清除这条路）。
+   */
+  function publishPeers(): void {
+    if (!provider || !doc || !presence) return
+    const next = resolvePeers(
+      provider.awareness,
+      {
+        clientId: doc.clientID,
+        selfName: t('myPosts.collab.presenceSelf'),
+        selfAvatar: userStore.userInfo?.profile_picture,
+      },
+      {
+        peer: t('myPosts.collab.presencePeer'),
+        anonymous: t('myPosts.collab.presenceAnonymous'),
+      },
+    )
+    peers.value = next
+    presence.publish(next, provider.status)
+  }
+
+  /**
+   * 本端的身份令牌（走 query 传给后端）。
+   *
+   * 可能为 null，而**连接仍可能成功**：登录时后端种了 HttpOnly cookie，握手会自动带上，
+   * 于是「有 cookie、localStorage 里没 token」这一端也进得来房间（实测边界记在
+   * `lib/yjs/presence.ts` 文件头）。这一端报不出用户名，所以在场头像退成兜底标签 ——
+   * 不要把「没有 token」当成「没有连接」。
+   */
   function authToken(): string | null {
     if (typeof localStorage === 'undefined') return null
     return localStorage.getItem('fastblog.token')
@@ -177,17 +227,35 @@ export function useCollabSession(articleId: Ref<number>) {
     const invite = inviteFromUrl()
     isOwner.value = !invite // 带邀请码进来的不是所有者
 
+    presence = openPresenceSession()
+
     provider = new CollabProvider({
       documentId: id,
       doc,
       token,
       invite,
     })
+
+    // 身份必须在 connect() **之前**写好：provider 在 onopen 只广播一次本地 awareness，
+    // 连上之后再写就错过这一班，别人要等下一次变更才看得到我是谁。
+    // 未登录（邀请链接进来的访客）不编用户名，只标 anonymous，名字由查看端补。
+    provider.awareness.setLocalStateField(
+      PRESENCE_USER_FIELD,
+      localPresenceMeta({
+        loggedIn: userStore.isLoggedIn,
+        name: userStore.userInfo?.username,
+        avatar: userStore.userInfo?.profile_picture,
+      }),
+    )
+    provider.awareness.on('update', publishPeers)
+    // 先把自己渲染出来（不等第一轮同步）：顶栏那一刻就该知道「我在，还没别人」
+    publishPeers()
+
     provider.onStatus = (next, detail) => {
       status.value = next
       statusDetail.value = detail ?? ''
-      // peers() 已包含自己（Awareness 把自己的状态也算在内），不要再 +1
-      online.value = provider?.peers().length ?? 0
+      // 人数一律从 `peers` 来（Awareness 把自己的状态也算在内，所以含自己）
+      publishPeers()
       if (next === 'synced') {
         text.value = yText?.toString() ?? ''
         // 同步完成后灌入原文：必须在 synced 之后，否则本地插入会与
@@ -203,14 +271,17 @@ export function useCollabSession(articleId: Ref<number>) {
   }
 
   function leave(): void {
+    provider?.awareness.off('update', publishPeers)
     provider?.destroy()
     provider = null
     doc = null
     yText = null
     text.value = ''
-    online.value = 0
+    peers.value = []
     status.value = 'connecting'
     statusDetail.value = ''
+    presence?.close()
+    presence = null
   }
 
   /**
@@ -297,6 +368,7 @@ export function useCollabSession(articleId: Ref<number>) {
     status,
     statusDetail,
     statusLabel,
+    peers,
     online,
     text,
     inviteUrl,

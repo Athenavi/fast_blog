@@ -19,6 +19,9 @@
     <span v-else class="header__spacer"/>
 
     <div class="header__right">
+      <!-- 协作在场：与前台顶栏同一个组件，会话开着才显示 -->
+      <CollabPresence/>
+
       <button
         :aria-label="$t('admin.command.open')"
         :title="`${$t('admin.command.open')} (${shortcutHint})`"
