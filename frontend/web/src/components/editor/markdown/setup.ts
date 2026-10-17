@@ -35,6 +35,26 @@ export interface MarkdownCollab {
   awareness: Awareness
 }
 
+/** 浮层菜单要接管的键：上下、选中、关掉，以及「弹链接输入条」 */
+export type MarkdownUiKey = 'up' | 'down' | 'enter' | 'tab' | 'escape' | 'link'
+
+/**
+ * 装配时交给编辑器的**回调桥**。
+ *
+ * 为什么菜单的键盘路由要伸回 CodeMirror 里面：焦点一直在编辑器里，
+ * 方向键和回车首先会被 `defaultKeymap` 拿去移光标、换行。浮层打开时这两个动作
+ * 必须**替换**成「选下一项 / 插入这一项」，而这只能在键位表的最前面拦，
+ * 事后 `preventDefault` 已经来不及。
+ */
+export interface MarkdownUiBridge {
+  /** 返回 true = 这一键被浮层消费，CodeMirror 不再走默认行为 */
+  onKey(key: MarkdownUiKey): boolean
+}
+
+export interface MarkdownUpdateInfo {
+  docChanged: boolean
+}
+
 export interface MarkdownEditorOptions {
   placeholder?: string
   editable?: boolean
@@ -44,6 +64,33 @@ export interface MarkdownEditorOptions {
   collab?: MarkdownCollab | null
   /** 文档变化回调（本地输入与远端同步都会走到） */
   onInput?: (text: string) => void
+  /** 每次视图更新（选区、文档、可见范围）都回调，浮层靠它重新定位与显隐 */
+  onUpdate?: (info: MarkdownUpdateInfo) => void
+  /** 浮层菜单的键盘桥 */
+  ui?: MarkdownUiBridge | null
+}
+
+/**
+ * 浮层的键位表。
+ *
+ * 它排在所有键位**最前面**（CodeMirror 的 keymap 顺序即优先级），但每一项都只在
+ * 浮层真的接着的时候返回 true；返回 false 就继续往下落到 `MARKDOWN_KEYMAP`
+ * 和默认键 —— 菜单没开时，上下键仍然是移光标，回车仍然是换行。
+ */
+function uiKeymap(ui: MarkdownUiBridge): Extension {
+  const bind = (key: string, name: MarkdownUiKey) => ({
+    key,
+    run: () => ui.onKey(name),
+  })
+  return keymap.of([
+    bind('ArrowUp', 'up'),
+    bind('ArrowDown', 'down'),
+    bind('Enter', 'enter'),
+    bind('Tab', 'tab'),
+    bind('Escape', 'escape'),
+    // Ctrl+K 归浮层：有选区时弹输入条，没选区时桥那边会退化成插入 `[ ]()` 骨架
+    bind('Mod-k', 'link'),
+  ])
 }
 
 /**
@@ -95,6 +142,7 @@ export function createMarkdownEditor(
   const editableSlot = new Compartment()
   const placeholderSlot = new Compartment()
   const collab = options.collab
+  const ui = options.ui
 
   const extensions: Extension[] = [
     // 正文是散文，一行可能长过一屏：必须软换行，否则横向滚动条把阅读节奏打断。
@@ -113,7 +161,9 @@ export function createMarkdownEditor(
       spellcheck: 'false',
       ...(options.label ? {'aria-label': options.label} : {}),
     }),
-    // 顺序即优先级：本项目的键位先匹配，再轮到 CodeMirror 默认键。
+    // 顺序即优先级：浮层先接键（菜单开着的时候方向键属于菜单），
+    // 再轮到本项目的 Markdown 键位，最后才是 CodeMirror 默认键。
+    ...(ui ? [uiKeymap(ui)] : []),
     keymap.of(MARKDOWN_KEYMAP),
     ...(collab
       ? // 协作：内容供给交给 Y.Text，撤销走 yjs 的共享 UndoManager —— 它只回退**自己**的改动，
@@ -124,13 +174,12 @@ export function createMarkdownEditor(
         [yCollab(collab.ytext, collab.awareness), keymap.of(yUndoManagerKeymap)]
       : [history(), keymap.of([...historyKeymap, indentWithTab])]),
     keymap.of(defaultKeymap),
-    ...(options.onInput
-      ? [
-          EditorView.updateListener.of((update) => {
-            if (update.docChanged) options.onInput?.(update.state.doc.toString())
-          }),
-        ]
-      : []),
+    // 一个监听器干两件事：把正文交给页面（只在真的改了文档时），把「有更新」交给浮层。
+    // 浮层要的是**每一次**更新 —— 只改了选区（拖动选中、点了一下）也得重新定位气泡。
+    EditorView.updateListener.of((update) => {
+      if (update.docChanged) options.onInput?.(update.state.doc.toString())
+      options.onUpdate?.({docChanged: update.docChanged})
+    }),
   ]
 
   const view = new EditorView({parent, doc, extensions})

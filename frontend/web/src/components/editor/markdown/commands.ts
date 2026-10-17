@@ -12,14 +12,27 @@
  * 这里改的就是正文本身，**没有序列化这一步，所以没有这一类 bug**；
  * 粘贴同理：粘进来的是文本，文本就是正文，不再有「粘贴 Markdown 变成字面序号」那个问题。
  *
- * ## 为什么命令与 UI 分开
+ * ## 命令与 UI 的分工
  *
- * 键盘（本切片）、选区气泡菜单与「+」块菜单（下一切片）要调同一批动作。
+ * 键盘、选区气泡菜单、「+」与「/」块菜单要调同一批动作，所以动作全在这里；
+ * 「现在是不是已经是加粗 / 已经是列表」这类**判定**在 `state.ts`，菜单和命令共读一份。
  * 分两处各写一遍插入字符串，早晚一处加粗用 `**`、另一处用 `__`。
  */
 import {EditorSelection} from '@codemirror/state'
 import type {ChangeSpec, EditorState, SelectionRange} from '@codemirror/state'
 import type {Command, EditorView, KeyBinding} from '@codemirror/view'
+
+import {
+  ANY_MARK,
+  ATX_MARK,
+  FENCE_MARK,
+  LIST_MARK,
+  QUOTE_MARK,
+  linkAt,
+  selectedLines,
+  wrapSpans,
+  wrapState,
+} from './state'
 
 /**
  * 成对标记：`**粗**`、`*斜*`、`~~删~~`、`` `码` ``。
@@ -28,6 +41,8 @@ import type {Command, EditorView, KeyBinding} from '@codemirror/view'
  *  1. 选区**外侧**已经是这对标记 → 摘掉；
  *  2. 选区**自身**带着这对标记（双击选中词时常见）→ 摘掉；
  *  3. 其余（含空选区）→ 加上，空选区时把光标停在两个标记之间。
+ *
+ * 跨行的选区**按行**分别处理（`state.ts` 的 `wrapSpans`），空行跳过。
  */
 export function toggleWrap(open: string, close: string = open): Command {
   return (view) => {
@@ -37,40 +52,20 @@ export function toggleWrap(open: string, close: string = open): Command {
     /** 已处理过的改动带来的净长度位移：选区坐标要换算到**新文档** */
     let shift = 0
 
-    /**
-     * 跨行的选区**按行**加标记，而不是整段包起来。
-     *
-     * `~~第一段\n\n第二段~~` 在 Markdown 里不是删除线：块级边界会把这对符号留在原地
-     * 变成残渣，屏幕上就是两串字面的 `~~`。按行走与列表、引用这些行级命令同一口径，
-     * 也顺便让「全选整篇再按加粗」不会毁掉文档结构。
-     */
     for (const range of state.selection.ranges) {
       for (const span of wrapSpans(state, range)) {
         const {from, to} = span
-        const inner = state.sliceDoc(from, to)
-        const outerOpen = state.sliceDoc(Math.max(0, from - open.length), from)
-        const outerClose = state.sliceDoc(to, Math.min(state.doc.length, to + close.length))
+        const kind = wrapState(state, from, to, open, close)
 
-        // 单字符标记必须真是「单独一个」：`**粗**` 里切斜体时外侧那一个 `*` 属于 `**` 的一部分，
-        // 把它当斜体标记摘掉会得到 `*粗*`，等于把粗体悄悄改了。
-        const adjacent =
-          open.length === 1 &&
-          (state.sliceDoc(Math.max(0, from - 2), from - 1) === open ||
-            state.sliceDoc(to + close.length, to + close.length + 1) === open)
-        const wrappedOutside = outerOpen === open && outerClose === close && !adjacent
-
-        if (wrappedOutside) {
+        if (kind === 'outside') {
           specs.push({from: from - open.length, to: from}, {from: to, to: to + close.length})
           ranges.push(EditorSelection.range(from - open.length + shift, to - open.length + shift))
           shift -= open.length + close.length
           continue
         }
 
-        if (
-          inner.length >= open.length + close.length &&
-          inner.startsWith(open) &&
-          inner.endsWith(close)
-        ) {
+        if (kind === 'inside') {
+          const inner = state.sliceDoc(from, to)
           const body = inner.slice(open.length, inner.length - close.length)
           specs.push({from, to, insert: body})
           ranges.push(EditorSelection.range(from + shift, from + body.length + shift))
@@ -86,45 +81,22 @@ export function toggleWrap(open: string, close: string = open): Command {
         }
 
         specs.push({from, insert: open}, {from: to, insert: close})
-        ranges.push(
-          EditorSelection.range(from + open.length + shift, to + open.length + close.length + shift),
-        )
+        // 结尾只加 `open.length`：闭合标记插在 `to` **之后**，不会把选区末端推过去。
+        // 这里多算一次 close.length 会让选区停在 `**粗**` 的右半边之外，
+        // `wrapState` 于是判成 'none'，气泡里那颗按钮永远不会亮。
+        ranges.push(EditorSelection.range(from + open.length + shift, to + open.length + shift))
         shift += open.length + close.length
       }
     }
 
     // `create` 会排序并合并重叠的选区：多光标落在同一处时，合并正是我们要的
-    view.dispatch({changes: specs, selection: EditorSelection.create(ranges, 0), scrollIntoView: true})
+    view.dispatch({
+      changes: specs,
+      selection: EditorSelection.create(ranges, 0),
+      scrollIntoView: true,
+    })
     return true
   }
-}
-
-/** 一个选区里要分别加标记的片段：单行就是选区本身，跨行则逐行切开（空行跳过） */
-function wrapSpans(state: EditorState, range: SelectionRange): Array<{from: number; to: number}> {
-  const first = state.doc.lineAt(range.from).number
-  const last = state.doc.lineAt(range.to).number
-  if (first === last) return [{from: range.from, to: range.to}]
-
-  const spans: Array<{from: number; to: number}> = []
-  for (let number = first; number <= last; number++) {
-    const line = state.doc.line(number)
-    const from = number === first ? range.from : line.from
-    const to = number === last ? range.to : line.to
-    if (to > from) spans.push({from, to})
-  }
-  return spans
-}
-
-/** 选区覆盖到的行号，去重升序（多光标重叠时同一行只处理一次） */
-function selectedLines(view: EditorView): number[] {
-  const {state} = view
-  const numbers = new Set<number>()
-  for (const range of state.selection.ranges) {
-    const first = state.doc.lineAt(range.from).number
-    const last = state.doc.lineAt(range.to).number
-    for (let n = first; n <= last; n++) numbers.add(n)
-  }
-  return [...numbers].sort((a, b) => a - b)
 }
 
 /**
@@ -138,10 +110,10 @@ function selectedLines(view: EditorView): number[] {
  */
 function toggleLinePrefix(
   view: EditorView,
+  state: EditorState,
   resolve: (lineText: string, index: number) => {prefix: string; strip: RegExp},
 ): boolean {
-  const {state} = view
-  const numbers = selectedLines(view)
+  const numbers = selectedLines(state)
   if (!numbers.length) return false
 
   const specs: ChangeSpec[] = []
@@ -160,21 +132,14 @@ function toggleLinePrefix(
   return true
 }
 
-/** 行首已有的 ATX 标题标记（`### `） */
-const ATX_MARK = /^ {0,3}#{1,6} /
-/** 行首已有的列表标记（无序、有序、任务） */
-const LIST_MARK = /^ {0,3}(?:[-*+] \[[ xX]\] |[-*+] |\d{1,9}[.)] )/
-/** 行首已有的引用标记（`> `） */
-const QUOTE_MARK = /^ {0,3}> /
-
 export function setHeading(level: 1 | 2 | 3 | 4 | 5 | 6): Command {
   const prefix = `${'#'.repeat(level)} `
-  return (view) => toggleLinePrefix(view, () => ({prefix, strip: ATX_MARK}))
+  return (view) => toggleLinePrefix(view, view.state, () => ({prefix, strip: ATX_MARK}))
 }
 
 export function toggleList(kind: 'bullet' | 'ordered' | 'task'): Command {
   return (view) =>
-    toggleLinePrefix(view, (lineText, index) => {
+    toggleLinePrefix(view, view.state, (lineText, index) => {
       if (kind === 'ordered') return {prefix: `${index + 1}. `, strip: LIST_MARK}
       if (kind === 'task')
         return {
@@ -187,7 +152,23 @@ export function toggleList(kind: 'bullet' | 'ordered' | 'task'): Command {
 }
 
 export function toggleQuote(): Command {
-  return (view) => toggleLinePrefix(view, () => ({prefix: '> ', strip: QUOTE_MARK}))
+  return (view) => toggleLinePrefix(view, view.state, () => ({prefix: '> ', strip: QUOTE_MARK}))
+}
+
+/** 把选中行的行首标记全剥掉，还原成普通段落 */
+export function setParagraph(): Command {
+  return (view) => {
+    const {state} = view
+    const specs: ChangeSpec[] = []
+    for (const number of selectedLines(state)) {
+      const line = state.doc.line(number)
+      const mark = ANY_MARK.exec(line.text)?.[0]
+      if (mark) specs.push({from: line.from, to: line.from + mark.length})
+    }
+    if (!specs.length) return false
+    view.dispatch({changes: specs, scrollIntoView: true})
+    return true
+  }
 }
 
 /**
@@ -205,9 +186,8 @@ export function toggleCodeFence(): Command {
     const last = state.doc.lineAt(to)
     const prev = first.number > 1 ? state.doc.line(first.number - 1) : null
     const next = last.number < state.doc.lines ? state.doc.line(last.number + 1) : null
-    const fenced = /^ {0,3}```/
 
-    if (prev && next && fenced.test(prev.text) && fenced.test(next.text)) {
+    if (prev && next && FENCE_MARK.test(prev.text) && FENCE_MARK.test(next.text)) {
       view.dispatch({
         changes: [
           {from: prev.from, to: first.from},
@@ -229,11 +209,52 @@ export function toggleCodeFence(): Command {
 }
 
 /**
+ * 在光标所在行下面放一个块级骨架。
+ *
+ * `select` 是**相对骨架起点**的选区，用来把光标停在该填的那一段上（表头单元、图片地址）；
+ * 不传就停在骨架末尾。
+ *
+ * 「块与块之间要空一行」这条不是美观问题：`文字` 紧跟 `---` 会被读成 setext 二级标题，
+ * 紧跟表格那行 `| | |` 会被读成上一段的续行。所以前一行有字时补两个换行，
+ * 骨架后面固定补一个换行（让下一个块不会粘在骨架上）。当前行是空行时直接填满它，
+ * 不额外造出空行 —— 「在新行的加号上点一块」是最常见的路径。
+ */
+function insertBlock(block: {text: string; select?: [number, number]}): Command {
+  return (view) => {
+    const {state} = view
+    const line = state.doc.lineAt(state.selection.main.head)
+    const lead = line.text.trim() ? '\n\n' : ''
+    const start = line.to + lead.length
+    const [from, to] = block.select ?? []
+    view.dispatch({
+      changes: {from: line.to, insert: `${lead}${block.text}`},
+      selection:
+        from === undefined || to === undefined
+          ? EditorSelection.cursor(start + block.text.length)
+          : EditorSelection.range(start + from, start + to),
+      scrollIntoView: true,
+    })
+    return true
+  }
+}
+
+/** 三列两行的表格骨架，光标停在第一个表头单元里（选中那两个空格，直接打字替换） */
+export const insertTable: Command = insertBlock({
+  text: '|  |  |  |\n| --- | --- | --- |\n|  |  |  |\n',
+  select: [1, 3],
+})
+
+export const insertDivider: Command = insertBlock({text: '---\n'})
+
+/** 图片骨架：`![](https://)`，地址段选中，粘上去就能替换 */
+export const insertImage: Command = insertBlock({text: '![](https://)\n', select: [4, 12]})
+
+/**
  * 链接骨架：`[文字](url)`。
  *
  * 不弹窗、不假定 URL 从哪来 —— 三种起点都把光标停在**待填的那一段**上：
  * 选中一个网址 → 光标停在方括号里补锚文本；选中文字 → 光标停在圆括号里补网址；
- * 空选区 → 光标停在方括号里。真正的链接输入条在下一切片的选区菜单里。
+ * 空选区 → 光标停在方括号里。气泡菜单里那条链接输入条走 `applyLink`。
  */
 export function wrapLink(): Command {
   return (view) => {
@@ -252,7 +273,60 @@ export function wrapLink(): Command {
       shift += insert.length - (range.to - range.from)
     }
 
-    view.dispatch({changes: specs, selection: EditorSelection.create(ranges, 0), scrollIntoView: true})
+    view.dispatch({
+      changes: specs,
+      selection: EditorSelection.create(ranges, 0),
+      scrollIntoView: true,
+    })
+    return true
+  }
+}
+
+/**
+ * 链接输入条提交的动作：设定 / 改写 / 删除当前选区上的链接。
+ *
+ * 与 `wrapLink` 分成两个命令是有原因的：气泡菜单里那个输入框要能**改**一条已有链接的地址，
+ * 而 `wrapLink` 只会再套一层，套完变成 `[[文字](旧)](新)` 这种没法看的形状。
+ * 传空地址 = 移除链接（保留锚文本），与旧版工具栏「留空则移除链接」的口径一致。
+ */
+export function applyLink(url: string): Command {
+  return (view) => {
+    const {state} = view
+    const {from, to} = state.selection.main
+    const link = linkAt(state, from, to)
+
+    if (!url) {
+      if (!link || link.image) return false
+      view.dispatch({
+        changes: {from: link.from, to: link.to, insert: link.label},
+        selection: {anchor: link.from + link.label.length},
+        scrollIntoView: true,
+      })
+      return true
+    }
+
+    if (link) {
+      const changes =
+        link.url === url ? [] : [{from: link.urlFrom, to: link.urlTo, insert: url}]
+      view.dispatch({
+        changes,
+        selection: {anchor: link.to + (url.length - link.url.length)},
+        scrollIntoView: true,
+      })
+      return true
+    }
+
+    // 选区要按行切开：连击选中整行时选区**带着行尾那个换行**，照原样包就变成
+    // `[文字\n](url)`，`url` 那一截被甩到下一行去。行内标记不会有这种形状。
+    const [span] = wrapSpans(state, state.selection.main)
+    if (!span) return false
+    const label = state.sliceDoc(span.from, span.to)
+    const insert = `[${label}](${url})`
+    view.dispatch({
+      changes: {from: span.from, to: span.to, insert},
+      selection: {anchor: span.from + insert.length},
+      scrollIntoView: true,
+    })
     return true
   }
 }
@@ -264,6 +338,9 @@ export function wrapLink(): Command {
  * `Ctrl+Shift+B` 引用、`Ctrl+Alt+C` 代码块），老用户的手感不用重学；
  * 上一版里 Markdown 没有对应物的「下划线 / 高亮 / 对齐」三组直接不保留 ——
  * 留一个按了没反应的键比删掉它更糟。
+ *
+ * `Ctrl+K` 不在这儿：它归浮层菜单那一层（`setup.ts` 的 `uiKeymap` 先接，
+ * 有选区就弹链接输入条，没选区就插入 `[ ]()` 骨架）。
  */
 export const MARKDOWN_KEYMAP: KeyBinding[] = [
   {key: 'Mod-b', run: toggleWrap('**')},
@@ -271,7 +348,6 @@ export const MARKDOWN_KEYMAP: KeyBinding[] = [
   {key: 'Mod-Shift-s', run: toggleWrap('~~')},
   {key: 'Mod-Shift-c', run: toggleWrap('`')},
   {key: 'Mod-Alt-c', run: toggleCodeFence()},
-  {key: 'Mod-k', run: wrapLink()},
   {key: 'Mod-Alt-1', run: setHeading(1)},
   {key: 'Mod-Alt-2', run: setHeading(2)},
   {key: 'Mod-Alt-3', run: setHeading(3)},

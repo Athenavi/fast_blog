@@ -5628,7 +5628,19 @@
     "callout": "提示块",
     "md": {
       "ariaLabel": "正文（Markdown 源码）",
-      "placeholder": "开始写 Markdown…"
+      "placeholder": "开始写 Markdown…",
+      "bubble": "文本格式",
+      "inlineCode": "行内代码",
+      "addBlock": "插入块",
+      "blocks": "块类型",
+      "blockEmpty": "没有匹配的块类型",
+      "slashHint": "↑↓ 选择 · Enter 插入 · Esc 关闭",
+      "paragraph": "正文",
+      "divider": "分割线",
+      "linkEdit": "修改链接",
+      "linkInputPlaceholder": "链接地址（留空则移除链接）",
+      "linkApply": "应用",
+      "linkCancel": "取消"
     },
     "doc": {
       "outline": "目录",

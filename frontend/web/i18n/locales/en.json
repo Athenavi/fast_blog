@@ -5628,7 +5628,19 @@
     "callout": "Callout",
     "md": {
       "ariaLabel": "Body (Markdown source)",
-      "placeholder": "Start writing Markdown…"
+      "placeholder": "Start writing Markdown…",
+      "bubble": "Text formatting",
+      "inlineCode": "Inline code",
+      "addBlock": "Insert block",
+      "blocks": "Block types",
+      "blockEmpty": "No matching block",
+      "slashHint": "↑↓ to choose · Enter to insert · Esc to close",
+      "paragraph": "Plain text",
+      "divider": "Divider",
+      "linkEdit": "Edit link",
+      "linkInputPlaceholder": "Link URL (leave empty to remove)",
+      "linkApply": "Apply",
+      "linkCancel": "Cancel"
     },
     "doc": {
       "outline": "Outline",
