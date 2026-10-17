@@ -461,6 +461,16 @@ function onRestore(content: string): void {
   color: var(--color-fg-subtle);
 }
 
+/*
+ * 手机上文档栏只有两行的额度，这句常驻说明先让路 —— 「草稿/未保存」那一项由外壳自己显示，
+ * 不受这里影响。
+ */
+@media (max-width: 767px) {
+  .notice {
+    display: none;
+  }
+}
+
 /* ---------------------------------------------------------------- 横幅区 */
 .banner-stack {
   display: flex;

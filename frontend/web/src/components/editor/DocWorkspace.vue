@@ -27,6 +27,8 @@
 import type {DocViewMode} from '@/composables/useDocViewMode'
 import type {OutlineItem} from '@/utils/content'
 
+import {useMediaQuery} from '@vueuse/core'
+
 import DocOutline from './DocOutline.vue'
 
 const props = withDefaults(
@@ -100,6 +102,23 @@ const MODE_LABEL: Record<DocViewMode, string> = {
   read: 'editor.doc.modeRead',
 }
 
+/**
+ * 手机上没有「分栏」这一档。
+ *
+ * 窄屏时正文与预览本来就上下堆叠（见 1279px 那条媒体查询），拿不到「左边写右边看」，
+ * 那一档点下去只是把已经堆好的两栏再堆一次。
+ *
+ * 按钮是靠 CSS 隐藏的，不是从 `v-for` 里筛掉 —— 服务端直出三个按钮、客户端只挂两个，
+ * hydration 时整段列表对不上，控制台会红一片。
+ *
+ * `activeMode` 只做**读侧**的折算，不回写页面的模式：手机上存的偏好仍是手机上的选择，
+ * 转回宽屏时那一档还在，不用重新点一遍。
+ */
+const isPhone = useMediaQuery('(max-width: 767px)')
+const activeMode = computed<DocViewMode>(() =>
+  isPhone.value && props.mode === 'split' ? 'edit' : props.mode,
+)
+
 // ---------------------------------------------------------------- 大纲栏折叠
 
 /**
@@ -137,9 +156,12 @@ const activeIndex = ref(-1)
 /**
  * 承担滚动跟随的那一栏。
  *
- * 阅读态整屏都是渲染结果，目录自然该跟着预览走；其余两档跟正文。
+ * 阅读态整屏都是渲染结果，目录自然该跟着预览走；其余跟正文。
+ * 读的是 `activeMode`：手机上被折算掉的那一档不能把目录带偏。
  */
-const trackedColumn = computed(() => (props.mode === 'read' ? previewCol.value : docCol.value))
+const trackedColumn = computed(() =>
+  activeMode.value === 'read' ? previewCol.value : docCol.value,
+)
 
 /**
  * 渲染结果里的标题元素。
@@ -168,7 +190,7 @@ function domHeadings(): HTMLElement[] {
 function headingEl(index: number): HTMLElement | null {
   const item = props.items[index]
   if (!item) return null
-  if (props.mode !== 'read') {
+  if (activeMode.value !== 'read') {
     const line = props.sourceAnchor?.lineElAt(item.offset) ?? null
     if (line) return line
   }
@@ -265,7 +287,7 @@ function onSelectHeading(index: number): void {
 
 /** 正文一有变化，标题数量与位置就变了：高亮与吸顶高度都要重算 */
 watch(
-  () => [props.items, props.mode],
+  () => [props.items, activeMode.value],
   () => void nextTick(() => {
     measure()
     updateActive()
@@ -318,7 +340,7 @@ function closeSettings(): void {
 <template>
   <div
     ref="root"
-    :data-mode="mode"
+    :data-mode="activeMode"
     :style="{'--doc-ws-offset': stickyOffset}"
     class="doc-ws"
   >
@@ -354,8 +376,9 @@ function closeSettings(): void {
           <button
             v-for="item in MODES"
             :key="item"
-            :aria-pressed="mode === item"
-            :class="{'is-active': mode === item}"
+            :aria-pressed="activeMode === item"
+            :class="{'is-active': activeMode === item}"
+            :data-mode="item"
             class="doc-ws__mode"
             type="button"
             @click="emit('update:mode', item)"
@@ -382,7 +405,7 @@ function closeSettings(): void {
            撤销栈和光标位置就没了，光标还会掉回页面顶部，用户「看一眼再切回来」
            等于白白丢了半小时的回退能力。正文本身在 v-model 里，所以隐藏不会丢内容。 -->
       <main
-        v-show="mode !== 'read'"
+        v-show="activeMode !== 'read'"
         ref="docCol"
         class="doc-ws__col doc-ws__col--doc"
       >
@@ -415,7 +438,7 @@ function closeSettings(): void {
 
       <!-- 分栏 / 阅读：渲染结果。读的是**当前缓冲区**，不是上次保存的版本 -->
       <aside
-        v-if="mode !== 'edit'"
+        v-if="activeMode !== 'edit'"
         ref="previewCol"
         class="doc-ws__col doc-ws__col--preview"
         :aria-label="$t('editor.doc.modeRead')"
@@ -426,12 +449,12 @@ function closeSettings(): void {
       </aside>
     </div>
 
-    <!-- 右下浮动作：目录展开 + 设置。窄屏时大纲栏会自动隐藏，这里兜住入口 -->
+    <!-- 右下浮动作：目录展开（只在目录被折叠时出现）与设置 -->
     <div class="doc-ws__fab">
       <button
         v-if="railCollapsed"
         :aria-label="$t('editor.doc.expandOutline')"
-        class="doc-ws__fab-btn"
+        class="doc-ws__fab-btn doc-ws__fab-btn--rail"
         type="button"
         @click="toggleRail"
       >
@@ -842,9 +865,51 @@ function closeSettings(): void {
   }
 }
 
-/* 手机宽度下没有版面放常驻目录栏，交给右下那颗浮动按钮 */
+/* 手机宽度下没有版面放常驻目录栏 */
 @media (max-width: 1023px) {
   .doc-ws__rail {
+    display: none;
+  }
+
+  /* 目录栏在这一档已经不显示，栏首和右下角那两个开关按下去没有任何反应，一并收掉 */
+  .doc-ws__bar > .doc-ws__icon-btn,
+  .doc-ws__fab-btn--rail {
+    display: none;
+  }
+}
+
+/*
+ * 手机：文档栏换行，而不是被压扁。
+ *
+ * 桌面上这条栏是一行：目录开关 +「面包屑 / 保存状态」+ 视图切换 + 页头操作。
+ * 到 390px 上，右边那组自己就占 346px（模式 141 + 历史 81 + 保存 112 + 间隙），
+ * 而 `bar-info` 带着 `min-width: 0` —— 容器放不下时它被一路压到 **0 宽**，
+ * 里面那两行字于是逐字换行，整条栏反而涨到 236px 高，正文被推出首屏。
+ * 压扁不是省地方，是把一行字变成五行。
+ *
+ * 所以窄屏显式排成两行：上面报身份，下面放操作。
+ */
+@media (max-width: 767px) {
+  .doc-ws__bar {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    padding: 6px 12px;
+  }
+
+  .doc-ws__bar-info {
+    order: -1;
+    flex: 1 1 100%;
+  }
+
+  .doc-ws__bar-tools {
+    flex: 1 1 auto;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+  }
+
+  /* 「分栏」在手机上没有对应的版面（两栏只能上下堆），按钮收掉；状态折算见 `activeMode` */
+  .doc-ws__mode[data-mode='split'] {
     display: none;
   }
 }
