@@ -7,7 +7,7 @@ import ArticleAssistPanel from '@/components/admin/ArticleAssistPanel.vue'
 import ArticleCustomFieldsPanel from '@/components/admin/ArticleCustomFieldsPanel.vue'
 import ArticlePreviewTokenPanel from '@/components/admin/ArticlePreviewTokenPanel.vue'
 import DocWorkspace from '@/components/editor/DocWorkspace.vue'
-import RichEditor from '@/components/site/RichEditor.vue'
+import MarkdownEditor from '@/components/editor/MarkdownEditor.vue'
 import {useArticleForm} from '@/composables/useArticleForm'
 import {useCategoryOptions} from '@/composables/useCategoryOptions'
 import {useDocViewMode} from '@/composables/useDocViewMode'
@@ -27,6 +27,10 @@ import {renderMarkdown} from '@/utils/markdown'
  * 外壳是 `components/editor/DocWorkspace.vue`（与前台投稿页共用）：顶部一条文档栏、
  * 左侧可折叠大纲、中间**阅读宽度**的正文，发布设置收进右侧按需抽屉。
  * 因此这个页面里已经没有 `.admin-split`、iframe 预览、右栏常驻卡片这些东西了。
+ *
+ * 正文只有 **Markdown 源码**一种视图（`MarkdownEditor`，CodeMirror 6）：库里存的就是
+ * Markdown，再架一层富文本等于每次编辑都过一次有损序列化。排版效果看分栏预览，
+ * 与前台投稿页是同一个判断，所以这一页也不再需要「富文本 / 源码」切换。
  *
  * ## 预览改成读当前缓冲区
  *
@@ -178,6 +182,20 @@ function onTitleInput(value: string): void {
   markDirty()
 }
 
+/**
+ * 正文编辑器引用。
+ *
+ * 外壳的目录跳转在源码态要按「第 N 个标题所在的那一行」定位，而只有编辑器自己
+ * 知道那一行是哪个 DOM 节点 —— 所以把这个 ref 交给 `DocWorkspace` 的 `sourceAnchor`
+ * （它只认 `lineElAt` 这一个方法，外壳因此不必认识 CodeMirror）。
+ */
+const editor = ref<InstanceType<typeof MarkdownEditor> | null>(null)
+
+function onContentInput(value: string): void {
+  form.content = value
+  markDirty()
+}
+
 function onCoverSelected(url: string): void {
   form.cover_image = url
   markDirty()
@@ -233,6 +251,7 @@ function adoptTag(tag: string): void {
       :mode="mode"
       :saved-at="savedAt"
       :saving="saving"
+      :source-anchor="editor"
       :title="form.title"
       :units="stats.units"
       :minutes="stats.minutes"
@@ -334,11 +353,14 @@ function adoptTag(tag: string): void {
 
         <!-- 正文：不套 el-form-item —— 那只是把布局容器用错了，
              el-form-item 会带标签与下边距，把编辑器往下压一截 -->
-        <RichEditor
+        <MarkdownEditor
           v-else
-          v-model="form.content"
-          :placeholder="$t('admin.content.article.content')"
-          @update:model-value="markDirty()"
+          ref="editor"
+          :editable="ready"
+          :label="$t('editor.md.ariaLabel')"
+          :model-value="form.content"
+          :placeholder="$t('editor.md.placeholder')"
+          @update:model-value="onContentInput"
         />
       </template>
 

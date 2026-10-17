@@ -5099,7 +5099,7 @@
   "myPosts": {
     "collab": {
       "title": "Collaborative editing",
-      "hint": "Turns the body into Markdown source + live preview with multi-user sync. Maintain other fields after leaving collaboration.",
+      "hint": "Everyone edits the same body in real time; changes reach the database only when you press Save to article. Maintain other fields after leaving collaboration.",
       "hours": "Valid for (hours)",
       "maxUses": "Max collaborators",
       "start": "Start collaboration",
@@ -5115,6 +5115,7 @@
       "presenceOffline": "Collaboration connection lost; presence may be out of date",
       "joinedAsGuest": "You joined via an invite link and can only edit the body",
       "saveToArticle": "Save to article",
+      "saveRefusedEmpty": "The body in the collaboration room is empty, so saving was refused (the original content may not have loaded). Reload the page and check the content first.",
       "history": {
         "title": "Article history",
         "refresh": "Refresh",
@@ -5196,10 +5197,6 @@
     "tagPlaceholder": "Type and press Enter to add",
     "addTag": "Add",
     "fieldContent": "Body",
-    "contentPlaceholder": "Start writing…",
-    "sourcePlaceholder": "HTML / Markdown source supported",
-    "modeRich": "Rich text",
-    "modeSource": "Source",
     "cancel": "Cancel",
     "saveDraft": "Save draft",
     "saveUpdate": "Save changes",
@@ -5629,6 +5626,10 @@
     "shortcuts": "Shortcuts",
     "toolbar": "Formatting toolbar",
     "callout": "Callout",
+    "md": {
+      "ariaLabel": "Body (Markdown source)",
+      "placeholder": "Start writing Markdown…"
+    },
     "doc": {
       "outline": "Outline",
       "outlineEmpty": "No headings yet",

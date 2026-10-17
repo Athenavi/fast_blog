@@ -12,41 +12,57 @@
  * 所以这里统一用**序号**当大纲项的身份：目录项 `index` 对应正文容器里第 `index`
  * 个标题元素。不需要给任何节点加标识属性。
  *
- * ## 为什么一律从 Markdown 源码算，而不是从 Tiptap 的文档树算
+ * ## 为什么一律从 Markdown 源码算，而不是从渲染结果算
  *
- * `useArticleForm` 存的正文**就是 Markdown**（`RichEditor` 每次事务都 `serializeMarkdown`
- * 回灌给它）。大纲、字数、右侧的实时预览三者同读这一份字符串，就必然互相对得上；
- * 只要有一项改成从文档树现取，它和另外两项之间就多了一次「序列化是否忠实」的假设。
- * 顺带还免掉了 Tiptap 浅响应实例带来的那套版本号计数器 —— 打一个字不会触发
+ * `useArticleForm` 存的正文**就是 Markdown**（编辑器是 CodeMirror 上的 Markdown 源码视图，
+ * 中间没有文档树与序列化那一步）。大纲、字数、右侧的实时预览三者同读这一份字符串，
+ * 就必然互相对得上；只要有一项改成从渲染结果现取，它和另外两项之间就多了一次
+ * 「渲染是否忠实」的假设。
+ * 顺带还免掉了编辑器实例浅响应带来的那套版本号计数器 —— 打一个字不会触发
  * `computed`，得自己造依赖源，而这恰好是最容易悄悄失效的那种代码。
  */
 
 export interface OutlineItem {
-  /** 在大纲中的序号，同时是正文里第 N 个标题元素的序号 */
+  /** 在大纲中的序号，同时是正文里第 `index` 个标题元素的序号 */
   index: number
   /** 1~6 */
   level: number
   text: string
+  /**
+   * 这一行在 Markdown 源码里的起始偏移。
+   *
+   * 目录定位有两种世界：渲染结果里有真正的 `<h2>` 可以按序号找，源码里没有 ——
+   * 只有「第 N 行以 `##` 开头」。留着这个偏移，两种世界都能按同一份目录跳过去，
+   * 不必为源码模式再算一遍标题列表（两份必然分叉）。
+   */
+  offset: number
 }
 
 const HEADING_LINE = /^ {0,3}(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$/
 const FENCE_LINE = /^ {0,3}(`{3,}|~{3,})/
 
 /**
- * 按行走一遍 Markdown，**跳过围栏代码块内部**。
+ * 按行走一遍 Markdown，**跳过围栏代码块内部**，并把每行的起始偏移一起给出去。
  *
  * 抽成一个函数而不是两处各写一遍围栏状态机：`headingsFromMarkdown` 与
  * `stripMarkdown` 必须对「哪些行是代码」给出完全相同的判断，否则目录序号
  * 与字数会各自错位。
  *
+ * 切行用 `split('\n')` 而不是 `/\r?\n/`：偏移要能加回来，`split(/\r?\n/)` 把 `\r`
+ * 吞掉之后，行号与字符下标就对不上原文了。
+ *
  * 闭栏按 CommonMark 规则：同类标记、长度不小于开栏才算闭合；
  * 到文末仍未闭合，则剩下的行全部按代码处理。
  */
-function forEachProseLine(source: string, onLine: (line: string) => void): void {
+function forEachProseLine(
+  source: string,
+  onLine: (line: string, offset: number) => void,
+): void {
   let fenceChar = ''
   let fenceLength = 0
+  let offset = 0
 
-  for (const line of source.split(/\r?\n/)) {
+  for (const line of source.split('\n')) {
     const fence = FENCE_LINE.exec(line)
     const marker = fence?.[1]
     if (fence && marker) {
@@ -58,27 +74,28 @@ function forEachProseLine(source: string, onLine: (line: string) => void): void 
         fenceChar = ''
         fenceLength = 0
       }
+      offset += line.length + 1
       continue
     }
-    if (fenceChar) continue
-    onLine(line)
+    if (!fenceChar) onLine(line, offset)
+    offset += line.length + 1
   }
 }
 
 /**
- * 从 Markdown 源码取标题（编辑器的「源码」模式与协作模式用）。
+ * 从 Markdown 源码取标题（编辑器与协作态的目录都读这份）。
  *
  * 必须跳过围栏代码块：一段示例脚本里的 `# 注释` 一旦进了目录，目录就出现点不到的
- * 条目 —— 源码模式下 textarea 里根本没有标题元素，序号会从这里开始整体错位。
+ * 条目 —— 源码里没有标题元素，序号会从这里开始整体错位。
  */
 export function headingsFromMarkdown(source: string | null | undefined): OutlineItem[] {
   const items: OutlineItem[] = []
-  forEachProseLine(source ?? '', (line) => {
+  forEachProseLine(source ?? '', (line, offset) => {
     const heading = HEADING_LINE.exec(line)
     const hashes = heading?.[1]
     const text = heading?.[2]?.trim()
     if (!hashes || !text) return
-    items.push({index: items.length, level: hashes.length, text})
+    items.push({index: items.length, level: hashes.length, text, offset})
   })
   return items
 }
@@ -154,7 +171,7 @@ const INLINE_MARKS: ReadonlyArray<readonly [RegExp, string]> = [
 ]
 
 /** 表格的分隔行（`| --- | --- |`）与竖线 */
-const TABLE_DIVIDER = /^[ \t]*\|?[ \t:|-]+\|?[ \t]*$/gm
+const TABLE_DIVIDER = /^[ \t]*\|?[ \t:|-]+\|?[ \t]*\r?$/gm
 
 /**
  * 把 Markdown 折成近似的纯文本。

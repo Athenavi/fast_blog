@@ -37,13 +37,21 @@ import type {Awareness} from 'y-protocols/awareness'
 /** awareness 本地状态里存身份的字段名（自己约定，不与后端协议相关） */
 export const PRESENCE_USER_FIELD = 'user'
 
-/** 写进 awareness 的本地身份 */
+/**
+ * 写进 awareness 的本地身份
+ *
+ * 字段名不是随便起的：`y-codemirror.next` 画远端光标时读的就是
+ * `state.user.name` 与 `state.user.color`（读不到时退回「Anonymous」和一个固定蓝）。
+ * 也就是说这份身份**同时**喂顶栏头像和正文里的协作光标，一处写、两处用。
+ */
 export interface CollabUserMeta {
   /** 登录用户名；匿名时为 undefined，由查看端决定显示什么 */
   name?: string
   /** 未登录（本端没有 token；靠 cookie 连上时会出现，见文件头） */
   anonymous?: boolean
   avatar?: string | null
+  /** 协作光标与选区的颜色 */
+  color?: string
 }
 
 export interface CollabPeer {
@@ -58,9 +66,7 @@ export interface CollabPeer {
 }
 
 /**
- * 头像底色：按 `clientID` 取模，同一端在每个人屏幕上颜色一致，且不需要任何通信。
- *
- * 刻意**不**把颜色写进 awareness —— 它是 clientID 的纯函数，写出去只是多占一份同步。
+ * 头像底色：按 `clientID` 取模 —— 同一端在每个人屏幕上颜色一致，且不需要协商。
  */
 const PRESENCE_COLORS = [
   '#3b82f6',
@@ -101,17 +107,26 @@ function takeHead(word: string): string {
   return first < 0x250 ? word.slice(0, 1) : Array.from(word).slice(0, 2).join('')
 }
 
-/** 本地要广播的身份；未登录时只标记 anonymous，不伪造名字 */
+/**
+ * 本地要广播的身份；未登录时只标记 anonymous，不伪造名字。
+ *
+ * `color` 是 `presenceColorOf(clientId)` 的输出，看起来像冗余（收端自己也算得出来），
+ * 但远端光标那个消费方只认状态里的值、不会来 import 这个函数 —— 一份四个字符的字符串，
+ * 换来头像与光标同色。派生规则仍然只有 `presenceColorOf` 这一处。
+ */
 export function localPresenceMeta(input: {
+  clientId: number
   loggedIn: boolean
   name?: string | null
   avatar?: string | null
 }): CollabUserMeta {
-  if (!input.loggedIn) return {anonymous: true}
+  const color = presenceColorOf(input.clientId)
+  if (!input.loggedIn) return {anonymous: true, color}
   const name = input.name?.trim()
   return {
     ...(name ? {name} : {}),
     ...(input.avatar ? {avatar: input.avatar} : {}),
+    color,
   }
 }
 

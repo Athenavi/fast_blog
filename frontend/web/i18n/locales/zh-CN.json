@@ -5099,7 +5099,7 @@
   "myPosts": {
     "collab": {
       "title": "协作编辑",
-      "hint": "开启后正文切换为 Markdown 源码 + 实时预览，多人同步编辑。其余字段退出协作后再维护。",
+      "hint": "开启后多人同步编辑同一份正文，改动要点「保存到文章」才落库。其余字段退出协作后再维护。",
       "hours": "有效期（小时）",
       "maxUses": "人数上限",
       "start": "开启协作",
@@ -5115,6 +5115,7 @@
       "presenceOffline": "协作连接已断开，在场头像可能不是最新的",
       "joinedAsGuest": "你通过邀请链接加入，只能编辑正文",
       "saveToArticle": "保存到文章",
+      "saveRefusedEmpty": "协作房间里的正文是空的，已拒绝落库（可能是原文没灌进来），请先刷新页面确认内容",
       "history": {
         "title": "文章历史",
         "refresh": "刷新",
@@ -5196,10 +5197,6 @@
     "tagPlaceholder": "输入后回车添加",
     "addTag": "添加",
     "fieldContent": "正文",
-    "contentPlaceholder": "开始写作…",
-    "sourcePlaceholder": "支持 HTML / Markdown 源码",
-    "modeRich": "富文本",
-    "modeSource": "源码",
     "cancel": "取消",
     "saveDraft": "保存草稿",
     "saveUpdate": "保存修改",
@@ -5629,6 +5626,10 @@
     "shortcuts": "快捷键",
     "toolbar": "格式工具栏",
     "callout": "提示块",
+    "md": {
+      "ariaLabel": "正文（Markdown 源码）",
+      "placeholder": "开始写 Markdown…"
+    },
     "doc": {
       "outline": "目录",
       "outlineEmpty": "正文还没有标题",

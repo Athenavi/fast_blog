@@ -48,12 +48,14 @@ const props = withDefaults(
     titlePlaceholder?: string
     titleMaxlength?: number
     /**
-     * 正文栏通栏（取消阅读宽度）。
+     * 源码正文的目录定位能力（`MarkdownEditor` 暴露的 `lineElAt`）。
      *
-     * 协作态用的是「源码 + 实时预览」两栏编辑器，塞进 46rem 的窄栏里两边都读不动，
-     * 所以那一态下由页面把它打开。
+     * 外壳只认这一个方法，不认 CodeMirror：源码态的正文里**没有 `<h2>` 元素**，
+     * 只有第 N 行以 `##` 开头，所以「第几个标题元素」这条定位方式在那儿不成立。
+     * 由页面把编辑器的 ref 递进来，外壳不必知道编辑器是谁 ——
+     * 阅读态仍然走渲染结果的 DOM，两条路共用同一份目录。
      */
-    paperFlush?: boolean
+    sourceAnchor?: {lineElAt: (offset: number) => HTMLElement | null} | null
     /**
      * 文档栏吸顶时距视口顶部的距离。
      *
@@ -73,7 +75,7 @@ const props = withDefaults(
     minutes: 0,
     titlePlaceholder: '',
     titleMaxlength: 255,
-    paperFlush: false,
+    sourceAnchor: null,
     stickyOffset: '0px',
   },
 )
@@ -140,16 +142,17 @@ const activeIndex = ref(-1)
 const trackedColumn = computed(() => (props.mode === 'read' ? previewCol.value : docCol.value))
 
 /**
- * 正文里的标题元素。
+ * 渲染结果里的标题元素。
  *
- * 用「第 N 个标题元素」对上「第 N 条目录项」：外壳不认识 ProseMirror，也不要求
+ * 用「第 N 个标题元素」对上「第 N 条目录项」：外壳不认识编辑器的文档模型，也不要求
  * 谁去给标题加 id，两边只要出自同一份文档，顺序天然一致。
  *
  * **空标题要跳过**：`utils/content.ts` 建目录时不收没有文字的标题（点不动、也没
  * 信息量），而 `## ` 这种空标题在渲染结果里确实是一个 `<h2>`。两边口径必须一致，
  * 否则少筛一个，整条目录的跳转就全体错位一格 —— 而且错得很隐蔽，看着像"高亮不准"。
  */
-function headingEls(column: HTMLElement | null | undefined): HTMLElement[] {
+function domHeadings(): HTMLElement[] {
+  const column = trackedColumn.value
   if (!column) return []
   return Array.from(column.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6')).filter(
     (el) => el.textContent?.trim(),
@@ -157,29 +160,43 @@ function headingEls(column: HTMLElement | null | undefined): HTMLElement[] {
 }
 
 /**
+ * 目录第 `index` 项在屏幕上对应的那个元素；还没渲染出来时返回 null。
+ *
+ * 源码态和渲染态是两种定位方式：前者问编辑器「这个偏移落在哪一行」，
+ * 后者数「第几个标题元素」。两者都按目录项的下标取，所以高亮与跳转始终对得上。
+ */
+function headingEl(index: number): HTMLElement | null {
+  const item = props.items[index]
+  if (!item) return null
+  if (props.mode !== 'read') {
+    const line = props.sourceAnchor?.lineElAt(item.offset) ?? null
+    if (line) return line
+  }
+  return domHeadings()[index] ?? null
+}
+
+/**
  * 基准线：越过这条线的标题就算「已经进入视野」。
  *
  * 取吸顶元素的**实时下沿**而不是算出来的常量 —— 文档栏会因文案换行而变高，
- * 编辑器工具栏是否吸顶也取决于当前模式，写死数字必然在某些语言下偏几像素。
+ * 写死数字必然在某些语言下偏几像素。
  */
 function stickyLine(): number {
-  let line = bar.value?.getBoundingClientRect().bottom ?? 0
-  const toolbar = trackedColumn.value?.querySelector<HTMLElement>('.rich-editor__toolbar')
-  if (toolbar) line = Math.max(line, toolbar.getBoundingClientRect().bottom)
-  return line
+  return bar.value?.getBoundingClientRect().bottom ?? 0
 }
 
 function updateActive(): void {
-  const els = headingEls(trackedColumn.value)
-  if (!props.items.length || !els.length) {
+  if (!props.items.length) {
     activeIndex.value = -1
     return
   }
   const line = stickyLine()
   let current = 0
-  // 标题按文档顺序排列：第一个还没越线的，就是当前小节的前一节
-  for (const [i, el] of els.entries()) {
-    if (el.getBoundingClientRect().top - line <= 8) current = i
+  // 目录项按文档顺序排列：第一个还没越线的，就是当前小节的前一节
+  for (const [index] of props.items.entries()) {
+    const el = headingEl(index)
+    if (!el) continue
+    if (el.getBoundingClientRect().top - line <= 8) current = index
     else break
   }
   activeIndex.value = current
@@ -188,16 +205,15 @@ function updateActive(): void {
 /**
  * 把量出来的吸顶高度写成 CSS 变量。
  *
- * 三处要用同一个数：大纲栏的 `top`、正文标题的 `scroll-margin-top`（点目录跳转时
- * 别让标题停在工具栏底下）、以及滚动基准线。前两个只能靠 CSS 变量传给样式表。
+ * 两处要用同一个数：大纲栏的 `top`、以及跳转时标题的 `scroll-margin-top`
+ * （别让标题停在文档栏底下）。后者在样式表里，只能通过变量传过去。
  */
 function measure(): void {
   const el = root.value
   if (!el) return
   const barH = bar.value?.offsetHeight ?? 0
-  const toolbar = docCol.value?.querySelector<HTMLElement>('.rich-editor__toolbar')
   el.style.setProperty('--doc-bar-h', `${barH}px`)
-  el.style.setProperty('--doc-sticky-h', `${barH + (toolbar?.offsetHeight ?? 0) + 12}px`)
+  el.style.setProperty('--doc-sticky-h', `${barH + 12}px`)
 }
 
 let ticking = false
@@ -242,10 +258,8 @@ function unbindScroller(): void {
 }
 
 function onSelectHeading(index: number): void {
-  const target = headingEls(trackedColumn.value)[index]
-  // 源码模式与协作态下正文里没有标题元素：点了没反应，但目录仍然如实反映文章结构
-  if (!target) return
-  target.scrollIntoView({behavior: 'smooth', block: 'start'})
+  // 源码态：问编辑器这一行在哪；阅读态：数渲染结果里的第 N 个标题
+  headingEl(index)?.scrollIntoView({behavior: 'smooth', block: 'start'})
   activeIndex.value = index
 }
 
@@ -304,7 +318,6 @@ function closeSettings(): void {
 <template>
   <div
     ref="root"
-    :class="{'is-flush': paperFlush}"
     :data-mode="mode"
     :style="{'--doc-ws-offset': stickyOffset}"
     class="doc-ws"
@@ -365,9 +378,9 @@ function closeSettings(): void {
       </aside>
 
       <!-- 编辑 / 分栏：正文栏。
-           **用 v-show 而不是 v-if**：切到阅读态时编辑器不能卸载 —— Tiptap 一销毁，
-           撤销栈和光标位置就没了，用户「看一眼再切回来」等于白白丢了半小时的回退能力。
-           正文本身在 v-model 里，所以隐藏不会丢内容。 -->
+           **用 v-show 而不是 v-if**：切到阅读态时编辑器不能卸载 —— 编辑器一销毁，
+           撤销栈和光标位置就没了，光标还会掉回页面顶部，用户「看一眼再切回来」
+           等于白白丢了半小时的回退能力。正文本身在 v-model 里，所以隐藏不会丢内容。 -->
       <main
         v-show="mode !== 'read'"
         ref="docCol"
@@ -632,13 +645,7 @@ function closeSettings(): void {
   margin-inline: auto;
 }
 
-/* 协作态：源码 + 预览两栏塞进 46rem 会都读不动，让正文栏通栏 */
-.doc-ws.is-flush .doc-ws__col--doc .doc-ws__paper {
-  max-width: none;
-  padding-inline: 24px;
-}
-
-/* 点目录跳转时，标题要停在吸顶的工具栏下面而不是被它盖住 */
+/* 点目录跳转时，标题要停在吸顶的文档栏下面而不是被它盖住 */
 .doc-ws :deep(h1),
 .doc-ws :deep(h2),
 .doc-ws :deep(h3),

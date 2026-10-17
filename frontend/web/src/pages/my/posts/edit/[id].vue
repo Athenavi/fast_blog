@@ -6,15 +6,16 @@
  * `/my/posts/edit/{id}` 编辑，同一页两种状态（原来是另有一个 `/my/posts/create`，
  * 两个文件的字段与保存逻辑几乎逐行重复，分叉只早晚问题，已合并）。
  *
- * ## 三种正文状态，同一个工作台
+ * ## 同一个编辑器，两种内容来源
  *
- * - **富文本**：Tiptap（`RichEditor`）
- * - **源码**：Markdown textarea
- * - **协作**：正文区交给 `CollabEditor`（Yjs 驱动的源码 + 实时预览）
+ * 正文只有 **Markdown 源码**这一种（`MarkdownEditor`，CodeMirror 6）：
+ * 项目存的就是 Markdown，中间再架一层富文本就要每次编辑都过一次有损的序列化往返。
+ * 排版效果看工作台的**分栏预览**，不是看另一种编辑视图 ——
+ * 所以原来那个「富文本 / 源码」切换按钮连同它背后的两套状态一起删了。
  *
  * 协作是**同一页内的一个状态**，不是独立页面 —— 协作者从邀请链接进来时直接落在
- * 这一页上（URL 带 `?invite=<code>`）。协作态下正文栏通栏（`paperFlush`），
- * 因为 46rem 的阅读宽度塞不下「源码 + 预览」两栏。
+ * 这一页上（URL 带 `?invite=<code>`）。协作态只是把编辑器的内容来源从表单缓冲区
+ * 换成房间里的 `Y.Text`，版面、目录、预览一概不变。
  *
  * ## 权限边界
  *
@@ -29,9 +30,8 @@ definePageMeta({layout: 'default', middleware: 'auth', title: 'myPosts.editTitle
 
 import ArticleHistoryPanel from '@/components/admin/ArticleHistoryPanel.vue'
 import ArticleSettingsFields from '@/components/editor/ArticleSettingsFields.vue'
-import CollabEditor from '@/components/admin/CollabEditor.vue'
 import DocWorkspace from '@/components/editor/DocWorkspace.vue'
-import RichEditor from '@/components/site/RichEditor.vue'
+import MarkdownEditor from '@/components/editor/MarkdownEditor.vue'
 import {categoryApi, mobileApi, type CategoryItem} from '@/api/public'
 import {useArticleForm} from '@/composables/useArticleForm'
 import {useDocViewMode} from '@/composables/useDocViewMode'
@@ -96,15 +96,25 @@ const ready = computed(() => !loading.value && !notFound.value)
 const isCollab = computed(() => collab.active.value)
 
 /**
- * 富文本（Tiptap）/ 源码（Markdown）两种模式共用同一个 `form.content`。
+ * 编辑器的实例引用。
  *
- * 放在页面而不是抽屉里：它决定的是"正文区渲染成什么"，属于写作动作，
- * 每次切换都要开一次抽屉太别扭。
+ * 外壳要点目录跳到「源码里第 N 个标题那一行」，而那一行只有编辑器自己找得到，
+ * 所以把这个 ref 交给 `DocWorkspace` 的 `sourceAnchor`（它只认 `lineElAt` 一个方法）。
  */
-const contentMode = ref<'rich' | 'source'>('rich')
+const editor = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 
-/** 正文栏通栏：协作态的「源码 + 预览」两栏在 46rem 里都读不动 */
-const flushPaper = computed(() => isCollab.value || contentMode.value === 'source')
+/**
+ * 编辑器改动写回表单。
+ *
+ * 协作态**直接返回**：那时正文归房间里的 `Y.Text`，写进 `form.content` 等于凭空造出
+ * 第二份正文，两边会互相追（而且落库时谁赢看不出来）。
+ * 结束协作时由 `stopCollab()` 把房间里的最终文本一次性交回表单。
+ */
+function onContentInput(value: string): void {
+  if (isCollab.value) return
+  form.content = value
+  markDirty()
+}
 
 /**
  * 大纲、字数、预览同读**一份字符串**。
@@ -142,8 +152,8 @@ async function loadCategories(): Promise<void> {
 /**
  * 协作者从邀请链接进来时**自动加入房间**。
  *
- * 不自动加入的话页面会完全空白：设置字段因 `fromInvite` 不渲染，
- * 而 `CollabEditor` 又因 `active` 仍为 false 不渲染 —— 两个分支都不命中。
+ * 不自动加入的话，协作者对着的是一个**空正文**：设置字段因 `fromInvite` 不渲染，
+ * 房间也没连上 —— 很容易让人以为文章本来就是空的，然后一保存就真的空了。
  *
  * 这里**必须用 `join()` 而不是 `start()`**：`start()` 会尝试签发邀请，
  * 而签发只允许文章所有者（后端 `_assert_target_owner` 会拒绝）。
@@ -204,6 +214,20 @@ async function onStartCollab(): Promise<void> {
   await collab.start({expiresInHours: inviteHours.value, maxUses: inviteMaxUses.value})
 }
 
+/**
+ * 结束协作：先把房间里的最终文本交回表单，再断线。
+ *
+ * 顺序不能反 —— `leave()` 会把正文快照清空。原来是断完就回到富文本编辑器，
+ * 里面还躺着开启协作**之前**的那份正文：屏幕上看着没丢，按一次保存就把
+ * 协作期间写的东西全覆盖了。
+ */
+function stopCollab(): void {
+  const final = collab.text.value
+  collab.stop()
+  form.content = final
+  markDirty()
+}
+
 async function onCopyInvite(): Promise<void> {
   if (!collab.inviteUrl.value) return
   try {
@@ -235,9 +259,9 @@ function onRestore(content: string): void {
     :items="outline"
     :minutes="stats.minutes"
     :mode="mode"
-    :paper-flush="flushPaper"
     :saved-at="savedAt"
     :saving="saving"
+    :source-anchor="editor"
     sticky-offset="57px"
     :title="form.title"
     :title-maxlength="255"
@@ -353,33 +377,11 @@ function onRestore(content: string): void {
             <Button :disabled="collab.saving.value" size="sm" type="button" @click="collab.saveToArticle">
               {{ $t('myPosts.collab.saveToArticle') }}
             </Button>
-            <Button size="sm" type="button" variant="ghost" @click="collab.stop">
+            <Button size="sm" type="button" variant="ghost" @click="stopCollab">
               {{ $t('myPosts.collab.stop') }}
             </Button>
           </template>
         </section>
-      </div>
-    </template>
-
-    <!-- 标题下方：正文输入方式的切换（写作动作，不放抽屉里） -->
-    <template #meta>
-      <div v-if="!isCollab" class="mode-switch" role="group">
-        <button
-          :class="{'is-active': contentMode === 'rich'}"
-          class="mode-switch__btn"
-          type="button"
-          @click="contentMode = 'rich'"
-        >
-          {{ $t('myPosts.modeRich') }}
-        </button>
-        <button
-          :class="{'is-active': contentMode === 'source'}"
-          class="mode-switch__btn"
-          type="button"
-          @click="contentMode = 'source'"
-        >
-          {{ $t('myPosts.modeSource') }}
-        </button>
       </div>
     </template>
 
@@ -396,32 +398,19 @@ function onRestore(content: string): void {
       />
 
       <!--
-        协作态：正文交给 CollabEditor。
-        同一条正文不能同时被两个编辑器持有，否则保存时必然互相覆盖，
-        所以这一态下富文本/源码都不渲染。
+        协作态只换内容来源（`collab` 从 null 变成房间里的 Y.Text），编辑器本体不换。
+        同一篇正文不能同时被两个视图持有，否则保存时必然互相覆盖；
+        而 `form.content` 在这一态**不参与绑定**，见 `onContentInput`。
       -->
-      <CollabEditor
-        v-else-if="isCollab"
-        :model-value="collab.text.value"
-        :online="collab.online.value"
-        :status="collab.status.value"
-        @update:model-value="collab.applyLocal"
-      />
-
-      <RichEditor
-        v-else-if="contentMode === 'rich'"
-        v-model="form.content"
-        :placeholder="$t('myPosts.contentPlaceholder')"
-        @update:model-value="markDirty()"
-      />
-
-      <textarea
+      <MarkdownEditor
         v-else
-        v-model="form.content"
-        class="source-input"
-        :placeholder="$t('myPosts.sourcePlaceholder')"
-        spellcheck="false"
-        @input="markDirty()"
+        ref="editor"
+        :collab="collab.binding.value"
+        :editable="ready"
+        :label="$t('editor.md.ariaLabel')"
+        :model-value="form.content"
+        :placeholder="$t('editor.md.placeholder')"
+        @update:model-value="onContentInput"
       />
     </template>
 
@@ -595,58 +584,6 @@ function onRestore(content: string): void {
 .collab-bar__url:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 1px;
-}
-
-/* ---------------------------------------------------------------- 正文输入方式 */
-.mode-switch {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-control);
-  background: var(--color-surface-soft);
-}
-
-.mode-switch__btn {
-  padding: 2px 10px;
-  font-size: 12px;
-  color: var(--color-fg-muted);
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  border-radius: calc(var(--radius-control) - 3px);
-}
-
-.mode-switch__btn.is-active {
-  color: var(--color-primary);
-  background: var(--color-surface);
-  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
-}
-
-.mode-switch__btn:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
-}
-
-/* 源码模式：占满正文栏高度，等宽字体 */
-.source-input {
-  width: 100%;
-  min-height: 60vh;
-  padding: 14px 16px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--color-fg);
-  tab-size: 2;
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: var(--radius-card);
-  outline: none;
-  resize: vertical;
-}
-
-.source-input:focus-visible {
-  border-color: var(--color-primary);
 }
 
 /* ---------------------------------------------------------------- 预览栏 */

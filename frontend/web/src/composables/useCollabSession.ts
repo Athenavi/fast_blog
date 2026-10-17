@@ -10,12 +10,17 @@
  * **协议层完全复用** `lib/yjs/collab-provider`（帧格式、鉴权、重连都在那里），
  * 这里只做"页面状态"的编排，不重新实现协议。
  *
- * ## 两条从旧页面继承的硬约束（踩过坑，不要改回去）
+ * ## 三条从旧页面继承的硬约束（踩过坑，不要改回去）
  *
- * 1. **Y.Text → DOM 直接写**：不能用 Vue 的受控绑定。用户输入、CRDT 同步、
- *    手动光标三者在受控 patch 下会互相覆盖 —— 旧页面实测出现过
- *    「Y.Text 已是 22 字符、而 textarea 仍为空」。
- * 2. **本地输入算最小差量**再写回 Y.Text：整篇重写会让所有远端光标跳到文末。
+ * 1. **正文不能走 Vue 的受控绑定**：用户输入、CRDT 同步、远端光标三者在
+ *    「v-model → 重渲染 → 覆盖」这条受控链上会互相踩。旧页面实测出现过
+ *    「Y.Text 已是 22 字符、而 textarea 仍为空」。现在这一半交给
+ *    `y-codemirror.next` 直接绑定 Y.Text，本文件不再参与正文的读写。
+ * 2. **改动要算最小差量**：整篇重写会让所有远端光标跳到文末。上一版本地输入靠
+ *    手写的公共前后缀 diff 做到这点，现在由绑定层做（它订阅 Y.Text 的增量事件）。
+ * 3. **`Y.Text` / `Awareness` 不能进深响应**：这两个对象靠自身引用与事件表工作，
+ *    被 Vue 代理包起来后 `observe` 收到的就是代理，合并与撤销会静默错乱。
+ *    所以对外暴露的是 `shallowRef`，见下面的 `binding`。
  *
  * ## 邀请
  *
@@ -25,10 +30,12 @@
  */
 
 import * as Y from 'yjs'
+import type {Awareness} from 'y-protocols/awareness'
 import {CollabProvider, type CollabStatus} from '@/lib/yjs/collab-provider'
 import {
   localPresenceMeta,
   PRESENCE_USER_FIELD,
+  presenceColorOf,
   resolvePeers,
   type CollabPeer,
 } from '@/lib/yjs/presence'
@@ -42,6 +49,17 @@ export interface InviteOptions {
   expiresInHours?: number
   /** 最大使用次数（= 最大协作人数）。不传走后端默认 */
   maxUses?: number
+}
+
+/**
+ * 编辑器绑定协作房间所需的两样东西。
+ *
+ * 结构上与 `MarkdownEditor` 的 `collab` prop 相同（TS 按结构赋值，不必互相 import），
+ * 但**这里独立声明**：会话层不该反过来依赖某个组件模块。
+ */
+export interface CollabBinding {
+  ytext: Y.Text
+  awareness: Awareness
 }
 
 export function useCollabSession(articleId: Ref<number>) {
@@ -61,8 +79,16 @@ export function useCollabSession(articleId: Ref<number>) {
   const peers = ref<CollabPeer[]>([])
   /** 在线人数（含自己）—— 与 `peers` 同一份来源，不再各算各的 */
   const online = computed(() => peers.value.length)
-  /** 协作态正文（**只用于展示字数/诊断**，不参与输入绑定，见文件头约束 1） */
+  /** 协作态正文快照（**只用于目录/字数/预览**，正文本身由编辑器直接绑 Y.Text） */
   const text = ref('')
+  /**
+   * 交给编辑器的房间绑定。
+   *
+   * `shallowRef` 是**必须的**，不是风格问题：换成 `ref` 会让 Vue 把 `Y.Text`
+   * 包成深响应代理，CRDT 的观察者与撤销栈拿到代理后行为就不可预期了
+   * （见文件头约束 3）。房间生命周期内这个对象本身不会原地变，所以外层不需要响应。
+   */
+  const binding = shallowRef<CollabBinding | null>(null)
   /** 邀请链接（所有者开启后可复制） */
   const inviteUrl = ref('')
   const inviting = ref(false)
@@ -242,6 +268,7 @@ export function useCollabSession(articleId: Ref<number>) {
     provider.awareness.setLocalStateField(
       PRESENCE_USER_FIELD,
       localPresenceMeta({
+        clientId: doc.clientID,
         loggedIn: userStore.isLoggedIn,
         name: userStore.userInfo?.username,
         avatar: userStore.userInfo?.profile_picture,
@@ -250,6 +277,9 @@ export function useCollabSession(articleId: Ref<number>) {
     provider.awareness.on('update', publishPeers)
     // 先把自己渲染出来（不等第一轮同步）：顶栏那一刻就该知道「我在，还没别人」
     publishPeers()
+    // 交给编辑器绑定。必须在 connect() 之前：视图紧接着就要挂载，
+    // 而 y-codemirror 只认装配时拿到的那一份 Y.Text。
+    binding.value = {ytext: yText, awareness: provider.awareness}
 
     provider.onStatus = (next, detail) => {
       status.value = next
@@ -276,51 +306,32 @@ export function useCollabSession(articleId: Ref<number>) {
     provider = null
     doc = null
     yText = null
+    binding.value = null
     text.value = ''
     peers.value = []
     status.value = 'connecting'
     statusDetail.value = ''
     presence?.close()
     presence = null
-  }
-
-  /**
-   * 本地输入 → 写回 Y.Text（**最小差量**）
-   *
-   * 不能做 `yText.delete(0, len); yText.insert(0, next)` —— 那是整篇替换，
-   * 远端每个光标都会跳到文末。这里只找公共前缀/后缀，替换中间变化的那一段。
-   */
-  function applyLocal(next: string): void {
-    if (!yText) return
-    const prev = yText.toString()
-    if (prev === next) return
-
-    let start = 0
-    const maxStart = Math.min(prev.length, next.length)
-    while (start < maxStart && prev[start] === next[start]) start++
-
-    let endPrev = prev.length
-    let endNext = next.length
-    while (endPrev > start && endNext > start && prev[endPrev - 1] === next[endNext - 1]) {
-      endPrev--
-      endNext--
-    }
-
-    doc!.transact(() => {
-      if (endPrev > start) yText!.delete(start, endPrev - start)
-      if (endNext > start) yText!.insert(start, next.slice(start, endNext))
-    })
-  }
-
-  /** 读取当前 Y.Text（渲染用；渲染走 modelValue，故需响应式快照） */
-  function snapshotText(): string {
-    return yText?.toString() ?? ''
+    // 「灌过原文」这个标记属于**那一个房间**，房间都拆了就得还回去：
+    // 不然在同一页里第二次开启协作会跳过灌入，得到一个空文档，
+    // 而空文档一路按到「保存到文章」就是把文章清空了。
+    seeded = false
   }
 
   /** 把协作内容落库（显式动作，不做隐式自动保存 —— 与旧页面口径一致） */
   async function saveToArticle(): Promise<void> {
     const id = Number(articleId.value)
     if (!id || !yText) return
+
+    // 空正文一律不发帖：协作房间里出现空文档通常意味着**灌入原文那一步没成功**
+    // （同步没完成、或读取文章的接口挂了），此时按保存就是把文章清空。
+    // 这不是「防止用户误删自己的空文章」——真空文章走普通保存路径，那边不经过这里。
+    if (!yText.toString().trim()) {
+      pushToast(t('myPosts.collab.saveRefusedEmpty'), 'error')
+      return
+    }
+
     saving.value = true
     try {
       // 三处都必须对齐 `content/collaboration` 的契约（都踩过）：
@@ -371,6 +382,8 @@ export function useCollabSession(articleId: Ref<number>) {
     peers,
     online,
     text,
+    /** 编辑器的协作绑定（原始 Y.Text + Awareness，勿套响应式，见上面的说明） */
+    binding,
     inviteUrl,
     inviting,
     saving,
@@ -380,8 +393,6 @@ export function useCollabSession(articleId: Ref<number>) {
     stop,
     /** 仅加入房间、不签发邀请 —— 协作者从邀请链接进入时用这个 */
     join,
-    applyLocal,
-    snapshotText,
     saveToArticle,
   }
 }
