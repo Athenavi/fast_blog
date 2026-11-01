@@ -10,7 +10,7 @@
 # ============================================================================
 
 # Stage 1: Build Python dependencies
-FROM python:3.14-slim AS builder
+FROM python:3.15-slim AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir --no-compile --prefix=/install -r requirements.tx
 # ============================================================================
 # Stage 2: Production image (minimal runtime)
 # ============================================================================
-FROM python:3.14-slim AS production
+FROM python:3.15-slim AS production
 
 LABEL org.opencontainers.image.title="FastBlog"
 LABEL org.opencontainers.image.description="Modern, high-performance blog platform"
