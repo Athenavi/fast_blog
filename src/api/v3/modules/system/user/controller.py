@@ -101,7 +101,7 @@ async def create_user(
     _current: CurrentUser,
     _perm=AuthControl(codes.USER_CREATE),
 ) -> dict:
-    user = await user_service.create_user(db, payload)
+    user = await user_service.create_user(db, payload, scope_user=_current)
     return resp.success(_out(user), msg="创建成功")
 
 
@@ -122,7 +122,9 @@ async def delete_users_compat(
     if not ids:
         raise BadRequestError("缺少 ids 参数")
     for user_id in ids:
-        await user_service.delete_user(db, user_id, current.id, force=force)
+        await user_service.delete_user(
+            db, user_id, current.id, force=force, scope_user=current
+        )
     return resp.success({"count": len(ids)}, msg="处理完成")
 
 
@@ -159,7 +161,7 @@ async def update_user(
     _current: CurrentUser,
     _perm=AuthControl(codes.USER_EDIT),
 ) -> dict:
-    user = await user_service.update_user(db, user_id, payload)
+    user = await user_service.update_user(db, user_id, payload, scope_user=_current)
     return resp.success(_out(user), msg="更新成功")
 
 
@@ -172,7 +174,9 @@ async def delete_user(
     _perm=AuthControl(codes.USER_DELETE),
     force: bool = Query(default=False, description="true=物理删除；默认仅停用"),
 ) -> dict:
-    await user_service.delete_user(db, user_id, current.id, force=force)
+    await user_service.delete_user(
+            db, user_id, current.id, force=force, scope_user=current
+        )
     return resp.success(None, msg="已删除" if force else "已停用")
 
 
@@ -185,7 +189,9 @@ async def set_user_status(
     _current: CurrentUser,
     _perm=AuthControl(codes.USER_EDIT),
 ) -> dict:
-    user = await user_service.set_status(db, user_id, payload.is_active)
+    user = await user_service.set_status(
+            db, user_id, payload.is_active, scope_user=_current
+        )
     return resp.success(_out(user), msg="已启用" if payload.is_active else "已停用")
 
 
@@ -208,7 +214,9 @@ async def set_user_roles(
     _current: CurrentUser,
     _perm=AuthControl(codes.USER_MANAGE_ROLES),
 ) -> dict:
-    roles = await user_service.set_user_roles(db, user_id, payload.role_ids)
+    roles = await user_service.set_user_roles(
+            db, user_id, payload.role_ids, scope_user=_current
+        )
     return resp.success(roles, msg="角色已更新")
 
 

@@ -6,6 +6,7 @@ Token 黑名单管理
 import asyncio
 import hashlib
 import os
+import time
 from datetime import datetime
 
 from src.unified_logger import default_logger as logger
@@ -235,6 +236,56 @@ class TokenBlacklistManager:
     def clear_expired(self):
         """清理过期的黑名单记录（Redis 会自动处理 TTL）"""
         pass  # Redis 会自动清理，ORM 的过期清理由定时任务处理
+
+    # ------------------------------------------------ 用户级吊销（按签发时间的水位线）
+    #
+    # 令牌里没有会话 id，没法按会话逐条吊销；"退出所有设备 / 管理员强制下线"需要的是
+    # 一种能覆盖**已签发的所有令牌**的机制。做法是存一条水位线：写入时刻 T，
+    # 鉴权时凡 `iat < T` 的令牌一律拒绝。刷新令牌也走同一检查，因此无法靠续期绕过。
+
+    @staticmethod
+    def _user_revoked_key(user_id: int) -> str:
+        return f"user_revoked_before:{user_id}"
+
+    def revoke_user_tokens(self, user_id: int, expires_at: datetime) -> bool:
+        """吊销该用户**此前**已签发的全部令牌（水位线 = 当前秒）。
+
+        不再 `+1`：改密后要给当前端立刻重签一对令牌，同一秒签发的必须仍然有效。
+        代价是"与吊销同一秒签发"的旧令牌会多活一瞬（`iat` 只到秒），可以接受。
+        """
+        if not self.redis_enabled or not self.redis_client:
+            logger.warning("Redis 不可用，无法写入用户级吊销水位线 user_id=%s", user_id)
+            return False
+        try:
+            ttl = int((expires_at - datetime.now()).total_seconds())
+            if ttl <= 0:
+                return False
+            self.redis_client.setex(self._user_revoked_key(user_id), ttl, int(time.time()))
+            return True
+        except Exception as e:  # noqa: BLE001
+            logger.error("写入用户级吊销水位线失败 user_id=%s：%s", user_id, e)
+            return False
+
+    async def revoke_user_tokens_async(self, user_id: int, expires_at: datetime) -> bool:
+        """`revoke_user_tokens` 的异步版本（Redis 往返放线程池，避免阻塞事件循环）"""
+        return await asyncio.to_thread(self.revoke_user_tokens, user_id, expires_at)
+
+    def is_user_revoked(self, user_id: int, issued_at: float) -> bool:
+        """该令牌是否签发于最近一次"全部下线"之前。
+
+        Redis 不可用时返回 False（与 jti 黑名单同一降级口径：不能因为缓存故障把所有人锁在门外）。
+        """
+        if not self.redis_enabled or not self.redis_client:
+            return False
+        try:
+            watermark = self.redis_client.get(self._user_revoked_key(user_id))
+            return bool(watermark) and float(issued_at) < float(watermark)
+        except Exception as e:  # noqa: BLE001
+            logger.error("读取用户级吊销水位线失败 user_id=%s：%s", user_id, e)
+            return False
+
+    async def is_user_revoked_async(self, user_id: int, issued_at: float) -> bool:
+        return await asyncio.to_thread(self.is_user_revoked, user_id, issued_at)
 
     @property
     def is_available(self) -> bool:

@@ -12,6 +12,7 @@ from sqlalchemy import select
 
 from shared.models.webhook import Webhook, WebhookDelivery
 from src.utils.database.main import get_async_session
+from src.utils.security.outbound import guarded_async_client
 
 
 class WebhookService:
@@ -63,7 +64,7 @@ class WebhookService:
                 if signature:
                     headers["X-Hub-Signature-256"] = signature
 
-                async with httpx.AsyncClient(timeout=10.0) as client:
+                async with guarded_async_client(timeout=10.0) as client:
                     response = await client.post(
                         webhook.url,
                         content=payload_body,

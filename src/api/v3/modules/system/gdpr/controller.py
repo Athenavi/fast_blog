@@ -13,10 +13,11 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
+from src.api.v3.core.limits import ip_rate_limit
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
@@ -71,6 +72,7 @@ async def create_consent(
     request: Request,
     db: DBSession,
     user: OptionalUser,
+    _rl=Depends(ip_rate_limit("gdpr.consent", limit=10)),
 ) -> dict:
     """记录 Cookie/统计/营销同意状态
 

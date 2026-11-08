@@ -31,6 +31,7 @@
 from __future__ import annotations
 
 import re
+from html import escape as html_escape
 
 from lxml import etree
 from lxml import html as lxml_html
@@ -161,6 +162,11 @@ def sanitize_html(raw: str) -> str:
         return lxml_html.escape(raw)
 
     _clean_subtree(wrapper)
-    return "".join(
+    # `wrapper.text` 是片段**开头**的裸文本节点（如 Markdown 段落被当成 HTML 分支处理时）。
+    # 只序列化元素子节点会把它整段丢掉：`纯文本<br>续行` → `<br>续行`。
+    # 文本必须转义后再拼，否则解析时还原的 `&`/`<` 会重新变成标签。
+    parts = [html_escape(wrapper.text)] if wrapper.text else []
+    parts.extend(
         etree.tostring(child, encoding="unicode", method="html") for child in wrapper
     )
+    return "".join(parts)

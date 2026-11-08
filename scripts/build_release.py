@@ -450,8 +450,9 @@ class UpdatePackageBuilder:
                 vf = self.project_root / "version.txt"
                 if vf.exists():
                     for line in vf.read_text(encoding="utf-8").splitlines():
-                        if line.strip().startswith("version="):
-                            base_version = line.split("=", 1)[1].strip()
+                        matched = re.match(r"^version\s*=\s*(.+)$", line.strip())
+                        if matched:
+                            base_version = matched.group(1).strip()
                             break
             except Exception:
                 pass

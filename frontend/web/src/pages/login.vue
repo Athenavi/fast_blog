@@ -23,6 +23,27 @@ const loading = ref(false)
 const submitError = ref('')
 const {errors, validate, clearField, fieldProps, errorId} = useFormErrors()
 
+/** 第二步：2FA。`tempToken` 非空即进入验证码步骤（5 分钟内有效） */
+const twoFactor = reactive({tempToken: '', code: ''})
+const needs2fa = computed(() => !!twoFactor.tempToken)
+
+/**
+ * 只接受站内单斜杠路径：`?redirect=//evil.com` 与 `https://evil.com` 都是
+ * 浏览器会当成外站的写法，而登录页恰恰是最常见的开放重定向入口。
+ */
+function safeRedirect(): string | null {
+  const raw = route.query.redirect
+  const target = typeof raw === 'string' ? raw : ''
+  return target.startsWith('/') && !target.startsWith('//') ? target : null
+}
+
+async function finishLogin(): Promise<void> {
+  // 管理员进后台，普通读者回前台
+  const hasAdminAccess = userStore.isSuperuser || userStore.permissions.length > 0
+  const fallback = hasAdminAccess ? HOME_PATH : '/'
+  await navigateTo(safeRedirect() ?? fallback, {replace: true})
+}
+
 async function onSubmit(): Promise<void> {
   submitError.value = ''
   const passed = validate({
@@ -39,20 +60,50 @@ async function onSubmit(): Promise<void> {
 
     const result = await userStore.login(payload)
     if (result.requires2fa) {
-      submitError.value = t('login.twoFactorMobileHint')
+      if (!result.tempToken) {
+        submitError.value = t('login.twoFactorMobileHint')
+        return
+      }
+      twoFactor.tempToken = result.tempToken
+      twoFactor.code = ''
       return
     }
 
-    // 管理员进后台，普通读者回前台
-    const hasAdminAccess = userStore.isSuperuser || userStore.permissions.length > 0
-    const fallback = hasAdminAccess ? HOME_PATH : '/'
-    await navigateTo(String(route.query.redirect || fallback), {replace: true})
+    await finishLogin()
   } catch {
     // 具体错误由 request 拦截器提示，这里给出兜底文案
     submitError.value = submitError.value || t('login.errorInvalid')
   } finally {
     loading.value = false
   }
+}
+
+async function onSubmit2fa(): Promise<void> {
+  submitError.value = ''
+  const code = twoFactor.code.trim()
+  if (!code) {
+    submitError.value = t('login.twoFactorCodeRequired')
+    return
+  }
+  loading.value = true
+  try {
+    await userStore.verify2fa({
+      temp_token: twoFactor.tempToken,
+      code,
+      remember_me: form.remember_me,
+    })
+    await finishLogin()
+  } catch {
+    submitError.value = t('login.verificationFailed')
+  } finally {
+    loading.value = false
+  }
+}
+
+function cancel2fa(): void {
+  twoFactor.tempToken = ''
+  twoFactor.code = ''
+  submitError.value = ''
 }
 </script>
 
@@ -66,7 +117,7 @@ async function onSubmit(): Promise<void> {
 
       <Card>
         <CardContent class="p-6">
-          <form class="space-y-4" @submit.prevent="onSubmit">
+          <form v-if="!needs2fa" class="space-y-4" @submit.prevent="onSubmit">
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg"
                      for="login-identifier">{{ $t('login.usernameOrEmail') }}</label>
@@ -124,7 +175,37 @@ async function onSubmit(): Promise<void> {
             </Button>
           </form>
 
-          <p class="mt-5 text-center text-sm text-fg-muted">
+          <!-- 第二步：双因素验证（会话在验证码通过前没有 access token） -->
+          <form v-else class="space-y-4" @submit.prevent="onSubmit2fa">
+            <div class="space-y-1 text-center">
+              <p class="text-base font-semibold text-fg">{{ $t('login.twoFactorTitle') }}</p>
+              <p class="text-sm text-fg-muted">{{ $t('login.twoFactorCodeHint') }}</p>
+            </div>
+
+            <Input
+              v-model="twoFactor.code"
+              id="login-2fa-code"
+              :placeholder="$t('login.twoFactorCodePlaceholder')"
+              autocomplete="one-time-code"
+              class="text-center tracking-[0.3em]"
+              inputmode="numeric"
+            />
+
+            <p v-if="submitError" class="rounded-control bg-danger-soft px-3 py-2 text-sm text-danger">
+              {{ submitError }}
+            </p>
+
+            <Button :disabled="loading" class="w-full" type="submit">
+              <Icon v-if="loading" class="h-4 w-4 animate-spin" name="loader-circle"/>
+              {{ loading ? t('login.twoFactorVerifying') : t('login.verifyButton') }}
+            </Button>
+
+            <button class="w-full text-center text-sm text-fg-muted hover:text-fg" type="button" @click="cancel2fa">
+              {{ $t('login.backToLogin') }}
+            </button>
+          </form>
+
+          <p v-if="!needs2fa" class="mt-5 text-center text-sm text-fg-muted">
             {{ $t('login.noAccount') }}
             <NuxtLink class="font-medium text-fg hover:underline" to="/register">{{
                 $t('login.registerNow')

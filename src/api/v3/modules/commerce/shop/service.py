@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.ecommerce.cart import Cart
@@ -427,6 +427,14 @@ class ShopService:
             if not requested:
                 raise BadRequestError("下单需要 items 或 from_cart")
 
+        # 同一商品可能在明细里出现多次：先按商品合并数量。
+        # 否则 `stock_check` 逐条比较（各条都"够"），扣减却按行叠加 —— 库存 5 时
+        # 两条各 5 件会同时通过校验，最终扣成 -5。
+        merged: Dict[int, int] = {}
+        for product_id, quantity in requested:
+            merged[product_id] = merged.get(product_id, 0) + int(quantity)
+        requested = list(merged.items())
+
         checks = await self.stock_check(db, requested)
         failures = [item for item in checks if not item["ok"]]
         if failures:
@@ -438,8 +446,10 @@ class ShopService:
             user_id=user_id,
             status="pending",
             total_amount=_money(0),
-            shipping_amount=_money(payload.get("shipping_amount") or 0),
-            discount_amount=_money(payload.get("discount_amount") or 0),
+            # 金额一律服务端计算：客户端传来的 shipping/discount 不采信。
+            # 运费规则与优惠券属于运营配置（当前未建表），在接入前保持 0。
+            shipping_amount=_money(0),
+            discount_amount=_money(0),
             payment_method=payload.get("payment_method"),
             payment_status="unpaid",
             shipping_address=payload.get("shipping_address"),
@@ -454,6 +464,8 @@ class ShopService:
         goods_total = Decimal("0")
         for product_id, quantity in requested:
             product = await db.get(Product, product_id)
+            if product is None:
+                raise NotFoundError(f"商品 {product_id} 不存在")
             unit_price = _money(product.price)
             subtotal = _money(unit_price * quantity)
             goods_total += subtotal
@@ -469,8 +481,15 @@ class ShopService:
                     updated_at=now,
                 )
             )
-            product.stock = int(product.stock or 0) - quantity
-            product.updated_at = now
+            # 原子扣减：条件更新在数据库侧完成"够才减"，并发下单不会超卖。
+            # 之前是 ORM 读-改-写，两个请求读到同一库存再各自写回，等于丢更新。
+            decremented = await db.execute(
+                update(Product)
+                .where(Product.id == product_id, Product.stock >= quantity)
+                .values(stock=Product.stock - quantity, updated_at=now)
+            )
+            if int(decremented.rowcount or 0) == 0:
+                raise ConflictError(f"商品「{product.name}」库存不足，请刷新后重试")
 
         order.total_amount = _money(goods_total + order.shipping_amount - order.discount_amount)
         if order.total_amount < 0:
@@ -591,6 +610,48 @@ class ShopService:
                 "transaction_id": transaction_id,
             },
         )
+
+    async def settle_paid_order(
+        self,
+        db: AsyncSession,
+        *,
+        order_number: str,
+        paid_cents: Optional[int] = None,
+        transaction_id: Optional[str] = None,
+    ) -> bool:
+        """支付回调的落单入口：按订单号把 ``pending`` 订单置 paid。
+
+        幂等（非 pending 直接返回 False），金额必须与订单总额一致 —— 否则就是
+        拿另一笔低价支付来结算这张单。
+        """
+        row = (
+            await db.execute(select(Order).where(Order.order_number == order_number))
+        ).scalars().first()
+        if row is None or str(row.status or "") != "pending":
+            return False
+        if (
+            paid_cents is not None
+            and row.total_amount is not None
+            and abs(float(row.total_amount) * 100 - paid_cents) > 1
+        ):
+            logger.error(
+                "订单金额与支付回调不一致：order=%s 本地=%s 元 网关=%s 分",
+                order_number, row.total_amount, paid_cents,
+            )
+            return False
+        await self._transition(
+            db,
+            row.id,
+            allowed=("pending",),
+            target="paid",
+            scope_user=None,
+            extra={
+                "payment_status": "paid",
+                "paid_at": datetime.now(),
+                "transaction_id": transaction_id,
+            },
+        )
+        return True
 
     async def mark_shipped(self, db: AsyncSession, order_id: int, *, scope_user: Any = None) -> Dict[str, Any]:
         """标记已发货"""

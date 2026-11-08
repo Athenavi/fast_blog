@@ -33,6 +33,12 @@ class TokenPayload(SchemaBase):
     message: Optional[str] = None
 
 
+class EmailVerifySendRequest(SchemaBase):
+    """重发邮箱验证邮件（匿名：支持宽限期过后仍能自救）"""
+
+    email: str = Field(min_length=3, max_length=254, description="待验证的邮箱")
+
+
 class CurrentUserOut(SchemaBase):
     """当前登录用户信息（含角色、权限码与菜单授权，供前端生成菜单与按钮权限）"""
 
@@ -61,3 +67,4 @@ class LoginStatusOut(SchemaBase):
 class Verify2FARequest(SchemaBase):
     temp_token: str = Field(description="登录时返回的临时令牌")
     code: str = Field(description="TOTP 验证码")
+    remember_me: bool = Field(default=False, description="是否签发 refresh token")

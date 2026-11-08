@@ -28,6 +28,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
+from src.api.v3.core.limits import ip_rate_limit
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, PageDep
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
@@ -66,6 +67,7 @@ async def submit_comment(
     request: Request,
     db: DBSession,
     user=Depends(jwt_optional_dependency),
+    _rl=Depends(ip_rate_limit("comment.create", limit=10)),
 ) -> dict:
     data = await comment_service.create_comment(
         db,

@@ -11,6 +11,7 @@
  * 只读加载（主题 + 视频）用 Promise.allSettled，两个端点互不阻塞。
  */
 import {Delete, Plus, Refresh, Search} from '@element-plus/icons-vue'
+import {renderMarkdown} from '@/utils/markdown'
 import {computed, onMounted, reactive, ref} from 'vue'
 
 import {
@@ -504,8 +505,8 @@ async function filterVideos(): Promise<void> {
           </div>
           <el-divider/>
           <p class="hint mb-2">{{ $t('admin.system.help.detailContent') }}</p>
-          <!-- 帮助内容按契约即为 HTML -->
-          <div class="help-content" v-html="detailTopic.content"/>
+          <!-- 帮助内容按契约即为 HTML；仍走同一套白名单净化，避免后台内容直接执行脚本 -->
+          <div class="help-content" v-html="renderMarkdown(detailTopic.content)"/>
         </template>
       </div>
     </el-drawer>

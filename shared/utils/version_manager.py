@@ -5,7 +5,7 @@
 """
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -110,7 +110,9 @@ class VersionManager:
 
     def bump_version(self, version: str):
         self._data.setdefault('release', {})['version'] = version
-        self._data['release']['build_time'] = datetime.now().isoformat()
+        self._data['release']['build_time'] = datetime.now(timezone.utc).strftime(
+            '%Y-%m-%dT%H:%M:%SZ'
+        )
         self._save()
 
     def update_database(self, migration: str, status: str = 'up_to_date'):

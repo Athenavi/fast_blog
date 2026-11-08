@@ -35,6 +35,19 @@ MINIMAL_CONFIG = {
                 "count": {"type": "integer", "nullable": False, "default": 0, "description": "计数"},
                 "note": {"type": "string", "nullable": True, "description": "备注"},
                 "extra": {"type": "integer", "description": "未声明 nullable（应保持 SQLAlchemy 默认）"},
+                "secret_value": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "nullable": True,
+                    "encrypted": True,
+                    "description": "加密字符串",
+                },
+                "secret_blob": {
+                    "type": "text",
+                    "nullable": True,
+                    "encrypted": True,
+                    "description": "加密文本",
+                },
             },
             "indexes": [
                 {"name": "idx_unit_test_models_code", "columns": ["note"], "unique": True},
@@ -81,6 +94,10 @@ def _render(tmp_path) -> str:  # noqa: ANN001 - pytest tmp_path
         has_datetime_default=False,
         has_numeric=False,
         has_relationships=False,
+        has_encrypted=any(field.get("encrypted") for field in fields.values()),
+        relationship_imports=generator._relationship_imports(
+            MODEL_NAME, model_def, generator.models
+        ),
         is_unlogged=False,
         custom_methods={},
         ns=type("NS", (), {"has_uuid_pk": False, "has_datetime_default": False})(),
@@ -190,3 +207,39 @@ def test_split_indexes_keeps_order_and_partitions() -> None:
     )
     assert [item["name"] for item in split[0]] == ["b", "c"]
     assert [item["name"] for item in split[1]] == ["a"]
+
+# ================================================================ ⑤ 加密字段 / 关联导入
+def test_encrypted_fields_render_encrypted_field(tmp_path) -> None:  # noqa: ANN001
+    """yaml 标 `encrypted: true` 的列必须生成 EncryptedField，且导入对应类型"""
+    rendered = _render(tmp_path)
+    assert "from shared.utils.crypto import EncryptedField" in rendered
+    assert "EncryptedField(String(64))" in _column_line(rendered, "secret_value")
+    assert "EncryptedField(Text)" in _column_line(rendered, "secret_blob")
+
+
+def test_relationship_imports_cover_target_and_secondary() -> None:
+    """relationship() 用到的目标模型与中间表必须被提前导入（否则 mapper 配置失败）"""
+    generator = RouteGenerator.__new__(RouteGenerator)
+    all_models = {
+        "User": {"module": "user", "table": "users"},
+        "Role": {"module": "rbac", "table": "roles"},
+        "UserRole": {"module": "rbac", "table": "user_role_assignments"},
+    }
+    model_def = {
+        "relationships": {
+            "roles": {
+                "target": "Role",
+                "secondary": "user_role_assignments",
+                "back_populates": "users",
+            }
+        }
+    }
+    imports = generator._relationship_imports("User", model_def, all_models)
+    assert imports == ["shared.models.rbac.role", "shared.models.rbac.user_role"]
+
+def test_model_file_name_can_be_overridden() -> None:
+    """文件名不总是能由模型名派生（CollaborationInvite → invitation.py），yaml 可覆盖"""
+    generator = RouteGenerator.__new__(RouteGenerator)
+    assert generator._model_file_stem("CollaborationInvite", {"file": "invitation"}) == "invitation"
+    assert generator._model_file_stem("User", {}) == "user"
+

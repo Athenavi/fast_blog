@@ -2,7 +2,7 @@
 
 import {defineStore} from 'pinia'
 
-import type {CurrentUser, LoginParams} from '@/api/modules/auth'
+import type {CurrentUser, LoginParams, Verify2FAParams} from '@/api/modules/auth'
 import {STORAGE_REFRESH_TOKEN, STORAGE_TOKEN, STORAGE_USER} from '@/constants'
 import {storage} from '@/utils/storage'
 
@@ -62,6 +62,18 @@ export const useUserStore = defineStore('user', {
       this.setToken(data.access_token || '', data.refresh_token || '')
       await this.fetchUserInfo()
       return {requires2fa: false}
+    },
+
+    async sendEmailVerification(email: string): Promise<void> {
+      const authApi = await loadAuthApi()
+      await authApi.sendEmailVerification(email)
+    },
+
+    async verify2fa(params: Verify2FAParams): Promise<void> {
+      const authApi = await loadAuthApi()
+      const data = await authApi.verify2fa(params)
+      this.setToken(data.access_token || '', data.refresh_token || '')
+      await this.fetchUserInfo()
     },
 
     setToken(accessToken: string, refreshToken = ''): void {

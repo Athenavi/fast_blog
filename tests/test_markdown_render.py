@@ -196,3 +196,23 @@ class TestRichTextSemanticsPreserved:
     def test_table_colspan_rowspan_are_kept(self):
         out = sanitize_html('<table><tr><th rowspan="2">值班人员</th></tr></table>')
         assert 'rowspan="2"' in out
+
+
+class TestLeadingTextNode:
+    """片段**开头**的裸文本必须保留（回归：只序列化元素子节点会吞掉它）。
+
+    页面 / 文章正文里"看起来像 HTML"的 Markdown 会走 HTML 分支；开头那段文字
+    不在任何标签里，此前会被整段丢掉，作者看到的是"正文少了第一段"。
+    """
+
+    def test_leading_text_is_kept(self):
+        assert sanitize_html("开头一段文字<br>续行") == "开头一段文字<br>续行"
+
+    def test_leading_text_is_escaped(self):
+        out = sanitize_html("a & b < c <b>粗</b>")
+        assert "a &amp; b &lt; c" in out
+        assert "<b>粗</b>" in out
+
+    def test_text_between_elements_still_kept(self):
+        out = sanitize_html("<p>前</p>中间<p>后</p>")
+        assert out == "<p>前</p>中间<p>后</p>"

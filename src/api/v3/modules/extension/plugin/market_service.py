@@ -135,6 +135,13 @@ class MarketClient:
             raise BadRequestError("插件包校验和与市场声明不一致，已拒绝（可能被篡改或传输损坏）")
         if expect_sha256 and expect_sha256.strip().lower() != actual:
             raise BadRequestError("插件包校验和与请求所声明的不一致，已拒绝安装")
+        # 两边都没有校验和就**拒绝安装**：插件包会以 `import_module` 的方式在主进程里执行，
+        # "来源未经验证"等同把 shell 交给对方。不能因为市场没带头就默认放行。
+        if not declared and not expect_sha256:
+            raise BadRequestError(
+                "插件市场未提供校验和，已拒绝安装；请先在市场页面核对 SHA256 并通过 "
+                f"expect_sha256 显式传入（本地包实际 SHA256：{actual}）"
+            )
         return content
 
     async def install_from_market(

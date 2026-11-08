@@ -27,7 +27,7 @@ from shared.models.user import User
 from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.commerce.payment.schema import PaymentInitiateRequest
-from src.api.v3.modules.commerce.payment.service import payment_flow_service
+from src.api.v3.modules.commerce.payment.service import gateway_amount_cents, payment_flow_service
 from src.api.v3.modules.commerce.tipping.crud import tip_crud, tip_withdrawal_crud
 from src.api.v3.modules.commerce.tipping.schema import (
     GATEWAY_SUCCESS_STATUSES,
@@ -201,6 +201,18 @@ class TippingService:
             logger.warning("打赏回调找不到订单: provider=%s order_no=%s", provider, order_no)
             return result | {"tip_updated": False}
 
+        paid_cents = gateway_amount_cents(result)
+        if (
+            gateway_status in GATEWAY_SUCCESS_STATUSES
+            and paid_cents is not None
+            and paid_cents != int(tip.amount or 0)
+        ):
+            logger.error(
+                "打赏回调金额不一致：order=%s 本地=%s 分 网关=%s 分",
+                order_no, tip.amount, paid_cents,
+            )
+            return result | {"tip_updated": False, "amount_mismatch": True}
+
         now = datetime.now()
         if gateway_status in GATEWAY_SUCCESS_STATUSES:
             if tip.status != "paid":
@@ -339,6 +351,9 @@ class TippingService:
     async def withdraw(self, db: AsyncSession, user_id: int, payload: WithdrawCreateRequest) -> dict:
         if payload.method not in WITHDRAW_METHODS:
             raise BadRequestError(f"不支持的提现方式：{payload.method}（可选 {', '.join(WITHDRAW_METHODS)}）")
+        # 可提现余额是**汇总值**，没有单行可以原子扣减。先锁住用户行再算余额并落单，
+        # 否则两个并发请求会读到同一个 available（都够），各自创建一笔，等于双花。
+        await db.execute(select(User.id).where(User.id == user_id).with_for_update())
         earnings = await self.earnings(db, user_id)
         available = int(earnings["available"])
         if payload.amount > available:

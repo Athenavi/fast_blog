@@ -43,6 +43,8 @@ export interface MobileProfile {
   bio?: string | null
   locale?: string | null
   is_active?: boolean
+  /** 邮箱是否已验证：OAuth 自助建号默认 false，须在 24 小时内完成验证 */
+  email_verified?: boolean
   created_at?: string | null
   updated_at?: string | null
 }
@@ -53,6 +55,8 @@ export interface MobileProfileUpdate {
   bio?: string
   locale?: string
   password?: string
+  /** 改密码时必填：服务端用它校验，防令牌泄露后被直接换掉密码 */
+  old_password?: string
 }
 
 export interface MobileUserStats {
@@ -208,7 +212,11 @@ export const mobileApi = {
   profile: () => http.get<MobileProfile>('/mobile/user/profile'),
 
   updateProfile: (payload: MobileProfileUpdate) =>
-    http.put<MobileProfile>('/mobile/user/profile', payload),
+    // 改密会作废旧令牌并重签一对（后端返回这两个字段，浏览器端同时写回 cookie）
+    http.put<MobileProfile & {access_token?: string; refresh_token?: string}>(
+      '/mobile/user/profile',
+      payload,
+    ),
 
   stats: () => http.get<MobileUserStats>('/mobile/user/stats'),
 

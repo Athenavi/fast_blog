@@ -66,6 +66,7 @@ class TestRevisionWiring:
         svc = ArticleService()
         with patch(_SAVE_PATH, fake_save), \
             patch(_ROLLBACK_PATH, fake_rollback), \
+            patch.object(svc, "_assert_revision_access", AsyncMock()), \
             patch.object(svc, "_invalidate", AsyncMock()), \
             patch.object(svc, "get_article", AsyncMock(return_value={"id": 42})):
             await svc.rollback_revision(AsyncMock(), 42, 7, author_id=1)
@@ -82,6 +83,7 @@ class TestRevisionWiring:
 
         svc = ArticleService()
         with patch(_SAVE_PATH, AsyncMock(return_value=None)), \
+            patch.object(svc, "_assert_revision_access", AsyncMock()), \
             patch(_ROLLBACK_PATH, AsyncMock(return_value=False)):
             with pytest.raises(NotFoundError):
                 await svc.rollback_revision(AsyncMock(), 42, 999999, author_id=1)
@@ -117,3 +119,34 @@ class TestRevisionRoutes:
             "/api/v3/content/article/{article_id}/revisions/{revision_id}"
         )
         assert compare_idx < detail_idx, "compare 必须注册在 {revision_id} 之前"
+
+
+@pytest.mark.unit
+class TestRevisionCrossArticleAccess:
+    """修订 ID 是全局自增的：不校验归属就能拿别人的未发布正文。"""
+
+    @pytest.mark.asyncio
+    async def test_get_revision_rejects_mismatched_article(self):
+        from src.api.v3.core.exceptions import NotFoundError
+        from src.api.v3.modules.content.article.service import ArticleService
+
+        svc = ArticleService()
+        with patch(
+            "src.api.v3.modules.content.article.service.get_revision_detail",
+            AsyncMock(return_value={"article_id": 2, "content": "B 的草稿"}),
+        ):
+            with pytest.raises(NotFoundError):
+                await svc.get_revision(AsyncMock(), 7, article_id=1, scope_user=object())
+
+    @pytest.mark.asyncio
+    async def test_diff_rejects_mixed_articles(self):
+        from src.api.v3.core.exceptions import NotFoundError
+        from src.api.v3.modules.content.article.service import ArticleService
+
+        svc = ArticleService()
+        with patch(
+            "src.api.v3.modules.content.article.service.get_revision_detail",
+            AsyncMock(side_effect=[{"article_id": 1}, {"article_id": 2}]),
+        ):
+            with pytest.raises(NotFoundError):
+                await svc.diff_revisions(AsyncMock(), 1, 2, article_id=1, scope_user=object())

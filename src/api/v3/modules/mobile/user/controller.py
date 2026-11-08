@@ -31,10 +31,17 @@ async def get_profile(db: DBSession, current: CurrentUser) -> dict:
 @router.put("/profile", response_model=ResponseModel, summary="修改我的资料")
 async def update_profile(
     payload: MobileProfileUpdate,
+    response: Response,
     db: DBSession,
     current: CurrentUser,
 ) -> dict:
-    return resp.success(await mobile_user_service.update_profile(db, current, payload), msg="已保存")
+    data = await mobile_user_service.update_profile(db, current, payload)
+    if data.get("access_token") or data.get("refresh_token"):
+        # 改密会作废旧令牌，这里把重签的一对同步写回 cookie（浏览器端）
+        from src.api.v3.core.security import set_auth_cookies
+
+        set_auth_cookies(response, data)
+    return resp.success(data, msg="已保存")
 
 
 @router.get("/stats", response_model=ResponseModel, summary="我的统计")

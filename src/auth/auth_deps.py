@@ -144,6 +144,17 @@ async def _authenticate_user(
             )
         return None
 
+    # 令牌类型必须显式是 access。refresh（30 天）与 temp_2fa（验证码还没输）签名同样有效，
+    # 不校验类型就等于让它们直接当访问令牌用 —— 2FA 会被整个旁路掉。
+    if payload.get("type") != "access":
+        if required:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        return None
+
     user_id_str = payload.get("sub")
     if not user_id_str:
         if required:
@@ -165,6 +176,25 @@ async def _authenticate_user(
     if jti:
         _tb = _get_token_blacklist()
         if _tb.is_available and await _tb.is_blacklisted_async(jti):
+            if required:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been revoked",
+                )
+            return None
+
+    # 用户级水位线（"退出所有设备 / 强制下线"）：签发时间早于最近一次全部下线即失效。
+    # 与 jti 黑名单是两条独立的线 —— 那条只能吊销单个令牌。
+    issued_at = payload.get("iat")
+    if issued_at is not None:
+        _tb = _get_token_blacklist()
+        try:
+            user_revoked = _tb.is_available and await _tb.is_user_revoked_async(
+                user_id, float(issued_at)
+            )
+        except (TypeError, ValueError):
+            user_revoked = False
+        if user_revoked:
             if required:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

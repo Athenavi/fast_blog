@@ -22,6 +22,7 @@ from typing import Any
 import httpx
 
 from src.api.v3.core.exceptions import BadRequestError
+from src.utils.security.outbound import guarded_async_client
 from src.api.v3.modules.content.third_party_publish.adapters import (
     ChannelConfig,
     PublishPayload,
@@ -72,7 +73,7 @@ async def _access_token(channel: ChannelConfig) -> str:
 async def _upload_cover(channel: ChannelConfig, url: str) -> str:
     """把封面图下载后上传为**永久素材**，返回 media_id（草稿封面要求永久素材）"""
     try:
-        async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT, follow_redirects=True) as client:
+        async with guarded_async_client(timeout=DEFAULT_TIMEOUT) as client:
             downloaded = await client.get(url)
     except httpx.HTTPError as exc:
         raise BadRequestError(f"下载封面图失败（{url}）：{exc}") from exc

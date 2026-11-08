@@ -7,11 +7,11 @@
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.collaboration import ApprovalRecord, ApprovalStep
-from src.api.v3.core.exceptions import BadRequestError, NotFoundError
+from src.api.v3.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.content.approval.crud import approval_record_crud, approval_step_crud
 from src.api.v3.modules.content.approval.schema import (
@@ -87,6 +87,25 @@ class ApprovalService:
             raise NotFoundError("审批单不存在")
         if record.status != "pending":
             raise BadRequestError("该审批单已结束")
+        if record.applicant_id is not None and int(record.applicant_id) == int(approver_id):
+            # 提交与审批共用同一个权限码，必须单独挡住"自己批自己"
+            raise ForbiddenError("不能审批自己提交的申请")
+        # 同一个人不能在一张单上反复决定 —— 否则多级审批可以一个人从头点到尾
+        decided = int(
+            (
+                await db.execute(
+                    select(func.count())
+                    .select_from(ApprovalStep)
+                    .where(
+                        ApprovalStep.record_id == record_id,
+                        ApprovalStep.approver_id == approver_id,
+                    )
+                )
+            ).scalar()
+            or 0
+        )
+        if decided:
+            raise BadRequestError("你已处理过该审批单，不能重复审批")
 
         now = datetime.now()
         db.add(ApprovalStep(

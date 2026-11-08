@@ -65,6 +65,9 @@ async def resolve_ws_user(db: AsyncSession, websocket: WebSocket) -> Optional[Us
         payload = await decode_token_async(token)
     except UnauthorizedError:
         return None
+    # 与 HTTP 鉴权同一口径：只有 access 令牌能建连（详见 `src/auth/auth_deps.py`）
+    if payload.get("type") != "access":
+        return None
     subject = str(payload.get("sub") or "")
     if not subject:
         return None

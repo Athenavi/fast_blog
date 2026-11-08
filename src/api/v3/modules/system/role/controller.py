@@ -76,7 +76,7 @@ async def create_role(
     _current: CurrentUser,
     _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
-    return resp.success(await role_service.create_role(db, payload), msg="创建成功")
+    return resp.success(await role_service.create_role(db, payload, scope_user=_current), msg="创建成功")
 
 
 # ─────────────────────────── 兼容删除（静态路径必须在 /{role_id} 之前）──────────
@@ -92,7 +92,7 @@ async def delete_role_compat(
     _perm=AuthControl(codes.ROLE_EDIT),
     role_id: int = Query(description="待删除角色 id"),
 ) -> dict:
-    await role_service.delete_role(db, role_id)
+    await role_service.delete_role(db, role_id, scope_user=_current)
     return resp.success(None, msg="已删除")
 
 
@@ -125,7 +125,9 @@ async def set_role_permissions_compat(
     _current: CurrentUser,
     _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
-    codes = await role_service.set_permissions(db, role_id, payload.permission_codes)
+    codes = await role_service.set_permissions(
+            db, role_id, payload.permission_codes, scope_user=_current
+        )
     return resp.success(codes, msg="权限已更新")
 
 
@@ -160,7 +162,7 @@ async def update_role(
     _current: CurrentUser,
     _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
-    return resp.success(await role_service.update_role(db, role_id, payload), msg="更新成功")
+    return resp.success(await role_service.update_role(db, role_id, payload, scope_user=_current), msg="更新成功")
 
 
 @router.delete("/{role_id}", response_model=ResponseModel, summary="删除角色")
@@ -170,7 +172,7 @@ async def delete_role(
     _current: CurrentUser,
     _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
-    await role_service.delete_role(db, role_id)
+    await role_service.delete_role(db, role_id, scope_user=_current)
     return resp.success(None, msg="已删除")
 
 
@@ -192,5 +194,7 @@ async def set_role_permissions(
     _current: CurrentUser,
     _perm=AuthControl(codes.ROLE_EDIT),
 ) -> dict:
-    codes = await role_service.set_permissions(db, role_id, payload.permission_codes)
+    codes = await role_service.set_permissions(
+            db, role_id, payload.permission_codes, scope_user=_current
+        )
     return resp.success(codes, msg="权限已更新")

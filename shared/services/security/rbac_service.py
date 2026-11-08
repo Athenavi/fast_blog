@@ -42,6 +42,28 @@ class RBACService:
             depth += 1
         return list(resolved)
 
+    async def get_role_codes_set(
+        self, db: AsyncSession, role_ids: List[int]
+    ) -> Set[str]:
+        """一组角色的**有效**权限码（含父角色继承），与用户权限解析同一套规则。
+
+        用于"能否授予某角色/某些权限码"的校验：调用方权限集必须是它的超集。
+        """
+        if not role_ids:
+            return set()
+        resolved = await self._resolve_role_ids_with_parents(db, list(role_ids))
+        query = (
+            select(Capability.code)
+            .join(RoleCapability, RoleCapability.capability_id == Capability.id)
+            .where(
+                RoleCapability.role_id.in_(resolved),
+                Capability.is_active == True,
+            )
+            .distinct()
+        )
+        result = await db.execute(query)
+        return {row[0] for row in result.all() if row[0]}
+
     # ------------------------------------------------------------
     # 能力检查（基于 Capability.code）
     # ------------------------------------------------------------

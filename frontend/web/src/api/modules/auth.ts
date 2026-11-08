@@ -9,6 +9,12 @@ export interface LoginParams {
   remember_me?: boolean
 }
 
+export interface Verify2FAParams {
+  temp_token: string
+  code: string
+  remember_me?: boolean
+}
+
 export interface TokenData {
   access_token?: string
   refresh_token?: string
@@ -43,7 +49,13 @@ export interface CurrentUser {
 
 export const authApi = {
   login: (data: LoginParams) => http.post<TokenData>('/system/auth/login', data),
+  /** 登录第二步：temp_token + TOTP/备用码换正式令牌 */
+  verify2fa: (data: Verify2FAParams) =>
+    http.post<TokenData>('/system/auth/verify-2fa', data),
   logout: () => http.post<null>('/system/auth/logout'),
+  /** 重发邮箱验证邮件：匿名接口，无论邮箱是否存在都返回同一句话（防枚举） */
+  sendEmailVerification: (email: string) =>
+    http.post<null>('/system/auth/email/verify/send', {email}),
   refresh: (refresh_token?: string) =>
     http.post<TokenData>('/system/auth/refresh', {refresh_token}),
   me: () => http.get<CurrentUser>('/system/auth/me'),

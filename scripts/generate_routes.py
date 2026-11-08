@@ -175,7 +175,7 @@ class RouteGenerator:
                     output_dir = output_base
 
                 # 每个模型生成一个单独的文件
-                output_path = output_dir / f"{self._model_name_to_filename(model_name)}.py"
+                output_path = output_dir / f"{self._model_file_stem(model_name, model_def)}.py"
 
                 # 从 properties 自动生成 SQLAlchemy 字段，并传入全量模型配置用于外键解析
                 properties = model_def.get('properties', {})
@@ -228,6 +228,10 @@ class RouteGenerator:
                     'custom_methods': custom_methods,
                     'table_has_indexes': bool(model_def.get('indexes')),
                     'table_has_unique_constraints': bool(model_def.get('unique_constraints')),
+                    'has_encrypted': any(f.get('encrypted') for f in fields.values()),
+                    'relationship_imports': self._relationship_imports(
+                        model_name, model_def, self.models
+                    ),
                     # 传入 jinja 模板内使用的命名空间变量
                     'ns': {
                         'has_uuid_pk': has_uuid_pk,
@@ -305,7 +309,7 @@ class RouteGenerator:
                 else:
                     output_dir = output_base
 
-                output_path = output_dir / f"{self._model_name_to_filename(model_name)}.py"
+                output_path = output_dir / f"{self._model_file_stem(model_name, model_def)}.py"
 
                 # 从 properties 生成字段，传入模型名称和全量模型配置（用于外键解析）
                 properties = model_def.get('properties', {})
@@ -365,6 +369,10 @@ class RouteGenerator:
                     table_prefix=table_prefix,
                     table_has_indexes=bool(indexes),
                     table_has_unique_constraints=bool(unique_constraints),
+                    has_encrypted=any(f.get('encrypted') for f in fields.values()),
+                    relationship_imports=self._relationship_imports(
+                        model_name, model_def, self.models
+                    ),
                     has_foreign_keys=has_foreign_keys,
                     has_unique_constraints=bool(unique_constraints),
                     has_datetime_default=has_datetime_default,
@@ -460,6 +468,41 @@ class RouteGenerator:
 
         return sorted(list(imports))
 
+    def _model_import_path(self, model_name: str, all_models: Dict) -> Optional[str]:
+        """模型名 → 导入路径（``shared.models.<module>.<file>``）；无法解析返回 None"""
+        target = (all_models or {}).get(model_name) or {}
+        module = target.get('module')
+        if not module:
+            return None
+        filename = self._model_file_stem(model_name, target)
+        return f"shared.models.{module}.{filename}"
+
+    def _relationship_imports(
+        self, model_name: str, model_def: Dict, all_models: Dict
+    ) -> List[str]:
+        """relationship() 的目标模型 / 中间表必须**提前导入**。
+
+        只在字符串里引用 ``relationship('Role', secondary='user_role_assignments')`` 是不够的：
+        直接导入单个模型文件时（测试、脚本、按需加载），SQLAlchemy 配置 mapper 会找不到
+        目标类或中间表，报 ``InvalidRequestError``。历史缺陷就是这么产生的。
+        """
+        imports = set()
+        for rel in (model_def.get('relationships') or {}).values():
+            target = rel.get('target')
+            if target and target != model_name:
+                path = self._model_import_path(target, all_models)
+                if path:
+                    imports.add(path)
+            secondary = rel.get('secondary')
+            if secondary:
+                for name, definition in (all_models or {}).items():
+                    if name != model_name and definition.get('table') == secondary:
+                        path = self._model_import_path(name, all_models)
+                        if path:
+                            imports.add(path)
+                        break
+        return sorted(imports)
+
     @staticmethod
     def _split_indexes(model_def: Dict) -> tuple:
         """把 yaml 的 indexes 段拆成 ``(普通索引, 唯一约束)``
@@ -473,6 +516,16 @@ class RouteGenerator:
         unique_constraints = [ix for ix in all_indexes if ix.get('unique')]
         plain_indexes = [ix for ix in all_indexes if not ix.get('unique')]
         return plain_indexes, unique_constraints
+
+    def _model_file_stem(self, model_name: str, model_def: Optional[Dict] = None) -> str:
+        """模型文件的模块名。
+
+        派生规则（驼峰转下划线）并非总是成立（例如 ``CollaborationInvite`` 的文件叫
+        ``invitation.py``），因此 yaml 支持用 ``file:`` 显式覆盖；模型文件路径与
+        ``__init__.py`` 的懒加载映射都必须走这里，否则两边会漂移。
+        """
+        override = (model_def or {}).get('file')
+        return str(override) if override else self._model_name_to_filename(model_name)
 
     def _model_name_to_filename(self, model_name: str) -> str:
         """将模型名转换为文件名（驼峰转下划线）"""
@@ -667,6 +720,9 @@ class RouteGenerator:
                 field_info['index'] = True
             if prop_def.get('sensitive'):
                 field_info['sensitive'] = True
+            if prop_def.get('encrypted'):
+                # 数据库层透明加密（如 TOTP 密钥、备用码）：模板渲染成 EncryptedField(...)
+                field_info['encrypted'] = True
 
             # Decimal 精度
             if raw_type in ('number', 'float', 'decimal'):
@@ -851,7 +907,7 @@ __all__ = [{all_section}]
         all_exports = ['Base']
 
         for model_name, model_def in orm_models_config.items():
-            filename = self._model_name_to_filename(model_name)
+            filename = self._model_file_stem(model_name, model_def)
             module_path = model_def.get('module', '').strip()
 
             if module_path:
@@ -983,7 +1039,7 @@ __all__ = [
         all_exports = ['Base']
 
         for model_name, model_def in shared_models_config.items():
-            filename = self._model_name_to_filename(model_name)
+            filename = self._model_file_stem(model_name, model_def)
             # 从 model_def 中获取类名，可能有多个类
             class_names = [model_name]
             if 'additional_classes' in model_def:

@@ -58,6 +58,10 @@ def test_bump_version_keeps_ini_format(tmp_path):
     text = path.read_text(encoding="utf-8")
     assert text.lstrip().startswith("[RELEASE]"), "bump 之后必须仍是 INI（不能变成 JSON）"
     assert "version = 2.0.0" in text
+    # build_time 统一 UTC + Z（与仓库既有格式一致）
+    import re as _re
+
+    assert _re.search(r"build_time = \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", text)
     assert "migration = def456" in text
 
     # 其它按 INI 解析的工具（scripts/build_release.py 等）必须还能读到版本号

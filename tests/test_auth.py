@@ -221,7 +221,7 @@ class TestAuthenticateUser:
         mock_settings.JWT_SECRET_KEY = "secret"
         mock_settings.JWT_ALGORITHM = "HS256"
         mock_settings.SECRET_KEY = "secret"
-        mock_decode.return_value = {"sub": "1"}
+        mock_decode.return_value = {"sub": "1", "type": "access"}
 
         # Set bearer token so _get_token_from_request returns it
         mock_request.headers = {"Authorization": "Bearer valid-token"}
@@ -232,6 +232,42 @@ class TestAuthenticateUser:
 
         assert user is active_user
         mock_decode.assert_called_once()
+
+    @patch("src.auth.auth_deps.jwt.decode")
+    @patch("src.auth.auth_deps.settings")
+    async def test_refresh_token_rejected_as_access(
+        self, mock_settings, mock_decode, mock_request, mock_db, active_user
+    ):
+        """refresh 令牌不能当访问令牌用：它有效期 30 天，签名与 access 完全一样。"""
+        mock_settings.JWT_SECRET_KEY = "secret"
+        mock_settings.JWT_ALGORITHM = "HS256"
+        mock_settings.SECRET_KEY = "secret"
+        mock_decode.return_value = {"sub": "1", "type": "refresh"}
+        mock_request.headers = {"Authorization": "Bearer refresh-token"}
+        mock_db.execute.return_value.scalar_one_or_none.return_value = active_user
+
+        with pytest.raises(HTTPException) as exc:
+            await _authenticate_user(mock_request, mock_db, required=True)
+        assert exc.value.status_code == 401
+
+    @patch("src.auth.auth_deps.jwt.decode")
+    @patch("src.auth.auth_deps.settings")
+    async def test_temp_2fa_token_rejected(
+        self, mock_settings, mock_decode, mock_request, mock_db, active_user
+    ):
+        """2FA 未完成时下发的 temp_2fa 令牌必须被拒，否则 2FA 可被整个旁路。"""
+        mock_settings.JWT_SECRET_KEY = "secret"
+        mock_settings.JWT_ALGORITHM = "HS256"
+        mock_settings.SECRET_KEY = "secret"
+        mock_decode.return_value = {"sub": "1", "type": "temp_2fa"}
+        mock_request.headers = {"Authorization": "Bearer temp-token"}
+        mock_db.execute.return_value.scalar_one_or_none.return_value = active_user
+
+        with pytest.raises(HTTPException) as exc:
+            await _authenticate_user(mock_request, mock_db, required=True)
+        assert exc.value.status_code == 401
+        # 可选鉴权（公开接口的 viewer）同样不能把它当成登录态
+        assert await _authenticate_user(mock_request, mock_db, required=False) is None
 
     @patch("src.auth.auth_deps.jwt.decode")
     @patch("src.auth.auth_deps.settings")
@@ -319,7 +355,7 @@ class TestAuthenticateUser:
         mock_settings.JWT_SECRET_KEY = "secret"
         mock_settings.JWT_ALGORITHM = "HS256"
         mock_settings.SECRET_KEY = "secret"
-        mock_decode.return_value = {"sub": "999"}  # Non-existent user
+        mock_decode.return_value = {"sub": "999", "type": "access"}  # Non-existent user
         # DB query returns None (default fixture)
 
         with pytest.raises(HTTPException) as exc:
@@ -335,7 +371,7 @@ class TestAuthenticateUser:
         mock_settings.JWT_SECRET_KEY = "secret"
         mock_settings.JWT_ALGORITHM = "HS256"
         mock_settings.SECRET_KEY = "secret"
-        mock_decode.return_value = {"sub": "1"}
+        mock_decode.return_value = {"sub": "1", "type": "access"}
 
         inactive_user = MagicMock()
         inactive_user.is_active = False
@@ -356,7 +392,7 @@ class TestAuthenticateUser:
         mock_settings.JWT_ALGORITHM = "HS256"
         mock_settings.SECRET_KEY = "secret"
         mock_request.headers = {"Authorization": "Bearer revoked-token"}
-        mock_decode.return_value = {"sub": "1", "jti": "revoked-jti"}
+        mock_decode.return_value = {"sub": "1", "jti": "revoked-jti", "type": "access"}
 
         mock_blacklist = MagicMock()
         mock_blacklist.is_available = True
@@ -376,7 +412,7 @@ class TestAuthenticateUser:
         mock_settings.JWT_SECRET_KEY = "secret"
         mock_settings.JWT_ALGORITHM = "HS256"
         mock_settings.SECRET_KEY = "secret"
-        mock_decode.return_value = {"sub": "1"}
+        mock_decode.return_value = {"sub": "1", "type": "access"}
         mock_request.headers = {"Authorization": "Bearer my-valid-token"}
         mock_db.execute.return_value.scalar_one_or_none.return_value = active_user
 
@@ -456,3 +492,122 @@ class TestJWTOptional:
         mock_auth.return_value = None
         user = await jwt_optional_dependency(mock_request, db=mock_db)
         assert user is None
+
+
+# ============================================================================
+# revoke_token（登出）
+# ============================================================================
+
+class TestRevokeToken:
+    """登出必须真的写进黑名单，且写键与读取侧（jti）一致。"""
+
+    @patch("src.api.v3.core.security.get_token_blacklist")
+    def test_revoke_writes_jti_key(self, mock_get_blacklist):
+        """写黑名单用 jti，过期时间按本地时间还原（对齐 add_to_blacklist 的 TTL 算法）。"""
+        from src.api.v3.core.security import issue_token, revoke_token
+
+        token = issue_token("7", "access", datetime.timedelta(minutes=30))
+        payload = pyjwt.decode(token, key=None, options={"verify_signature": False})
+
+        blacklist = MagicMock()
+        blacklist.is_available = True
+        # `decode_token` 会先查黑名单与用户水位线：这个令牌尚未吊销，必须都返回 False
+        blacklist.is_blacklisted.return_value = False
+        blacklist.is_user_revoked.return_value = False
+        blacklist.add_to_blacklist.return_value = True
+        mock_get_blacklist.return_value = blacklist
+
+        assert revoke_token(token) is True
+
+        written_token, written_exp = blacklist.add_to_blacklist.call_args.args
+        # 读取侧 `is_blacklisted(jti)`：写键必须是 jti，否则永远查不到
+        assert written_token == payload["jti"]
+        # TTL 用于 Redis 过期时间；相差一天以上就是时区算错了（令牌会立刻失效或永不过期）
+        assert abs(written_exp.timestamp() - payload["exp"]) < 60
+
+    @patch("src.api.v3.core.security.get_token_blacklist")
+    def test_revoke_without_jti_returns_false(self, mock_get_blacklist):
+        """没有 jti 的令牌无法吊销，返回 False 而不是假装成功。"""
+        from src.api.v3.core.security import revoke_token
+
+        blacklist = MagicMock()
+        blacklist.is_available = True
+        mock_get_blacklist.return_value = blacklist
+
+        assert revoke_token("not-a-jwt") is False
+        blacklist.add_to_blacklist.assert_not_called()
+
+
+# ============================================================================
+# 用户级吊销水位线（退出所有设备）
+# ============================================================================
+
+class _FakeRedis:
+    """最小 Redis 替身：只实现水位线用到的 get/setex。"""
+
+    def __init__(self):
+        self.store = {}
+
+    def setex(self, key, ttl, value):
+        self.store[key] = str(value)
+        return True
+
+    def get(self, key):
+        return self.store.get(key)
+
+
+class TestUserRevocationWatermark:
+    def _manager(self, enabled=True):
+        from src.utils.token_blacklist import TokenBlacklistManager
+
+        m = TokenBlacklistManager.__new__(TokenBlacklistManager)
+        m.redis_enabled = enabled
+        m.redis_client = _FakeRedis() if enabled else None
+        return m
+
+    def test_invalidates_older_tokens_only(self):
+        import time
+
+        m = self._manager()
+        assert m.revoke_user_tokens(7, datetime.datetime.now() + datetime.timedelta(hours=1)) is True
+
+        # 吊销之前签发的：失效
+        assert m.is_user_revoked(7, time.time() - 60) is True
+        # 吊销之后签发的（重新登录）：不受影响
+        assert m.is_user_revoked(7, time.time() + 60) is False
+        # 其他用户完全不受影响
+        assert m.is_user_revoked(8, time.time() - 60) is False
+
+    def test_disabled_without_redis(self):
+        """Redis 不可用时不能谎报成功，也不能把所有人锁在门外。"""
+        m = self._manager(enabled=False)
+        assert m.revoke_user_tokens(1, datetime.datetime.now()) is False
+        assert m.is_user_revoked(1, 0) is False
+
+
+class TestAuthenticateUserWatermark:
+    pytestmark = pytest.mark.asyncio
+
+    @patch("src.auth.auth_deps._get_token_blacklist")
+    @patch("src.auth.auth_deps.jwt.decode")
+    @patch("src.auth.auth_deps.settings")
+    async def test_watermark_rejects_token(
+        self, mock_settings, mock_decode, mock_get_blacklist, mock_request, mock_db, active_user
+    ):
+        """登出（退出所有设备）之后，旧令牌不能再通过鉴权。"""
+        mock_settings.JWT_SECRET_KEY = "secret"
+        mock_settings.JWT_ALGORITHM = "HS256"
+        mock_settings.SECRET_KEY = "secret"
+        mock_decode.return_value = {"sub": "1", "type": "access", "iat": 1000, "jti": "j1"}
+        mock_request.headers = {"Authorization": "Bearer old-token"}
+
+        blacklist = MagicMock()
+        blacklist.is_available = True
+        blacklist.is_blacklisted_async = AsyncMock(return_value=False)
+        blacklist.is_user_revoked_async = AsyncMock(return_value=True)
+        mock_get_blacklist.return_value = blacklist
+
+        with pytest.raises(HTTPException) as exc:
+            await _authenticate_user(mock_request, mock_db, required=True)
+        assert exc.value.status_code == 401
+        blacklist.is_user_revoked_async.assert_awaited_once_with(1, 1000.0)

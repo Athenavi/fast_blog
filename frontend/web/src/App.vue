@@ -38,8 +38,11 @@ const currentDir = computed<'ltr' | 'rtl'>(() => {
 /**
  * 首屏引导脚本（拼成一行下发，它会随每个 HTML 响应走）。
  *
- * 三段逻辑：深浅色（localStorage → 跟随系统）、自选配色（localStorage → 旧 cookie 兜底）、
- * 以及 `html.dark`（Element Plus 暗色主题挂在它上面）。
+ * 四段逻辑：深浅色（localStorage → 跟随系统）、自选配色（localStorage → 旧 cookie 兜底）、
+ * `html.dark`（Element Plus 暗色主题挂在它上面），以及阅读偏好字号/行宽
+ * （localStorage → 旧 cookie 兜底，见 `useReadingPrefs.ts`）。
+ *
+ * 值一律先做白名单校验再写进 dataset：缓存里/别人机器上的字符串不该变成任意属性值。
  */
 const THEME_BOOTSTRAP = [
   '(function(){try{',
@@ -50,6 +53,12 @@ const THEME_BOOTSTRAP = [
   "var a=localStorage.getItem('fb-accent-name');",
   "if(!a){var m=document.cookie.match(/(?:^|;\\s*)fb-accent=([^;]+)/);a=m?decodeURIComponent(m[1]):''}",
   "el.dataset.accent=a||'blue';",
+  "var rs='';try{rs=localStorage.getItem('fb-read-size')||''}catch(e){}",
+  "if(!rs){var r=document.cookie.match(/(?:^|;\\s*)fb-read-size=([^;]+)/);rs=r?decodeURIComponent(r[1]):''}",
+  "el.dataset.readSize=rs==='sm'||rs==='lg'?rs:'md';",
+  "var rw='';try{rw=localStorage.getItem('fb-read-width')||''}catch(e){}",
+  "if(!rw){var w=document.cookie.match(/(?:^|;\\s*)fb-read-width=([^;]+)/);rw=w?decodeURIComponent(w[1]):''}",
+  "el.dataset.readWidth=rw==='wide'?'wide':'narrow';",
   '}catch(e){}})()',
 ].join('')
 

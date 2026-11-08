@@ -119,7 +119,15 @@ class ArticlePreviewService:
         )
         return _token_out(row)
 
-    async def list_tokens(self, db: AsyncSession, article_id: int) -> List[Dict[str, Any]]:
+    async def list_tokens(
+        self, db: AsyncSession, article_id: int, *, user: Any = None
+    ) -> List[Dict[str, Any]]:
+        """列出某篇文章的预览令牌。
+
+        **必须和创建一样过归属校验**：返回值里有 token 明文，能看这个列表就等于
+        能拿别人的预览链接去读未发布草稿。
+        """
+        await self._load_article_for_write(db, article_id, user)
         rows = (
             await db.execute(
                 select(ArticlePreviewToken)
@@ -202,6 +210,12 @@ class ArticlePreviewService:
             raise ForbiddenError(INVALID_MESSAGE) from None
 
         article = {key: detail.get(key) for key in _PREVIEW_FIELDS}
+        # 预览与公开详情走同一条渲染管线（短代码展开 → Markdown/HTML → 白名单净化）：
+        # 草稿正文可以由免登录协作者直接写 API 落库，**没有**经过任何清洗，
+        # 而预览页是裸 `v-html` —— 原样下发等于把 XSS 送到作者/所有者的浏览器里。
+        article = await article_service._render_content_for_display(
+            db, article, site_id=detail.get("site_id")
+        )
         return {
             "article": article,
             "preview": {

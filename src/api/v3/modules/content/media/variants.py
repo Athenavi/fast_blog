@@ -20,6 +20,10 @@ from typing import List, Optional, Tuple
 
 from PIL import Image
 
+from src.utils.image.limits import install_image_limits, open_image_checked
+
+install_image_limits()
+
 from src.api.v3.core.logger import get_logger
 
 logger = get_logger("content.media.variants")
@@ -121,7 +125,7 @@ def generate(source: Path, media_hash: str, name: str, fmt: str) -> Optional[Pat
         return target
 
     try:
-        with Image.open(source) as img:
+        with open_image_checked(source) as img:
             animated = bool(getattr(img, "is_animated", False))
             effective_fmt = "original" if animated and fmt != "original" else fmt
             if animated and effective_fmt == "original":
@@ -146,7 +150,7 @@ def generate(source: Path, media_hash: str, name: str, fmt: str) -> Optional[Pat
 def encode_bytes(source: Path, max_width: int, fmt: str) -> Optional[bytes]:
     """内存版生成（测试与一次性场景用）"""
     try:
-        with Image.open(source) as img:
+        with open_image_checked(source) as img:
             width, height = img.size
             if width > max_width:
                 ratio = max_width / float(width)

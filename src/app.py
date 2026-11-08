@@ -528,13 +528,10 @@ def register_middleware(app: FastAPI):
     except Exception:
         pass
 
-    # Token 黑名单中间件
-    try:
-        from src.middleware.token_blacklist_middleware import TokenBlacklistMiddleware
-        app.add_middleware(TokenBlacklistMiddleware)
-        logger.info("[Token Blacklist] 已添加 Token 黑名单中间件")
-    except Exception as e:
-        logger.warning(f"[Token Blacklist] 加载失败: {e}")
+    # Token 黑名单**不再**由中间件处理：该中间件按 sha256(整条 token) 查库，
+    # 而写入侧存的是 jti，两者永远对不上；且它在 BaseHTTPMiddleware 里 raise
+    # HTTPException 会被 Starlette 兜底成 500。吊销判定统一在 `auth_deps` /
+    # `security.decode_token*` 里做（见 `src/utils/token_blacklist.py`）。
 
     # 维护模式中间件：命中维护时对非白名单请求返回 503（配置有 5 秒缓存，写配置时主动失效）
     try:
@@ -742,6 +739,11 @@ Sitemap: {site_url}/sitemap.xml
 def create_app(config=None):
     """创建 FastAPI 应用实例"""
     app_start = _time.monotonic()
+
+    # 图片解码上限（防解压炸弹）：必须在任何图片处理之前生效
+    from src.utils.image.limits import install_image_limits
+
+    install_image_limits()
 
     if config is None:
         from shared.config.settings import ProductionConfig

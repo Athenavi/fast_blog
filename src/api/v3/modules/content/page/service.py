@@ -25,6 +25,7 @@ from src.api.v3.modules.content.page.schema import (
     PageCreate,
     PageUpdate,
 )
+from src.utils.markdown import render_content_for_display
 
 logger = get_logger("page")
 
@@ -242,13 +243,24 @@ class PageService:
         page = await page_crud.get_by(db, slug=slug)
         if page is None or page.status != STATUS_PUBLISHED:
             raise NotFoundError("页面不存在或未发布")
-        return _out(page, with_content=True)
+        return self._public_out(page)
 
     async def public_detail(self, db: AsyncSession, page_id: int) -> dict:
         page = await page_crud.get(db, page_id)
         if page is None or page.status != STATUS_PUBLISHED:
             raise NotFoundError("页面不存在或未发布")
-        return _out(page, with_content=True)
+        return self._public_out(page)
+
+    @staticmethod
+    def _public_out(page: Pages) -> dict:
+        """公开页出口：正文必须过渲染管线（Markdown→HTML 或 HTML 净化）。
+
+        前台 `/p/[slug]` 与关于页直接 `v-html`，此前这里下发的是原文，
+        等于页面正文完全没有净化。管理端读仍走 `_out`（保留作者原样源码）。
+        """
+        data = _out(page, with_content=True)
+        data["content"] = render_content_for_display(data.get("content"))
+        return data
 
 
 page_service = PageService()

@@ -23,7 +23,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.gamification import PointsRule, PointsTransaction, UserPoints
@@ -230,34 +230,55 @@ class PointsService:
         reference_id: Optional[int] = None,
         reference_type: Optional[str] = None,
     ) -> tuple[UserPoints, PointsTransaction]:
-        """给账户加分/扣分并写一条流水（同一事务内）"""
+        """给账户加分/扣分并写一条流水（**同一事务**）。
+
+        余额是并发下最容易被双花的地方：此前是"读余额 → 判断 → 写回"，
+        两个并发兑换都能读到同一个余额；而且 CRUD 各自 commit，
+        余额与流水并不是一个事务。现在改成数据库侧条件更新 + 单次提交。
+        """
         if amount == 0:
             raise BadRequestError("变动值不能为 0")
         account = await self._account(db, user_id)
         now = datetime.now()
-        balance = int(account.balance or 0) + int(amount)
-        if balance < 0:
-            raise BadRequestError(f"积分不足（当前 {int(account.balance or 0)}，需要 {-int(amount)}）")
-        data: dict = {"balance": balance, "updated_at": now}
-        if amount > 0:
-            data["total_earned"] = int(account.total_earned or 0) + int(amount)
+        delta = int(amount)
+        values: dict = {
+            "balance": UserPoints.balance + delta,
+            "updated_at": now,
+        }
+        if delta > 0:
+            values["total_earned"] = UserPoints.total_earned + delta
         else:
-            data["total_spent"] = int(account.total_spent or 0) + int(-amount)
-        account = await user_points_crud.update(db, account, data)
-        tx = await points_transaction_crud.create(
-            db,
-            {
-                "user_id": user_id,
-                "amount": int(amount),
-                "balance_after": balance,
-                "action": action,
-                "description": description,
-                "reference_id": reference_id,
-                "reference_type": reference_type,
-                "created_at": now,
-                "updated_at": now,
-            },
+            values["total_spent"] = UserPoints.total_spent + (-delta)
+
+        # 条件更新：余额不足时这一行不生效（并发下不会扣成负数）
+        result = await db.execute(
+            update(UserPoints)
+            .where(UserPoints.user_id == user_id, UserPoints.balance + delta >= 0)
+            .values(**values)
         )
+        if int(result.rowcount or 0) == 0:
+            await db.rollback()
+            await db.refresh(account)
+            raise BadRequestError(
+                f"积分不足（当前 {int(account.balance or 0)}，需要 {-delta}）"
+            )
+
+        await db.refresh(account)
+        tx = PointsTransaction(
+            user_id=user_id,
+            amount=delta,
+            balance_after=int(account.balance or 0),
+            action=action,
+            description=description,
+            reference_id=reference_id,
+            reference_type=reference_type,
+            created_at=now,
+            updated_at=now,
+        )
+        db.add(tx)
+        # 余额与流水一起落库：任何一步失败都整体回滚
+        await db.commit()
+        await db.refresh(tx)
         return account, tx
 
     @staticmethod

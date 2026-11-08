@@ -70,7 +70,7 @@ useSeoMeta({
 
 <template>
   <div v-if="article">
-    <div class="mx-auto max-w-read px-4 pt-8">
+    <div class="fb-page-shell px-4 pt-8">
       <Breadcrumbs :items="breadcrumbs"/>
     </div>
 

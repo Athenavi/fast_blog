@@ -25,7 +25,7 @@ from shared.services.core.membership import create_membership_service
 from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.commerce.payment.schema import PaymentInitiateRequest
-from src.api.v3.modules.commerce.payment.service import payment_flow_service
+from src.api.v3.modules.commerce.payment.service import gateway_amount_cents, payment_flow_service
 from src.api.v3.modules.mobile.vip.crud import vip_payment_order_crud
 from src.api.v3.modules.mobile.vip.schema import (
     GATEWAY_FAILED_STATUSES,
@@ -224,6 +224,23 @@ class MobileVipService:
                 "order_status": order.status,
                 "order_no": order_no,
                 "subscribed": False,
+            }
+
+        paid_cents = gateway_amount_cents(result)
+        if (
+            paid_cents is not None
+            and order.amount is not None
+            and abs(float(order.amount) * 100 - paid_cents) > 1
+        ):
+            # 验签只证明回调真实；金额对不上说明拿别的订单/改价支付来开通订阅
+            logger.error(
+                "VIP 回调金额与订单不一致：order=%s 本地=%s 元 网关=%s 分",
+                order_no, order.amount, paid_cents,
+            )
+            return result | {
+                "order_updated": False,
+                "subscribed": False,
+                "amount_mismatch": True,
             }
 
         already_paid = order.status == ORDER_PAID

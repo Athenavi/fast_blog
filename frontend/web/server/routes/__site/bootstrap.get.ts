@@ -139,15 +139,29 @@ const fetchBootstrap = defineCachedFunction(
   },
 )
 
+/**
+ * 归一化请求域名（缓存键的一部分）。
+ *
+ * `x-forwarded-host` 对客户端**完全可控**（nginx 只覆盖 `Host`，不会覆盖它），
+ * 直接拿原文做键会被刷出无上限的缓存条目、每条未命中又打 4 个后端请求。
+ * 这里只接受"主机名形状"的值：小写、去端口、长度封顶、字符集受限；
+ * 不合规一律回落 `default`（后端按未知域名 → 默认站点处理）。
+ */
+function normalizeHost(raw: string | null | undefined): string {
+  const value = ((raw || '').split(',')[0] || '').trim().toLowerCase()
+  if (!value || value.length > 253) return 'default'
+  if (!/^(?:[a-z0-9._-]+|\[[0-9a-f:.]+\])(?::\d{1,5})?$/.test(value)) return 'default'
+  return value.replace(/:\d{1,5}$/, '') || 'default'
+}
+
 export default defineEventHandler(async (event: H3Event): Promise<BootstrapPayload> => {
   const config = useRuntimeConfig(event)
   const base = String(config.public.apiBaseUrl || 'http://127.0.0.1:9421').replace(/\/+$/, '')
 
   // 取访问者看到的域名；`x-forwarded-host` 优先（有反向代理时它才是原始域名）
-  const forwardedHost =
-    getRequestHeader(event, 'x-forwarded-host') ||
-    getRequestHeader(event, 'host') ||
-    'default'
+  const forwardedHost = normalizeHost(
+    getRequestHeader(event, 'x-forwarded-host') || getRequestHeader(event, 'host'),
+  )
 
   return await fetchBootstrap(base, forwardedHost)
 })

@@ -9,6 +9,7 @@ from typing import Any, Optional
 import httpx
 
 from src.api.v3.core.exceptions import BadRequestError
+from src.utils.security.outbound import guarded_async_client
 
 #: 平台调用超时（秒）
 DEFAULT_TIMEOUT = 30.0
@@ -63,7 +64,7 @@ async def _request(
     timeout: float = DEFAULT_TIMEOUT,
 ) -> httpx.Response:
     try:
-        async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
+        async with guarded_async_client(timeout=timeout) as client:
             return await client.request(
                 method,
                 url,

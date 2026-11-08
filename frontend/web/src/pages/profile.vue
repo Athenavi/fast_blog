@@ -22,8 +22,12 @@ const {errors, validate, clearField, fieldProps, errorId} = useFormErrors()
 
 const profile = ref<MobileProfile | null>(null)
 const stats = ref<MobileUserStats | null>(null)
+const verifySending = ref(false)
+const verifySent = ref(false)
+/** OAuth 自助建号在 24 小时内须完成邮箱验证（服务端宽限期过后会拒绝登录） */
+const needsEmailVerify = computed(() => profile.value?.email_verified === false)
 
-const form = reactive({bio: '', profile_picture: '', locale: '', password: ''})
+const form = reactive({bio: '', profile_picture: '', locale: '', password: '', old_password: ''})
 
 onMounted(async () => {
   try {
@@ -44,6 +48,8 @@ async function save(): Promise<void> {
   const passed = validate({
     password: () =>
       form.password && form.password.length < 8 ? t('user.passwordMinLength') : null,
+    old_password: () =>
+      form.password && !form.old_password ? t('user.oldPasswordRequired') : null,
   })
   if (!passed) return
 
@@ -54,7 +60,10 @@ async function save(): Promise<void> {
     payload.profile_picture = form.profile_picture
   }
   if (form.locale !== (profile.value?.locale || '')) payload.locale = form.locale
-  if (form.password) payload.password = form.password
+  if (form.password) {
+    payload.password = form.password
+    payload.old_password = form.old_password
+  }
 
   if (!Object.keys(payload).length) {
     toast.info(t('user.noChanges'))
@@ -63,13 +72,34 @@ async function save(): Promise<void> {
 
   saving.value = true
   try {
-    profile.value = await mobileApi.updateProfile(payload)
+    const updated = await mobileApi.updateProfile(payload)
+    // 改密后服务端会重签令牌：立刻换掉本地会话，后续请求否则会被旧令牌 401
+    if (updated.access_token) {
+      userStore.setToken(updated.access_token, updated.refresh_token || '')
+    }
+    profile.value = updated
     form.password = ''
+    form.old_password = ''
     toast.success(t('user.saved'))
   } catch {
     toast.error(t('user.saveFailed'))
   } finally {
     saving.value = false
+  }
+}
+
+async function resendVerification(): Promise<void> {
+  const email = profile.value?.email
+  if (!email) return
+  verifySending.value = true
+  try {
+    await userStore.sendEmailVerification(email)
+    verifySent.value = true
+    toast.success(t('user.verifyEmailSent'))
+  } catch {
+    toast.error(t('user.verifyEmailFailed'))
+  } finally {
+    verifySending.value = false
   }
 }
 
@@ -91,6 +121,19 @@ useSeoMeta({title: t('user.center'), robots: 'noindex'})
     </div>
 
     <template v-else>
+      <!-- 邮箱未验证：OAuth 建号 24 小时内必须完成 -->
+      <Card v-if="needsEmailVerify" class="mt-6 border-warning/40 bg-warning-soft">
+        <CardContent class="flex flex-wrap items-center gap-3 p-4">
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-fg">{{ $t('user.emailUnverifiedTitle') }}</p>
+            <p class="mt-0.5 text-sm text-fg-muted">{{ $t('user.emailUnverifiedDesc') }}</p>
+          </div>
+          <Button :disabled="verifySending || verifySent" size="sm" variant="outline" @click="resendVerification">
+            {{ verifySent ? t('user.verifyEmailSent') : t('user.sendVerifyEmail') }}
+          </Button>
+        </CardContent>
+      </Card>
+
       <!-- 概览 -->
       <Card class="mt-6">
         <CardContent class="flex flex-wrap items-center gap-5 p-5">
@@ -195,6 +238,23 @@ useSeoMeta({title: t('user.center'), robots: 'noindex'})
                   $t('user.locale')
                 }}</label>
               <Input id="profile-locale" v-model="form.locale" :placeholder="$t('user.localePlaceholder')"/>
+            </div>
+            <div v-if="form.password">
+              <label class="mb-1.5 block text-sm font-medium text-fg" for="profile-old-password">{{
+                  $t('user.oldPassword')
+                }}</label>
+              <Input
+                v-model="form.old_password"
+                id="profile-old-password"
+                :placeholder="$t('user.oldPasswordPlaceholder')"
+                autocomplete="current-password"
+                type="password"
+                v-bind="fieldProps('old_password')"
+                @input="clearField('old_password')"
+              />
+              <p v-if="errors.old_password" :id="errorId('old_password')" class="mt-1.5 text-sm text-danger">
+                {{ errors.old_password }}
+              </p>
             </div>
             <div>
               <label class="mb-1.5 block text-sm font-medium text-fg" for="profile-password">{{

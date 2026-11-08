@@ -338,6 +338,10 @@ models:
         type: boolean
         default: true
         description: 是否激活
+      is_email_verified:
+        type: boolean
+        default: true
+        description: 邮箱是否已验证（OAuth 自助建号置 false，24 小时内须完成验证）
       is_superuser:
         type: boolean
         default: false
@@ -377,11 +381,13 @@ models:
         maxLength: 32
         description: TOTP 密钥
         sensitive: true
+        encrypted: true
       backup_codes:
         type: text
         nullable: true
         description: 备用码(JSON格式存储)
         sensitive: true
+        encrypted: true
     module: user
     orm: true
     table: users
@@ -8714,6 +8720,7 @@ models:
         description: 更新时间
     module: collaboration
     orm: true
+    file: invitation
     table: collaboration_invites
     indexes:
       - name: idx_collaboration_invites_code
@@ -9154,7 +9161,7 @@ models:
         format: date-time
         nullable: true
         description: 有效期至（通过后两年）
-    module: gamification
+    module: certification
     orm: true
     table: expert_certifications
     indexes:
@@ -9199,7 +9206,7 @@ models:
         type: bigint
         default: 0
         description: 文件大小（字节）
-    module: gamification
+    module: certification
     orm: true
     table: certification_documents
     indexes:
@@ -9227,7 +9234,7 @@ models:
         maxLength: 500
         nullable: true
         description: 意见
-    module: gamification
+    module: certification
     orm: true
     table: certification_reviews
     indexes:
@@ -9284,7 +9291,7 @@ models:
         format: date-time
         nullable: true
         description: 支付时间
-    module: commerce
+    module: tipping
     orm: true
     table: tips
     indexes:
@@ -9363,7 +9370,7 @@ models:
         maxLength: 128
         nullable: true
         description: 打款流水号
-    module: commerce
+    module: tipping
     orm: true
     table: tip_withdrawals
     indexes:

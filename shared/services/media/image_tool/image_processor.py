@@ -11,6 +11,9 @@ from typing import Dict, Any, Tuple
 from PIL import Image, ImageOps, ExifTags, ImageFilter
 
 from shared.logging import default_logger as logger
+from src.utils.image.limits import install_image_limits, open_image_checked
+
+install_image_limits()
 
 # MIME 类型映射
 MIME_TYPES = {
@@ -77,7 +80,7 @@ class ImageProcessor:
         """
         try:
             # 打开图片
-            img = Image.open(io.BytesIO(image_data))
+            img = open_image_checked(io.BytesIO(image_data))
 
             # 自动旋转（根据EXIF方向）
             img = ImageOps.exif_transpose(img)
@@ -334,7 +337,7 @@ class ImageProcessor:
             图片信息字典
         """
         try:
-            img = Image.open(io.BytesIO(image_data))
+            img = open_image_checked(io.BytesIO(image_data))
 
             info = {
                 'width': img.width,
@@ -384,14 +387,14 @@ class ImageProcessor:
 
         # 检查是否为有效图片
         try:
-            img = Image.open(io.BytesIO(image_data))
+            img = open_image_checked(io.BytesIO(image_data))
             img.verify()
         except Exception:
             errors.append("无效的图片文件格式")
             return {'valid': False, 'errors': errors}
 
         # 重新打开（verify后会关闭）
-        img = Image.open(io.BytesIO(image_data))
+        img = open_image_checked(io.BytesIO(image_data))
 
         # 检查格式
         if img.format not in SUPPORTED_FORMATS:

@@ -12,8 +12,9 @@ from shared.models.comment.comment import Comment
 from shared.models.user import User as UserModel
 from shared.models.user.user_follow import UserFollow
 from shared.services.users.user_manager import set_user_password, update_user_profile
-from src.api.v3.core.exceptions import NotFoundError
+from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.utils.security.password_validator import verify_password
 from src.api.v3.modules.mobile.user.schema import (
     MobileProfileUpdate,
     MobilePublicProfile,
@@ -91,15 +92,35 @@ class MobileUserService:
     ) -> dict:
         data = payload.model_dump(exclude_unset=True)
         password: Optional[str] = data.pop("password", None)
+        old_password: Optional[str] = data.pop("old_password", None)
+
+        if password:
+            if not old_password:
+                raise BadRequestError("修改密码需要提供原密码")
+            if not user.password or not verify_password(old_password, user.password):
+                raise BadRequestError("原密码不正确")
 
         if data:
             await update_user_profile(db, user.id, **data)
+
+        refreshed: dict = {}
         if password:
             await set_user_password(db, user.id, password)
+            # 改密即全端下线：旧密码可能已在别处泄露，所有已发令牌（含 refresh）一起作废；
+            # 随即给当前端重签一对，避免用户在"保存成功"的瞬间被踢回登录页。
+            from src.api.v3.core.security import issue_token, revoke_user_tokens
+
+            revoke_user_tokens(user.id)
+            refreshed = {
+                "access_token": issue_token(str(user.id), "access"),
+                "refresh_token": issue_token(str(user.id), "refresh"),
+            }
 
         await db.commit()
         await db.refresh(user)
-        return await auth_service.build_current_user(db, user)
+        result = await auth_service.build_current_user(db, user)
+        result.update(refreshed)
+        return result
 
     async def stats(self, db: AsyncSession, user_id: int) -> dict:
         articles = int(

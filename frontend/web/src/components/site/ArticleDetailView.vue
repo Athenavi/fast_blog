@@ -2,7 +2,9 @@
 /**
  * 文章正文：`/articles/[slug]` 与 `/articles/id/[id]` 共用
  *
- * 阅读优先：正文限制在 `max-w-read`（约 46rem，读者可切宽/切字号），行高与段间距放宽。
+ * 版式：简报体（editorial）。正文宽度由 `--read-measure` 决定（默认 46rem，读者可切宽/切字号），
+ * 标题区是「栏目眉 + 大号衬线标题 + 署名行 + 一条 2px 粗线」，小节自己编号（CSS counter，
+ * 见 styles/index.css 的 `.prose--editorial`），宽屏右侧留一条粘性的目录轨。
  * 正文相关样式全部基于设计令牌，因此深浅色与自定义配色会自动生效。
  *
  * **VIP 文章（`is_vip_only`）的正文不在公开详情里下发**（服务端返回 `locked: true` + 摘要），
@@ -17,42 +19,29 @@ import {computed, nextTick, onBeforeUnmount, onMounted, ref, watch} from 'vue'
 
 import {mobileApi} from '@/api/public'
 import type {ArticleDetail, ArticleItem} from '@/types/content'
-import {renderMarkdown} from '@/utils/markdown'
-import {useReadingPrefs} from '@/composables/useReadingPrefs'
+import {estimateReadingMinutes, renderArticleBody, type TocHeading} from '@/utils/article-body'
+import {FONT_SIZES, useReadingPrefs, WIDTHS} from '@/composables/useReadingPrefs'
 import {useUserStore} from '@/store/modules/user'
 import {formatDate} from '@/utils/format'
-
-interface TocHeading {
-  id: string
-  text: string
-  level: number
-}
 
 const props = defineProps<{ article: ArticleDetail }>()
 
 const {t} = useI18n()
 const userStore = useUserStore()
-const {fontSize, width, fontSizeClass, widthClass} = useReadingPrefs()
+const {fontSize, width, setSize, setWidth} = useReadingPrefs()
 const publishedAt = computed(() => props.article.published_at || props.article.created_at)
 
-/** 阅读设置的选项声明（放在 script 里，模板只负责渲染与调用 setter） */
-const FONT_OPTIONS: Array<{ key: 'sm' | 'md' | 'lg'; label: string }> = [
-  {key: 'sm', label: 'fontSmall'},
-  {key: 'md', label: 'fontMedium'},
-  {key: 'lg', label: 'fontLarge'},
-]
-const WIDTH_OPTIONS: Array<{ key: 'narrow' | 'wide'; label: string }> = [
-  {key: 'narrow', label: 'widthNarrow'},
-  {key: 'wide', label: 'widthWide'},
-]
+// ---------------------------------------------------------------- 标题区
+/**
+ * 栏目眉：正文没有分类名（详情接口只给 `category_id`），第一个标签是最贴近"这一篇属于哪一栏"的信息。
+ * 它已经出现在眉位，标签行里就不再重复一次。
+ */
+const kicker = computed(() => (props.article.tags?.[0] ?? '').trim())
+const tagList = computed(() => props.article.tags ?? [])
+const kickerTags = computed(() => (kicker.value ? tagList.value.slice(1) : tagList.value))
 
-function setFontSize(key: 'sm' | 'md' | 'lg'): void {
-  fontSize.value = key
-}
-
-function setWidth(key: 'narrow' | 'wide'): void {
-  width.value = key
-}
+/** 阅读时长（估算法则与理由见 `utils/article-body.ts`） */
+const readingMinutes = computed(() => estimateReadingMinutes(content.value))
 
 const rewardOpen = ref(false)
 
@@ -86,39 +75,11 @@ async function loadGatedContent(): Promise<void> {
   }
 }
 
-// ---------------------------------------------------------------- 目录与锚点
-function slugify(text: string): string {
-  const slug = text
-    .toLowerCase()
-    .replace(/[^\w\u4e00-\u9fff]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40)
-  return slug || 'section'
-}
-
 /**
- * 给 h2/h3 注入稳定 id 并抽取目录。
- * 纯字符串处理（不用 DOM API），所以 SSR 阶段就能产出带锚点的 HTML。
+ * 正文 HTML 与目录：锚点与首段标记都在渲染前由纯字符串处理完成（见 `utils/article-body.ts`），
+ * 所以 SSR 首屏就带锚点，读者复制出去的 `#小节` 链接能直接落地。
  */
-const processed = computed<{ html: string; headings: TocHeading[] }>(() => {
-  const headings: TocHeading[] = []
-  // 正文在库里存的是 **Markdown**，必须先在转成 HTML 之后再做标题锚点处理 ——
-  // 下面的正则是按 `<h2>` 匹配的，直接喂 Markdown 会一个都匹配不到。
-  const html = renderMarkdown(content.value).replace(
-    /<h([23])\b([^>]*)>([\s\S]*?)<\/h\1>/gi,
-    (match, level: string, attrs: string, inner: string) => {
-      const text = String(inner)
-        .replace(/<[^>]*>/g, '')
-        .trim()
-      if (!text) return match
-      const existing = /\sid="([^"]+)"/.exec(String(attrs))?.[1]
-      const id = existing ?? `sec-${headings.length + 1}-${slugify(text)}`
-      headings.push({id, text, level: Number(level)})
-      return existing ? match : `<h${level}${attrs} id="${id}">${inner}</h${level}>`
-    },
-  )
-  return {html, headings}
-})
+const processed = computed(() => renderArticleBody(content.value))
 
 // ---------------------------------------------------------------- 阅读进度
 const progress = ref(0)
@@ -310,82 +271,87 @@ watch(content, () => void nextTick(enhanceCodeBlocks))
       class="fixed left-0 top-14 z-30 h-0.5 bg-primary transition-[width] duration-150"
     />
 
-    <div :class="['mx-auto px-4 py-10', widthClass]">
-      <header>
-        <h1 class="text-2xl font-bold leading-tight tracking-tight text-fg sm:text-3xl">
-          {{ props.article.title }}
-        </h1>
+    <div class="fb-page-shell px-4 py-10">
+      <header class="masthead">
+        <div class="masthead__top">
+          <p class="masthead__kicker">{{ kicker || $t('article.kickerFallback') }}</p>
 
-        <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-fg-subtle">
-          <span class="inline-flex items-center gap-1.5">
-            <Icon class="h-4 w-4" name="calendar-days"/>
-            {{ formatDate(publishedAt) }}
-          </span>
-          <span v-if="props.article.views" class="inline-flex items-center gap-1.5">
-            <Icon class="h-4 w-4" name="eye"/>
-            {{ $t('article.viewsCount', {n: props.article.views}) }}
-          </span>
-          <Badge v-for="tag in props.article.tags || []" :key="tag" variant="secondary">{{ tag }}</Badge>
+          <div class="masthead__tools">
+            <LikeButton v-if="props.article.id" :article-id="props.article.id"
+                        :initial-likes="props.article.likes ?? 0"/>
+
+            <ClientOnly>
+              <Button v-if="canReward" size="sm" variant="outline" @click="rewardOpen = true">
+                <Icon class="h-4 w-4" name="gift"/>
+                {{ $t('tipping.rewardAuthor') }}
+              </Button>
+            </ClientOnly>
+
+            <!-- 分享 -->
+            <Button :aria-label="$t('article.share')" size="sm" variant="outline" @click="share">
+              <Icon class="h-4 w-4" name="share"/>
+              {{ $t('article.share') }}
+            </Button>
+
+            <!-- 阅读设置：用原生 details 实现，零额外 JS 与依赖 -->
+            <details class="reading-settings">
+              <summary class="reading-settings__summary">
+                <Icon class="h-4 w-4" name="type"/>
+                {{ $t('article.readingSettings') }}
+              </summary>
+              <div class="reading-settings__panel">
+                <p class="reading-settings__label">{{ $t('article.fontSize') }}</p>
+                <div class="reading-settings__row">
+                  <button
+                    v-for="option in FONT_SIZES"
+                    :key="option.value"
+                    :aria-pressed="fontSize === option.value"
+                    :class="['reading-settings__chip', fontSize === option.value ? 'is-active' : '']"
+                    type="button"
+                    @click="setSize(option.value)"
+                  >
+                    {{ $t(`article.${option.label}`) }}
+                  </button>
+                </div>
+
+                <p class="reading-settings__label">{{ $t('article.lineWidth') }}</p>
+                <div class="reading-settings__row">
+                  <button
+                    v-for="option in WIDTHS"
+                    :key="option.value"
+                    :aria-pressed="width === option.value"
+                    :class="['reading-settings__chip', width === option.value ? 'is-active' : '']"
+                    type="button"
+                    @click="setWidth(option.value)"
+                  >
+                    {{ $t(`article.${option.label}`) }}
+                  </button>
+                </div>
+              </div>
+            </details>
+
+            <span v-if="shareNotice" class="masthead__notice">{{ shareNotice }}</span>
+          </div>
+        </div>
+
+        <h1 class="masthead__title">{{ props.article.title }}</h1>
+
+        <p class="masthead__byline">
+          <span v-if="props.article.author_name">{{ props.article.author_name }}</span>
+          <span>{{ formatDate(publishedAt) }}</span>
+          <span>{{ $t('article.readingMinutes', {n: readingMinutes}) }}</span>
+          <span v-if="props.article.views">{{ $t('article.viewsCount', {n: props.article.views}) }}</span>
+        </p>
+
+        <p v-if="kickerTags.length || props.article.is_vip_only" class="masthead__tags">
+          <Badge v-for="tag in kickerTags" :key="tag" variant="secondary">{{ tag }}</Badge>
           <Badge v-if="props.article.is_vip_only" variant="warning">
             {{ $t('vip.premiumBadge', {level: requiredLevel}) }}
           </Badge>
-        </div>
+        </p>
 
-        <div class="mt-4 flex flex-wrap items-center gap-2">
-          <LikeButton v-if="props.article.id" :article-id="props.article.id" :initial-likes="props.article.likes ?? 0"/>
-
-          <ClientOnly>
-            <Button v-if="canReward" size="sm" variant="outline" @click="rewardOpen = true">
-              <Icon class="h-4 w-4" name="gift"/>
-              {{ $t('tipping.rewardAuthor') }}
-            </Button>
-          </ClientOnly>
-
-          <!-- 分享 -->
-          <Button :aria-label="$t('article.share')" size="sm" variant="outline" @click="share">
-            <Icon class="h-4 w-4" name="share"/>
-            {{ $t('article.share') }}
-          </Button>
-
-          <!-- 阅读设置：用原生 details 实现，零额外 JS 与依赖 -->
-          <details class="reading-settings">
-            <summary class="reading-settings__summary">
-              <Icon class="h-4 w-4" name="type"/>
-              {{ $t('article.readingSettings') }}
-            </summary>
-            <div class="reading-settings__panel">
-              <p class="reading-settings__label">{{ $t('article.fontSize') }}</p>
-              <div class="reading-settings__row">
-                <button
-                  v-for="option in FONT_OPTIONS"
-                  :key="option.key"
-                  :aria-pressed="fontSize === option.key"
-                  :class="['reading-settings__chip', fontSize === option.key ? 'is-active' : '']"
-                  type="button"
-                  @click="setFontSize(option.key)"
-                >
-                  {{ $t(`article.${option.label}`) }}
-                </button>
-              </div>
-
-              <p class="reading-settings__label">{{ $t('article.lineWidth') }}</p>
-              <div class="reading-settings__row">
-                <button
-                  v-for="option in WIDTH_OPTIONS"
-                  :key="option.key"
-                  :aria-pressed="width === option.key"
-                  :class="['reading-settings__chip', width === option.key ? 'is-active' : '']"
-                  type="button"
-                  @click="setWidth(option.key)"
-                >
-                  {{ $t(`article.${option.label}`) }}
-                </button>
-              </div>
-            </div>
-          </details>
-
-          <span v-if="shareNotice" class="text-xs text-success">{{ shareNotice }}</span>
-        </div>
+        <!-- 2px 粗线：简报体的"刊头下沿"，把标题区与正文一次性分开 -->
+        <div aria-hidden="true" class="masthead__rule"/>
       </header>
 
       <!-- 正文封面就是本文的 LCP 元素：走变体 + 高优先级，不做淡入（见 ResponsiveImage） -->
@@ -437,19 +403,17 @@ watch(content, () => void nextTick(enhanceCodeBlocks))
       </section>
 
       <template v-else>
-        <!-- 正文 + 目录：宽屏两栏，窄屏目录在前 -->
-        <div :class="['mt-9 gap-8', processed.headings.length ? 'lg:grid lg:grid-cols-[minmax(0,1fr)_13rem]' : '']">
+        <!-- 正文 + 目录轨：宽屏两栏（正文列宽 = `--read-measure`，轨 15.5rem 粘性）；
+             窄屏折成上下两段，目录落在正文之前（见 ArticleToc 的折叠） -->
+        <div :class="['article-body mt-9', processed.headings.length ? 'article-body--toc' : '']">
           <div
-            :class="fontSizeClass"
-            class="prose-content min-w-0"
+            class="prose-content prose--editorial min-w-0"
             @click="onContentClick"
             v-html="processed.html || ('<p>' + $t('site.noContent') + '</p>')"
           />
 
-          <aside v-if="processed.headings.length" class="order-first mb-6 lg:order-none lg:mb-0">
-            <div class="lg:sticky lg:top-20">
-              <ArticleToc :headings="processed.headings"/>
-            </div>
+          <aside v-if="processed.headings.length" class="article-body__rail">
+            <ArticleToc :headings="processed.headings"/>
           </aside>
         </div>
 
@@ -490,6 +454,106 @@ watch(content, () => void nextTick(enhanceCodeBlocks))
 </template>
 
 <style scoped>
+/* ---------------- 标题区（刊头） ---------------- */
+.masthead__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 眉位：等宽 + 字距拉开，明确"这是栏目，不是标题的一部分" */
+.masthead__kicker {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+.masthead__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.masthead__notice {
+  font-size: 0.75rem;
+  color: var(--color-success);
+}
+
+.masthead__title {
+  margin: 1.25rem 0 0;
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.75rem);
+  font-weight: 600;
+  line-height: 1.22;
+  color: var(--color-fg);
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.masthead__byline {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0.75rem 0 0;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--color-fg-muted);
+}
+
+/* 分隔点写在 CSS 上，而不是夹在文本里：某一项 v-if 掉了不会留下多余的一个「·」 */
+.masthead__byline > span + span::before {
+  margin: 0 0.45rem;
+  color: var(--color-line-strong);
+  content: '·';
+}
+
+.masthead__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin: 0.75rem 0 0;
+}
+
+.masthead__rule {
+  margin-top: 1.25rem;
+  border-top: 2px solid var(--color-fg);
+}
+
+/* ---------------- 正文 + 目录轨 ----------------
+ * 窄屏：折成上下两段，目录用 order 提到正文之前（DOM 顺序仍是正文在前，
+ * 这样读屏与打印都先读到内容）。
+ */
+.article-body--toc {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.article-body__rail {
+  order: -1;
+}
+
+@media (min-width: 1024px) {
+  .article-body--toc {
+    display: grid;
+    grid-template-columns: minmax(0, var(--read-measure, 46rem)) 15.5rem;
+    gap: 2.5rem;
+    align-items: start;
+  }
+
+  .article-body__rail {
+    position: sticky;
+    top: 5rem;
+    order: 0;
+  }
+}
+
 .reading-settings {
   position: relative;
 }

@@ -5,6 +5,7 @@
 """
 
 import json
+import re
 from typing import Any, List, Optional, Sequence
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +16,13 @@ from src.api.v3.core.logger import get_logger
 from src.api.v3.modules.system.setting.crud import setting_crud
 from src.api.v3.modules.system.setting.runtime_sync import apply_runtime_settings
 from src.api.v3.modules.system.setting.schema import SettingUpsert
+
+#: 键名命中这些字样的配置**绝不能**标记为 public —— `/system/setting/public` 是匿名接口
+_PUBLIC_FORBIDDEN_KEY = re.compile(
+    r"(secret|password|passwd|private[_\-]?key|api[_\-]?key|credential|dsn"
+    r"|access[_\-]?token|refresh[_\-]?token)",
+    re.IGNORECASE,
+)
 
 logger = get_logger("setting")
 
@@ -102,6 +110,10 @@ class SettingService:
         description: Optional[str] = None,
         is_public: Optional[bool] = None,
     ) -> dict:
+        if is_public and _PUBLIC_FORBIDDEN_KEY.search(str(key or "")):
+            # 公开接口是匿名的：把含密钥字样的配置标成 public 等于直接下发凭据
+            raise BadRequestError(f"配置项 {key} 涉及敏感信息，不能标记为公开")
+
         kind = self._validate_type(setting_type) if setting_type else None
         setting = await setting_crud.get_by(db, setting_key=key)
 

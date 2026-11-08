@@ -38,6 +38,8 @@ from typing import Any, Optional
 from urllib.parse import parse_qs, urlencode
 
 import httpx
+
+from src.utils.security.outbound import guarded_async_client
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -269,6 +271,7 @@ def normalize_user_info(provider: str, raw_data: dict) -> dict[str, Any]:
             "provider_id": str(raw.get("id")),
             "username": raw.get("login"),
             "email": raw.get("email"),
+            "email_verified": False,  # /user 的公开邮箱**未经校验**，只能用于展示
             "name": raw.get("name") or raw.get("login"),
             "avatar": raw.get("avatar_url"),
             "profile_url": raw.get("html_url"),
@@ -279,6 +282,7 @@ def normalize_user_info(provider: str, raw_data: dict) -> dict[str, Any]:
             "provider_id": raw.get("sub"),
             "username": raw.get("email"),
             "email": raw.get("email"),
+            "email_verified": bool(raw.get("email_verified")),
             "name": raw.get("name"),
             "avatar": raw.get("picture"),
             "profile_url": None,
@@ -591,7 +595,7 @@ class OAuthService:
             code_verifier=code_verifier,
         )
         try:
-            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT, follow_redirects=True) as client:
+            async with guarded_async_client(timeout=DEFAULT_TIMEOUT) as client:
                 resp = await client.post(
                     meta["token_url"], data=data, headers={"Accept": "application/json"}
                 )
@@ -631,7 +635,7 @@ class OAuthService:
             params = {"access_token": access, "uid": token["uid"]}
 
         try:
-            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT, follow_redirects=True) as client:
+            async with guarded_async_client(timeout=DEFAULT_TIMEOUT) as client:
                 resp = await client.get(meta["user_info_url"], headers=headers, params=params)
         except httpx.HTTPError as exc:
             raise BadRequestError(f"请求 {provider} 用户信息端点失败：{exc}") from exc
@@ -653,11 +657,13 @@ class OAuthService:
                 raw.setdefault("openid", qq_openid)
         normalized = normalize_user_info(provider, raw)
 
-        # GitHub 未公开邮箱时，凭 user:email scope 再取一次主邮箱
-        if provider == "github" and not normalized.get("email"):
-            email = await self._fetch_github_primary_email(access)
-            if email:
-                normalized["email"] = email
+        # GitHub：`/user` 里的邮箱是用户自填的公开邮箱，**不保证已验证**；
+        # 只有 `user:email` 返回的"主邮箱且 verified"才可用于账号关联/建号。
+        if provider == "github":
+            verified_email = await self._fetch_github_primary_email(access)
+            if verified_email:
+                normalized["email"] = verified_email
+                normalized["email_verified"] = True
         return normalized
 
     async def _fetch_qq_openid(self, access_token: str) -> str:
@@ -750,7 +756,13 @@ class OAuthService:
                 select(User).where(func.lower(User.email) == email).limit(1)
             )
             if existing is not None:
-                return existing, False
+                if info.get("email_verified"):
+                    # 提供方确认过这个邮箱属于当前操作者：可以安全地并入既有账号
+                    return existing, False
+                # 未验证邮箱 + 已占用 = 典型的账号接管路径，拒绝而不是自动关联
+                raise BadRequestError(
+                    "该邮箱已绑定其他账号；请先登录后再绑定此第三方账号"
+                )
 
         username = await self._unique_username(
             db, info.get("username") or (email.split("@")[0] if email else ""), provider
@@ -763,6 +775,8 @@ class OAuthService:
             profile_picture=info.get("avatar"),
             locale="zh_CN",
             is_active=True,
+            # 允许 OAuth 直接建号，但邮箱需在 24 小时内完成验证（见 auth_service）
+            is_email_verified=False,
             date_joined=now,
         )
         db.add(user)

@@ -204,8 +204,7 @@ export interface OrderCreatePayload {
   items?: OrderItemRequest[]
   /** 匿名购物车会话 ID */
   session_id?: string | null
-  shipping_amount?: number
-  discount_amount?: number
+  // 运费与折扣由服务端计算，客户端不传（见后端 OrderCreateRequest 注释）
   payment_method?: string | null
   shipping_address?: string | null
   billing_address?: string | null

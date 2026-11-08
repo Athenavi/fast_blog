@@ -204,6 +204,8 @@ def test_normalize_github():
         "provider_id": "7",
         "username": "octo",
         "email": "o@x.com",
+        # /user 的公开邮箱未经校验，不能用于账号关联（只用于展示）
+        "email_verified": False,
         "name": "octo",  # name 缺省回退 login
         "avatar": "av",
         "profile_url": "u",

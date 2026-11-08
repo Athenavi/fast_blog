@@ -115,6 +115,27 @@ class FormSubmissionOut(SchemaBase):
 
 
 class FormPublicSubmitRequest(SchemaBase):
-    """前台匿名提交：data 为 {字段名: 值}；必填校验按表单字段定义在服务层执行"""
+    """前台匿名提交：data 为 {字段名: 值}；必填校验按表单字段定义在服务层执行。
 
-    data: dict[str, Any]
+    匿名接口的入参必须**有界**：整包直接 `json.dumps` 落库，不设上限时一个请求
+    就能写进几十 MB（nginx 允许 60M 请求体）。
+    """
+
+    data: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("data")
+    @classmethod
+    def _bound_payload(cls, value: dict[str, Any]) -> dict[str, Any]:
+        if len(value) > 50:
+            raise ValueError("字段过多（最多 50 个）")
+        total = 0
+        for key, item in value.items():
+            if len(str(key)) > 100:
+                raise ValueError("字段名过长")
+            text = json.dumps(item, ensure_ascii=False) if not isinstance(item, str) else item
+            if len(text) > 5000:
+                raise ValueError(f"字段 {key} 的值过长（最多 5000 字符）")
+            total += len(text)
+        if total > 20000:
+            raise ValueError("提交内容过大（最多 20000 字符）")
+        return value

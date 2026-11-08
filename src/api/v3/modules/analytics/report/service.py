@@ -35,6 +35,7 @@ from shared.models.comment.comment import Comment
 from shared.models.user import User
 from src.api.v3.core.exceptions import BadRequestError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.tenancy import site_condition
 from src.api.v3.modules.analytics.report.crud import report_history_crud, scheduled_report_crud
 from src.api.v3.modules.analytics.report.schema import (
     CUSTOM_METRICS,
@@ -169,12 +170,19 @@ class ReportService:
         stmt = select(func.count()).select_from(model)
         for condition in conditions:
             stmt = stmt.where(condition)
+        scope = site_condition(model)
+        if scope is not None:
+            stmt = stmt.where(scope)
         return int((await db.execute(stmt)).scalar() or 0)
 
     async def _sum(self, db: AsyncSession, column, *conditions) -> int:
         stmt = select(func.coalesce(func.sum(column), 0))
         for condition in conditions:
             stmt = stmt.where(condition)
+        model = getattr(column, "class_", None)
+        scope = site_condition(model) if model is not None else None
+        if scope is not None:
+            stmt = stmt.where(scope)
         return int((await db.execute(stmt)).scalar() or 0)
 
     @staticmethod
@@ -187,6 +195,9 @@ class ReportService:
             .where(date_column >= since)
             .group_by(func.date(date_column))
         )
+        scope = site_condition(model)
+        if scope is not None:
+            stmt = stmt.where(scope)
         return {
             str(day): int(count or 0)
             for day, count in (await db.execute(stmt)).all()
@@ -208,10 +219,14 @@ class ReportService:
         new_articles_by_day = await self._by_day(db, Article, Article.created_at, since)
         comments_by_day = await self._by_day(db, Comment, Comment.created_at, since)
 
+        top_conditions = [Article.status == STATUS_PUBLISHED]
+        article_scope = site_condition(Article)
+        if article_scope is not None:
+            top_conditions.append(article_scope)
         top_rows = (
             await db.execute(
                 select(Article)
-                .where(Article.status == STATUS_PUBLISHED)
+                .where(*top_conditions)
                 .order_by(Article.views.desc(), Article.id.desc())
                 .limit(10)
             )

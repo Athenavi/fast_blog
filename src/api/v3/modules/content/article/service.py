@@ -7,7 +7,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-from sqlalchemy import Text, cast, func, or_, select
+from sqlalchemy import Text, cast, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article.article import Article
@@ -406,17 +406,50 @@ class ArticleService:
 
     # ------------------------------------------------------------------ 修订历史
 
+    async def _assert_revision_access(
+        self, db: AsyncSession, article_id: int, scope_user: Any
+    ) -> None:
+        """修订历史是**未发布正文**的副本，按"能编辑这篇文章"判定。"""
+        article = await article_crud.get(db, article_id)
+        if article is None:
+            raise NotFoundError("文章不存在")
+        await _assert_article_write(
+            db, article, scope_user=scope_user, others_code=C.ARTICLE_EDIT_OTHERS
+        )
+
     async def list_revisions(
-        self, db: AsyncSession, article_id: int, *, page: int = 1, page_size: int = 20
+        self,
+        db: AsyncSession,
+        article_id: int,
+        *,
+        page: int = 1,
+        page_size: int = 20,
+        scope_user: Any = None,
     ) -> dict:
         """文章的修订历史（按版本号降序，带分页）"""
+        await self._assert_revision_access(db, article_id, scope_user)
         return await get_article_revisions(db, article_id, page=page, per_page=page_size)
 
-    async def get_revision(self, db: AsyncSession, revision_id: int) -> dict:
-        """单个修订的详情"""
+    async def get_revision(
+        self,
+        db: AsyncSession,
+        revision_id: int,
+        *,
+        article_id: Optional[int] = None,
+        scope_user: Any = None,
+    ) -> dict:
+        """单个修订的详情。
+
+        `article_id` 必须与修订自身的归属一致：否则 `/articles/A/revisions/{B 的修订}`
+        就能读到 B 的未发布正文。
+        """
         detail = await get_revision_detail(db, revision_id)
         if detail is None:
             raise NotFoundError("修订版本不存在")
+        owner_article_id = int(detail.get("article_id") or 0)
+        if article_id is not None and owner_article_id != int(article_id):
+            raise NotFoundError("修订版本不存在")
+        await self._assert_revision_access(db, owner_article_id, scope_user)
         return detail
 
     async def rollback_revision(
@@ -426,12 +459,14 @@ class ArticleService:
         revision_id: int,
         *,
         author_id: Optional[int] = None,
+        scope_user: Any = None,
     ) -> dict:
         """回滚到指定修订。
 
         **回滚前先保存当前状态为一条新修订**：回滚本身也是一次内容变更，
         若不先存，被回滚掉的那个版本就永久丢失，用户无法撤销这次回滚。
         """
+        await self._assert_revision_access(db, article_id, scope_user)
         await save_article_revision(db, article_id, author_id or 0, "回滚前自动保存")
         ok = await rollback_to_revision(db, article_id, revision_id, author_id or 0)
         if not ok:
@@ -440,9 +475,27 @@ class ArticleService:
         return await self.get_article(db, article_id)
 
     async def diff_revisions(
-        self, db: AsyncSession, revision1_id: int, revision2_id: int
+        self,
+        db: AsyncSession,
+        revision1_id: int,
+        revision2_id: int,
+        *,
+        article_id: Optional[int] = None,
+        scope_user: Any = None,
     ) -> dict:
-        """比较两个修订的差异（字段级 + 文本 unified diff）"""
+        """比较两个修订的差异（字段级 + 文本 unified diff）。"""
+        first = await get_revision_detail(db, revision1_id)
+        second = await get_revision_detail(db, revision2_id)
+        if first is None or second is None:
+            raise NotFoundError("修订版本不存在")
+        owner_article_id = int(first.get("article_id") or 0)
+        # 两条修订必须属于同一篇；且若 URL 指定了文章，必须就是那一篇
+        if owner_article_id != int(second.get("article_id") or 0):
+            raise NotFoundError("两个修订不属于同一篇文章")
+        if article_id is not None and owner_article_id != int(article_id):
+            raise NotFoundError("修订版本不存在")
+        await self._assert_revision_access(db, owner_article_id, scope_user)
+
         diff = await compare_revisions(db, revision1_id, revision2_id)
         if diff is None:
             raise NotFoundError("修订版本不存在")
@@ -744,13 +797,23 @@ class ArticleService:
         return data
 
     async def increment_views(self, db: AsyncSession, article_id: int) -> int:
-        """浏览量 +1，返回新值（前台调用，无需登录）"""
-        article = await article_crud.get(db, article_id)
-        if article is None:
+        """浏览量 +1，返回新值（前台调用，无需登录）。
+
+        用**单条原子 UPDATE ... RETURNING**：此前是"读到内存 +1 再写回"，
+        并发浏览会丢更新，而且每次浏览都要取整行、对热点文章行加锁。
+        """
+        stmt = (
+            update(Article)
+            .where(Article.id == article_id)
+            .values(views=func.coalesce(Article.views, 0) + 1)
+            .returning(Article.views)
+        )
+        views = (await db.execute(stmt)).scalar_one_or_none()
+        if views is None:
+            await db.rollback()
             raise NotFoundError("文章不存在")
-        views = int(article.views or 0) + 1
-        await article_crud.update(db, article, {"views": views})
-        return views
+        await db.commit()
+        return int(views)
 
 
 article_service = ArticleService()

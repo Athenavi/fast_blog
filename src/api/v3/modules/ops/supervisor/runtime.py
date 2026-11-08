@@ -21,6 +21,8 @@ from typing import Any, Optional
 
 import httpx
 
+from src.utils.security.outbound import guarded_get
+
 from src.api.v3.core.logger import get_logger
 
 logger = get_logger("ops.supervisor.runtime")
@@ -144,7 +146,7 @@ def check_port(host: str, port: int, timeout: float = PROBE_TIMEOUT) -> tuple[bo
 def check_http(url: str, timeout: float = PROBE_TIMEOUT) -> tuple[bool, str]:
     """HTTP 端点是否返回 2xx/3xx"""
     try:
-        resp = httpx.get(url, timeout=timeout, follow_redirects=True)
+        resp = guarded_get(url, timeout=timeout)
     except httpx.HTTPError as exc:
         return False, f"{url} 请求失败（{exc}）"
     if 200 <= resp.status_code < 400:

@@ -51,6 +51,22 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
     def _cache_key_user(self, username: str) -> str:
         return f"bf:user:{username}"
 
+    def _cache_key_user_block(self, username: str) -> str:
+        return f"bf:user_block:{username.lower()}"
+
+    def _is_user_blocked(self, username: str) -> bool:
+        """用户名是否已因超限被临时封禁（跨 IP 轮换也能挡住撞库）。"""
+        try:
+            return self.cache.get(self._cache_key_user_block(username)) is not None
+        except Exception:
+            return False
+
+    def _block_user(self, username: str) -> None:
+        try:
+            self.cache.set(self._cache_key_user_block(username), "1", ex=self._get_cache_ttl())
+        except Exception:  # noqa: BLE001 - 封禁失败不应让登录 500
+            logger.warning("写入用户名封禁标记失败 username=%s", username)
+
     def _get_cache_ttl(self) -> int:
         """缓存过期时间比窗口略长，确保窗口内数据完整"""
         return self.window_seconds + 60
@@ -123,6 +139,27 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
 
         client_ip = get_client_ip(request)
 
+        # 先读一次请求体：用户名级封禁检查与失败计数都靠它（Starlette 会缓存 body）
+        username = ""
+        try:
+            body_bytes = await request.body()
+            if body_bytes:
+                body = json.loads(body_bytes)
+                username = body.get("username", "") or body.get("email", "") or ""
+        except Exception:  # noqa: BLE001 - 非 JSON / 空请求体都按"没有用户名"处理
+            username = ""
+
+        # 用户名级封禁（跨 IP 轮换撞库的主要防线；此前只写日志、从不拦截）
+        if username and self._is_user_blocked(username):
+            logger.warning("用户名 %s 处于临时封禁期，拒绝登录尝试", username)
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "success": False,
+                    "error": f"该账号登录尝试过于频繁，请在 {self.window_seconds // 60} 分钟后再试",
+                },
+            )
+
         # 检查 IP 限制
         ip_key = self._cache_key_ip(client_ip)
         if self._increment_and_check(ip_key, self.max_per_ip):
@@ -140,18 +177,12 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
 
         # 记录失败的登录尝试（同时记录到用户级别）
-        if response.status_code in (401, 403):
-            # 从请求体提取用户名（使用备用副本避免消费请求体）
-            try:
-                body_bytes = await request.body()
-                body = json.loads(body_bytes) if body_bytes else {}
-                username = body.get("username", "") or body.get("email", "")
-                if username:
-                    user_key = self._cache_key_user(username)
-                    if self._increment_and_check(user_key, self.max_per_user):
-                        logger.warning(f"用户名 {username} 登录尝试超过限制")
-            except Exception:
-                pass
+        if response.status_code in (401, 403) and username:
+            user_key = self._cache_key_user(username)
+            if self._increment_and_check(user_key, self.max_per_user):
+                # 超过阈值就真正封禁一段时间（不再只是打日志）
+                self._block_user(username)
+                logger.warning("用户名 %s 登录尝试超过限制，已临时封禁", username)
 
         return response
 

@@ -4,7 +4,7 @@
 与 ``rbac_service`` 的角色分配，不重复实现。
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,8 +18,13 @@ from shared.services.users.user_manager import (
     set_user_password,
     update_user_profile,
 )
-from src.api.v3.core.exceptions import BadRequestError, NotFoundError
+from src.api.v3.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.permission.guard import (
+    assert_can_assign_roles,
+    assert_can_manage_user,
+    is_superuser,
+)
 from src.api.v3.core.permission.invalidate import invalidate_user
 from src.api.v3.modules.system.user.crud import user_crud
 from src.api.v3.modules.system.user.schema import UserCreate, UserUpdate
@@ -68,7 +73,15 @@ class UserService:
             raise NotFoundError("用户不存在")
         return user
 
-    async def create_user(self, db: AsyncSession, payload: UserCreate) -> User:
+    async def create_user(
+        self, db: AsyncSession, payload: UserCreate, *, scope_user: Any = None
+    ) -> User:
+        # 权限边界：只有超管能创建超管；授予的角色不能超出自己的权限
+        if scope_user is not None and payload.is_superuser and not is_superuser(scope_user):
+            raise ForbiddenError("只有超级管理员可以创建超级管理员账号")
+        if scope_user is not None and payload.role_ids:
+            await assert_can_assign_roles(db, scope_user, payload.role_ids)
+
         data = payload.model_dump(exclude={"role_ids"})
         user = await create_user_account(db, **data)
         if user is None:
@@ -80,8 +93,19 @@ class UserService:
             await rbac_service.assign_role_by_id(db, user.id, role_id)
         return user
 
-    async def update_user(self, db: AsyncSession, user_id: int, payload: UserUpdate) -> User:
+    async def update_user(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        payload: UserUpdate,
+        *,
+        scope_user: Any = None,
+    ) -> User:
         user = await self.get_user(db, user_id)
+        if scope_user is not None:
+            # 非超管不得修改超管账号（否则可以重置其密码直接接管）
+            await assert_can_manage_user(scope_user, user)
+
         data = payload.model_dump(exclude_unset=True)
         password = data.pop("password", None)
 
@@ -89,6 +113,10 @@ class UserService:
             await update_user_profile(db, user_id, **data)
         if password:
             await set_user_password(db, user_id, password)
+            # 管理员重置密码同样要让该用户所有旧会话失效
+            from src.api.v3.core.security import revoke_user_tokens
+
+            revoke_user_tokens(user_id)
 
         await db.commit()
         await db.refresh(user)
@@ -101,12 +129,15 @@ class UserService:
         current_user_id: int,
         *,
         force: bool = False,
+        scope_user: Any = None,
     ) -> None:
         """删除用户：默认停用（保留数据），``force=True`` 时物理删除"""
         if user_id == current_user_id:
             raise BadRequestError("不能删除当前登录账号")
 
         user = await self.get_user(db, user_id)
+        if scope_user is not None:
+            await assert_can_manage_user(scope_user, user)
         if force:
             await user_crud.remove(db, user)
             # 用户被删除后必须清掉其权限缓存，否则残留缓存会继续放行
@@ -116,8 +147,12 @@ class UserService:
         await deactivate_user(db, user_id)
         await db.refresh(user)
 
-    async def set_status(self, db: AsyncSession, user_id: int, is_active: bool) -> User:
+    async def set_status(
+        self, db: AsyncSession, user_id: int, is_active: bool, *, scope_user: Any = None
+    ) -> User:
         user = await self.get_user(db, user_id)
+        if scope_user is not None:
+            await assert_can_manage_user(scope_user, user)
         if is_active:
             await activate_user(db, user_id)
         else:
@@ -130,9 +165,20 @@ class UserService:
         roles = await rbac_service.get_user_roles(db, user_id)
         return [{"id": role.id, "name": role.name, "slug": role.slug} for role in roles]
 
-    async def set_user_roles(self, db: AsyncSession, user_id: int, role_ids: List[int]) -> List[dict]:
+    async def set_user_roles(
+        self,
+        db: AsyncSession,
+        user_id: int,
+        role_ids: List[int],
+        *,
+        scope_user: Any = None,
+    ) -> List[dict]:
         """全量覆盖用户角色（差量增删，避免整表重写）"""
-        await self.get_user(db, user_id)
+        target = await self.get_user(db, user_id)
+        if scope_user is not None:
+            # 不能管理超管；也不能把"超出自身权限"的角色（含内置超管角色）挂给别人或自己
+            await assert_can_manage_user(scope_user, target)
+            await assert_can_assign_roles(db, scope_user, role_ids)
         current = {role.id for role in await rbac_service.get_user_roles(db, user_id)}
         target = set(role_ids)
 

@@ -20,14 +20,14 @@
 权限码：``media:view`` / ``media:upload`` / ``media:delete``
 """
 
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import APIRouter, File, Query, Request, UploadFile
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser, PageDep
-from src.api.v3.core.exceptions import BadRequestError, NotFoundError
+from src.api.v3.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.content.media.schema import (
@@ -38,6 +38,22 @@ from src.api.v3.modules.content.media.schema import (
     MediaUpdate,
 )
 from src.api.v3.modules.content.media.service import media_service
+
+def _scoped_user_id(requested: Optional[int], user: Any) -> Optional[int]:
+    """``user_id`` 过滤参数的服务端校验。
+
+    普通用户只能看自己；管理员要按他人过滤，需持 ``media:edit_others``
+    （超管直接放行）。此前任何持 ``media:view`` 的账号都能指定任意 ``user_id`` 列他人素材。
+    """
+    if requested is None or int(requested) == int(getattr(user, "id", 0) or 0):
+        return requested
+    if getattr(user, "is_superuser", False):
+        return requested
+    has_perm = getattr(user, "has_permission", None)
+    if callable(has_perm) and has_perm(codes.MEDIA_EDIT_OTHERS):
+        return requested
+    raise ForbiddenError("无权查看他人的素材")
+
 
 router = APIRouter(prefix="/media", tags=["content-media"], route_class=OperationLogRoute)
 
@@ -89,7 +105,9 @@ async def list_folders(
     user_id: Optional[int] = Query(default=None),
     is_public: Optional[bool] = Query(default=None),
 ) -> dict:
-    folders = await media_service.list_folders(db, user_id=user_id, is_public=is_public)
+    folders = await media_service.list_folders(
+        db, user_id=_scoped_user_id(user_id, _current), is_public=is_public
+    )
     return resp.success_page(folders, len(folders), 1, len(folders) or 1)
 
 
@@ -100,7 +118,9 @@ async def folder_tree(
     _perm=AuthControl(codes.MEDIA_VIEW),
     user_id: Optional[int] = Query(default=None),
 ) -> dict:
-    return resp.success(await media_service.folder_tree(db, user_id=user_id))
+    return resp.success(
+        await media_service.folder_tree(db, user_id=_scoped_user_id(user_id, _current))
+    )
 
 
 @router.post("/folders", response_model=ResponseModel, summary="新建文件夹")
@@ -120,20 +140,22 @@ async def update_folder(
     folder_id: int,
     payload: MediaFolderUpdate,
     db: DBSession,
-    _current: CurrentUser,
+    current: CurrentUser,
     _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
-    return resp.success(await media_service.update_folder(db, folder_id, payload), msg="更新成功")
+    return resp.success(
+        await media_service.update_folder(db, folder_id, payload, user=current), msg="更新成功"
+    )
 
 
 @router.delete("/folders/{folder_id}", response_model=ResponseModel, summary="删除文件夹")
 async def delete_folder(
     folder_id: int,
     db: DBSession,
-    _current: CurrentUser,
+    current: CurrentUser,
     _perm=AuthControl(codes.MEDIA_UPLOAD),
 ) -> dict:
-    await media_service.delete_folder(db, folder_id)
+    await media_service.delete_folder(db, folder_id, user=current)
     return resp.success(None, msg="已删除")
 
 
@@ -163,7 +185,7 @@ async def list_media(
         keyword=page.keyword,
         folder_id=folder_id,
         mime_type=mime_type,
-        user_id=user_id,
+        user_id=_scoped_user_id(user_id, _current),
         is_public=is_public,
         category=category,
         order_by=page.order_by,

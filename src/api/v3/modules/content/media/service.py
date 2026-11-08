@@ -390,11 +390,21 @@ class MediaService:
         return _folder_out(folder)
 
     async def update_folder(
-        self, db: AsyncSession, folder_id: int, payload: MediaFolderUpdate
+        self,
+        db: AsyncSession,
+        folder_id: int,
+        payload: MediaFolderUpdate,
+        *,
+        user: Any = None,
     ) -> dict:
         folder = await media_folder_crud.get(db, folder_id)
         if folder is None:
             raise NotFoundError("文件夹不存在")
+        if user is not None:
+            # 只有 media:upload 也能改别人的文件夹，等于任何投稿者都能重命名/搬走他人目录
+            await ensure_write_in_scope(
+                db, MediaFolder, folder, user=user, others_code=C.MEDIA_EDIT_OTHERS
+            )
 
         data = payload.model_dump(exclude_unset=True)
         if data.get("parent_id") == folder_id:
@@ -407,10 +417,14 @@ class MediaService:
         folder = await media_folder_crud.update(db, folder, data)
         return _folder_out(folder)
 
-    async def delete_folder(self, db: AsyncSession, folder_id: int) -> None:
+    async def delete_folder(self, db: AsyncSession, folder_id: int, *, user: Any = None) -> None:
         folder = await media_folder_crud.get(db, folder_id)
         if folder is None:
             raise NotFoundError("文件夹不存在")
+        if user is not None:
+            await ensure_write_in_scope(
+                db, MediaFolder, folder, user=user, others_code=C.MEDIA_DELETE_OTHERS
+            )
 
         child_count = await media_folder_crud.count(db, parent_id=folder_id)
         if child_count:

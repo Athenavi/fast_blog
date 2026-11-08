@@ -46,6 +46,8 @@ class MobileProfileUpdate(SchemaBase):
     bio: Optional[str] = Field(default=None, max_length=500)
     locale: Optional[str] = Field(default=None, max_length=20)
     password: Optional[str] = Field(default=None, min_length=8, max_length=128)
+    # 改密码必须带原密码：令牌一旦泄露，单凭 access token 就能换掉密码、把所有者永久锁在门外
+    old_password: Optional[str] = Field(default=None, max_length=128)
 
 
 class MobileUserStats(SchemaBase):

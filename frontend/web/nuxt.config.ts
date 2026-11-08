@@ -9,6 +9,16 @@ import tailwindcss from '@tailwindcss/vite'
  *  - `src/middleware/**` 路由中间件（凭据与权限校验）
  *  - `src/components/ui` shadcn-vue 基础组件
  */
+
+/**
+ * 公开页的短缓存规则。
+ *
+ * `varies: ['host']` 是重点：Nitro 的默认缓存键只有 URL，而多站点部署下同一路径在
+ * 不同域名是不同站点（后端按域名解析 site_id，见 `server/routes/__site/bootstrap.get.ts`）。
+ * 不带 Host 时 A 站的整页 HTML 会被发给 B 站的访客。
+ */
+const publicPageCache = (maxAge: number) => ({cache: {swr: true, maxAge, varies: ['host']}})
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   srcDir: 'src',
@@ -221,16 +231,20 @@ export default defineNuxtConfig({
     //
     // ⚠️ 前提是响应里**没有 set-cookie**：被缓存的响应若带着某个用户的偏好写回，
     // 就会污染其他访问者。app.vue 里已把主题/配色 cookie 改成服务端只读（见该文件说明）。
-    '/': {swr: 60},
-    '/about': {swr: 300},
-    '/discover': {swr: 60},
-    '/categories': {swr: 300},
-    '/experts/**': {swr: 60},
+    //
+    // ⚠️ 缓存键**必须带 Host**：Nitro 默认只用 URL 做键，而多站点部署下同一路径在
+    // 不同域名是不同站点（后端按域名解析 site_id）。不带 Host 时 A 站的整页 HTML
+    // 会被发给 B 站的访客。
+    '/': publicPageCache(60),
+    '/about': publicPageCache(300),
+    '/discover': publicPageCache(60),
+    '/categories': publicPageCache(300),
+    '/experts/**': publicPageCache(60),
     // 后台「单页管理」发布的固定页，内容变动极少
-    '/p/**': {swr: 300},
+    '/p/**': publicPageCache(300),
     // 首页与文章页做短缓存
-    '/articles/**': {swr: 60},
-    '/category/**': {swr: 60},
+    '/articles/**': publicPageCache(60),
+    '/category/**': publicPageCache(60),
     // 例外：`/articles/id/**` 是后台编辑器的预览入口（按 id 访问，草稿也能看）。
     // 刚保存就要能看到最新内容，所以不能吃上面那条 60s 的 swr 缓存；
     // 更具体的路径规则优先于 `/articles/**`。

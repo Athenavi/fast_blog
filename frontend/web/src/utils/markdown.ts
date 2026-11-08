@@ -20,23 +20,52 @@
 
 import {marked} from 'marked'
 
-/** 允许保留的标签：markdown 常用子集 + 常见排版标签 */
+/**
+ * 允许保留的标签：markdown 常用子集 + 正文排版真正会用到的标签。
+ *
+ * 后面这一组（figure / dl / details / mark / input …）不是"多多益善"：
+ * 文章详情要按版式语法排版，图注、术语表、折叠小节、任务列表都是作者已经写进正文的东西，
+ * 白名单里没有它们，净化器就**保留文字、丢掉标签**，读者看到的是丢了外壳的残骸。
+ * 之前就是这个原因，callout 与 `<figure>` 在前台一律显示不出来。
+ */
 const ALLOWED_TAGS = new Set([
   'p', 'br', 'hr', 'strong', 'em', 'del', 'code', 'pre', 'blockquote',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li', 'a', 'img',
-  'table', 'thead', 'tbody', 'tr', 'th', 'td',
-  'span', 'div', 'sup', 'sub', 'kbd',
+  'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'caption',
+  'span', 'div', 'sup', 'sub', 'kbd', 'abbr',
+  'figure', 'figcaption',
+  'dl', 'dt', 'dd',
+  'details', 'summary',
+  'mark', 'ins', 's',
+  'input', 'label',
 ])
 
-/** 允许保留的属性 */
-const ALLOWED_ATTRS = new Set([
-  'href', 'title', 'alt', 'src', 'class', 'id',
-  'colspan', 'rowspan', 'align',
+/** 全局属性：任何标签上都允许 */
+const GLOBAL_ATTRS = new Set([
+  'href', 'title', 'alt', 'src', 'class', 'id', 'colspan', 'rowspan', 'align',
+  // 只放开这一个 data 属性：callout 的语义靠它表达，样式表按值选择。
+  // 放开 `data-*` 通配等于给任意脚本留了个携带数据的口子，不值当。
+  'data-callout',
 ])
+
+/** 按标签细分的属性：图片尺寸、任务列表复选框、折叠小节的初始展开态 */
+const TAG_ATTRS: Record<string, ReadonlySet<string>> = {
+  a: new Set(['target', 'rel']),
+  img: new Set(['width', 'height', 'loading']),
+  input: new Set(['type', 'checked', 'disabled']),
+  details: new Set(['open']),
+  ol: new Set(['start']),
+}
 
 /** 只允许这些协议 —— `javascript:` / `data:` 一律剥掉 */
 const SAFE_URL = /^(https?:|mailto:|tel:|#|\/)/i
+
+/** `target` 只认这几个值，其余当没写过 */
+const SAFE_TARGET = new Set(['_blank', '_self', '_parent', '_top'])
+
+/** `<input>` 只保留任务列表要的两种；`type=text` 之类会在正文里长出可交互控件 */
+const SAFE_INPUT_TYPES = new Set(['checkbox', 'radio'])
 
 marked.setOptions({
   gfm: true,          // 表格、任务列表、删除线
@@ -65,22 +94,37 @@ function sanitize(html: string): string {
       const tag = child.tagName.toLowerCase()
 
       if (!ALLOWED_TAGS.has(tag)) {
-        // 不在白名单：**保留文字、丢掉标签**（直接删元素会静默吞掉用户内容）
+        // 不在白名单：**保留文字、丢掉标签**（直接删元素会静默吞掉用户内容）。
+        // 提升子节点**之前**必须先走一遍子树 —— 提升出来的元素不在本层快照里，
+        // 不预先处理就永远不会被检查，`onerror` / `javascript:` 会原样留在输出里，
+        // 等于把整个白名单绕过去（`<x><img src=x onerror=…></x>` 就能执行）。
+        walk(child)
         child.replaceWith(...Array.from(child.childNodes))
         continue
       }
 
+      // `<input type=checkbox>` 是任务列表的控件；其它类型会在正文里长出可交互控件
+      if (tag === 'input' && !SAFE_INPUT_TYPES.has((child.getAttribute('type') ?? '').toLowerCase())) {
+        child.replaceWith(...Array.from(child.childNodes))
+        continue
+      }
+
+      const extra = TAG_ATTRS[tag]
       for (const attr of Array.from(child.attributes)) {
         const name = attr.name.toLowerCase()
         const value = attr.value
 
-        if (!ALLOWED_ATTRS.has(name)) {
+        if (!GLOBAL_ATTRS.has(name) && !(extra?.has(name))) {
           child.removeAttribute(attr.name)
           continue
         }
 
         // URL 类属性逐个校验协议
         if ((name === 'href' || name === 'src') && !SAFE_URL.test(value.trim())) {
+          child.removeAttribute(attr.name)
+        }
+
+        if (name === 'target' && !SAFE_TARGET.has(value.trim().toLowerCase())) {
           child.removeAttribute(attr.name)
         }
       }

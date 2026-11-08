@@ -77,6 +77,25 @@ def _decode_jwt(token: str) -> dict:
         raise UnauthorizedError("令牌无效或已过期") from exc
 
 
+def _assert_user_not_revoked(payload: dict, blacklist) -> None:
+    """「退出所有设备」的水位线检查：签发时间早于最近一次全部下线即视为失效。
+
+    与 jti 黑名单是两条独立的线：jti 只能吊销**单个**令牌，而这里覆盖该用户
+    已签发的全部令牌（含 refresh，续期也绕不过去）。
+    """
+    sub = payload.get("sub")
+    issued_at = payload.get("iat")
+    if sub is None or issued_at is None:
+        return
+    try:
+        user_id = int(sub)
+        issued = float(issued_at)
+    except (TypeError, ValueError):
+        return
+    if blacklist.is_user_revoked(user_id, issued):
+        raise UnauthorizedError("令牌已失效")
+
+
 def decode_token(token: str) -> dict:
     """解析并校验 token；失败或已被吊销时抛 ``UnauthorizedError``。
 
@@ -88,6 +107,8 @@ def decode_token(token: str) -> dict:
     blacklist = get_token_blacklist()
     if jti and blacklist.is_available and blacklist.is_blacklisted(jti):
         raise UnauthorizedError("令牌已失效")
+    if blacklist.is_available:
+        _assert_user_not_revoked(payload, blacklist)
     return payload
 
 
@@ -102,6 +123,19 @@ async def decode_token_async(token: str) -> dict:
     blacklist = get_token_blacklist()
     if jti and blacklist.is_available:
         if await asyncio.to_thread(blacklist.is_blacklisted, jti):
+            raise UnauthorizedError("令牌已失效")
+    if blacklist.is_available:
+        sub = payload.get("sub")
+        issued_at = payload.get("iat")
+        try:
+            revoked = (
+                sub is not None
+                and issued_at is not None
+                and await blacklist.is_user_revoked_async(int(sub), float(issued_at))
+            )
+        except (TypeError, ValueError):
+            revoked = False
+        if revoked:
             raise UnauthorizedError("令牌已失效")
     return payload
 
@@ -121,11 +155,39 @@ def revoke_token(token: str) -> bool:
         return False
     try:
         payload = decode_token(token)
-        blacklist.blacklist(payload["jti"], payload["exp"])
-        return True
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if not jti or not exp:
+            return False
+        # 写键必须与读取侧一致：`auth_deps` / `security.is_token_revoked` 都拿 jti 去查，
+        # 而 `add_to_blacklist` 按传入字符串取标识。以前这里传的是整条 token 的前 32 字符
+        # （JWT header 前缀，全系统同键），且调用的 `blacklist()` 方法并不存在，
+        # AttributeError 被下面的 except 吞掉 —— 登出从未真正吊销过任何令牌。
+        # `exp` 是 UTC 时间戳，而 `add_to_blacklist` 用本地 `datetime.now()` 算 TTL，
+        # 所以按本地时间还原，交给它自己算剩余秒数。
+        return blacklist.add_to_blacklist(jti, datetime.fromtimestamp(exp))
     except Exception:  # noqa: BLE001 - 登出失败不应影响用户体验
         logger.exception("token 加入黑名单失败")
         return False
+
+
+def revoke_user_tokens(user_id: int) -> bool:
+    """让该用户**已签发的全部令牌**立即失效（退出所有设备 / 管理员强制下线）。
+
+    与 `revoke_token` 的分工：那个按 jti 吊销一条，这个按"签发时间早于此刻"的
+    水位线覆盖全部令牌 —— 令牌里没有会话 id，单条吊销无法表达"全部下线"。
+    水位线 TTL 取最长令牌寿命（refresh），否则 refresh 续出的新 access 会绕过。
+    """
+    blacklist = get_token_blacklist()
+    if not blacklist.is_available:
+        return False
+    ttl = max(
+        int(getattr(settings, "REFRESH_TOKEN_EXPIRATION_DELTA", 0) or 0),
+        int(getattr(settings, "JWT_EXPIRATION_DELTA", 0) or 0),
+    )
+    if ttl <= 0:
+        ttl = 30 * 24 * 3600
+    return blacklist.revoke_user_tokens(user_id, datetime.now() + timedelta(seconds=ttl))
 
 
 async def authenticate_user(

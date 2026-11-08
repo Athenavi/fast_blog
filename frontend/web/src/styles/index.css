@@ -230,8 +230,8 @@ a {
  */
 .prose-content {
   color: var(--color-fg);
-  font-size: 1.0625rem;
-  line-height: 1.85;
+  font-size: var(--read-body-size, 1.0625rem);
+  line-height: var(--read-leading, 1.85);
 }
 
 .prose-content h2 {
@@ -365,6 +365,194 @@ a {
   font-weight: 600;
 }
 
+/* ---------------------------------------------------------------- 版式语法（editorial）
+ *
+ * 参照"简报体"那套版式：正文走衬线、层级与说明走无衬线、编号与标签走等宽，
+ * 小节标题自己计数（01 / 02 …），首段做首字下沉。
+ *
+ * 只有 `.prose--editorial` 才拿到这套 —— `.prose-content` 是单页 / 关于 / 草稿预览
+ * 共用的基础排版，那些页面没有"一期一会"的叙事结构，不该凭空长出小节编号。
+ *
+ * 字号与行宽由 `<html>` 上的 data 属性驱动（`app.vue` 的内联脚本首屏写入、
+ * `useReadingPrefs` 在切换时续写），因此不再需要 `text-[17px] leading-[1.85]`
+ * 这种一次性类名字符串。变量都带 fallback：脚本没跑（禁用 JS）或没有设置面板的页面
+ * 自动回到基础值，不会读到一个空值。
+ */
+[data-read-size='sm'] {
+  --read-body-size: 0.9375rem; /* 15px */
+  --read-leading: 1.8;
+}
+
+[data-read-size='md'] {
+  --read-body-size: 1.0625rem; /* 17px */
+  --read-leading: 1.85;
+}
+
+[data-read-size='lg'] {
+  --read-body-size: 1.1875rem; /* 19px */
+  --read-leading: 1.9;
+}
+
+[data-read-width='narrow'] {
+  --read-measure: 46rem;
+}
+
+[data-read-width='wide'] {
+  --read-measure: 52rem;
+}
+
+/*
+ * 页面外壳：正文列（+ 宽屏时的目录轨）的宽度。
+ *
+ * 之所以做成一个**全局工具类**而不是组件里的 scoped 规则：面包屑在正文组件之外，
+ * 两处必须用同一条宽度，否则"首页 / 文章"那一行的左边缘和标题差出一截。
+ *
+ * 每段都**多加 2rem**：外壳自己带 `px-4`，而 Tailwind 的 `box-sizing: border-box`
+ * 让 max-width 把内边距算进去 —— 不补这一笔，正文列会莫名比设定行宽短 32px，
+ * 窄屏靠边时还会把左右留白吃掉一半。上限收在站点最宽栅格：读者把行宽调到最宽时，
+ * 正文也不该宽过页面本身的栅格。
+ */
+.fb-page-shell {
+  margin-inline: auto;
+  max-width: calc(var(--read-measure, 46rem) + 2rem);
+}
+
+@media (min-width: 1024px) {
+  .fb-page-shell {
+    max-width: min(
+      calc(var(--container-wide) + 2rem),
+      calc(var(--read-measure, 46rem) + 2.5rem + 15.5rem + 2rem)
+    );
+  }
+}
+
+.prose--editorial {
+  counter-reset: fb-sec;
+  font-family: var(--font-serif);
+}
+
+.prose--editorial h2 {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  margin: 2.75rem 0 1rem;
+  padding-bottom: 0.4rem;
+  font-size: 1.5em;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border-bottom: 1px solid var(--color-line);
+  counter-increment: fb-sec;
+}
+
+/* 编号走等宽：数字要能对齐，衬线的字形宽度不齐，一列 01/02/03 看着就是歪的 */
+.prose--editorial h2::before {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 0.62em;
+  font-weight: 500;
+  color: var(--color-primary);
+  letter-spacing: 0.06em;
+  content: counter(fb-sec, decimal-leading-zero);
+}
+
+.prose--editorial h3 {
+  margin: 2rem 0 0.6rem;
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+/* 首段（`fb-lead` 由 ArticleDetailView 在渲染前判定并注入，不是作者手写 class） */
+.prose--editorial .fb-lead {
+  margin-bottom: 1.5rem;
+  font-size: 1.0625em;
+}
+
+/*
+ * 首字下沉：参照站用的是衬线 + 斜体，中文斜体是**伪斜**（浏览器把字形拉歪），
+ * 所以这里不加 font-style，只放大、加重、上主色。
+ * float 在 ::first-letter 上是被支持的写法，比 `initial-letter` 的兼容性靠谱得多。
+ */
+.prose--editorial .fb-lead::first-letter {
+  float: left;
+  margin-top: 0.08em;
+  margin-right: 0.06em;
+  font-size: 3em;
+  font-weight: 600;
+  line-height: 0.82;
+  color: var(--color-primary);
+}
+
+/* ---------------------------------------------------------------- 正文里此前被净化器吃掉的构件
+ * 白名单已放开，这一节负责把它们**画出来**（图注、术语表、折叠小节、标记、任务列表）。
+ */
+.prose-content figure {
+  margin: 1.5rem 0;
+}
+
+.prose-content figure img {
+  display: block;
+  margin: 0 auto;
+}
+
+.prose-content figcaption {
+  margin-top: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--color-fg-muted);
+  text-align: center;
+}
+
+.prose-content dl {
+  margin: 1rem 0 1.15rem;
+}
+
+.prose-content dt {
+  font-weight: 600;
+}
+
+.prose-content dd {
+  margin: 0 0 0.75rem 1.25rem;
+  color: var(--color-fg-muted);
+}
+
+.prose-content details {
+  margin: 1.25rem 0;
+  padding: 0.6rem 0.9rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-control);
+}
+
+.prose-content summary {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.prose-content details[open] > summary {
+  margin-bottom: 0.5rem;
+}
+
+.prose-content mark {
+  padding: 0.05em 0.25em;
+  color: inherit;
+  background: var(--color-warning-soft);
+  border-radius: 3px;
+}
+
+/* 任务列表：复选框已经表达了"是否完成"，再把项目符号画一遍就是噪声 */
+.prose-content li:has(> input[type='checkbox']) {
+  list-style: none;
+  margin-left: -1.2rem;
+}
+
+.prose-content input[type='checkbox'] {
+  margin-right: 0.45rem;
+  vertical-align: middle;
+  accent-color: var(--color-primary);
+}
+
 /* ---------------------------------------------------------------- 提示块（callout）
  * 前台正文与编辑器内共用同一套规则（编辑器内容在 .ProseMirror 下）。
  * 四类语义色全部走令牌，深浅色与自选配色自动跟随。
@@ -487,12 +675,25 @@ a {
 
   main,
   .prose-content,
+  .fb-page-shell,
   .max-w-read,
   .max-w-wide,
   .pb-16 {
     width: auto !important;
     max-width: none !important;
     padding: 0 !important;
+  }
+
+  /* 刊头保留标题与署名，按钮与阅读设置在纸上没有意义 */
+  .masthead__tools,
+  .reading-settings {
+    display: none !important;
+  }
+
+  /* 小节标题不要落在页面末尾、内容跑到下一页 */
+  .prose--editorial h2,
+  .prose--editorial h3 {
+    break-after: avoid-page;
   }
 
   .prose-content {

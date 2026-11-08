@@ -83,6 +83,17 @@ def is_site_scope_bypassed() -> bool:
     return _bypass_site_scope.get()
 
 
+def site_condition(model: Any):
+    """当前站点的 SQLAlchemy 过滤条件；无站点上下文 / 模型未隔离时返回 ``None``。
+
+    手写 ``select()`` 不会经过 ``CRUDBase`` 的自动站点收窄 —— 聚合、排行这类查询
+    必须显式带上它，否则多站点部署下会把别的站点数据算进来。
+    """
+    value = site_filter_value(model)
+    if value is None:
+        return None
+    return getattr(model, "site_id") == value
+
 def is_site_scoped_model(model: Any) -> bool:
     """模型是否参与站点隔离（有 ``site_id`` 列且不在全局表清单里）"""
     table = getattr(model, "__tablename__", None)

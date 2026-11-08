@@ -1,17 +1,19 @@
 """
 SQLAlchemy 模型定义 - User
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 23:12:16
+生成时间：2026-11-09 17:46:21
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 
-# 提前导入 UserRole 以确保 user_role_assignments 表在 User.roles relationship 解析前已注册到 Base.metadata
-import shared.models.rbac.user_role  # noqa: F401
-import shared.models.rbac.user_group_member  # noqa: F401  确保 user_group_members 表在 relationship 解析前注册
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 from shared.utils.crypto import EncryptedField
+import shared.models.rbac.permission_group  # noqa: F401
+import shared.models.rbac.role  # noqa: F401
+import shared.models.rbac.user_group_member  # noqa: F401
+import shared.models.rbac.user_role  # noqa: F401
+
 
 
 class User(Base):
@@ -20,8 +22,8 @@ class User(Base):
 
 
     __table_args__ = (
-        Index('idx_users_username', 'username', unique=True),
-        Index('idx_users_email', 'email', unique=True),
+        UniqueConstraint('username', name='idx_users_username'),
+        UniqueConstraint('email', name='idx_users_email'),
         Index('idx_users_is_active', 'is_active'),
         Index('idx_users_vip_level', 'vip_level'),
         Index('idx_users_date_joined', 'date_joined'),
@@ -53,6 +55,9 @@ class User(Base):
     is_active = Column(Boolean, default=True, doc='是否激活')
 
 
+    is_email_verified = Column(Boolean, default=True, doc='邮箱是否已验证（OAuth 自助建号置 false，24 小时内须完成验证）')
+
+
     is_superuser = Column(Boolean, default=False, doc='是否为超级管理员')
 
 
@@ -79,9 +84,7 @@ class User(Base):
 
     # 关系定义
     roles = relationship('Role', secondary='user_role_assignments', back_populates='users', primaryjoin="User.id == user_role_assignments.c.user_id", secondaryjoin="user_role_assignments.c.role_id == Role.id")
-    permission_groups = relationship('PermissionGroup', secondary='user_group_members', back_populates='users',
-                                     primaryjoin="User.id == user_group_members.c.user_id",
-                                     secondaryjoin="user_group_members.c.group_id == PermissionGroup.id")
+    permission_groups = relationship('PermissionGroup', secondary='user_group_members', back_populates='users', primaryjoin="User.id == user_group_members.c.user_id", secondaryjoin="user_group_members.c.group_id == PermissionGroup.id")
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -99,6 +102,7 @@ class User(Base):
             'vip_level': self.vip_level,
             'vip_expires_at': self.vip_expires_at.isoformat() if self.vip_expires_at else None,
             'is_active': self.is_active,
+            'is_email_verified': self.is_email_verified,
             'is_superuser': self.is_superuser,
             'date_joined': self.date_joined.isoformat() if self.date_joined else None,
             'last_login_at': self.last_login_at.isoformat() if self.last_login_at else None,

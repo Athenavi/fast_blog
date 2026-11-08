@@ -58,8 +58,8 @@ class OrderCreateRequest(SchemaBase):
     from_cart: bool = Field(default=False, description="true=结算购物车")
     items: Optional[List[OrderItemRequest]] = Field(default=None, description="直接下单的商品明细")
     session_id: Optional[str] = Field(default=None, max_length=255, description="匿名购物车会话 ID")
-    shipping_amount: float = Field(default=0, ge=0)
-    discount_amount: float = Field(default=0, ge=0)
+    # 运费与折扣**不接受客户端传值**：金额只由服务端规则决定。
+    # 曾允许客户端传 discount_amount，把"折扣"设成商品总额即 0 元下单。
     payment_method: Optional[str] = Field(default=None, max_length=50)
     shipping_address: Optional[str] = Field(default=None, max_length=500)
     billing_address: Optional[str] = Field(default=None, max_length=500)

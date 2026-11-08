@@ -83,6 +83,9 @@ class PaymentGatewayPlugin(BasePlugin):
 
         Returns:
             dict: {verified, order_id, transaction_id, amount, status}
+
+        ``amount`` **必填**（单位：分）：核心服务会拿它与本地订单比对，
+        缺失时无法证明"付的是这单的钱"，只记录告警、不做金额校验。
         """
         if provider == "alipay":
             return self._verify_alipay(payload)

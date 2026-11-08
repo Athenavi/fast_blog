@@ -397,6 +397,20 @@ class TaxConfigService:
 
 
 # ---------------------------------------------------------------- 发起支付 / 回调
+def gateway_amount_cents(result: dict) -> Optional[int]:
+    """插件 ``verify_callback`` 上报的实付金额（统一为"分"）；缺失/非法返回 None。
+
+    金额必须与本地订单比对：验签只能证明"这笔回调是真的"，不能证明"付的是这单的钱"。
+    """
+    raw = (result or {}).get("amount")
+    if raw is None:
+        return None
+    try:
+        return int(float(raw))
+    except (TypeError, ValueError):
+        return None
+
+
 class PaymentFlowService:
     """支付流程：委托支付插件发起支付、处理网关回调
 
@@ -463,22 +477,64 @@ class PaymentFlowService:
         order_id = result.get("order_id")
         status = result.get("status") or "succeeded"
         transaction_id = result.get("transaction_id")
+        paid_cents = gateway_amount_cents(result)
+        if status == "succeeded" and paid_cents is None:
+            # 插件契约要求返回 amount（单位：分）。没有金额就无法证明"付的是这单的钱"。
+            logger.warning(
+                "支付插件未上报金额，无法与订单比对：provider=%s order=%s",
+                provider, order_id,
+            )
+
         row = (
             await payment_transaction_crud.get_by(db, order_id=order_id) if order_id else None
         )
+        updated = False
         if row is None:
-            logger.warning("支付回调找不到对应订单: provider=%s order_id=%s", provider, order_id)
-            return {"verified": True, "provider": provider, "order_id": order_id, "updated": False}
-        data: dict = {"status": status, "updated_at": datetime.now()}
-        if transaction_id:
-            data["transaction_id"] = transaction_id
-        await payment_transaction_crud.update(db, row, data)
+            logger.warning("支付回调未找到财务流水: provider=%s order_id=%s", provider, order_id)
+        else:
+            if (
+                status == "succeeded"
+                and paid_cents is not None
+                and row.amount is not None
+                and abs(float(row.amount) * 100 - paid_cents) > 1
+            ):
+                logger.error(
+                    "支付回调金额与订单不一致：order=%s 本地=%s 元 网关=%s 分",
+                    order_id, row.amount, paid_cents,
+                )
+                return {
+                    "verified": True, "provider": provider, "order_id": order_id,
+                    "updated": False, "amount_mismatch": True,
+                }
+            data: dict = {"status": status, "updated_at": datetime.now()}
+            if transaction_id:
+                data["transaction_id"] = transaction_id
+            await payment_transaction_crud.update(db, row, data)
+            updated = True
+
+        # 商城订单与财务流水是两张表：回调同时结算商城订单（内部按订单号、状态机与金额校验，
+        # 幂等；找不到对应订单时是无操作）。
+        order_settled = False
+        if order_id:
+            from src.api.v3.modules.commerce.shop.service import shop_service
+
+            try:
+                order_settled = await shop_service.settle_paid_order(
+                    db,
+                    order_number=str(order_id),
+                    paid_cents=paid_cents,
+                    transaction_id=transaction_id,
+                )
+            except Exception:  # noqa: BLE001 - 结算失败不应让网关重试整笔回调
+                logger.exception("结算商城订单失败 order=%s", order_id)
+
         return {
             "verified": True,
             "provider": provider,
             "order_id": order_id,
             "status": status,
-            "updated": True,
+            "updated": updated,
+            "order_settled": order_settled,
         }
 
 

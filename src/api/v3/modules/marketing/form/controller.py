@@ -23,13 +23,14 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 
 from shared.models.form import Form, FormField
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession
+from src.api.v3.core.limits import ip_rate_limit
 from src.api.v3.core.exceptions import NotFoundError
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
@@ -190,8 +191,12 @@ async def public_submit(
     payload: FormPublicSubmitRequest,
     request: Request,
     db: DBSession,
+    _rl=Depends(ip_rate_limit("form.submit", limit=10)),
 ) -> dict:
-    ip = request.client.host if request.client else "unknown"
+    # 必须取**真实客户端 IP**：nginx 反代后 `request.client.host` 永远是对端代理地址
+    from shared.utils.client_ip import get_client_ip
+
+    ip = get_client_ip(request)
     ua = request.headers.get("user-agent", "")
     return resp.success(
         await form_service.public_submit(db, slug, payload, ip=ip, user_agent=ua), msg="提交成功"

@@ -25,11 +25,12 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel
 from src.api.v3.core.deps import AuthControl, CurrentUser, DBSession, OptionalUser
+from src.api.v3.core.limits import ip_rate_limit
 from src.api.v3.core.permission import codes
 from src.api.v3.core.router_class import OperationLogRoute
 from src.api.v3.modules.analytics.tracking.schema import (
@@ -59,6 +60,7 @@ async def track_page_view(
     request: Request,
     db: DBSession,
     user: OptionalUser,
+    _rl=Depends(ip_rate_limit("track.page_view", limit=240)),
 ) -> dict:
     data = await tracking_service.record_page_view(
         db,
@@ -79,6 +81,7 @@ async def track_event(
     request: Request,
     db: DBSession,
     user: OptionalUser,
+    _rl=Depends(ip_rate_limit("track.event", limit=240)),
 ) -> dict:
     data = await tracking_service.record_event(
         db,
@@ -98,6 +101,7 @@ async def track_search(
     payload: SearchTrackRequest,
     db: DBSession,
     user: OptionalUser,
+    _rl=Depends(ip_rate_limit("track.search", limit=120)),
 ) -> dict:
     data = await tracking_service.record_search(
         db,
@@ -114,6 +118,7 @@ async def track_ad_impression(
     request: Request,
     db: DBSession,
     user: OptionalUser,
+    _rl=Depends(ip_rate_limit("track.ad_impression", limit=240)),
 ) -> dict:
     data = await tracking_service.record_ad_impression(
         db,
@@ -132,6 +137,7 @@ async def track_ad_click(
     request: Request,
     db: DBSession,
     user: OptionalUser,
+    _rl=Depends(ip_rate_limit("track.ad_click", limit=120)),
 ) -> dict:
     data = await tracking_service.record_ad_click(
         db,

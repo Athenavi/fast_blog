@@ -16,6 +16,7 @@ from shared.models.comment.comment import Comment
 from shared.models.media.media import Media
 from shared.models.user import User
 from src.api.v3.core.logger import get_logger
+from src.api.v3.core.tenancy import site_condition
 
 logger = get_logger("dashboard")
 
@@ -33,6 +34,9 @@ class DashboardService:
         stmt = select(func.count()).select_from(model)
         for condition in conditions:
             stmt = stmt.where(condition)
+        scope = site_condition(model)
+        if scope is not None:
+            stmt = stmt.where(scope)
         return int((await db.execute(stmt)).scalar() or 0)
 
     async def overview(self, db: AsyncSession) -> dict:
@@ -48,12 +52,15 @@ class DashboardService:
         total_comments = await self._count(db, Comment)
         pending_comments = await self._count(db, Comment, Comment.is_approved.is_(False))
 
-        views = (
-                    await db.execute(select(func.coalesce(func.sum(Article.views), 0)).where(active))
-                ).scalar() or 0
-        likes = (
-                    await db.execute(select(func.coalesce(func.sum(Article.likes), 0)).where(active))
-                ).scalar() or 0
+        article_scope = site_condition(Article)
+        stmt = select(func.coalesce(func.sum(Article.views), 0)).where(active)
+        if article_scope is not None:
+            stmt = stmt.where(article_scope)
+        views = (await db.execute(stmt)).scalar() or 0
+        stmt = select(func.coalesce(func.sum(Article.likes), 0)).where(active)
+        if article_scope is not None:
+            stmt = stmt.where(article_scope)
+        likes = (await db.execute(stmt)).scalar() or 0
 
         return {
             "total_articles": total_articles,
@@ -80,6 +87,9 @@ class DashboardService:
                 .where(date_column >= since, *conditions)
                 .group_by(func.date(date_column))
             )
+            scope = site_condition(model)
+            if scope is not None:
+                stmt = stmt.where(scope)
             return {
                 str(day): int(count or 0)
                 for day, count in (await db.execute(stmt)).all()
@@ -104,9 +114,13 @@ class DashboardService:
         return {"days": days, "points": points}
 
     async def recent_articles(self, db: AsyncSession, *, limit: int = 5) -> List[dict]:
+        conditions = [Article.status != STATUS_DELETED]
+        scope = site_condition(Article)
+        if scope is not None:
+            conditions.append(scope)
         stmt = (
             select(Article)
-            .where(Article.status != STATUS_DELETED)
+            .where(*conditions)
             .order_by(Article.created_at.desc(), Article.id.desc())
             .limit(max(1, min(limit, 50)))
         )
@@ -124,7 +138,11 @@ class DashboardService:
         ]
 
     async def recent_comments(self, db: AsyncSession, *, limit: int = 5) -> List[dict]:
-        stmt = select(Comment).order_by(Comment.created_at.desc(), Comment.id.desc()).limit(
+        comment_scope = site_condition(Comment)
+        stmt = select(Comment)
+        if comment_scope is not None:
+            stmt = stmt.where(comment_scope)
+        stmt = stmt.order_by(Comment.created_at.desc(), Comment.id.desc()).limit(
             max(1, min(limit, 50))
         )
         return [
@@ -143,7 +161,11 @@ class DashboardService:
         self, db: AsyncSession, *, limit: int = 10, days: Optional[int] = None
     ) -> List[dict]:
         """按浏览量排行（可按最近 N 天过滤创建时间）"""
-        stmt = select(Article).where(Article.status == STATUS_PUBLISHED)
+        conditions = [Article.status == STATUS_PUBLISHED]
+        scope = site_condition(Article)
+        if scope is not None:
+            conditions.append(scope)
+        stmt = select(Article).where(*conditions)
         if days:
             days = max(1, min(int(days), MAX_TREND_DAYS))
             stmt = stmt.where(Article.created_at >= datetime.now() - timedelta(days=days))

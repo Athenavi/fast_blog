@@ -4,7 +4,7 @@
 一致），避免在异步会话中触发 relationship 的懒加载。
 """
 
-from typing import List, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,8 +13,16 @@ from shared.models.rbac.capability import Capability
 from shared.models.rbac.role import Role
 from shared.models.rbac.role_capability import RoleCapability
 from shared.models.rbac.user_role import UserRole
-from src.api.v3.core.exceptions import BadRequestError, ConflictError, NotFoundError
+from src.api.v3.core.exceptions import (
+    BadRequestError,
+    ConflictError,
+    ForbiddenError,
+    NotFoundError,
+)
 from src.api.v3.core.logger import get_logger
+from shared.services.security.rbac_service import rbac_service
+from src.api.v3.core.permission.constants import WILDCARD_CODES
+from src.api.v3.core.permission.guard import actor_codes, is_superuser
 from src.api.v3.core.permission.invalidate import invalidate_all
 from src.api.v3.modules.system.role.crud import role_crud
 from src.api.v3.modules.system.role.schema import RoleCreate, RoleUpdate
@@ -82,9 +90,49 @@ class RoleService:
     async def get_role_out(self, db: AsyncSession, role_id: int) -> dict:
         return await self._to_out(db, await self.get_role(db, role_id))
 
-    async def create_role(self, db: AsyncSession, payload: RoleCreate) -> dict:
+    async def _assert_role_within_actor(
+        self, db: AsyncSession, role: Role, scope_user: Any
+    ) -> None:
+        """角色的**现有**有效权限必须都在发起者权限之内。
+
+        用于改 / 删 / 覆盖一个角色：低权限者不能篡改或剥离高权限角色。
+        """
+        if scope_user is None or is_superuser(scope_user):
+            return
+        existing = await rbac_service.get_role_codes_set(db, [role.id])
+        if existing & WILDCARD_CODES:
+            raise ForbiddenError("该角色包含通配权限，只有超级管理员可以修改")
+        owned = await actor_codes(db, scope_user)
+        if owned & WILDCARD_CODES:
+            return
+        overflow = sorted(existing - owned)
+        if overflow:
+            raise ForbiddenError("该角色包含超出你自身权限的权限码：" + "、".join(overflow))
+
+    async def _assert_codes_within_actor(
+        self, db: AsyncSession, codes, scope_user: Any, *, what: str = "角色权限"
+    ) -> None:
+        if scope_user is None or is_superuser(scope_user):
+            return
+        owned = await actor_codes(db, scope_user)
+        if owned & WILDCARD_CODES:
+            return
+        overflow = sorted({str(code).strip() for code in codes if str(code).strip()} - owned)
+        if overflow:
+            raise ForbiddenError(f"不能授予超出自身权限的{what}：" + "、".join(overflow))
+
+    async def create_role(
+        self, db: AsyncSession, payload: RoleCreate, *, scope_user: Any = None
+    ) -> dict:
         if await role_crud.exists(db, slug=payload.slug):
             raise ConflictError(f"角色标识 {payload.slug} 已存在")
+        if scope_user is not None:
+            await self._assert_codes_within_actor(db, payload.permission_codes or [], scope_user)
+            if payload.parent_id is not None:
+                parent_codes = await rbac_service.get_role_codes_set(db, [payload.parent_id])
+                await self._assert_codes_within_actor(
+                    db, parent_codes, scope_user, what="父角色权限"
+                )
 
         role = await role_crud.create(
             db,
@@ -98,15 +146,25 @@ class RoleService:
             },
         )
         if payload.permission_codes:
-            await self.set_permissions(db, role.id, payload.permission_codes)
+            await self.set_permissions(
+                db, role.id, payload.permission_codes, scope_user=scope_user
+            )
         await invalidate_all()
         return await self._to_out(db, role)
 
-    async def update_role(self, db: AsyncSession, role_id: int, payload: RoleUpdate) -> dict:
+    async def update_role(
+        self, db: AsyncSession, role_id: int, payload: RoleUpdate, *, scope_user: Any = None
+    ) -> dict:
         role = await self.get_role(db, role_id)
+        if scope_user is not None:
+            await self._assert_role_within_actor(db, role, scope_user)
         data = payload.model_dump(exclude_unset=True)
         if data.get("parent_id") == role_id:
             raise BadRequestError("父角色不能是自己")
+        if scope_user is not None and data.get("parent_id") is not None:
+            # 换父角色会继承它的权限，同样不能超过发起者
+            parent_codes = await rbac_service.get_role_codes_set(db, [data["parent_id"]])
+            await self._assert_codes_within_actor(db, parent_codes, scope_user, what="父角色权限")
         if role.is_system and "name" in data and not data["name"]:
             raise BadRequestError("系统角色的名称不能为空")
         role = await role_crud.update(db, role, data)
@@ -114,8 +172,12 @@ class RoleService:
         await invalidate_all()
         return await self._to_out(db, role)
 
-    async def delete_role(self, db: AsyncSession, role_id: int) -> None:
+    async def delete_role(
+        self, db: AsyncSession, role_id: int, *, scope_user: Any = None
+    ) -> None:
         role = await self.get_role(db, role_id)
+        if scope_user is not None:
+            await self._assert_role_within_actor(db, role, scope_user)
         if role.is_system:
             raise BadRequestError("系统内置角色不可删除")
 
@@ -145,10 +207,19 @@ class RoleService:
         return list((await db.execute(stmt)).scalars().all())
 
     async def set_permissions(
-        self, db: AsyncSession, role_id: int, codes: Sequence[str]
+        self,
+        db: AsyncSession,
+        role_id: int,
+        codes: Sequence[str],
+        *,
+        scope_user: Any = None,
     ) -> List[str]:
         """全量覆盖角色权限（未知权限码直接报错，避免静默丢权限）"""
         role = await self.get_role(db, role_id)
+        if scope_user is not None:
+            # 既要能"改"这个角色（现有权限 ⊆ 自身），也只能授出自己有的权限
+            await self._assert_role_within_actor(db, role, scope_user)
+            await self._assert_codes_within_actor(db, codes, scope_user)
         target_codes = {code.strip() for code in codes if code and code.strip()}
 
         caps: list[Capability] = []

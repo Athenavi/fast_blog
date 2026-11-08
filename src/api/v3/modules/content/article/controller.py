@@ -354,9 +354,11 @@ async def list_preview_tokens(
     article_id: int,
     db: DBSession,
     _current: CurrentUser,
-    _perm=AuthControl(codes.ARTICLE_VIEW),
+    _perm=AuthControl(codes.ARTICLE_EDIT),
 ) -> dict:
-    return resp.success(await article_preview_service.list_tokens(db, article_id))
+    return resp.success(
+        await article_preview_service.list_tokens(db, article_id, user=_current)
+    )
 
 
 @router.post("/preview-token/cleanup", response_model=ResponseModel, summary="清理过期 / 已失效的预览令牌")
@@ -397,7 +399,9 @@ async def compare_article_revisions(
     _perm=AuthControl(codes.ARTICLE_VIEW),
 ) -> dict:
     return resp.success(
-        await article_service.diff_revisions(db, from_revision, to_revision)
+        await article_service.diff_revisions(
+            db, from_revision, to_revision, article_id=article_id, scope_user=_current
+        )
     )
 
 
@@ -414,7 +418,7 @@ async def list_article_revisions(
 ) -> dict:
     return resp.success(
         await article_service.list_revisions(
-            db, article_id, page=page, page_size=page_size
+            db, article_id, page=page, page_size=page_size, scope_user=_current
         )
     )
 
@@ -431,7 +435,11 @@ async def get_article_revision(
     _current: CurrentUser,
     _perm=AuthControl(codes.ARTICLE_VIEW),
 ) -> dict:
-    return resp.success(await article_service.get_revision(db, revision_id))
+    return resp.success(
+        await article_service.get_revision(
+            db, revision_id, article_id=article_id, scope_user=_current
+        )
+    )
 
 
 @router.post(
@@ -453,7 +461,11 @@ async def rollback_article_revision(
     """
     return resp.success(
         await article_service.rollback_revision(
-            db, article_id, revision_id, author_id=getattr(_current, "id", None)
+            db,
+            article_id,
+            revision_id,
+            author_id=getattr(_current, "id", None),
+            scope_user=_current,
         ),
         msg="已回滚到指定修订",
     )
