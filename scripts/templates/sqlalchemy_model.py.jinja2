@@ -5,7 +5,19 @@ SQLAlchemy 模型定义 - {{ model_name }}
 """
 
 {# 构建导入列表 #}
-{% set core_imports = ['Column', 'Integer', 'BigInteger', 'String', 'Text', 'Boolean', 'DateTime'] %}
+{# Integer 只在模型真的用到时导入（否则 ruff F401）。这里**从 classes 自行推导**，
+   不依赖调用方是否记得传 has_integer —— 少传一个变量就生成出 NameError 的模型。 #}
+{% set has_integer_ns = namespace(value=false) %}
+{% for cname, cdef in classes.items() %}
+    {% for fname, fdef in cdef.fields.items() %}
+        {% if fdef.get('type') == 'integer' %}{% set has_integer_ns.value = true %}{% endif %}
+    {% endfor %}
+{% endfor %}
+{% set core_imports = ['Column'] %}
+{% if has_integer_ns.value %}
+    {% set _ = core_imports.append('Integer') %}
+{% endif %}
+{% set _ = core_imports.extend(['BigInteger', 'String', 'Text', 'Boolean', 'DateTime']) %}
 {% if has_numeric or has_decimal %}
     {% set _ = core_imports.append('Numeric') %}
 {% endif %}

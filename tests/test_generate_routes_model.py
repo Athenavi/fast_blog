@@ -94,6 +94,7 @@ def _render(tmp_path) -> str:  # noqa: ANN001 - pytest tmp_path
         has_datetime_default=False,
         has_numeric=False,
         has_relationships=False,
+        has_integer=any(field.get("type") == "integer" for field in fields.values()),
         has_encrypted=any(field.get("encrypted") for field in fields.values()),
         relationship_imports=generator._relationship_imports(
             MODEL_NAME, model_def, generator.models

@@ -21,10 +21,9 @@ from typing import List, Optional, Tuple
 from PIL import Image
 
 from src.utils.image.limits import install_image_limits, open_image_checked
+from src.api.v3.core.logger import get_logger
 
 install_image_limits()
-
-from src.api.v3.core.logger import get_logger
 
 logger = get_logger("content.media.variants")
 

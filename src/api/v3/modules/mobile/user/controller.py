@@ -11,7 +11,7 @@
 > ``/public/{username}`` 为两段静态前缀，与它们互不遮蔽。
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from src.api.v3.common import response as resp
 from src.api.v3.common.response import ResponseModel

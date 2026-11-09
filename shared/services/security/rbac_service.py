@@ -57,7 +57,7 @@ class RBACService:
             .join(RoleCapability, RoleCapability.capability_id == Capability.id)
             .where(
                 RoleCapability.role_id.in_(resolved),
-                Capability.is_active == True,
+                Capability.is_active.is_(True),
             )
             .distinct()
         )

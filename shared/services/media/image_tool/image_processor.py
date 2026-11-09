@@ -8,12 +8,10 @@ import io
 
 from typing import Dict, Any, Tuple
 
-from PIL import Image, ImageOps, ExifTags, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps, ExifTags
 
 from shared.logging import default_logger as logger
 from src.utils.image.limits import install_image_limits, open_image_checked
-
-install_image_limits()
 
 # MIME 类型映射
 MIME_TYPES = {
@@ -40,8 +38,7 @@ FILTERS = {
 # 支持的图片格式
 SUPPORTED_FORMATS = {'JPEG', 'PNG', 'WEBP', 'GIF', 'BMP'}
 
-# 从 PIL 导入增强和滤镜模块（避免重复导入）
-from PIL import ImageEnhance
+install_image_limits()
 
 
 class ImageProcessor:

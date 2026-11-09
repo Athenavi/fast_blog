@@ -1,10 +1,10 @@
 """
 SQLAlchemy 模型定义 - User
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-11-09 17:46:21
+生成时间：2026-11-09 18:35:24
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index, UniqueConstraint
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index, UniqueConstraint
 from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）

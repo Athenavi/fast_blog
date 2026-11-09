@@ -7,7 +7,6 @@ import hmac
 import json
 from datetime import datetime
 
-import httpx
 from sqlalchemy import select
 
 from shared.models.webhook import Webhook, WebhookDelivery

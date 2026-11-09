@@ -11,7 +11,7 @@
 import argparse
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import yaml
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
@@ -228,6 +228,7 @@ class RouteGenerator:
                     'custom_methods': custom_methods,
                     'table_has_indexes': bool(model_def.get('indexes')),
                     'table_has_unique_constraints': bool(model_def.get('unique_constraints')),
+                    'has_integer': any(f.get('type') == 'integer' for f in fields.values()),
                     'has_encrypted': any(f.get('encrypted') for f in fields.values()),
                     'relationship_imports': self._relationship_imports(
                         model_name, model_def, self.models
@@ -369,6 +370,7 @@ class RouteGenerator:
                     table_prefix=table_prefix,
                     table_has_indexes=bool(indexes),
                     table_has_unique_constraints=bool(unique_constraints),
+                    has_integer=any(f.get('type') == 'integer' for f in fields.values()),
                     has_encrypted=any(f.get('encrypted') for f in fields.values()),
                     relationship_imports=self._relationship_imports(
                         model_name, model_def, self.models
