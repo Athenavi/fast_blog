@@ -33,7 +33,7 @@
     "@nuxtjs/i18n": "^10.6.0",
     "@pinia/nuxt": "^1.0.2",
     "@tiptap/extension-code-block-lowlight": "^3.31.3",
-    "@tiptap/extension-highlight": "^3.31.3",
+    "@tiptap/extension-highlight": "^3.33.1",
     "@tiptap/extension-image": "^3.31.3",
     "@tiptap/extension-link": "^3.31.3",
     "@tiptap/extension-list": "^3.31.3",
