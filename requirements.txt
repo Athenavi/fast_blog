@@ -55,7 +55,7 @@ python-dotenv==1.2.2
 apscheduler==3.11.2
 
 # Forms
-wtforms==3.2.2
+wtforms==3.3.2
 
 # Validation
 pydantic==2.13.4
