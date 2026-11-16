@@ -44,7 +44,7 @@
     "@tiptap/extensions": "^3.31.3",
     "@tiptap/pm": "^3.31.3",
     "@tiptap/starter-kit": "^3.31.3",
-    "@tiptap/vue-3": "^3.31.3",
+    "@tiptap/vue-3": "^3.33.1",
     "@vite-pwa/nuxt": "^1.1.1",
     "@vueuse/core": "^14.3.0",
     "axios": "^1.16.1",
